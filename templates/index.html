@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GWizard Optimize - Speeds & Feeds</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Speeds & Feeds Engine</h1>
+            <p>Dynamic Optimization Calculator</p>
+            
+            <div class="stat-card" style="grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); padding-bottom: 3rem; position: relative;">
+                <div class="stat-label" style="color: var(--primary);">Recommended Max Cut (DOC &times; WOC)</div>
+                <div class="stat-value" style="font-size: 1.5rem;"><span id="recOutput">-- / --</span> <span style="font-size:1rem; opacity:0.7" class="unit-lbl">in</span></div>
+                <div style="font-size:0.8rem; color:var(--text-muted); text-align:center; margin-top:0.25rem;">Dynamically clamped by Deflection & HP</div>
+                <button onclick="applyRecommendations()" style="position: absolute; bottom: 0.75rem; background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s;">Auto-Set Slider Dials</button>
+            </div>
+            
+            <div class="unit-toggle">
+                <div class="toggle-track" onclick="toggleUnit()">
+                    <div id="toggle-knob" class="toggle-knob"></div>
+                    <span class="toggle-label imp-label">Imperial</span>
+                    <span class="toggle-label met-label">Metric</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid-layout">
+            <!-- INPUTS PANEL -->
+            <section class="glass-panel inputs-panel">
+                <h2>Parameters</h2>
+                
+                <div class="input-group">
+                    <label for="family">Material Family</label>
+                    <select id="family" onchange="updateAlloys(); calculate()"></select>
+                </div>
+
+                <div class="input-group">
+                    <label for="alloy">Specific Alloy</label>
+                    <select id="alloy" onchange="calculate()"></select>
+                </div>
+
+                <div class="input-group">
+                    <label for="tool">Tool Category</label>
+                    <select id="tool" onchange="calculate()"></select>
+                </div>
+
+                <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
+                    <div class="input-group" style="margin:0;">
+                        <label for="geometry">Geometry</label>
+                        <select id="geometry" onchange="updateGeometryDisplay(); calculate()">
+                            <option value="Square">Square Endmill</option>
+                            <option value="Ball">Ball Endmill</option>
+                            <option value="Radiused">Bullnose / Radiused</option>
+                            <option value="Drill">Standard Twist Drill</option>
+                            <option value="Spot Drill">Spot Drill (90/120 Degree)</option>
+                            <option value="Parabolic">Parabolic Deep Drill</option>
+                            <option value="Rougher">Rougher (Corncob)</option>
+                            <option value="Indexable Mill">Indexable Mill</option>
+                            <option value="T-Slot">T-Slot / Woodruff</option>
+                            <option value="Dovetail">Dovetail Cutter</option>
+                            <option value="Keyseat">Keyseat Cutter</option>
+                            <option value="Lollipop">Lollipop</option>
+                            <option value="V-Bit">V-Bit / Chamfer</option>
+                            <option value="Engraving">Engraving Tool</option>
+                            <option value="Thread Mill">Thread Mill</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                        <label for="operation">Operation</label>
+                        <select id="operation" onchange="calculate()">
+                            <option value="Roughing">Standard Roughing</option>
+                            <option value="Adaptive">Adaptive (High Speed/Trochoidal)</option>
+                            <option value="Finishing">Finishing</option>
+                            <option value="Slotting">Slotting (Full radial)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="isCarbide" checked onchange="calculate()">
+                    <label for="isCarbide">Tool is Solid Carbide (Stiffer)</label>
+                </div>
+
+                <div class="input-group">
+                    <label for="maxRpm">Machine Max RPM</label>
+                    <input type="number" id="maxRpm" value="16000" oninput="calculate()" style="width:100%; border:1px solid rgba(255,255,255,0.2); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="aggressiveness">Tortoise to Hare (Aggressiveness)</label>
+                        <span id="aggrVol">50%</span>
+                    </div>
+                    <input type="range" id="aggressiveness" min="0" max="100" step="1" value="50" oninput="document.getElementById('aggrVol').innerText = this.value + '%'; calculate()">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                        <span>Conservative</span>
+                        <span>Aggressive</span>
+                    </div>
+                </div>
+
+                <div class="input-group" id="cornerRadiusGroup" style="display: none;">
+                    <label for="cornerRadius">Corner Radius (<span class="unit-lbl">in</span>)</label>
+                    <input type="number" id="cornerRadius" step="any" value="0.030" oninput="calculate()">
+                </div>
+                
+                <div class="input-group combo-group" id="shankGroup" style="display: none;">
+                    <div class="slider-header">
+                        <label for="shankDiameter">Shank Diameter (<span class="unit-lbl">in</span>)</label>
+                    </div>
+                    <input type="number" id="shankDiameter" step="any" list="diameters_list" value="0.25" oninput="calculate()">
+                </div>
+
+                <div class="input-group" id="neckGroup" style="display: none;">
+                    <label for="neckDiameter">Neck Diameter (<span class="unit-lbl">in</span>)</label>
+                    <input type="number" id="neckDiameter" step="any" value="0.125" oninput="calculate()">
+                </div>
+
+                <div class="input-group" id="thicknessGroup" style="display: none;">
+                    <label for="cutterThickness">Cutter Thickness (<span class="unit-lbl">in</span>)</label>
+                    <input type="number" id="cutterThickness" step="any" value="0.125" oninput="calculate()">
+                </div>
+
+                <div class="input-group" id="fluteLengthGroup" style="display: block;">
+                    <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
+                    <input type="number" id="fluteLength" step="any" value="1.000" oninput="calculate()">
+                </div>
+
+                <div class="input-group combo-group">
+                    <div class="slider-header">
+                        <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
+                    </div>
+                    <input type="number" id="diameter" step="any" list="diameters_list" value="0.5" oninput="calculate()">
+                    <datalist id="diameters_list">
+                        <!-- Populated by JS -->
+                    </datalist>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="flutes">Flutes</label>
+                        <input type="number" id="flutes_val" value="4" class="inline-num" oninput="document.getElementById('flutes').value = this.value; calculate()">
+                    </div>
+                    <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="cutDepth_range">Axial Depth of Cut (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="cutDepth_val" step="0.001" value="0.250" class="inline-num" oninput="document.getElementById('cutDepth_range').value = this.value; calculate()">
+                    </div>
+                    <input type="range" id="cutDepth_range" min="0.001" max="2.0" step="0.001" value="0.25" oninput="document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="cutWidth_range">Radial Width of Cut (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="cutWidth_val" step="0.001" value="0.100" class="inline-num" oninput="document.getElementById('cutWidth_range').value = this.value; calculate()">
+                    </div>
+                    <input type="range" id="cutWidth_range" min="0.001" max="2.0" step="0.001" value="0.10" oninput="document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="stickout_range">Stickout (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="stickout_val" step="0.001" value="1.500" class="inline-num" oninput="document.getElementById('stickout_range').value = this.value; calculate()">
+                    </div>
+                    <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" oninput="document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                </div>
+            </section>
+
+            <!-- RESULTS PANEL -->
+            <section class="results-panel">
+                <div class="glass-panel result-card primary-card">
+                    <h3>Spindle Speed</h3>
+                    <div class="result-val"><span id="rpm">0</span> <span class="unit">RPM</span></div>
+                    <div class="sub-val">Surface Speed: <span id="sfm">0</span> <span class="sfm-lbl">SFM</span></div>
+                </div>
+
+                <div class="glass-panel result-card primary-card">
+                    <h3>Feedrate</h3>
+                    <div class="result-val"><span id="feedrate">0.0</span> <span class="feed-lbl">IPM</span></div>
+                    <div class="sub-val">Chipload: <span id="adj_ipt">0.000</span> (Base: <span id="base_ipt">0.0</span>)</div>
+                </div>
+
+                <div class="glass-panel result-card metric-card">
+                    <h3>Material Removal Rate</h3>
+                    <div class="result-val"><span id="mrr">0.00</span> <span class="mrr-lbl">in³/min</span></div>
+                </div>
+
+                <div class="glass-panel result-card metric-card" id="deflectionCard">
+                    <h3>Tool Deflection</h3>
+                    <div class="result-val"><span id="deflection">0.00000</span> <span class="unit-lbl">in</span></div>
+                    <div class="sub-val" id="deflectionWarning">Safe Limit: < <span id="defLimit">0.0010</span></div>
+                </div>
+                
+                <div class="glass-panel result-card primary-card vertical-card" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-around;">
+                    <div>
+                        <h3>Ramp Angle</h3>
+                        <div class="result-val" style="font-size: 2rem;"><span id="ramp_angle">0</span>°</div>
+                    </div>
+                    <div>
+                        <h3>Ramp Feed</h3>
+                        <div class="result-val" style="font-size: 2rem;"><span id="ramp_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
+                    </div>
+                    <div>
+                        <h3>Plunge Feed</h3>
+                        <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let fullAlloys = [];
+        let isMetric = false;
+        
+        const SIZES_IMP = [
+            {v: 0.03125, l: "1/32\""},
+            {v: 0.0625, l: "1/16\""},
+            {v: 0.125, l: "1/8\""},
+            {v: 0.1875, l: "3/16\""},
+            {v: 0.25, l: "1/4\""},
+            {v: 0.3125, l: "5/16\""},
+            {v: 0.375, l: "3/8\""},
+            {v: 0.5, l: "1/2\""},
+            {v: 0.625, l: "5/8\""},
+            {v: 0.75, l: "3/4\""},
+            {v: 1.0, l: "1\""}
+        ];
+        
+        const SIZES_MET = [
+            {v: 1.0, l: "1 mm"},
+            {v: 2.0, l: "2 mm"},
+            {v: 3.0, l: "3 mm"},
+            {v: 4.0, l: "4 mm"},
+            {v: 5.0, l: "5 mm"},
+            {v: 6.0, l: "6 mm"},
+            {v: 8.0, l: "8 mm"},
+            {v: 10.0, l: "10 mm"},
+            {v: 12.0, l: "12 mm"},
+            {v: 16.0, l: "16 mm"},
+            {v: 20.0, l: "20 mm"},
+            {v: 25.0, l: "25 mm"}
+        ];
+
+        async function init() {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            
+            const familySelect = document.getElementById('family');
+            data.families.forEach(f => {
+                let opt = document.createElement('option');
+                opt.value = f; opt.innerText = f;
+                if(f.includes("Aluminum - Wrought")) opt.selected = true;
+                familySelect.appendChild(opt);
+            });
+
+            const toolSelect = document.getElementById('tool');
+            data.tools.forEach(t => {
+                let opt = document.createElement('option');
+                opt.value = t; opt.innerText = t;
+                if(t.includes("Carbide Endmill")) opt.selected = true;
+                toolSelect.appendChild(opt);
+            });
+
+            fullAlloys = data.alloys;
+            updateAlloys();
+            buildDatalist();
+            updateGeometryDisplay();
+            calculate();
+        }
+
+        function updateGeometryDisplay() {
+            const geo = document.getElementById('geometry').value;
+            let showShank = geo === 'T-Slot' || geo === 'Lollipop' || geo === 'Dovetail' || geo === 'Keyseat';
+            
+            document.getElementById('cornerRadiusGroup').style.display = geo === 'Radiused' ? 'block' : 'none';
+            document.getElementById('shankGroup').style.display = showShank ? 'block' : 'none';
+            document.getElementById('thicknessGroup').style.display = (geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail') ? 'block' : 'none';
+            document.getElementById('neckGroup').style.display = showShank ? 'block' : 'none';
+            
+            // Standard formatting fixes for UI
+            let flLabel = document.querySelector('label[for="fluteLength"]');
+            if(geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Lollipop') {
+                document.getElementById('fluteLengthGroup').style.display = 'none';
+            } else {
+                document.getElementById('fluteLengthGroup').style.display = 'block';
+            }
+        }
+        
+        let lastRecDoc = 0.0;
+        let lastRecWoc = 0.0;
+        
+        function applyRecommendations() {
+            if (lastRecDoc > 0) {
+                let rd = (isMetric ? lastRecDoc * 25.4 : lastRecDoc).toFixed(isMetric ? 1 : 3);
+                let rw = (isMetric ? lastRecWoc * 25.4 : lastRecWoc).toFixed(isMetric ? 1 : 3);
+                document.getElementById('cutDepth_range').value = rd;
+                document.getElementById('cutDepth_val').value = rd;
+                document.getElementById('cutWidth_range').value = rw;
+                document.getElementById('cutWidth_val').value = rw;
+                calculate();
+            }
+        }
+
+        function toggleUnit() {
+            isMetric = !isMetric;
+            const knob = document.getElementById('toggle-knob');
+            if(isMetric) knob.classList.add("metric-active");
+            else knob.classList.remove("metric-active");
+            
+            // Update labels
+            document.querySelectorAll('.unit-lbl').forEach(e => e.innerText = isMetric ? "mm" : "in");
+            document.querySelectorAll('.feed-lbl').forEach(e => e.innerText = isMetric ? "mm/min" : "IPM");
+            document.querySelectorAll('.mrr-lbl').forEach(e => e.innerText = isMetric ? "cm³/min" : "in³/min");
+            document.querySelectorAll('.sfm-lbl').forEach(e => e.innerText = isMetric ? "SMM" : "SFM");
+            document.getElementById('defLimit').innerText = isMetric ? "0.025" : "0.0010";
+            
+            // Adjust Sliders and Diameters bounds visually mapping directly
+            let diaInput = document.getElementById('diameter');
+            let dVal = parseFloat(diaInput.value);
+            diaInput.value = isMetric ? (dVal * 25.4).toFixed(1) : (dVal / 25.4).toFixed(3);
+            
+            let shankInput = document.getElementById('shankDiameter');
+            let sVal = parseFloat(shankInput.value);
+            shankInput.value = isMetric ? (sVal * 25.4).toFixed(1) : (sVal / 25.4).toFixed(3);
+            
+            let crInput = document.getElementById('cornerRadius');
+            let crVal = parseFloat(crInput.value);
+            crInput.value = isMetric ? (crVal * 25.4).toFixed(2) : (crVal / 25.4).toFixed(3);
+            
+            let cfps = isMetric ? 25.4 : 1.0;
+            ["cutDepth", "cutWidth", "stickout"].forEach(prefix => {
+                let range = document.getElementById(prefix + "_range");
+                let valNode = document.getElementById(prefix + "_val");
+                let oldVal = parseFloat(range.value);
+                
+                if(isMetric) {
+                    range.min = parseFloat(range.min) * 25.4;
+                    range.max = parseFloat(range.max) * 25.4;
+                    range.step = parseFloat(range.step) * 25;
+                    let v = (oldVal * 25.4).toFixed(1);
+                    range.value = v;
+                    valNode.value = v;
+                } else {
+                    range.min = parseFloat(range.min) / 25.4;
+                    range.max = parseFloat(range.max) / 25.4;
+                    range.step = parseFloat(range.step) / 25;
+                    let v = (oldVal / 25.4).toFixed(3);
+                    range.value = v;
+                    valNode.value = v;
+                }
+            });
+            
+            buildDatalist();
+            calculate();
+        }
+        
+        function buildDatalist() {
+            const list = document.getElementById('diameters_list');
+            list.innerHTML = '';
+            const arr = isMetric ? SIZES_MET : SIZES_IMP;
+            arr.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s.v; opt.innerText = s.l;
+                list.appendChild(opt);
+            });
+        }
+
+        function updateAlloys() {
+            const family = document.getElementById('family').value;
+            const alloySelect = document.getElementById('alloy');
+            alloySelect.innerHTML = '';
+            
+            const filtered = fullAlloys.filter(a => a.family === family);
+            filtered.forEach(a => {
+                let opt = document.createElement('option');
+                opt.value = a.alloy; 
+                opt.innerText = `${a.alloy} - ${a.condition}`;
+                if(a.alloy === "6061") opt.selected = true;
+                alloySelect.appendChild(opt);
+            });
+        }
+
+        function updateSlider(viewId, rangeId) {
+            const val = document.getElementById(rangeId).value;
+            document.getElementById(viewId).innerText = parseFloat(val).toFixed(isMetric ? 1 : 3);
+        }
+        function updateVal(id, val) {
+            document.getElementById(id).innerText = parseFloat(val);
+        }
+
+        let abortController = null;
+
+        async function calculate() {
+            if (abortController) abortController.abort();
+            abortController = new AbortController();
+
+            // Prepare Payload via Standard Conversion to Imperial Baseline 
+            let p_dia = parseFloat(document.getElementById('diameter').value) || 0.5;
+            let p_depth = parseFloat(document.getElementById('cutDepth_val').value) || 0.25;
+            let p_width = parseFloat(document.getElementById('cutWidth_val').value) || 0.1;
+            let p_stick = parseFloat(document.getElementById('stickout_val').value) || 1.5;
+            let p_shank = parseFloat(document.getElementById('shankDiameter').value) || p_dia;
+            let p_cr = parseFloat(document.getElementById('cornerRadius').value) || 0.0;
+            let p_thick = parseFloat(document.getElementById('cutterThickness')?.value) || 0.125;
+            let p_flute = parseFloat(document.getElementById('fluteLength')?.value) || 1.0;
+            let p_neck = parseFloat(document.getElementById('neckDiameter')?.value) || p_shank;
+            
+            if(isMetric) {
+                p_dia /= 25.4;
+                p_depth /= 25.4;
+                p_width /= 25.4;
+                p_stick /= 25.4;
+                p_shank /= 25.4;
+                p_cr /= 25.4;
+                p_thick /= 25.4;
+                p_flute /= 25.4;
+                p_neck /= 25.4;
+            }
+
+            const payload = {
+                family: document.getElementById('family').value,
+                tool: document.getElementById('tool').value,
+                geometry: document.getElementById('geometry').value,
+                operation: document.getElementById('operation').value,
+                cornerRadius: p_cr,
+                shankDiameter: p_shank,
+                neckDiameter: p_neck,
+                fluteLength: p_flute,
+                cutterThickness: p_thick,
+                aggressiveness: parseFloat(document.getElementById('aggressiveness').value),
+                maxRpm: parseFloat(document.getElementById('maxRpm').value),
+                diameter: p_dia,
+                flutes: document.getElementById('flutes').value,
+                cutDepth: p_depth,
+                cutWidth: p_width,
+                stickout: p_stick,
+                isCarbide: document.getElementById('isCarbide').checked
+            };
+
+            try {
+                const response = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: abortController.signal
+                });
+                
+                const res = await response.json();
+                if (res.error) {
+                    console.error("Calculation Error:", res.error);
+                    return;
+                }
+                
+                if(res.success) {
+                    lastRecDoc = res.rec_doc;
+                    lastRecWoc = res.rec_woc;
+                    document.getElementById('recOutput').textContent = (isMetric ? res.rec_doc * 25.4 : res.rec_doc).toFixed(3) + " \u00D7 " + (isMetric ? res.rec_woc * 25.4 : res.rec_woc).toFixed(3);
+                    
+                    animateValue("rpm", parseInt(document.getElementById("rpm").innerText), res.rpm, 300);
+                    
+                    let out_feed = isMetric ? res.feedrate * 25.4 : res.feedrate;
+                    document.getElementById('feedrate').innerText = out_feed.toFixed(1);
+                    
+                    let out_mrr = isMetric ? res.mrr * 16.387 : res.mrr;
+                    document.getElementById('mrr').innerText = out_mrr.toFixed(isMetric ? 1 : 3);
+                    
+                    let out_def = isMetric ? res.deflection * 25.4 : res.deflection;
+                    document.getElementById('deflection').innerText = out_def.toFixed(5);
+                    
+                    let out_sfm = isMetric ? res.sfm * 0.3048 : res.sfm; // SFM to SMM
+                    document.getElementById('sfm').innerText = Math.round(out_sfm);
+                    
+                    let out_ipt = isMetric ? res.adj_ipt * 25.4 : res.adj_ipt;
+                    let out_bipt = isMetric ? res.base_ipt * 25.4 : res.base_ipt;
+                    document.getElementById('adj_ipt').innerText = out_ipt.toFixed(isMetric ? 3 : 5);
+                    document.getElementById('base_ipt').innerText = out_bipt.toFixed(isMetric ? 3 : 5);
+                    
+                    // Ramping Updates
+                    document.getElementById('ramp_angle').innerText = res.ramp_angle;
+                    document.getElementById('ramp_feed').innerText = (isMetric ? res.ramp_feed * 25.4 : res.ramp_feed).toFixed(1);
+                    document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+
+                    const defCard = document.getElementById('deflectionCard');
+                    if (res.deflection > 0.001) {
+                        defCard.classList.add("danger");
+                    } else if (res.deflection > 0.0005) {
+                        defCard.classList.add("warning"); defCard.classList.remove("danger");
+                    } else {
+                        defCard.classList.remove("danger", "warning");
+                    }
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') console.error(err);
+            }
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end || isNaN(start)) { document.getElementById(id).innerHTML = end; return; }
+            let current = start;
+            let range = end - start;
+            let increment = end > start ? Math.ceil(range/10) : Math.floor(range/10);
+            let stepTime = Math.abs(Math.floor(duration / 10));
+            let obj = document.getElementById(id);
+            let timer = setInterval(function() {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                obj.innerHTML = current;
+            }, stepTime);
+        }
+
+        init();
+    </script>
+</body>
+</html>

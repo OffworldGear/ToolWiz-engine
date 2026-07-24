@@ -1,0 +1,12758 @@
+package material
+{
+   import configinfo.GWizAbstractPrefs;
+   import configinfo.GWizSettings;
+   import flash.events.Event;
+   import flash.events.EventDispatcher;
+   import flash.events.IEventDispatcher;
+   import mx.collections.ArrayCollection;
+   import mx.events.PropertyChangeEvent;
+   import mx.logging.ILogger;
+   import mx.logging.Log;
+   import utils.GWizUtils;
+   
+   public class GWizMaterialsDB implements IEventDispatcher
+   {
+      
+      private static const log:ILogger = Log.getLogger("GWizMaterialsDB");
+      
+      public static const PLASTICS_HARD:String = "Plastics: Hard (ABS, Nylon, Foam Bd)";
+      
+      public static const PLASTICS_SOFT:String = "Plastics: Soft (Acetal, HDPE, PEEK)";
+      
+      public static var MaterialsList:Array = ["Aluminum - Cast","Aluminum - Wrought (6061)","Brass","Cast Iron - Ductile","Cast Iron - Gray","Cobalt Chrome (CoCr ASTM F75)","Composite: Fiberglass/PC Board","Copper Alloy - Wrought","Graphite","High Temp Nickel Alloy","Magnesium Alloy","Nickel Alloy",PLASTICS_HARD,PLASTICS_SOFT,"Stainless - 300 Series (316)","Stainless - 400 Series (420)","Stainless - PH Series (17-4)","Steel - Low Carbon (1020)","Steel - Low Carbon Alloy (8620)","Steel - Medium Carbon (1045)","Steel - Medium Carbon Alloy (4130)","Steel - High Carbon (1090)","Steel - High Carbon Alloy (52100)","Steel - Tool (H13)","Titanium Alloy","Tungsten","Wax","Wood: Hardwood","Wood: MDF","Wood: Plywood","Wood: Softwood"];
+      
+      public static var GarrToolMaterialsList:Array = ["Aluminum - Cast","Aluminum - Wrought (6061)","Brass","Cast Iron - Ductile","Cast Iron - Gray","Cobalt Chrome (CoCr ASTM F75)","Composite: Fiberglass/PC Board","Copper Alloy - Wrought","Graphite","High Temp Nickel Alloy","Magnesium Alloy","Nickel Alloy",PLASTICS_HARD,PLASTICS_SOFT,"Stainless - 300 Series (316)","Stainless - 400 Series (420)","Stainless - PH Series (17-4)","Steel - Low Carbon (1020)","Steel - Low Carbon Alloy (8620)","Steel - Medium Carbon (1045)","Steel - Medium Carbon Alloy (4130)","Steel - High Carbon (1090)","Steel - High Carbon Alloy (52100)","Steel - Tool (H13)","Titanium Alloy","Tungsten"];
+      
+      private static const NO_ISO_COLOR:uint = 0;
+      
+      public static var _185045339MaterialsListISO:ArrayCollection = new ArrayCollection([{
+         "name":"Aluminum - Cast",
+         "iso":"N1.2",
+         "color":45136
+      },{
+         "name":"Aluminum - Wrought (6061)",
+         "iso":"N1.1",
+         "color":45136
+      },{
+         "name":"Brass",
+         "iso":"N4",
+         "color":45136
+      },{
+         "name":"Cast Iron - Ductile",
+         "iso":"K3",
+         "color":16711680
+      },{
+         "name":"Cast Iron - Gray",
+         "iso":"K1",
+         "color":16711680
+      },{
+         "name":"Cobalt Chrome (CoCr ASTM F75)",
+         "iso":"S4",
+         "color":15564081
+      },{
+         "name":"Composite: Fiberglass/PC Board",
+         "iso":"N6",
+         "color":45136
+      },{
+         "name":"Copper Alloy - Wrought",
+         "iso":"N3",
+         "color":45136
+      },{
+         "name":"Graphite",
+         "iso":"N5",
+         "color":45136
+      },{
+         "name":"High Temp Nickel Alloy",
+         "iso":"S3.2",
+         "color":15564081
+      },{
+         "name":"Magnesium Alloy",
+         "iso":"N2",
+         "color":45136
+      },{
+         "name":"Nickel Alloy",
+         "iso":"S3.1",
+         "color":15564081
+      },{
+         "name":PLASTICS_HARD,
+         "iso":"",
+         "color":NO_ISO_COLOR
+      },{
+         "name":PLASTICS_SOFT,
+         "iso":"",
+         "color":NO_ISO_COLOR
+      },{
+         "name":"Stainless - 300 Series (316)",
+         "iso":"M3",
+         "color":16776960
+      },{
+         "name":"Stainless - 400 Series (420)",
+         "iso":"M2",
+         "color":16776960
+      },{
+         "name":"Stainless - PH Series (17-4)",
+         "iso":"M4",
+         "color":16776960
+      },{
+         "name":"Steel - Low Carbon (1020)",
+         "iso":"P2.1",
+         "color":45296
+      },{
+         "name":"Steel - Low Carbon Alloy (8620)",
+         "iso":"P3.1",
+         "color":45296
+      },{
+         "name":"Steel - Medium Carbon (1045)",
+         "iso":"P2.2",
+         "color":45296
+      },{
+         "name":"Steel - Medium Carbon Alloy (4130)",
+         "iso":"P3.2",
+         "color":45296
+      },{
+         "name":"Steel - High Carbon (1090)",
+         "iso":"P2.3",
+         "color":45296
+      },{
+         "name":"Steel - High Carbon Alloy (52100)",
+         "iso":"P3.3",
+         "color":45296
+      },{
+         "name":"Steel - Tool (H13)",
+         "iso":"P4",
+         "color":45296
+      },{
+         "name":"Titanium Alloy",
+         "iso":"S1",
+         "color":15564081
+      },{
+         "name":"Tungsten",
+         "iso":"S5",
+         "color":45136
+      },{
+         "name":"Wax",
+         "iso":"",
+         "color":NO_ISO_COLOR
+      },{
+         "name":"Wood: Hardwood",
+         "iso":"",
+         "color":NO_ISO_COLOR
+      },{
+         "name":"Wood: MDF",
+         "iso":"",
+         "color":NO_ISO_COLOR
+      },{
+         "name":"Wood: Plywood",
+         "iso":"",
+         "color":NO_ISO_COLOR
+      },{
+         "name":"Wood: Softwood",
+         "iso":"",
+         "color":NO_ISO_COLOR
+      }]);
+      
+      public static var _2072241044MaterialsListAC:ArrayCollection;
+      
+      private static var _801570913FabricationsList:ArrayCollection = new ArrayCollection([{
+         "type":"Pipes",
+         "name":"10/10S     1/8 ",
+         "firstParm":"0.405 ",
+         "secondParm":"0.356",
+         "thirdParm":"0.049 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     1/8 ",
+         "firstParm":"0.405 ",
+         "secondParm":"0.337",
+         "thirdParm":"0.068 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     1/8 ",
+         "firstParm":"0.405 ",
+         "secondParm":"0.31",
+         "thirdParm":"0.095 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     1/4 ",
+         "firstParm":"0.540 ",
+         "secondParm":"0.475",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     1/4 ",
+         "firstParm":"0.540 ",
+         "secondParm":"0.452",
+         "thirdParm":"0.088 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     1/4 ",
+         "firstParm":"0.540 ",
+         "secondParm":"0.421",
+         "thirdParm":"0.119 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     3/8 ",
+         "firstParm":"0.675 ",
+         "secondParm":"0.61",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     3/8 ",
+         "firstParm":"0.675 ",
+         "secondParm":"0.584",
+         "thirdParm":"0.091 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     3/8 ",
+         "firstParm":"0.675 ",
+         "secondParm":"0.549",
+         "thirdParm":"0.126 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     1/2 ",
+         "firstParm":"0.840 ",
+         "secondParm":"0.775",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     1/2 ",
+         "firstParm":"0.840 ",
+         "secondParm":"0.757",
+         "thirdParm":"0.083 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     1/2 ",
+         "firstParm":"0.840 ",
+         "secondParm":"0.731",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     1/2 ",
+         "firstParm":"0.840 ",
+         "secondParm":"0.693",
+         "thirdParm":"0.147 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     1/2 ",
+         "firstParm":"0.840 ",
+         "secondParm":"0.652",
+         "thirdParm":"0.188 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     1/2 ",
+         "firstParm":"0.840 ",
+         "secondParm":"0.546",
+         "thirdParm":"0.294 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     3/4 ",
+         "firstParm":"1.050 ",
+         "secondParm":"0.985",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     3/4 ",
+         "firstParm":"1.050 ",
+         "secondParm":"0.967",
+         "thirdParm":"0.083 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     3/4 ",
+         "firstParm":"1.050 ",
+         "secondParm":"0.937",
+         "thirdParm":"0.113 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     3/4 ",
+         "firstParm":"1.050 ",
+         "secondParm":"0.896",
+         "thirdParm":"0.154 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     3/4 ",
+         "firstParm":"1.050 ",
+         "secondParm":"0.831",
+         "thirdParm":"0.219 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     3/4 ",
+         "firstParm":"1.050 ",
+         "secondParm":"0.742",
+         "thirdParm":"0.308 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     1 ",
+         "firstParm":"1.315 ",
+         "secondParm":"1.25",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     1 ",
+         "firstParm":"1.315 ",
+         "secondParm":"1.206",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     1 ",
+         "firstParm":"1.315 ",
+         "secondParm":"1.182",
+         "thirdParm":"0.133 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     1 ",
+         "firstParm":"1.315 ",
+         "secondParm":"1.136",
+         "thirdParm":"0.179 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     1 ",
+         "firstParm":"1.315 ",
+         "secondParm":"1.065",
+         "thirdParm":"0.25 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     1 ",
+         "firstParm":"1.315 ",
+         "secondParm":"0.957",
+         "thirdParm":"0.358 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     1-1/4 ",
+         "firstParm":"1.6600 ",
+         "secondParm":"1.595",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     1-1/4 ",
+         "firstParm":"1.660 ",
+         "secondParm":"1.551",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     1-1/4 ",
+         "firstParm":"1.660 ",
+         "secondParm":"1.52",
+         "thirdParm":"0.140 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     1-1/4 ",
+         "firstParm":"1.660 ",
+         "secondParm":"1.469",
+         "thirdParm":"0.191 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     1-1/4 ",
+         "firstParm":"1.660 ",
+         "secondParm":"1.41",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     1-1/4 ",
+         "firstParm":"1.660 ",
+         "secondParm":"1.278",
+         "thirdParm":"0.382 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     1-1/2 ",
+         "firstParm":"1.900 ",
+         "secondParm":"1.835",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     1-1/2 ",
+         "firstParm":"1.900 ",
+         "secondParm":"1.791",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     1-1/2 ",
+         "firstParm":"1.900 ",
+         "secondParm":"1.755",
+         "thirdParm":"0.145 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     1-1/2 ",
+         "firstParm":"1.900 ",
+         "secondParm":"1.7",
+         "thirdParm":"0.200 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     1-1/2 ",
+         "firstParm":"1.900 ",
+         "secondParm":"1.619",
+         "thirdParm":"0.281 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     1-1/2 ",
+         "firstParm":"1.900 ",
+         "secondParm":"1.5",
+         "thirdParm":"0.400 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     2 ",
+         "firstParm":"2.375 ",
+         "secondParm":"2.31",
+         "thirdParm":"0.065 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     2 ",
+         "firstParm":"2.375 ",
+         "secondParm":"2.266",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     2 ",
+         "firstParm":"2.375 ",
+         "secondParm":"2.221",
+         "thirdParm":"0.154 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     2 ",
+         "firstParm":"2.375 ",
+         "secondParm":"2.157",
+         "thirdParm":"0.218 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     2 ",
+         "firstParm":"2.375 ",
+         "secondParm":"2.031",
+         "thirdParm":"0.344 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     2 ",
+         "firstParm":"2.375 ",
+         "secondParm":"1.939",
+         "thirdParm":"0.436 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     2-1/2 ",
+         "firstParm":"2.875 ",
+         "secondParm":"2.792",
+         "thirdParm":"0.083 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     2-1/2 ",
+         "firstParm":"2.875 ",
+         "secondParm":"2.755",
+         "thirdParm":"0.120 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     2-1/2 ",
+         "firstParm":"2.875 ",
+         "secondParm":"2.672",
+         "thirdParm":"0.203 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     2-1/2 ",
+         "firstParm":"2.875 ",
+         "secondParm":"2.599",
+         "thirdParm":"0.276 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     2-1/2 ",
+         "firstParm":"2.875 ",
+         "secondParm":"2.5",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     2-1/2 ",
+         "firstParm":"2.875 ",
+         "secondParm":"2.323",
+         "thirdParm":"0.552 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     3 ",
+         "firstParm":"3.500 ",
+         "secondParm":"3.417",
+         "thirdParm":"0.083 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     3 ",
+         "firstParm":"3.500 ",
+         "secondParm":"3.38",
+         "thirdParm":"0.120 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     3 ",
+         "firstParm":"3.500 ",
+         "secondParm":"3.284",
+         "thirdParm":"0.216 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     3 ",
+         "firstParm":"3.500 ",
+         "secondParm":"3.2",
+         "thirdParm":"0.300 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     3 ",
+         "firstParm":"3.500 ",
+         "secondParm":"3.062",
+         "thirdParm":"0.438 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     3 ",
+         "firstParm":"3.500 ",
+         "secondParm":"2.9",
+         "thirdParm":"0.600 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     3-1/2 ",
+         "firstParm":"4.000 ",
+         "secondParm":"3.917",
+         "thirdParm":"0.083 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     3-1/2 ",
+         "firstParm":"4.000 ",
+         "secondParm":"3.88",
+         "thirdParm":"0.120 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     3-1/2 ",
+         "firstParm":"4.000 ",
+         "secondParm":"3.774",
+         "thirdParm":"0.226 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     3-1/2 ",
+         "firstParm":"4.000 ",
+         "secondParm":"3.682",
+         "thirdParm":"0.318 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XXS     3-1/2 ",
+         "firstParm":"4.000 ",
+         "secondParm":"3.364",
+         "thirdParm":"0.636 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"4.417",
+         "thirdParm":"0.083 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"4.38",
+         "thirdParm":"0.120 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"4.263",
+         "thirdParm":"0.237 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"4.163",
+         "thirdParm":"0.337 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"4.062",
+         "thirdParm":"0.438 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"3.969",
+         "thirdParm":"0.531 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     4 ",
+         "firstParm":"4.500 ",
+         "secondParm":"3.826",
+         "thirdParm":"0.674 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"5.454",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"5.429",
+         "thirdParm":"0.134 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"5.305",
+         "thirdParm":"0.258 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"5.188",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"5.063",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"4.938",
+         "thirdParm":"0.625 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     5 ",
+         "firstParm":"5.563 ",
+         "secondParm":"4.813",
+         "thirdParm":"0.750 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5/5S     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"6.516",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"6.491",
+         "thirdParm":"0.134 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"6.345",
+         "thirdParm":"0.280 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"6.193",
+         "thirdParm":"0.432 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"6.063",
+         "thirdParm":"0.562 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"5.906",
+         "thirdParm":"0.719 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     6 ",
+         "firstParm":"6.625 ",
+         "secondParm":"5.761",
+         "thirdParm":"0.864 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5S     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.516",
+         "thirdParm":"0.109 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.477",
+         "thirdParm":"0.148 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"20     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.375",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"30     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.348",
+         "thirdParm":"0.277 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.303",
+         "thirdParm":"0.322 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.219",
+         "thirdParm":"0.406 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80/80S     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.125",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"8.031",
+         "thirdParm":"0.594 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"7.906",
+         "thirdParm":"0.719 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"7.813",
+         "thirdParm":"0.812 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XX     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"7.75",
+         "thirdParm":"0.875 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     8 ",
+         "firstParm":"8.625 ",
+         "secondParm":"7.719",
+         "thirdParm":"0.906 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5S     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.616",
+         "thirdParm":"0.134 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10S     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.585",
+         "thirdParm":"0.165 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"20     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.5",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"30     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.443",
+         "thirdParm":"0.307 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40/40S     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.385",
+         "thirdParm":"0.365 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/60/80S     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.25",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.156",
+         "thirdParm":"0.594 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"10.031",
+         "thirdParm":"0.719 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"9.906",
+         "thirdParm":"0.844 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140/XX     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"9.75",
+         "thirdParm":"1.000 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     10 ",
+         "firstParm":"10.75 ",
+         "secondParm":"9.625",
+         "thirdParm":"1.125 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"5S     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.594",
+         "thirdParm":"0.156 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10S     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.57",
+         "thirdParm":"0.180 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"20     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.5",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"30     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.42",
+         "thirdParm":"0.330 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40S     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.375",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"40     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.344",
+         "thirdParm":"0.406 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80S     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.25",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.188",
+         "thirdParm":"0.562 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"12.062",
+         "thirdParm":"0.688 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"11.906",
+         "thirdParm":"0.844 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120/XX     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"11.75",
+         "thirdParm":"1.000 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"11.625",
+         "thirdParm":"1.125 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     12 ",
+         "firstParm":"12.75 ",
+         "secondParm":"11.438",
+         "thirdParm":"1.312 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10S     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.812",
+         "thirdParm":"0.188 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.75",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"20     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.688",
+         "thirdParm":"0.312 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/30/40S     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"40     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.562",
+         "thirdParm":"0.438 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80S     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.406",
+         "thirdParm":"0.594 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.25",
+         "thirdParm":"0.750 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     14 ",
+         "firstParm":"14 ",
+         "secondParm":"13.062",
+         "thirdParm":"0.938 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     14 ",
+         "firstParm":"14 ",
+         "secondParm":"12.906",
+         "thirdParm":"1.094 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     14 ",
+         "firstParm":"14 ",
+         "secondParm":"12.75",
+         "thirdParm":"1.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     14 ",
+         "firstParm":"14 ",
+         "secondParm":"12.594",
+         "thirdParm":"1.406 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10S     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.812",
+         "thirdParm":"0.188 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.75",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"20     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.688",
+         "thirdParm":"0.312 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/30/40S     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/40/80S     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.344",
+         "thirdParm":"0.656 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     16 ",
+         "firstParm":"16 ",
+         "secondParm":"15.156",
+         "thirdParm":"0.844 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     16 ",
+         "firstParm":"16 ",
+         "secondParm":"14.969",
+         "thirdParm":"1.031 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     16 ",
+         "firstParm":"16 ",
+         "secondParm":"14.781",
+         "thirdParm":"1.219 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     16 ",
+         "firstParm":"16 ",
+         "secondParm":"14.562",
+         "thirdParm":"1.438 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     16 ",
+         "firstParm":"16 ",
+         "secondParm":"14.406",
+         "thirdParm":"1.594 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10S     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.812",
+         "thirdParm":"0.188 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.75",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"20     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.688",
+         "thirdParm":"0.312 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40S     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"30     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.562",
+         "thirdParm":"0.438 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80S     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"40     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.438",
+         "thirdParm":"0.562 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.25",
+         "thirdParm":"0.750 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     18 ",
+         "firstParm":"18 ",
+         "secondParm":"17.062",
+         "thirdParm":"0.938 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     18 ",
+         "firstParm":"18 ",
+         "secondParm":"16.844",
+         "thirdParm":"1.156 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     18 ",
+         "firstParm":"18 ",
+         "secondParm":"16.625",
+         "thirdParm":"1.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     18 ",
+         "firstParm":"18 ",
+         "secondParm":"16.438",
+         "thirdParm":"1.562 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     18 ",
+         "firstParm":"18 ",
+         "secondParm":"16.219",
+         "thirdParm":"1.781 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10S     20 ",
+         "firstParm":"20 ",
+         "secondParm":"19.782",
+         "thirdParm":"0.218 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10     20 ",
+         "firstParm":"20 ",
+         "secondParm":"19.75",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/20/40S     20 ",
+         "firstParm":"20 ",
+         "secondParm":"19.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/30/80S     20 ",
+         "firstParm":"20 ",
+         "secondParm":"19.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"40     20 ",
+         "firstParm":"20 ",
+         "secondParm":"19.406",
+         "thirdParm":"0.594 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     20 ",
+         "firstParm":"20 ",
+         "secondParm":"19.188",
+         "thirdParm":"0.812 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     20 ",
+         "firstParm":"20 ",
+         "secondParm":"18.969",
+         "thirdParm":"1.031 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     20 ",
+         "firstParm":"20 ",
+         "secondParm":"18.719",
+         "thirdParm":"1.281 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     20 ",
+         "firstParm":"20 ",
+         "secondParm":"18.5",
+         "thirdParm":"1.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     20 ",
+         "firstParm":"20 ",
+         "secondParm":"18.25",
+         "thirdParm":"1.750 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     20 ",
+         "firstParm":"20 ",
+         "secondParm":"18.031",
+         "thirdParm":"1.969 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10/10S     24 ",
+         "firstParm":"24 ",
+         "secondParm":"23.75",
+         "thirdParm":"0.250 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/20/40S     24 ",
+         "firstParm":"24 ",
+         "secondParm":"23.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80S     24 ",
+         "firstParm":"24 ",
+         "secondParm":"23.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"30     24 ",
+         "firstParm":"24 ",
+         "secondParm":"23.438",
+         "thirdParm":"0.562 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"40     24 ",
+         "firstParm":"24 ",
+         "secondParm":"23.312",
+         "thirdParm":"0.688 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"60     24 ",
+         "firstParm":"24 ",
+         "secondParm":"23.031",
+         "thirdParm":"0.969 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"80     24 ",
+         "firstParm":"24 ",
+         "secondParm":"22.781",
+         "thirdParm":"1.219 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"100     24 ",
+         "firstParm":"24 ",
+         "secondParm":"22.469",
+         "thirdParm":"1.531 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"120     24 ",
+         "firstParm":"24 ",
+         "secondParm":"22.188",
+         "thirdParm":"1.812 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"140     24 ",
+         "firstParm":"24 ",
+         "secondParm":"21.938",
+         "thirdParm":"2.062 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"160     24 ",
+         "firstParm":"24 ",
+         "secondParm":"21.656",
+         "thirdParm":"2.344 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10     30 ",
+         "firstParm":"30 ",
+         "secondParm":"29.688",
+         "thirdParm":"0.312 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40S     30 ",
+         "firstParm":"30 ",
+         "secondParm":"29.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/20/80S     30 ",
+         "firstParm":"30 ",
+         "secondParm":"29.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"30     30 ",
+         "firstParm":"30 ",
+         "secondParm":"29.375",
+         "thirdParm":"0.625 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"10     36 ",
+         "firstParm":"36 ",
+         "secondParm":"35.688",
+         "thirdParm":"0.312 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"STD/40S     36 ",
+         "firstParm":"36 ",
+         "secondParm":"35.625",
+         "thirdParm":"0.375 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Pipes",
+         "name":"XS/80S     36 ",
+         "firstParm":"36 ",
+         "secondParm":"35.5",
+         "thirdParm":"0.500 ",
+         "fourthParm":"0.0"
+      },{
+         "type":"Channel",
+         "name":"3/4 x 3/8 x 1/8",
+         "firstParm":"0.75",
+         "secondParm":"0.375",
+         "thirdParm":"0.125",
+         "fourthParm":"0.56"
+      },{
+         "type":"Channel",
+         "name":"1 x 1/2 x 1/8",
+         "firstParm":"1",
+         "secondParm":"0.5",
+         "thirdParm":"0.125",
+         "fourthParm":"0.83"
+      },{
+         "type":"Channel",
+         "name":"1-1/4 x 1/2 x 1/8",
+         "firstParm":"1.25",
+         "secondParm":"0.5",
+         "thirdParm":"0.125",
+         "fourthParm":"1.01"
+      },{
+         "type":"Channel",
+         "name":"1-1/2 x 1/2 x 1/8",
+         "firstParm":"1.25",
+         "secondParm":"0.5",
+         "thirdParm":"0.125",
+         "fourthParm":"1.12"
+      },{
+         "type":"Channel",
+         "name":"1-1/2 x 3/4 x 1/8",
+         "firstParm":"1.25",
+         "secondParm":"0.75",
+         "thirdParm":"0.125",
+         "fourthParm":"1.17"
+      },{
+         "type":"Channel",
+         "name":"1-3/4 x 1/2 x 3/16",
+         "firstParm":"1.75",
+         "secondParm":"0.5",
+         "thirdParm":"0.1875",
+         "fourthParm":"1.55"
+      },{
+         "type":"Channel",
+         "name":"2 x 1/2 x 1/8",
+         "firstParm":"2",
+         "secondParm":"0.5",
+         "thirdParm":"0.125",
+         "fourthParm":"1.43"
+      },{
+         "type":"Channel",
+         "name":"2 x 9/16 x 3/16",
+         "firstParm":"2",
+         "secondParm":"0.5625",
+         "thirdParm":"0.1875",
+         "fourthParm":"1.76"
+      },{
+         "type":"Channel",
+         "name":"2 x 1 x 1/8",
+         "firstParm":"2",
+         "secondParm":"1",
+         "thirdParm":"0.125",
+         "fourthParm":"1.78"
+      },{
+         "type":"Channel",
+         "name":"2 x 1 x 3/16",
+         "firstParm":"2",
+         "secondParm":"1",
+         "thirdParm":"0.1875",
+         "fourthParm":"2.57"
+      },{
+         "type":"Channel",
+         "name":"C3 x 4.1",
+         "firstParm":"3",
+         "secondParm":"1.375",
+         "thirdParm":"0.1875",
+         "fourthParm":"4.1"
+      },{
+         "type":"Channel",
+         "name":"C3 x 5.0",
+         "firstParm":"3",
+         "secondParm":"1.5",
+         "thirdParm":"0.25",
+         "fourthParm":"5"
+      },{
+         "type":"Channel",
+         "name":"C3 x 6.0",
+         "firstParm":"3",
+         "secondParm":"1.625",
+         "thirdParm":"0.375",
+         "fourthParm":"6"
+      },{
+         "type":"Channel",
+         "name":"C4 x 5.4",
+         "firstParm":"4",
+         "secondParm":"1.625",
+         "thirdParm":"0.1875",
+         "fourthParm":"5.4"
+      },{
+         "type":"Channel",
+         "name":"C4 x 6.25",
+         "firstParm":"4",
+         "secondParm":"1.625",
+         "thirdParm":"0.25",
+         "fourthParm":"6.25"
+      },{
+         "type":"Channel",
+         "name":"C4 x 7.25",
+         "firstParm":"4",
+         "secondParm":"1.75",
+         "thirdParm":"0.3125",
+         "fourthParm":"7.25"
+      },{
+         "type":"Channel",
+         "name":"C5 x 6.7",
+         "firstParm":"5",
+         "secondParm":"1.75",
+         "thirdParm":"0.1875",
+         "fourthParm":"6.7"
+      },{
+         "type":"Channel",
+         "name":"C5 x 9",
+         "firstParm":"5",
+         "secondParm":"1.875",
+         "thirdParm":"0.3125",
+         "fourthParm":"9"
+      },{
+         "type":"Channel",
+         "name":"C6 x 8.2",
+         "firstParm":"6",
+         "secondParm":"1.875",
+         "thirdParm":"0.1875",
+         "fourthParm":"8.2"
+      },{
+         "type":"Channel",
+         "name":"C6 x 10.5",
+         "firstParm":"6",
+         "secondParm":"2",
+         "thirdParm":"0.3125",
+         "fourthParm":"10.5"
+      },{
+         "type":"Channel",
+         "name":"C6 x 13",
+         "firstParm":"6",
+         "secondParm":"2.125",
+         "thirdParm":"0.4375",
+         "fourthParm":"13"
+      },{
+         "type":"Channel",
+         "name":"C7 x 9.8",
+         "firstParm":"7",
+         "secondParm":"2.125",
+         "thirdParm":"0.1875",
+         "fourthParm":"9.8"
+      },{
+         "type":"Channel",
+         "name":"C7 x 12.25",
+         "firstParm":"7",
+         "secondParm":"2.25",
+         "thirdParm":"0.3125",
+         "fourthParm":"12.25"
+      },{
+         "type":"Channel",
+         "name":"C7 x 14.75",
+         "firstParm":"7",
+         "secondParm":"2.25",
+         "thirdParm":"0.4375",
+         "fourthParm":"14.75"
+      },{
+         "type":"Channel",
+         "name":"C8 x 11.5",
+         "firstParm":"8",
+         "secondParm":"2.25",
+         "thirdParm":"0.25",
+         "fourthParm":"11.5"
+      },{
+         "type":"Channel",
+         "name":"C8 x 13.75",
+         "firstParm":"8",
+         "secondParm":"2.375",
+         "thirdParm":"0.3125",
+         "fourthParm":"13.75"
+      },{
+         "type":"Channel",
+         "name":"C8 x 18.75",
+         "firstParm":"8",
+         "secondParm":"2.5",
+         "thirdParm":"0.5",
+         "fourthParm":"18.75"
+      },{
+         "type":"Channel",
+         "name":"C9 x 13.4",
+         "firstParm":"9",
+         "secondParm":"2.375",
+         "thirdParm":"0.25",
+         "fourthParm":"13.4"
+      },{
+         "type":"Channel",
+         "name":"C9 x 15",
+         "firstParm":"9",
+         "secondParm":"2.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"15"
+      },{
+         "type":"Channel",
+         "name":"C9 x 20",
+         "firstParm":"9",
+         "secondParm":"2.625",
+         "thirdParm":"0.4375",
+         "fourthParm":"20"
+      },{
+         "type":"Channel",
+         "name":"C10 x 15.3",
+         "firstParm":"10",
+         "secondParm":"2.625",
+         "thirdParm":"0.25",
+         "fourthParm":"15.3"
+      },{
+         "type":"Channel",
+         "name":"C10 x 20",
+         "firstParm":"10",
+         "secondParm":"2.75",
+         "thirdParm":"0.375",
+         "fourthParm":"20"
+      },{
+         "type":"Channel",
+         "name":"C10 x 25",
+         "firstParm":"10",
+         "secondParm":"2.875",
+         "thirdParm":"0.5",
+         "fourthParm":"25"
+      },{
+         "type":"Channel",
+         "name":"C10 x 30",
+         "firstParm":"10",
+         "secondParm":"3",
+         "thirdParm":"0.6875",
+         "fourthParm":"30"
+      },{
+         "type":"Channel",
+         "name":"C12 x 20.7",
+         "firstParm":"12",
+         "secondParm":"3",
+         "thirdParm":"0.3125",
+         "fourthParm":"20.7"
+      },{
+         "type":"Channel",
+         "name":"C12 x 25",
+         "firstParm":"12",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"25"
+      },{
+         "type":"Channel",
+         "name":"C12 x 30",
+         "firstParm":"12",
+         "secondParm":"3.125",
+         "thirdParm":"0.5",
+         "fourthParm":"30"
+      },{
+         "type":"Channel",
+         "name":"C15 x 33.9",
+         "firstParm":"12",
+         "secondParm":"3.375",
+         "thirdParm":"0.375",
+         "fourthParm":"33.9"
+      },{
+         "type":"Channel",
+         "name":"C15 x 40",
+         "firstParm":"12",
+         "secondParm":"3.5",
+         "thirdParm":"0.5",
+         "fourthParm":"40"
+      },{
+         "type":"Channel",
+         "name":"C15 x 50",
+         "firstParm":"12",
+         "secondParm":"3.75",
+         "thirdParm":"0.6875",
+         "fourthParm":"50"
+      },{
+         "type":"Channel",
+         "name":"MC3 x 7.1",
+         "firstParm":"3",
+         "secondParm":"2",
+         "thirdParm":"0.3125",
+         "fourthParm":"7.1"
+      },{
+         "type":"Channel",
+         "name":"MC3 x 9",
+         "firstParm":"3",
+         "secondParm":"2.125",
+         "thirdParm":"0.5",
+         "fourthParm":"9"
+      },{
+         "type":"Channel",
+         "name":"MC4 x 13.8",
+         "firstParm":"4",
+         "secondParm":"2.5",
+         "thirdParm":"0.5",
+         "fourthParm":"13.8"
+      },{
+         "type":"Channel",
+         "name":"MC6 x 12",
+         "firstParm":"6",
+         "secondParm":"2.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"12"
+      },{
+         "type":"Channel",
+         "name":"MC6 x 15.1",
+         "firstParm":"6",
+         "secondParm":"3",
+         "thirdParm":"0.3125",
+         "fourthParm":"15.1"
+      },{
+         "type":"Channel",
+         "name":"MC6 x 16.3",
+         "firstParm":"6",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"16.3"
+      },{
+         "type":"Channel",
+         "name":"MC6 x 15.3",
+         "firstParm":"6",
+         "secondParm":"3.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"15.3"
+      },{
+         "type":"Channel",
+         "name":"MC6 x 18",
+         "firstParm":"6",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"18"
+      },{
+         "type":"Channel",
+         "name":"MC7 x 17.6",
+         "firstParm":"7",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"17.6"
+      },{
+         "type":"Channel",
+         "name":"MC7 x 19.1",
+         "firstParm":"7",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"19.1"
+      },{
+         "type":"Channel",
+         "name":"MC7 x 22.7",
+         "firstParm":"7",
+         "secondParm":"3.625",
+         "thirdParm":"0.5",
+         "fourthParm":"22.7"
+      },{
+         "type":"Channel",
+         "name":"MC8 x 18.7",
+         "firstParm":"8",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"18.7"
+      },{
+         "type":"Channel",
+         "name":"MC8 x 20",
+         "firstParm":"8",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"20"
+      },{
+         "type":"Channel",
+         "name":"MC8 x 21.4",
+         "firstParm":"8",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"21.4"
+      },{
+         "type":"Channel",
+         "name":"MC8 x 22.8",
+         "firstParm":"8",
+         "secondParm":"3.5",
+         "thirdParm":"0.4375",
+         "fourthParm":"22.8"
+      },{
+         "type":"Channel",
+         "name":"MC9 x 23.9",
+         "firstParm":"9",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"23.9"
+      },{
+         "type":"Channel",
+         "name":"MC9 x 25.4",
+         "firstParm":"9",
+         "secondParm":"3.5",
+         "thirdParm":"0.4375",
+         "fourthParm":"25.4"
+      },{
+         "type":"Channel",
+         "name":"MC10 x 22",
+         "firstParm":"10",
+         "secondParm":"3.375",
+         "thirdParm":"0.3125",
+         "fourthParm":"22"
+      },{
+         "type":"Channel",
+         "name":"MC10 x 25",
+         "firstParm":"10",
+         "secondParm":"3.375",
+         "thirdParm":"0.375",
+         "fourthParm":"25"
+      },{
+         "type":"Channel",
+         "name":"MC10 x 28.5",
+         "firstParm":"10",
+         "secondParm":"4",
+         "thirdParm":"0.4375",
+         "fourthParm":"28.5"
+      },{
+         "type":"Channel",
+         "name":"MC10 x 33.6",
+         "firstParm":"10",
+         "secondParm":"4.125",
+         "thirdParm":"0.5625",
+         "fourthParm":"33.6"
+      },{
+         "type":"Channel",
+         "name":"MC10 x 41.1",
+         "firstParm":"10",
+         "secondParm":"4.375",
+         "thirdParm":"0.5625",
+         "fourthParm":"41.1"
+      },{
+         "type":"Channel",
+         "name":"MC12 x 31",
+         "firstParm":"12",
+         "secondParm":"3.625",
+         "thirdParm":"0.375",
+         "fourthParm":"31"
+      },{
+         "type":"Channel",
+         "name":"MC12 x 35",
+         "firstParm":"12",
+         "secondParm":"3.75",
+         "thirdParm":"0.4375",
+         "fourthParm":"35"
+      },{
+         "type":"Channel",
+         "name":"MC12 x 40",
+         "firstParm":"12",
+         "secondParm":"3.875",
+         "thirdParm":"0.5625",
+         "fourthParm":"40"
+      },{
+         "type":"Channel",
+         "name":"MC12 x 45",
+         "firstParm":"12",
+         "secondParm":"4",
+         "thirdParm":"0.6875",
+         "fourthParm":"45"
+      },{
+         "type":"Channel",
+         "name":"MC12 x 50",
+         "firstParm":"12",
+         "secondParm":"4.125",
+         "thirdParm":"0.8125",
+         "fourthParm":"50"
+      },{
+         "type":"Channel",
+         "name":"MC13 x 31.8",
+         "firstParm":"13",
+         "secondParm":"4",
+         "thirdParm":"0.375",
+         "fourthParm":"31.8"
+      },{
+         "type":"Channel",
+         "name":"MC13 x 35",
+         "firstParm":"13",
+         "secondParm":"4.125",
+         "thirdParm":"0.4375",
+         "fourthParm":"35"
+      },{
+         "type":"Channel",
+         "name":"MC13 x 40",
+         "firstParm":"13",
+         "secondParm":"4.125",
+         "thirdParm":"0.5625",
+         "fourthParm":"40"
+      },{
+         "type":"Channel",
+         "name":"MC13 x 50",
+         "firstParm":"13",
+         "secondParm":"4.375",
+         "thirdParm":"0.8125",
+         "fourthParm":"50"
+      },{
+         "type":"Channel",
+         "name":"MC18 x 42.7",
+         "firstParm":"18",
+         "secondParm":"4",
+         "thirdParm":"0.4375",
+         "fourthParm":"42.7"
+      },{
+         "type":"Channel",
+         "name":"MC18 x 45.8",
+         "firstParm":"18",
+         "secondParm":"4",
+         "thirdParm":"0.5",
+         "fourthParm":"45.8"
+      },{
+         "type":"Channel",
+         "name":"MC18 x 51.9",
+         "firstParm":"18",
+         "secondParm":"4.125",
+         "thirdParm":"0.625",
+         "fourthParm":"51.9"
+      },{
+         "type":"Channel",
+         "name":"MC18 x 58",
+         "firstParm":"18",
+         "secondParm":"4.25",
+         "thirdParm":"0.6875",
+         "fourthParm":"58"
+      },{
+         "type":"Angle",
+         "name":"1/2 x 1/2 x 1/8",
+         "firstParm":"0.5",
+         "secondParm":"0.5",
+         "thirdParm":"0.125",
+         "fourthParm":"0.38"
+      },{
+         "type":"Angle",
+         "name":"3/4 x 3/4 x 1/8",
+         "firstParm":"0.75",
+         "secondParm":"0.75",
+         "thirdParm":"0.125",
+         "fourthParm":"0.59"
+      },{
+         "type":"Angle",
+         "name":"1 x 1 x 1/8",
+         "firstParm":"1",
+         "secondParm":"1",
+         "thirdParm":"0.125",
+         "fourthParm":"0.8"
+      },{
+         "type":"Angle",
+         "name":"1 x 1 x 3/16",
+         "firstParm":"1",
+         "secondParm":"1",
+         "thirdParm":"0.1875",
+         "fourthParm":"1.16"
+      },{
+         "type":"Angle",
+         "name":"1 x 1 x 1/4",
+         "firstParm":"1",
+         "secondParm":"1",
+         "thirdParm":"0.25",
+         "fourthParm":"1.49"
+      },{
+         "type":"Angle",
+         "name":"1-1/4 x 1-1/4 x 1/8",
+         "firstParm":"1.25",
+         "secondParm":"1.25",
+         "thirdParm":"0.125",
+         "fourthParm":"1.01"
+      },{
+         "type":"Angle",
+         "name":"1-1/4 x 1-1/4 x 3/16",
+         "firstParm":"1.25",
+         "secondParm":"1.25",
+         "thirdParm":"0.1875",
+         "fourthParm":"1.48"
+      },{
+         "type":"Angle",
+         "name":"1-1/4 x 1-1/4 x 1/4",
+         "firstParm":"1.25",
+         "secondParm":"1.25",
+         "thirdParm":"0.25",
+         "fourthParm":"1.92"
+      },{
+         "type":"Angle",
+         "name":"1-1/2 x 1-1/2 x 1/8",
+         "firstParm":"1.5",
+         "secondParm":"1.5",
+         "thirdParm":"0.125",
+         "fourthParm":"1.23"
+      },{
+         "type":"Angle",
+         "name":"1-1/2 x 1-1/2 x 3/16",
+         "firstParm":"1.5",
+         "secondParm":"1.5",
+         "thirdParm":"0.1875",
+         "fourthParm":"1.8"
+      },{
+         "type":"Angle",
+         "name":"1-1/2 x 1-1/2 x 1/4",
+         "firstParm":"1.5",
+         "secondParm":"1.5",
+         "thirdParm":"0.25",
+         "fourthParm":"2.34"
+      },{
+         "type":"Angle",
+         "name":"1-1/2 x 1-1/2 x 5/16",
+         "firstParm":"1.5",
+         "secondParm":"1.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"2.86"
+      },{
+         "type":"Angle",
+         "name":"1-1/2 x 1-1/2 x 3/8",
+         "firstParm":"1.5",
+         "secondParm":"1.5",
+         "thirdParm":"0.375",
+         "fourthParm":"3.35"
+      },{
+         "type":"Angle",
+         "name":"1-3/4 x 1-3/4 x 1/8",
+         "firstParm":"1.75",
+         "secondParm":"1.75",
+         "thirdParm":"0.125",
+         "fourthParm":"1.44"
+      },{
+         "type":"Angle",
+         "name":"1-3/4 x 1-3/4 x 3/16",
+         "firstParm":"1.75",
+         "secondParm":"1.75",
+         "thirdParm":"0.1875",
+         "fourthParm":"2.12"
+      },{
+         "type":"Angle",
+         "name":"1-3/4 x 1-3/4 x 1/4",
+         "firstParm":"1.75",
+         "secondParm":"1.75",
+         "thirdParm":"0.25",
+         "fourthParm":"2.77"
+      },{
+         "type":"Angle",
+         "name":"3 x 2 x 3/16",
+         "firstParm":"3",
+         "secondParm":"2",
+         "thirdParm":"0.1875",
+         "fourthParm":"3.07"
+      },{
+         "type":"Angle",
+         "name":"3 x 2 x 1/4",
+         "firstParm":"3",
+         "secondParm":"2",
+         "thirdParm":"0.25",
+         "fourthParm":"4.1"
+      },{
+         "type":"Angle",
+         "name":"3 x 2 x 5/16",
+         "firstParm":"3",
+         "secondParm":"2",
+         "thirdParm":"0.3125",
+         "fourthParm":"5"
+      },{
+         "type":"Angle",
+         "name":"3 x 2 x 3/8",
+         "firstParm":"3",
+         "secondParm":"2",
+         "thirdParm":"0.375",
+         "fourthParm":"5.9"
+      },{
+         "type":"Angle",
+         "name":"3 x 2 x 1/2",
+         "firstParm":"3",
+         "secondParm":"2",
+         "thirdParm":"0.5",
+         "fourthParm":"7.7"
+      },{
+         "type":"Angle",
+         "name":"3 x 2-1/2 x 1/4",
+         "firstParm":"3",
+         "secondParm":"2.5",
+         "thirdParm":"0.25",
+         "fourthParm":"4.5"
+      },{
+         "type":"Angle",
+         "name":"3 x 2-1/2 x 5/16",
+         "firstParm":"3",
+         "secondParm":"2.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"5.6"
+      },{
+         "type":"Angle",
+         "name":"3 x 2-1/2 x 3/8",
+         "firstParm":"3",
+         "secondParm":"2.5",
+         "thirdParm":"0.375",
+         "fourthParm":"6.6"
+      },{
+         "type":"Angle",
+         "name":"3 x 2-1/2 x 1/2",
+         "firstParm":"3",
+         "secondParm":"2.5",
+         "thirdParm":"0.5",
+         "fourthParm":"8.5"
+      },{
+         "type":"Angle",
+         "name":"3 x 3 x 3/16",
+         "firstParm":"3",
+         "secondParm":"3",
+         "thirdParm":"0.1875",
+         "fourthParm":"3.71"
+      },{
+         "type":"Angle",
+         "name":"3 x 3 x 1/4",
+         "firstParm":"3",
+         "secondParm":"3",
+         "thirdParm":"0.25",
+         "fourthParm":"4.9"
+      },{
+         "type":"Angle",
+         "name":"3 x 3 x 5/16",
+         "firstParm":"3",
+         "secondParm":"3",
+         "thirdParm":"0.3125",
+         "fourthParm":"6.1"
+      },{
+         "type":"Angle",
+         "name":"3 x 3 x 3/8",
+         "firstParm":"3",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"7.2"
+      },{
+         "type":"Angle",
+         "name":"3 x 3 x 7/16",
+         "firstParm":"3",
+         "secondParm":"3",
+         "thirdParm":"0.4375",
+         "fourthParm":"8.3"
+      },{
+         "type":"Angle",
+         "name":"3 x 3 x 1/2",
+         "firstParm":"3",
+         "secondParm":"3",
+         "thirdParm":"0.5",
+         "fourthParm":"9.4"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 2-1/2 x ",
+         "firstParm":"3.5",
+         "secondParm":"2.5",
+         "thirdParm":"0.25",
+         "fourthParm":"4.9"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 2-1/2 x ",
+         "firstParm":"3.5",
+         "secondParm":"2.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"6.1"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 2-1/2 x ",
+         "firstParm":"3.5",
+         "secondParm":"2.5",
+         "thirdParm":"0.375",
+         "fourthParm":"7.2"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 2-1/2 x ",
+         "firstParm":"3.5",
+         "secondParm":"2.5",
+         "thirdParm":"0.5",
+         "fourthParm":"9.4"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3 x 1/4",
+         "firstParm":"3.5",
+         "secondParm":"3",
+         "thirdParm":"0.25",
+         "fourthParm":"5.4"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3 x 5/16",
+         "firstParm":"3.5",
+         "secondParm":"3",
+         "thirdParm":"0.3125",
+         "fourthParm":"6.6"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3 x 3/8",
+         "firstParm":"3.5",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"7.9"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3 x 1/2",
+         "firstParm":"3.5",
+         "secondParm":"3",
+         "thirdParm":"0.5",
+         "fourthParm":"10.2"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3-1/2 x 1/4",
+         "firstParm":"3.5",
+         "secondParm":"3.5",
+         "thirdParm":"0.25",
+         "fourthParm":"5.8"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3-1/2 x 5/16",
+         "firstParm":"3.5",
+         "secondParm":"3.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"7.2"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3-1/2 x 3/8",
+         "firstParm":"3.5",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"8.5"
+      },{
+         "type":"Angle",
+         "name":"3-1/2 x 3-1/2 x 1/2",
+         "firstParm":"3.5",
+         "secondParm":"3.5",
+         "thirdParm":"0.5",
+         "fourthParm":"11.1"
+      },{
+         "type":"Angle",
+         "name":"4 x 3 x 1/4",
+         "firstParm":"4",
+         "secondParm":"3",
+         "thirdParm":"0.25",
+         "fourthParm":"5.8"
+      },{
+         "type":"Angle",
+         "name":"4 x 3 x 5/16",
+         "firstParm":"4",
+         "secondParm":"3",
+         "thirdParm":"0.3125",
+         "fourthParm":"7.2"
+      },{
+         "type":"Angle",
+         "name":"4 x 3 x 3/8",
+         "firstParm":"4",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"8.5"
+      },{
+         "type":"Angle",
+         "name":"4 x 3 x 1/2",
+         "firstParm":"4",
+         "secondParm":"3",
+         "thirdParm":"0.5",
+         "fourthParm":"11.1"
+      },{
+         "type":"Angle",
+         "name":"4 x 3 x 5/8",
+         "firstParm":"4",
+         "secondParm":"3",
+         "thirdParm":"0.625",
+         "fourthParm":"13.6"
+      },{
+         "type":"Angle",
+         "name":"4 x 3-1/2 x 1/4",
+         "firstParm":"4",
+         "secondParm":"3.5",
+         "thirdParm":"0.25",
+         "fourthParm":"6.2"
+      },{
+         "type":"Angle",
+         "name":"4 x 3-1/2 x 5/16",
+         "firstParm":"4",
+         "secondParm":"3.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"7.7"
+      },{
+         "type":"Angle",
+         "name":"4 x 3-1/2 x 3/8",
+         "firstParm":"4",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"9.1"
+      },{
+         "type":"Angle",
+         "name":"4 x 3-1/2 x 1/2",
+         "firstParm":"4",
+         "secondParm":"3.5",
+         "thirdParm":"0.5",
+         "fourthParm":"11.9"
+      },{
+         "type":"Angle",
+         "name":"4 x 4 x 1/4",
+         "firstParm":"4",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"6.6"
+      },{
+         "type":"Angle",
+         "name":"4 x 4 x 5/16",
+         "firstParm":"4",
+         "secondParm":"4",
+         "thirdParm":"0.3125",
+         "fourthParm":"8.2"
+      },{
+         "type":"Angle",
+         "name":"4 x 4 x 3/8",
+         "firstParm":"4",
+         "secondParm":"4",
+         "thirdParm":"0.375",
+         "fourthParm":"9.8"
+      },{
+         "type":"Angle",
+         "name":"4 x 4 x 1/2",
+         "firstParm":"4",
+         "secondParm":"4",
+         "thirdParm":"0.5",
+         "fourthParm":"12.8"
+      },{
+         "type":"Angle",
+         "name":"4 x 4 x 5/8",
+         "firstParm":"4",
+         "secondParm":"4",
+         "thirdParm":"0.625",
+         "fourthParm":"15.7"
+      },{
+         "type":"Angle",
+         "name":"4 x 4 x 3/4",
+         "firstParm":"4",
+         "secondParm":"4",
+         "thirdParm":"0.75",
+         "fourthParm":"18.5"
+      },{
+         "type":"Angle",
+         "name":"5 x 3 x 1/4",
+         "firstParm":"5",
+         "secondParm":"3",
+         "thirdParm":"0.25",
+         "fourthParm":"6.6"
+      },{
+         "type":"Angle",
+         "name":"5 x 3 x 5/16",
+         "firstParm":"5",
+         "secondParm":"3",
+         "thirdParm":"0.3125",
+         "fourthParm":"8.2"
+      },{
+         "type":"Angle",
+         "name":"5 x 3 x 3/8",
+         "firstParm":"5",
+         "secondParm":"3",
+         "thirdParm":"0.375",
+         "fourthParm":"9.8"
+      },{
+         "type":"Angle",
+         "name":"5 x 3 x 1/2",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.5",
+         "fourthParm":"12.8"
+      },{
+         "type":"Angle",
+         "name":"5 x 3-1/2 x  1/4",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.25",
+         "fourthParm":"7"
+      },{
+         "type":"Angle",
+         "name":"5 x 3-1/2 x  5/16",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"8.7"
+      },{
+         "type":"Angle",
+         "name":"5 x 3-1/2 x  3/8",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.375",
+         "fourthParm":"10.4"
+      },{
+         "type":"Angle",
+         "name":"5 x 3-1/2 x  1/2",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.5",
+         "fourthParm":"13.6"
+      },{
+         "type":"Angle",
+         "name":"5 x 3-1/2 x  5/8",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.625",
+         "fourthParm":"16.8"
+      },{
+         "type":"Angle",
+         "name":"5 x 3-1/2 x  3/4",
+         "firstParm":"5",
+         "secondParm":"3.5",
+         "thirdParm":"0.75",
+         "fourthParm":"19.8"
+      },{
+         "type":"I-Beam",
+         "name":"S3 x 5.7",
+         "firstParm":"3",
+         "secondParm":"2.375",
+         "thirdParm":"0.1875",
+         "fourthParm":"5.7"
+      },{
+         "type":"I-Beam",
+         "name":"S3 x 7.5",
+         "firstParm":"3",
+         "secondParm":"2.5",
+         "thirdParm":"0.375",
+         "fourthParm":"7.5"
+      },{
+         "type":"I-Beam",
+         "name":"S4 x 7.7",
+         "firstParm":"4",
+         "secondParm":"2.625",
+         "thirdParm":"0.1875",
+         "fourthParm":"7.7"
+      },{
+         "type":"I-Beam",
+         "name":"S4 x 9.5",
+         "firstParm":"4",
+         "secondParm":"2.75",
+         "thirdParm":"0.3125",
+         "fourthParm":"9.5"
+      },{
+         "type":"I-Beam",
+         "name":"S5 x 10",
+         "firstParm":"5",
+         "secondParm":"3",
+         "thirdParm":"0.1875",
+         "fourthParm":"10"
+      },{
+         "type":"I-Beam",
+         "name":"S5 x 14.75",
+         "firstParm":"5",
+         "secondParm":"3.25",
+         "thirdParm":"0.5",
+         "fourthParm":"14.75"
+      },{
+         "type":"I-Beam",
+         "name":"S6 x 12.5",
+         "firstParm":"6",
+         "secondParm":"3.375",
+         "thirdParm":"0.25",
+         "fourthParm":"12.5"
+      },{
+         "type":"I-Beam",
+         "name":"S6 x 17.25",
+         "firstParm":"6",
+         "secondParm":"3.625",
+         "thirdParm":"0.4375",
+         "fourthParm":"17.25"
+      },{
+         "type":"I-Beam",
+         "name":"S7 x 15.3",
+         "firstParm":"7",
+         "secondParm":"3.625",
+         "thirdParm":"0.25",
+         "fourthParm":"15.3"
+      },{
+         "type":"I-Beam",
+         "name":"S7 x 20",
+         "firstParm":"7",
+         "secondParm":"3.875",
+         "thirdParm":"0.4375",
+         "fourthParm":"20"
+      },{
+         "type":"I-Beam",
+         "name":"S8 x 18.4",
+         "firstParm":"8",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"18.4"
+      },{
+         "type":"I-Beam",
+         "name":"S8 x 23",
+         "firstParm":"8",
+         "secondParm":"4.125",
+         "thirdParm":"0.4375",
+         "fourthParm":"23"
+      },{
+         "type":"I-Beam",
+         "name":"S10 x 25.4",
+         "firstParm":"10",
+         "secondParm":"4.625",
+         "thirdParm":"0.3125",
+         "fourthParm":"25.4"
+      },{
+         "type":"I-Beam",
+         "name":"S10 x 35",
+         "firstParm":"10",
+         "secondParm":"5",
+         "thirdParm":"0.625",
+         "fourthParm":"35"
+      },{
+         "type":"I-Beam",
+         "name":"S12 x 31.8",
+         "firstParm":"12",
+         "secondParm":"5",
+         "thirdParm":"0.375",
+         "fourthParm":"31.8"
+      },{
+         "type":"I-Beam",
+         "name":"S12 x 35",
+         "firstParm":"12",
+         "secondParm":"5.125",
+         "thirdParm":"0.4375",
+         "fourthParm":"35"
+      },{
+         "type":"I-Beam",
+         "name":"S12 x 40.8",
+         "firstParm":"12",
+         "secondParm":"5.25",
+         "thirdParm":"0.4375",
+         "fourthParm":"40.8"
+      },{
+         "type":"I-Beam",
+         "name":"S12 x 50",
+         "firstParm":"12",
+         "secondParm":"5.5",
+         "thirdParm":"0.6875",
+         "fourthParm":"50"
+      },{
+         "type":"I-Beam",
+         "name":"S15 x 42.9",
+         "firstParm":"15",
+         "secondParm":"5.5",
+         "thirdParm":"0.4375",
+         "fourthParm":"42.9"
+      },{
+         "type":"I-Beam",
+         "name":"S15 x 50",
+         "firstParm":"15",
+         "secondParm":"5.625",
+         "thirdParm":"0.5625",
+         "fourthParm":"50"
+      },{
+         "type":"I-Beam",
+         "name":"S18 x 54.7",
+         "firstParm":"18",
+         "secondParm":"6",
+         "thirdParm":"0.4375",
+         "fourthParm":"54.7"
+      },{
+         "type":"I-Beam",
+         "name":"S18 x 70",
+         "firstParm":"18",
+         "secondParm":"6.25",
+         "thirdParm":"0.6875",
+         "fourthParm":"70"
+      },{
+         "type":"I-Beam",
+         "name":"S20 x 66",
+         "firstParm":"20",
+         "secondParm":"6.25",
+         "thirdParm":"0.5",
+         "fourthParm":"66"
+      },{
+         "type":"I-Beam",
+         "name":"S20 x 75",
+         "firstParm":"20",
+         "secondParm":"6.375",
+         "thirdParm":"0.625",
+         "fourthParm":"75"
+      },{
+         "type":"I-Beam",
+         "name":"S20 x 86",
+         "firstParm":"20.25",
+         "secondParm":"7",
+         "thirdParm":"0.6875",
+         "fourthParm":"86"
+      },{
+         "type":"I-Beam",
+         "name":"S20 x 96",
+         "firstParm":"20.25",
+         "secondParm":"7.25",
+         "thirdParm":"0.8125",
+         "fourthParm":"96"
+      },{
+         "type":"I-Beam",
+         "name":"S24 x 80",
+         "firstParm":"24",
+         "secondParm":"7",
+         "thirdParm":"0.5",
+         "fourthParm":"80"
+      },{
+         "type":"I-Beam",
+         "name":"S24 x 90",
+         "firstParm":"24",
+         "secondParm":"7.125",
+         "thirdParm":"0.625",
+         "fourthParm":"90"
+      },{
+         "type":"I-Beam",
+         "name":"S24 x 100",
+         "firstParm":"24",
+         "secondParm":"7.25",
+         "thirdParm":"0.75",
+         "fourthParm":"100"
+      },{
+         "type":"I-Beam",
+         "name":"S24 x 106",
+         "firstParm":"24.5",
+         "secondParm":"7.625",
+         "thirdParm":"0.625",
+         "fourthParm":"106"
+      },{
+         "type":"I-Beam",
+         "name":"S24 x 121",
+         "firstParm":"24.5",
+         "secondParm":"8",
+         "thirdParm":"0.8125",
+         "fourthParm":"121"
+      },{
+         "type":"I-Beam",
+         "name":"W4 x 13",
+         "firstParm":"4.125",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"13"
+      },{
+         "type":"I-Beam",
+         "name":"W5 x 16",
+         "firstParm":"5",
+         "secondParm":"5",
+         "thirdParm":"0.25",
+         "fourthParm":"16"
+      },{
+         "type":"I-Beam",
+         "name":"W5 x 19",
+         "firstParm":"5.125",
+         "secondParm":"5",
+         "thirdParm":"0.25",
+         "fourthParm":"19"
+      },{
+         "type":"I-Beam",
+         "name":"W6 x 9",
+         "firstParm":"5.875",
+         "secondParm":"4",
+         "thirdParm":"0.1875",
+         "fourthParm":"9"
+      },{
+         "type":"I-Beam",
+         "name":"W6 x 12",
+         "firstParm":"6",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"12"
+      },{
+         "type":"I-Beam",
+         "name":"W6 x 16",
+         "firstParm":"6.25",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"16"
+      },{
+         "type":"I-Beam",
+         "name":"W6 x 15",
+         "firstParm":"6",
+         "secondParm":"6",
+         "thirdParm":"0.25",
+         "fourthParm":"15"
+      },{
+         "type":"I-Beam",
+         "name":"W6 x 20",
+         "firstParm":"6.25",
+         "secondParm":"6",
+         "thirdParm":"0.25",
+         "fourthParm":"20"
+      },{
+         "type":"I-Beam",
+         "name":"W6 x 25",
+         "firstParm":"6.375",
+         "secondParm":"6.125",
+         "thirdParm":"0.3125",
+         "fourthParm":"25"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 10",
+         "firstParm":"7.875",
+         "secondParm":"4",
+         "thirdParm":"0.1875",
+         "fourthParm":"10"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 13",
+         "firstParm":"8",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"13"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 15",
+         "firstParm":"8.125",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"15"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 18",
+         "firstParm":"8.125",
+         "secondParm":"5.25",
+         "thirdParm":"0.25",
+         "fourthParm":"18"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 21",
+         "firstParm":"8.25",
+         "secondParm":"5.25",
+         "thirdParm":"0.25",
+         "fourthParm":"21"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 24",
+         "firstParm":"7.875",
+         "secondParm":"6.5",
+         "thirdParm":"0.25",
+         "fourthParm":"24"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 28",
+         "firstParm":"8",
+         "secondParm":"6.5",
+         "thirdParm":"0.3125",
+         "fourthParm":"28"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 31",
+         "firstParm":"8",
+         "secondParm":"8",
+         "thirdParm":"0.3125",
+         "fourthParm":"31"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 35",
+         "firstParm":"8.125",
+         "secondParm":"8",
+         "thirdParm":"0.3125",
+         "fourthParm":"35"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 40",
+         "firstParm":"8.25",
+         "secondParm":"8.125",
+         "thirdParm":"0.375",
+         "fourthParm":"40"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 48",
+         "firstParm":"8.5",
+         "secondParm":"8.125",
+         "thirdParm":"0.375",
+         "fourthParm":"48"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 58",
+         "firstParm":"8.75",
+         "secondParm":"8.25",
+         "thirdParm":"0.5",
+         "fourthParm":"58"
+      },{
+         "type":"I-Beam",
+         "name":"W8 x 67",
+         "firstParm":"9",
+         "secondParm":"8.25",
+         "thirdParm":"0.5625",
+         "fourthParm":"67"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 12",
+         "firstParm":"9.875",
+         "secondParm":"4",
+         "thirdParm":"0.1875",
+         "fourthParm":"12"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 15",
+         "firstParm":"10",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"15"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 17",
+         "firstParm":"10.125",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"17"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 19",
+         "firstParm":"10.25",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"19"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 22",
+         "firstParm":"10.125",
+         "secondParm":"5.75",
+         "thirdParm":"0.25",
+         "fourthParm":"22"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 26",
+         "firstParm":"10.375",
+         "secondParm":"5.75",
+         "thirdParm":"0.25",
+         "fourthParm":"26"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 30",
+         "firstParm":"10.5",
+         "secondParm":"5.75",
+         "thirdParm":"0.3125",
+         "fourthParm":"30"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 33",
+         "firstParm":"9.75",
+         "secondParm":"8",
+         "thirdParm":"0.3125",
+         "fourthParm":"33"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 39",
+         "firstParm":"9.875",
+         "secondParm":"8",
+         "thirdParm":"0.3125",
+         "fourthParm":"39"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 45",
+         "firstParm":"10.125",
+         "secondParm":"8",
+         "thirdParm":"0.375",
+         "fourthParm":"45"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 49",
+         "firstParm":"10",
+         "secondParm":"10",
+         "thirdParm":"0.3125",
+         "fourthParm":"49"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 54",
+         "firstParm":"10.125",
+         "secondParm":"10",
+         "thirdParm":"0.375",
+         "fourthParm":"54"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 60",
+         "firstParm":"10.25",
+         "secondParm":"10.125",
+         "thirdParm":"0.4375",
+         "fourthParm":"60"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 68",
+         "firstParm":"10.375",
+         "secondParm":"10.125",
+         "thirdParm":"0.5",
+         "fourthParm":"68"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 77",
+         "firstParm":"10.625",
+         "secondParm":"10.25",
+         "thirdParm":"0.5",
+         "fourthParm":"77"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 88",
+         "firstParm":"10.975",
+         "secondParm":"10.25",
+         "thirdParm":"0.625",
+         "fourthParm":"88"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 100",
+         "firstParm":"11.125",
+         "secondParm":"10.375",
+         "thirdParm":"0.6875",
+         "fourthParm":"100"
+      },{
+         "type":"I-Beam",
+         "name":"W10 x 112",
+         "firstParm":"11.375",
+         "secondParm":"10.375",
+         "thirdParm":"0.75",
+         "fourthParm":"112"
+      },{
+         "type":"I-Beam",
+         "name":"W12 x 14",
+         "firstParm":"11.875",
+         "secondParm":"4",
+         "thirdParm":"0.1875",
+         "fourthParm":"14"
+      },{
+         "type":"I-Beam",
+         "name":"W12 x 16",
+         "firstParm":"12",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"16"
+      },{
+         "type":"I-Beam",
+         "name":"W12 x 19",
+         "firstParm":"12.125",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"19"
+      },{
+         "type":"I-Beam",
+         "name":"W12 x 22",
+         "firstParm":"12.25",
+         "secondParm":"4",
+         "thirdParm":"0.25",
+         "fourthParm":"22"
+      }]);
+      
+      public static const BRINELL_STD:int = 1;
+      
+      public static const BRINELL_TUNG:int = 2;
+      
+      public static const BRINELL_STD_STR:String = "Brinell Std";
+      
+      public static const BRINELL_TUNG_STR:String = "Brinell Tungsten (HBW)";
+      
+      private static var _142933331HardnessUnits:ArrayCollection = new ArrayCollection([{
+         "name":"Brinell Hultgren",
+         "field":"BrinHult"
+      },{
+         "name":"Brinell Std",
+         "field":"BrinStdBall"
+      },{
+         "name":"Brinell Tungsten (HBW)",
+         "field":"BrinTung"
+      },{
+         "name":"Rockwell A",
+         "field":"RockA"
+      },{
+         "name":"Rockwell B",
+         "field":"RockB"
+      },{
+         "name":"Rockwell C",
+         "field":"RockwellC"
+      },{
+         "name":"Rockwell D",
+         "field":"RockD"
+      },{
+         "name":"Rockwell 15N",
+         "field":"Rock15"
+      },{
+         "name":"Rockwell 30N",
+         "field":"Rock30"
+      },{
+         "name":"Rockwell 45N",
+         "field":"Rock45"
+      },{
+         "name":"Shore Scler.",
+         "field":"Shore"
+      },{
+         "name":"Tensile (psi)",
+         "field":"Tensile"
+      },{
+         "name":"Vickers",
+         "field":"Vickers"
+      }]);
+      
+      private static var _1806261194HardnessConv:ArrayCollection = new ArrayCollection([{
+         "RockwellC":72,
+         "DiamondPyr":0,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":800,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":0,
+         "Vickers":0,
+         "Tensile":0
+      },{
+         "RockwellC":71,
+         "DiamondPyr":0,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":780,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":0,
+         "Vickers":0,
+         "Tensile":0
+      },{
+         "RockwellC":70,
+         "DiamondPyr":0,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":760,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":0,
+         "Vickers":0,
+         "Tensile":0
+      },{
+         "RockwellC":69,
+         "DiamondPyr":0,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":752,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":0,
+         "Vickers":0,
+         "Tensile":0
+      },{
+         "RockwellC":68,
+         "DiamondPyr":940,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":746,
+         "RockA":85.6,
+         "RockD":76.9,
+         "Rock15":93.2,
+         "Rock30":84.4,
+         "Rock45":75.4,
+         "Shore":97,
+         "Leeb":8,
+         "RockB":0,
+         "Vickers":1114,
+         "Tensile":0
+      },{
+         "RockwellC":67,
+         "DiamondPyr":900,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":745,
+         "RockA":85,
+         "RockD":76.1,
+         "Rock15":92.9,
+         "Rock30":83.6,
+         "Rock45":74.2,
+         "Shore":95,
+         "Leeb":8,
+         "RockB":0,
+         "Vickers":1060,
+         "Tensile":0
+      },{
+         "RockwellC":66,
+         "DiamondPyr":865,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":735,
+         "RockA":84.5,
+         "RockD":75.4,
+         "Rock15":92.5,
+         "Rock30":82.8,
+         "Rock45":73.3,
+         "Shore":92,
+         "Leeb":8,
+         "RockB":0,
+         "Vickers":1021,
+         "Tensile":0
+      },{
+         "RockwellC":65,
+         "DiamondPyr":832,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":711,
+         "RockA":83.9,
+         "RockD":74.5,
+         "Rock15":92.2,
+         "Rock30":81.9,
+         "Rock45":72,
+         "Shore":91,
+         "Leeb":8,
+         "RockB":0,
+         "Vickers":940,
+         "Tensile":0
+      },{
+         "RockwellC":64,
+         "DiamondPyr":800,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":695,
+         "RockA":83.4,
+         "RockD":73.8,
+         "Rock15":91.8,
+         "Rock30":81.1,
+         "Rock45":71,
+         "Shore":88,
+         "Leeb":8,
+         "RockB":0,
+         "Vickers":905,
+         "Tensile":0
+      },{
+         "RockwellC":63,
+         "DiamondPyr":772,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":681,
+         "RockA":82.8,
+         "RockD":73,
+         "Rock15":91.4,
+         "Rock30":80.1,
+         "Rock45":69.9,
+         "Shore":87,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":867,
+         "Tensile":0
+      },{
+         "RockwellC":62,
+         "DiamondPyr":746,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":658,
+         "RockA":82.3,
+         "RockD":72.2,
+         "Rock15":91.1,
+         "Rock30":79.3,
+         "Rock45":68.8,
+         "Shore":85,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":803,
+         "Tensile":0
+      },{
+         "RockwellC":61,
+         "DiamondPyr":720,
+         "BrinStdBall":0,
+         "BrinHult":0,
+         "BrinTung":642,
+         "RockA":81.8,
+         "RockD":71.5,
+         "Rock15":90.7,
+         "Rock30":78.4,
+         "Rock45":67.7,
+         "Shore":83,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":775,
+         "Tensile":0
+      },{
+         "RockwellC":60,
+         "DiamondPyr":697,
+         "BrinStdBall":0,
+         "BrinHult":613,
+         "BrinTung":627,
+         "RockA":81.2,
+         "RockD":70.7,
+         "Rock15":90.2,
+         "Rock30":77.5,
+         "Rock45":66.6,
+         "Shore":81,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":746,
+         "Tensile":320000
+      },{
+         "RockwellC":59,
+         "DiamondPyr":674,
+         "BrinStdBall":0,
+         "BrinHult":599,
+         "BrinTung":613,
+         "RockA":80.7,
+         "RockD":69.9,
+         "Rock15":89.8,
+         "Rock30":76.6,
+         "Rock45":65.5,
+         "Shore":80,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":727,
+         "Tensile":310000
+      },{
+         "RockwellC":58,
+         "DiamondPyr":653,
+         "BrinStdBall":0,
+         "BrinHult":587,
+         "BrinTung":601,
+         "RockA":80.1,
+         "RockD":69.2,
+         "Rock15":89.3,
+         "Rock30":75.7,
+         "Rock45":64.3,
+         "Shore":78,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":710,
+         "Tensile":300000
+      },{
+         "RockwellC":57,
+         "DiamondPyr":633,
+         "BrinStdBall":0,
+         "BrinHult":575,
+         "BrinTung":592,
+         "RockA":79.6,
+         "RockD":68.5,
+         "Rock15":88.9,
+         "Rock30":74.8,
+         "Rock45":63.2,
+         "Shore":76,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":694,
+         "Tensile":290000
+      },{
+         "RockwellC":56,
+         "DiamondPyr":613,
+         "BrinStdBall":0,
+         "BrinHult":561,
+         "BrinTung":572,
+         "RockA":79,
+         "RockD":67.7,
+         "Rock15":88.3,
+         "Rock30":73.9,
+         "Rock45":62,
+         "Shore":75,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":649,
+         "Tensile":282000
+      },{
+         "RockwellC":55,
+         "DiamondPyr":595,
+         "BrinStdBall":0,
+         "BrinHult":546,
+         "BrinTung":552,
+         "RockA":78.5,
+         "RockD":66.9,
+         "Rock15":87.9,
+         "Rock30":73,
+         "Rock45":60.9,
+         "Shore":74,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":639,
+         "Tensile":274000
+      },{
+         "RockwellC":54,
+         "DiamondPyr":577,
+         "BrinStdBall":0,
+         "BrinHult":534,
+         "BrinTung":534,
+         "RockA":78,
+         "RockD":66.1,
+         "Rock15":87.4,
+         "Rock30":72,
+         "Rock45":59.8,
+         "Shore":72,
+         "Leeb":7,
+         "RockB":0,
+         "Vickers":606,
+         "Tensile":266000
+      },{
+         "RockwellC":53,
+         "DiamondPyr":560,
+         "BrinStdBall":0,
+         "BrinHult":519,
+         "BrinTung":513,
+         "RockA":77.4,
+         "RockD":65.4,
+         "Rock15":86.9,
+         "Rock30":71.2,
+         "Rock45":58.6,
+         "Shore":71,
+         "Leeb":7,
+         "RockB":120,
+         "Vickers":587,
+         "Tensile":257000
+      },{
+         "RockwellC":52,
+         "DiamondPyr":544,
+         "BrinStdBall":500,
+         "BrinHult":508,
+         "BrinTung":504,
+         "RockA":76.8,
+         "RockD":64.6,
+         "Rock15":86.4,
+         "Rock30":70.2,
+         "Rock45":57.4,
+         "Shore":69,
+         "Leeb":7,
+         "RockB":119,
+         "Vickers":565,
+         "Tensile":245000
+      },{
+         "RockwellC":51,
+         "DiamondPyr":528,
+         "BrinStdBall":487,
+         "BrinHult":494,
+         "BrinTung":496,
+         "RockA":76.3,
+         "RockD":63.8,
+         "Rock15":85.9,
+         "Rock30":69.4,
+         "Rock45":56.1,
+         "Shore":68,
+         "Leeb":7,
+         "RockB":119,
+         "Vickers":551,
+         "Tensile":239000
+      },{
+         "RockwellC":50,
+         "DiamondPyr":513,
+         "BrinStdBall":475,
+         "BrinHult":481,
+         "BrinTung":481,
+         "RockA":75.9,
+         "RockD":63.1,
+         "Rock15":85.5,
+         "Rock30":68.5,
+         "Rock45":55,
+         "Shore":67,
+         "Leeb":7,
+         "RockB":118,
+         "Vickers":542,
+         "Tensile":233000
+      },{
+         "RockwellC":49,
+         "DiamondPyr":498,
+         "BrinStdBall":464,
+         "BrinHult":469,
+         "BrinTung":469,
+         "RockA":75.2,
+         "RockD":62.1,
+         "Rock15":85,
+         "Rock30":67.6,
+         "Rock45":53.8,
+         "Shore":66,
+         "Leeb":7,
+         "RockB":118,
+         "Vickers":534,
+         "Tensile":227000
+      },{
+         "RockwellC":48,
+         "DiamondPyr":484,
+         "BrinStdBall":451,
+         "BrinHult":455,
+         "BrinTung":455,
+         "RockA":74.7,
+         "RockD":61.4,
+         "Rock15":84.5,
+         "Rock30":66.7,
+         "Rock45":52.5,
+         "Shore":64,
+         "Leeb":6,
+         "RockB":117,
+         "Vickers":502,
+         "Tensile":221000
+      },{
+         "RockwellC":47,
+         "DiamondPyr":471,
+         "BrinStdBall":442,
+         "BrinHult":443,
+         "BrinTung":443,
+         "RockA":74.1,
+         "RockD":60.8,
+         "Rock15":83.9,
+         "Rock30":65.8,
+         "Rock45":51.4,
+         "Shore":63,
+         "Leeb":6,
+         "RockB":117,
+         "Vickers":489,
+         "Tensile":217000
+      },{
+         "RockwellC":46,
+         "DiamondPyr":458,
+         "BrinStdBall":432,
+         "BrinHult":432,
+         "BrinTung":432,
+         "RockA":73.6,
+         "RockD":60,
+         "Rock15":83.5,
+         "Rock30":64.8,
+         "Rock45":50.3,
+         "Shore":62,
+         "Leeb":6,
+         "RockB":116,
+         "Vickers":474,
+         "Tensile":212000
+      },{
+         "RockwellC":45,
+         "DiamondPyr":446,
+         "BrinStdBall":421,
+         "BrinHult":421,
+         "BrinTung":421,
+         "RockA":73.1,
+         "RockD":59.2,
+         "Rock15":83,
+         "Rock30":64,
+         "Rock45":49,
+         "Shore":60,
+         "Leeb":6,
+         "RockB":115,
+         "Vickers":460,
+         "Tensile":206000
+      },{
+         "RockwellC":44,
+         "DiamondPyr":434,
+         "BrinStdBall":409,
+         "BrinHult":409,
+         "BrinTung":409,
+         "RockA":72.5,
+         "RockD":58.5,
+         "Rock15":82.5,
+         "Rock30":63.1,
+         "Rock45":47.8,
+         "Shore":58,
+         "Leeb":6,
+         "RockB":115,
+         "Vickers":435,
+         "Tensile":200000
+      },{
+         "RockwellC":43,
+         "DiamondPyr":423,
+         "BrinStdBall":400,
+         "BrinHult":400,
+         "BrinTung":400,
+         "RockA":72,
+         "RockD":57.7,
+         "Rock15":82,
+         "Rock30":62.2,
+         "Rock45":46.7,
+         "Shore":57,
+         "Leeb":6,
+         "RockB":114,
+         "Vickers":423,
+         "Tensile":196000
+      },{
+         "RockwellC":42,
+         "DiamondPyr":412,
+         "BrinStdBall":390,
+         "BrinHult":390,
+         "BrinTung":390,
+         "RockA":71.5,
+         "RockD":56.9,
+         "Rock15":81.5,
+         "Rock30":61.3,
+         "Rock45":45.5,
+         "Shore":56,
+         "Leeb":6,
+         "RockB":114,
+         "Vickers":401,
+         "Tensile":191000
+      },{
+         "RockwellC":41,
+         "DiamondPyr":402,
+         "BrinStdBall":381,
+         "BrinHult":381,
+         "BrinTung":381,
+         "RockA":70.9,
+         "RockD":56.2,
+         "Rock15":80.9,
+         "Rock30":60.4,
+         "Rock45":44.3,
+         "Shore":55,
+         "Leeb":6,
+         "RockB":113,
+         "Vickers":390,
+         "Tensile":187000
+      },{
+         "RockwellC":40,
+         "DiamondPyr":392,
+         "BrinStdBall":371,
+         "BrinHult":371,
+         "BrinTung":371,
+         "RockA":70.4,
+         "RockD":55.4,
+         "Rock15":80.4,
+         "Rock30":59.5,
+         "Rock45":43.1,
+         "Shore":54,
+         "Leeb":6,
+         "RockB":112,
+         "Vickers":385,
+         "Tensile":182000
+      },{
+         "RockwellC":39,
+         "DiamondPyr":382,
+         "BrinStdBall":362,
+         "BrinHult":362,
+         "BrinTung":362,
+         "RockA":69.9,
+         "RockD":54.6,
+         "Rock15":79.9,
+         "Rock30":58.6,
+         "Rock45":41.9,
+         "Shore":52,
+         "Leeb":6,
+         "RockB":111,
+         "Vickers":380,
+         "Tensile":177000
+      },{
+         "RockwellC":38,
+         "DiamondPyr":372,
+         "BrinStdBall":353,
+         "BrinHult":353,
+         "BrinTung":353,
+         "RockA":69.4,
+         "RockD":53.8,
+         "Rock15":79.4,
+         "Rock30":57.7,
+         "Rock45":40.8,
+         "Shore":51,
+         "Leeb":6,
+         "RockB":111,
+         "Vickers":361,
+         "Tensile":173000
+      },{
+         "RockwellC":37,
+         "DiamondPyr":363,
+         "BrinStdBall":344,
+         "BrinHult":344,
+         "BrinTung":344,
+         "RockA":68.9,
+         "RockD":53.1,
+         "Rock15":78.8,
+         "Rock30":56.8,
+         "Rock45":39.6,
+         "Shore":50,
+         "Leeb":6,
+         "RockB":110,
+         "Vickers":352,
+         "Tensile":169000
+      },{
+         "RockwellC":36,
+         "DiamondPyr":354,
+         "BrinStdBall":336,
+         "BrinHult":336,
+         "BrinTung":336,
+         "RockA":68.4,
+         "RockD":52.3,
+         "Rock15":78.3,
+         "Rock30":55.9,
+         "Rock45":38.4,
+         "Shore":49,
+         "Leeb":6,
+         "RockB":109,
+         "Vickers":335,
+         "Tensile":165000
+      },{
+         "RockwellC":35,
+         "DiamondPyr":345,
+         "BrinStdBall":327,
+         "BrinHult":327,
+         "BrinTung":327,
+         "RockA":67.9,
+         "RockD":51.5,
+         "Rock15":77.7,
+         "Rock30":55,
+         "Rock45":37.2,
+         "Shore":48,
+         "Leeb":5,
+         "RockB":109,
+         "Vickers":320,
+         "Tensile":160000
+      },{
+         "RockwellC":34,
+         "DiamondPyr":336,
+         "BrinStdBall":319,
+         "BrinHult":319,
+         "BrinTung":319,
+         "RockA":67.4,
+         "RockD":50.8,
+         "Rock15":77.2,
+         "Rock30":54.2,
+         "Rock45":36.1,
+         "Shore":47,
+         "Leeb":5,
+         "RockB":108,
+         "Vickers":312,
+         "Tensile":156000
+      },{
+         "RockwellC":33,
+         "DiamondPyr":327,
+         "BrinStdBall":311,
+         "BrinHult":311,
+         "BrinTung":311,
+         "RockA":66.8,
+         "RockD":50,
+         "Rock15":76.6,
+         "Rock30":53.3,
+         "Rock45":34.9,
+         "Shore":46,
+         "Leeb":5,
+         "RockB":107,
+         "Vickers":305,
+         "Tensile":152000
+      },{
+         "RockwellC":32,
+         "DiamondPyr":318,
+         "BrinStdBall":301,
+         "BrinHult":301,
+         "BrinTung":301,
+         "RockA":66.3,
+         "RockD":49.2,
+         "Rock15":76.1,
+         "Rock30":52.1,
+         "Rock45":33.7,
+         "Shore":44,
+         "Leeb":5,
+         "RockB":106,
+         "Vickers":291,
+         "Tensile":147000
+      },{
+         "RockwellC":31,
+         "DiamondPyr":310,
+         "BrinStdBall":294,
+         "BrinHult":294,
+         "BrinTung":294,
+         "RockA":65.8,
+         "RockD":48.4,
+         "Rock15":75.6,
+         "Rock30":51.3,
+         "Rock45":32.5,
+         "Shore":43,
+         "Leeb":5,
+         "RockB":105,
+         "Vickers":285,
+         "Tensile":144000
+      },{
+         "RockwellC":30,
+         "DiamondPyr":302,
+         "BrinStdBall":286,
+         "BrinHult":286,
+         "BrinTung":286,
+         "RockA":65.3,
+         "RockD":47.7,
+         "Rock15":75,
+         "Rock30":50.4,
+         "Rock45":31.3,
+         "Shore":42,
+         "Leeb":5,
+         "RockB":105,
+         "Vickers":278,
+         "Tensile":140000
+      },{
+         "RockwellC":29,
+         "DiamondPyr":294,
+         "BrinStdBall":279,
+         "BrinHult":279,
+         "BrinTung":279,
+         "RockA":64.7,
+         "RockD":47,
+         "Rock15":74.5,
+         "Rock30":49.5,
+         "Rock45":30.1,
+         "Shore":41,
+         "Leeb":5,
+         "RockB":104,
+         "Vickers":272,
+         "Tensile":137000
+      },{
+         "RockwellC":28,
+         "DiamondPyr":286,
+         "BrinStdBall":271,
+         "BrinHult":271,
+         "BrinTung":271,
+         "RockA":64.3,
+         "RockD":46.1,
+         "Rock15":73.9,
+         "Rock30":48.6,
+         "Rock45":28.9,
+         "Shore":41,
+         "Leeb":5,
+         "RockB":103,
+         "Vickers":261,
+         "Tensile":133000
+      },{
+         "RockwellC":27,
+         "DiamondPyr":279,
+         "BrinStdBall":264,
+         "BrinHult":264,
+         "BrinTung":264,
+         "RockA":63.8,
+         "RockD":45.2,
+         "Rock15":73.3,
+         "Rock30":47.7,
+         "Rock45":27.8,
+         "Shore":40,
+         "Leeb":5,
+         "RockB":102,
+         "Vickers":258,
+         "Tensile":129000
+      },{
+         "RockwellC":26,
+         "DiamondPyr":272,
+         "BrinStdBall":258,
+         "BrinHult":258,
+         "BrinTung":258,
+         "RockA":63.3,
+         "RockD":44.6,
+         "Rock15":72.8,
+         "Rock30":46.8,
+         "Rock45":26.7,
+         "Shore":38,
+         "Leeb":5,
+         "RockB":101,
+         "Vickers":250,
+         "Tensile":126000
+      },{
+         "RockwellC":25,
+         "DiamondPyr":266,
+         "BrinStdBall":253,
+         "BrinHult":253,
+         "BrinTung":253,
+         "RockA":62.8,
+         "RockD":43.8,
+         "Rock15":72.2,
+         "Rock30":45.9,
+         "Rock45":25.5,
+         "Shore":38,
+         "Leeb":5,
+         "RockB":100,
+         "Vickers":246,
+         "Tensile":124000
+      },{
+         "RockwellC":24,
+         "DiamondPyr":260,
+         "BrinStdBall":247,
+         "BrinHult":247,
+         "BrinTung":247,
+         "RockA":62.4,
+         "RockD":43.1,
+         "Rock15":71.6,
+         "Rock30":45,
+         "Rock45":24.3,
+         "Shore":37,
+         "Leeb":5,
+         "RockB":99,
+         "Vickers":240,
+         "Tensile":121000
+      },{
+         "RockwellC":23,
+         "DiamondPyr":254,
+         "BrinStdBall":243,
+         "BrinHult":243,
+         "BrinTung":243,
+         "RockA":62,
+         "RockD":42.1,
+         "Rock15":71,
+         "Rock30":44,
+         "Rock45":23.1,
+         "Shore":36,
+         "Leeb":5,
+         "RockB":99,
+         "Vickers":235,
+         "Tensile":118000
+      },{
+         "RockwellC":22,
+         "DiamondPyr":248,
+         "BrinStdBall":237,
+         "BrinHult":237,
+         "BrinTung":237,
+         "RockA":61.5,
+         "RockD":41.6,
+         "Rock15":70.5,
+         "Rock30":43.2,
+         "Rock45":22,
+         "Shore":35,
+         "Leeb":5,
+         "RockB":98,
+         "Vickers":226,
+         "Tensile":115000
+      },{
+         "RockwellC":21,
+         "DiamondPyr":243,
+         "BrinStdBall":229,
+         "BrinHult":229,
+         "BrinTung":229,
+         "RockA":61,
+         "RockD":40.9,
+         "Rock15":69.9,
+         "Rock30":42.3,
+         "Rock45":20.7,
+         "Shore":35,
+         "Leeb":0,
+         "RockB":98,
+         "Vickers":235,
+         "Tensile":112000
+      },{
+         "RockwellC":20,
+         "DiamondPyr":0,
+         "BrinStdBall":223,
+         "BrinHult":223,
+         "BrinTung":223,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":97,
+         "Vickers":227,
+         "Tensile":0
+      },{
+         "RockwellC":19,
+         "DiamondPyr":0,
+         "BrinStdBall":216,
+         "BrinHult":216,
+         "BrinTung":216,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":96,
+         "Vickers":222,
+         "Tensile":0
+      },{
+         "RockwellC":18,
+         "DiamondPyr":0,
+         "BrinStdBall":212,
+         "BrinHult":212,
+         "BrinTung":212,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":95,
+         "Vickers":218,
+         "Tensile":0
+      },{
+         "RockwellC":17,
+         "DiamondPyr":0,
+         "BrinStdBall":208,
+         "BrinHult":208,
+         "BrinTung":208,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":95,
+         "Vickers":210,
+         "Tensile":0
+      },{
+         "RockwellC":16,
+         "DiamondPyr":0,
+         "BrinStdBall":203,
+         "BrinHult":203,
+         "BrinTung":203,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":94,
+         "Vickers":201,
+         "Tensile":0
+      },{
+         "RockwellC":15,
+         "DiamondPyr":0,
+         "BrinStdBall":199,
+         "BrinHult":199,
+         "BrinTung":199,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":93,
+         "Vickers":199,
+         "Tensile":0
+      },{
+         "RockwellC":14,
+         "DiamondPyr":0,
+         "BrinStdBall":191,
+         "BrinHult":191,
+         "BrinTung":191,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":92,
+         "Vickers":197,
+         "Tensile":0
+      },{
+         "RockwellC":13,
+         "DiamondPyr":0,
+         "BrinStdBall":190,
+         "BrinHult":190,
+         "BrinTung":190,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":92,
+         "Vickers":186,
+         "Tensile":0
+      },{
+         "RockwellC":12,
+         "DiamondPyr":0,
+         "BrinStdBall":186,
+         "BrinHult":186,
+         "BrinTung":186,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":91,
+         "Vickers":184,
+         "Tensile":0
+      },{
+         "RockwellC":11,
+         "DiamondPyr":0,
+         "BrinStdBall":183,
+         "BrinHult":183,
+         "BrinTung":183,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":90,
+         "Vickers":183,
+         "Tensile":0
+      },{
+         "RockwellC":10,
+         "DiamondPyr":0,
+         "BrinStdBall":180,
+         "BrinHult":180,
+         "BrinTung":180,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":89,
+         "Vickers":180,
+         "Tensile":0
+      },{
+         "RockwellC":9,
+         "DiamondPyr":0,
+         "BrinStdBall":175,
+         "BrinHult":175,
+         "BrinTung":175,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":88,
+         "Vickers":178,
+         "Tensile":0
+      },{
+         "RockwellC":7,
+         "DiamondPyr":0,
+         "BrinStdBall":170,
+         "BrinHult":170,
+         "BrinTung":170,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":87,
+         "Vickers":175,
+         "Tensile":0
+      },{
+         "RockwellC":6,
+         "DiamondPyr":0,
+         "BrinStdBall":167,
+         "BrinHult":167,
+         "BrinTung":167,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":86,
+         "Vickers":172,
+         "Tensile":0
+      },{
+         "RockwellC":5,
+         "DiamondPyr":0,
+         "BrinStdBall":166,
+         "BrinHult":166,
+         "BrinTung":166,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":86,
+         "Vickers":168,
+         "Tensile":0
+      },{
+         "RockwellC":4,
+         "DiamondPyr":0,
+         "BrinStdBall":163,
+         "BrinHult":163,
+         "BrinTung":163,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":85,
+         "Vickers":162,
+         "Tensile":0
+      },{
+         "RockwellC":3,
+         "DiamondPyr":0,
+         "BrinStdBall":160,
+         "BrinHult":160,
+         "BrinTung":160,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":84,
+         "Vickers":160,
+         "Tensile":0
+      },{
+         "RockwellC":2,
+         "DiamondPyr":0,
+         "BrinStdBall":156,
+         "BrinHult":156,
+         "BrinTung":156,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":83,
+         "Vickers":158,
+         "Tensile":0
+      },{
+         "RockwellC":1,
+         "DiamondPyr":0,
+         "BrinStdBall":154,
+         "BrinHult":154,
+         "BrinTung":154,
+         "RockA":0,
+         "RockD":0,
+         "Rock15":0,
+         "Rock30":0,
+         "Rock45":0,
+         "Shore":0,
+         "Leeb":0,
+         "RockB":82,
+         "Vickers":152,
+         "Tensile":0
+      }]);
+      
+      public static var XRefList:ArrayCollection = new ArrayCollection([{
+         "ASTM":"1020",
+         "CMS2":"",
+         "NEWBS":"2C",
+         "OLDBS":"050A20",
+         "ISO":"",
+         "UNS":"A91020",
+         "WNr":"1.0402",
+         "DIN":"C22",
+         "AFNOR":"CC20",
+         "UNI":"C20, C21",
+         "JIS":""
+      },{
+         "ASTM":"1050",
+         "CMS2":"",
+         "NEWBS":"1B",
+         "OLDBS":"EN AW-1050A",
+         "ISO":"Al99,5",
+         "UNS":"A91050",
+         "WNr":"3.0255",
+         "DIN":"",
+         "AFNOR":"A5.",
+         "UNI":"",
+         "JIS":"A1050"
+      },{
+         "ASTM":"1060",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"Al99,6",
+         "UNS":"A91060",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"A1060"
+      },{
+         "ASTM":"1070",
+         "CMS2":"",
+         "NEWBS":"2L 48",
+         "OLDBS":"EN AW-1070A",
+         "ISO":"Al99,7",
+         "UNS":"A91070",
+         "WNr":"3.0275",
+         "DIN":"",
+         "AFNOR":"A7",
+         "UNI":"",
+         "JIS":"A1070"
+      },{
+         "ASTM":"1080",
+         "CMS2":"",
+         "NEWBS":"1A",
+         "OLDBS":"EN AW-1080A",
+         "ISO":"Al99,8",
+         "UNS":"A91080",
+         "WNr":"3.0285",
+         "DIN":"",
+         "AFNOR":"A8",
+         "UNI":"",
+         "JIS":"A1080"
+      },{
+         "ASTM":"1100",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"Al99,0Cu",
+         "UNS":"A91100",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"1199",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW–1199",
+         "ISO":"",
+         "UNS":"A91199",
+         "WNr":"3.0385",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"A1199"
+      },{
+         "ASTM":"1200",
+         "CMS2":"",
+         "NEWBS":"1C",
+         "OLDBS":"EN AW-1200",
+         "ISO":"Al99",
+         "UNS":"A91200",
+         "WNr":"3.0205",
+         "DIN":"",
+         "AFNOR":"A4",
+         "UNI":"",
+         "JIS":"A1200"
+      },{
+         "ASTM":"15-5 PH",
+         "CMS2":"MFESSWP002",
+         "NEWBS":"Esshete 15Cr5Ni",
+         "OLDBS":"683/XVI Type 4",
+         "ISO":"S15500",
+         "UNS":"",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"Ch 15N5D2T-Shch"
+      },{
+         "ASTM":"17-4 PH",
+         "CMS2":"MFESSWP003",
+         "NEWBS":"Esshete 17Cr4Ni",
+         "OLDBS":"683/XVI Type 1",
+         "ISO":"S17400",
+         "UNS":"1.4542",
+         "WNr":"X5CrNiCuNb 17 4",
+         "DIN":"Z6CNU17.04",
+         "AFNOR":"",
+         "UNI":"SCS 24",
+         "JIS":""
+      },{
+         "ASTM":"17-7 PH",
+         "CMS2":"MFESSWP004",
+         "NEWBS":"301S81",
+         "OLDBS":"",
+         "ISO":"683/XVI Type 2",
+         "UNS":"S17700",
+         "WNr":"1.4564",
+         "DIN":"X7CrNiAl 17 7",
+         "AFNOR":"Z8CNA17.07",
+         "UNI":"",
+         "JIS":"SUS 631"
+      },{
+         "ASTM":"2007",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-2007",
+         "ISO":"AlCu4PbMgMn",
+         "UNS":"A92007",
+         "WNr":"3.1645",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"A2007"
+      },{
+         "ASTM":"201",
+         "CMS2":"MFESSWA001-005",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"683/XIII Type A-2",
+         "UNS":"S20100",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"SUS201"
+      },{
+         "ASTM":"2011",
+         "CMS2":"",
+         "NEWBS":"FC 1",
+         "OLDBS":"EN AW-2011",
+         "ISO":"Al-Cu6BiPb",
+         "UNS":"A92011",
+         "WNr":"3.1655",
+         "DIN":"",
+         "AFNOR":"A-U5PbBi",
+         "UNI":"",
+         "JIS":"A2011"
+      },{
+         "ASTM":"2014",
+         "CMS2":"",
+         "NEWBS":"H 15",
+         "OLDBS":"EN AW-2014",
+         "ISO":"Al-Cu4SiMg",
+         "UNS":"A92014",
+         "WNr":"3.1255",
+         "DIN":"",
+         "AFNOR":"A-U4SG",
+         "UNI":"",
+         "JIS":"A2014"
+      },{
+         "ASTM":"2017",
+         "CMS2":"",
+         "NEWBS":"H14",
+         "OLDBS":"EN AW-2017A",
+         "ISO":"Al-Cu4Mg",
+         "UNS":"A92017",
+         "WNr":"3.1325",
+         "DIN":"",
+         "AFNOR":"A-U4G",
+         "UNI":"",
+         "JIS":"A2017"
+      },{
+         "ASTM":"202",
+         "CMS2":"MFESSWA006-008",
+         "NEWBS":"284S16",
+         "OLDBS":"",
+         "ISO":"683/XIII Type A-3",
+         "UNS":"S20200",
+         "WNr":"1.3965",
+         "DIN":"X8CrMnNi 18 8",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"SUS202"
+      },{
+         "ASTM":"2024",
+         "CMS2":"",
+         "NEWBS":"L97/L98",
+         "OLDBS":"EN AW-2024",
+         "ISO":"Al-Cu4Mg1",
+         "UNS":"A92024",
+         "WNr":"3.1355",
+         "DIN":"",
+         "AFNOR":"A-U4G1",
+         "UNI":"",
+         "JIS":"A2024"
+      },{
+         "ASTM":"2036",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"A92036",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"205",
+         "CMS2":"MFESSWA009",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S20500",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"2090",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"A92090",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"2117",
+         "CMS2":"",
+         "NEWBS":"L86",
+         "OLDBS":"EN AW-2117",
+         "ISO":"Al-Cu2Mg",
+         "UNS":"A92117",
+         "WNr":"3.1305",
+         "DIN":"",
+         "AFNOR":"A-U2G",
+         "UNI":"",
+         "JIS":"A2117"
+      },{
+         "ASTM":"216",
+         "CMS2":"MFESSWA010",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S21600",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"3003",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-3003",
+         "ISO":"Al-Mn1Cu",
+         "UNS":"A93003",
+         "WNr":"3.0517",
+         "DIN":"",
+         "AFNOR":"A-M1",
+         "UNI":"",
+         "JIS":"A3003"
+      },{
+         "ASTM":"3004",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-3004",
+         "ISO":"AlMn1Mg1",
+         "UNS":"A93004",
+         "WNr":"3.0526",
+         "DIN":"",
+         "AFNOR":"A-M1G",
+         "UNI":"",
+         "JIS":"A3004"
+      },{
+         "ASTM":"3005",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-3005",
+         "ISO":"AlMn1Mg0,5",
+         "UNS":"A93005",
+         "WNr":"3.0525",
+         "DIN":"",
+         "AFNOR":"A-MG0,5",
+         "UNI":"",
+         "JIS":"A3005"
+      },{
+         "ASTM":"301",
+         "CMS2":"MFESSWA011-015",
+         "NEWBS":"301S21",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S30100",
+         "WNr":"1.431",
+         "DIN":"X12 CrNi 17 7",
+         "AFNOR":"Z12 CN 17.07",
+         "UNI":"X12 CrNi 17 07",
+         "JIS":"SUS 301"
+      },{
+         "ASTM":"302",
+         "CMS2":"MFESSWA016-019",
+         "NEWBS":"302S25",
+         "OLDBS":"En 58A",
+         "ISO":"683/XIII Type 12",
+         "UNS":"S30200",
+         "WNr":"1.43",
+         "DIN":"X12 CrNi 18 8",
+         "AFNOR":"Z12 CN 18.10",
+         "UNI":"X15 CrNi 18 09",
+         "JIS":"SUS 302"
+      },{
+         "ASTM":"304",
+         "CMS2":"MFESSWA020-23",
+         "NEWBS":"304S50",
+         "OLDBS":"En 58E",
+         "ISO":"683/XIII Type 11",
+         "UNS":"S30400",
+         "WNr":"1.4301",
+         "DIN":"X5 CrNi 18 10",
+         "AFNOR":"Z5 CN 18.09",
+         "UNI":"X5 CrNi 18 10",
+         "JIS":"SUS 304"
+      },{
+         "ASTM":"304L",
+         "CMS2":"MFESSWA024",
+         "NEWBS":"304S14",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 10",
+         "UNS":"S30403",
+         "WNr":"1.4306",
+         "DIN":"X2CrNi19 11",
+         "AFNOR":"Z2 CN 18.10",
+         "UNI":"X2 CrNi 18 11",
+         "JIS":"SUS 304L"
+      },{
+         "ASTM":"305",
+         "CMS2":"MFESSWA025",
+         "NEWBS":"305S17",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 13",
+         "UNS":"S30500",
+         "WNr":"1.4303",
+         "DIN":"X5CrNi 18 12",
+         "AFNOR":"Z10 CN 18.9M",
+         "UNI":"X8 CrNi 19 10",
+         "JIS":"SUS 305"
+      },{
+         "ASTM":"308",
+         "CMS2":"MFESSWA026",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S30800",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"SUS Y308"
+      },{
+         "ASTM":"308L",
+         "CMS2":"MFESSWA027",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"309",
+         "CMS2":"MFESSWA028",
+         "NEWBS":"309S24",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S30900",
+         "WNr":"1.4829",
+         "DIN":"X12CrNi 22 12",
+         "AFNOR":"Z12CNS25.13",
+         "UNI":"X16 CrNi 23 14",
+         "JIS":"SUS Y309"
+      },{
+         "ASTM":"310",
+         "CMS2":"MFESSWA029",
+         "NEWBS":"310S24",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S31000",
+         "WNr":"1.4842",
+         "DIN":"X12CrNi 25 20",
+         "AFNOR":"Z12CN15.20",
+         "UNI":"X22CrNi 25 20",
+         "JIS":"SUS Y310"
+      },{
+         "ASTM":"3103",
+         "CMS2":"",
+         "NEWBS":"N3",
+         "OLDBS":"EN AW-3103",
+         "ISO":"Al-Mn1",
+         "UNS":"A93103",
+         "WNr":"3.0515",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"A3103"
+      },{
+         "ASTM":"3105",
+         "CMS2":"",
+         "NEWBS":"N31",
+         "OLDBS":"EN AW-3105",
+         "ISO":"AlMn0,5Mg0,5",
+         "UNS":"A93105",
+         "WNr":"3.0505",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"A3105"
+      },{
+         "ASTM":"314",
+         "CMS2":"MFESSWA030",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S31400",
+         "WNr":"1.4843",
+         "DIN":"CrNi 25 20",
+         "AFNOR":"Z12CNS25.20",
+         "UNI":"X16CrNiSi25 20",
+         "JIS":"SCS 18"
+      },{
+         "ASTM":"315",
+         "CMS2":"MFESSWA031",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S31500",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"316",
+         "CMS2":"MFESSWA032",
+         "NEWBS":"316S16",
+         "OLDBS":"En 58J",
+         "ISO":"683/XIII Type 20",
+         "UNS":"S31600",
+         "WNr":"1.4436",
+         "DIN":"X5CrNiMo 17 13 3",
+         "AFNOR":"Z6CND17.12",
+         "UNI":"X5CrNiMo 17 12",
+         "JIS":"SCS14"
+      },{
+         "ASTM":"316L",
+         "CMS2":"MFESSWA033",
+         "NEWBS":"316S24",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 19",
+         "UNS":"S31603",
+         "WNr":"1.443",
+         "DIN":"X2CrNiMo 19 12",
+         "AFNOR":"Z2CND18.12M",
+         "UNI":"X2CrNiMo 17 12",
+         "JIS":"SCS16"
+      },{
+         "ASTM":"316Ti*",
+         "CMS2":"MFESSWA034",
+         "NEWBS":"320S31",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 21",
+         "UNS":"S31635",
+         "WNr":"1.4571",
+         "DIN":"X6CrNiMoTi 17 12 2",
+         "AFNOR":"Z6CNDT17.12",
+         "UNI":"",
+         "JIS":"SUS 316Ti"
+      },{
+         "ASTM":"317",
+         "CMS2":"MFESSWA035",
+         "NEWBS":"317S16",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 25",
+         "UNS":"S31700",
+         "WNr":"1.4449",
+         "DIN":"X5CrNiMo 17 13",
+         "AFNOR":"Z4CND19.13M",
+         "UNI":"X5CrNiMo 18 15",
+         "JIS":"SUS Y317"
+      },{
+         "ASTM":"317L",
+         "CMS2":"MFESSWA036",
+         "NEWBS":"317S12",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S31703",
+         "WNr":"1.4438",
+         "DIN":"X2CrNIMo 18 16 4",
+         "AFNOR":"Z2CND19.15",
+         "UNI":"X2CrNiMo 18 15",
+         "JIS":"SUS 317L"
+      },{
+         "ASTM":"321",
+         "CMS2":"MFESSWA037",
+         "NEWBS":"321S20",
+         "OLDBS":"En 58B",
+         "ISO":"683/XIII Type 15",
+         "UNS":"S32100",
+         "WNr":"1.4878",
+         "DIN":"X12CrNiTi 18 9",
+         "AFNOR":"Z6CN18.10",
+         "UNI":"X6CrNiTi 18 11",
+         "JIS":"SUS 321"
+      },{
+         "ASTM":"329",
+         "CMS2":"MFESSWA038",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S32900",
+         "WNr":"1.446",
+         "DIN":"X8CrNiMo 27 5",
+         "AFNOR":"Z6CNNb18.10",
+         "UNI":"X6CrNiNb 18 11",
+         "JIS":"SCS 11"
+      },{
+         "ASTM":"330",
+         "CMS2":"MFESSWA039",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"N08330",
+         "WNr":"1.4333",
+         "DIN":"X5NiCr32 21",
+         "AFNOR":"Z12NCS35.16",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"347",
+         "CMS2":"MFESSWA040",
+         "NEWBS":"347S17",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 16",
+         "UNS":"S34700",
+         "WNr":"1.4551",
+         "DIN":"X5CrNiNb 19 9",
+         "AFNOR":"Z6CNNb18.10",
+         "UNI":"X6CrNiNb 18 11",
+         "JIS":"SCS 21"
+      },{
+         "ASTM":"403",
+         "CMS2":"MFESSWF001-003",
+         "NEWBS":"410S21",
+         "OLDBS":"En56A",
+         "ISO":"683/XIII Type 3",
+         "UNS":"S40300",
+         "WNr":"1.4006",
+         "DIN":"X10Cr12",
+         "AFNOR":"Z6C13",
+         "UNI":"X12Cr13",
+         "JIS":"SCS 1"
+      },{
+         "ASTM":"405",
+         "CMS2":"MFESSWF004",
+         "NEWBS":"405S17",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 2",
+         "UNS":"S40500",
+         "WNr":"1.4002",
+         "DIN":"X6CrAl13",
+         "AFNOR":"Z6CA13",
+         "UNI":"X6CrAl13",
+         "JIS":"SUS 405"
+      },{
+         "ASTM":"409",
+         "CMS2":"MFESSWF005",
+         "NEWBS":"409S19",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S40900",
+         "WNr":"1.4512",
+         "DIN":"X6CrTi12",
+         "AFNOR":"Z6CT12",
+         "UNI":"X2CrTi12",
+         "JIS":"SUH 409"
+      },{
+         "ASTM":"410",
+         "CMS2":"MFESSWM001-003",
+         "NEWBS":"420S29",
+         "OLDBS":"En56B",
+         "ISO":"683/XIII Type 3",
+         "UNS":"S41000",
+         "WNr":"1.4024",
+         "DIN":"X15Cr13",
+         "AFNOR":"Z10C-13",
+         "UNI":"X12Cr13",
+         "JIS":"SCS 1"
+      },{
+         "ASTM":"410S",
+         "CMS2":"MFESSWM004",
+         "NEWBS":"403S17",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S41008",
+         "WNr":"1.4001",
+         "DIN":"X7Cr14",
+         "AFNOR":"Z3C14",
+         "UNI":"",
+         "JIS":"SUS 410S"
+      },{
+         "ASTM":"414",
+         "CMS2":"MFESSWM005",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 9",
+         "UNS":"S41400",
+         "WNr":"1.4008",
+         "DIN":"G-X8CrNi13",
+         "AFNOR":"Z4CN13.2M",
+         "UNI":"GX6CrNi 13 01",
+         "JIS":"SCS 3"
+      },{
+         "ASTM":"414L",
+         "CMS2":"MFESSWM006",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"416",
+         "CMS2":"",
+         "NEWBS":"416S21",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"",
+         "WNr":"1.4005",
+         "DIN":"X12CrS13",
+         "AFNOR":"Z11CF13",
+         "UNI":"X12CrS13",
+         "JIS":"SUS416"
+      },{
+         "ASTM":"418",
+         "CMS2":"MFESSWM007-008",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S41800",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"420",
+         "CMS2":"MFESSWM009",
+         "NEWBS":"420S37",
+         "OLDBS":"En56C",
+         "ISO":"683/XIII Type 4",
+         "UNS":"S42000",
+         "WNr":"1.4028",
+         "DIN":"X30Cr13",
+         "AFNOR":"Z28C13M",
+         "UNI":"X20Cr13",
+         "JIS":"SCS 2"
+      },{
+         "ASTM":"429",
+         "CMS2":"MFESSWF006",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S42900",
+         "WNr":"1.4001",
+         "DIN":"X7Cr14",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"SUS 429"
+      },{
+         "ASTM":"430",
+         "CMS2":"MFESSWF007",
+         "NEWBS":"430S15",
+         "OLDBS":"En60",
+         "ISO":"",
+         "UNS":"S43000",
+         "WNr":"1.4016",
+         "DIN":"X8Cr17",
+         "AFNOR":"Z8C-17",
+         "UNI":"X8Cr17",
+         "JIS":"SUS 430"
+      },{
+         "ASTM":"431",
+         "CMS2":"MFESSWM010-012",
+         "NEWBS":"431S29",
+         "OLDBS":"En57",
+         "ISO":"683/XIII Type 9b",
+         "UNS":"S43100",
+         "WNr":"1.4057",
+         "DIN":"X20CrNi 17 2",
+         "AFNOR":"Z20CN17.2M",
+         "UNI":"X16CrNi16",
+         "JIS":"SUS 431"
+      },{
+         "ASTM":"434",
+         "CMS2":"MFESSWF008",
+         "NEWBS":"434S17",
+         "OLDBS":"",
+         "ISO":"683/XIII Type 9c",
+         "UNS":"S43400",
+         "WNr":"1.4113",
+         "DIN":"X6CrMo17 1",
+         "AFNOR":"Z8CD17.01",
+         "UNI":"X8CrMo17",
+         "JIS":"SUS 434"
+      },{
+         "ASTM":"436",
+         "CMS2":"MFESSWF009",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S43600",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"X17MC",
+         "JIS":"SUS 436L"
+      },{
+         "ASTM":"440A",
+         "CMS2":"MFESSWM013-014",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S44002",
+         "WNr":"1.4109",
+         "DIN":"X65CrMo14",
+         "AFNOR":"Z70CD14",
+         "UNI":"",
+         "JIS":"SUS 440A"
+      },{
+         "ASTM":"440B",
+         "CMS2":"MFESSWM015-016",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S44003",
+         "WNr":"1.4112",
+         "DIN":"X90CrMoV18",
+         "AFNOR":"",
+         "UNI":"CMXB",
+         "JIS":"SUS 440B"
+      },{
+         "ASTM":"440C",
+         "CMS2":"MFESSWM017-018",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S44004",
+         "WNr":"1.4125",
+         "DIN":"X105CrMo 17",
+         "AFNOR":"Z80CSN20.02",
+         "UNI":"",
+         "JIS":"SUS 440C"
+      },{
+         "ASTM":"442",
+         "CMS2":"MFESSWF010",
+         "NEWBS":"442S19",
+         "OLDBS":"En61",
+         "ISO":"",
+         "UNS":"S44200",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"X16CrNiSi 20 12",
+         "JIS":""
+      },{
+         "ASTM":"444",
+         "CMS2":"MFESSWF011",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S44400",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"446",
+         "CMS2":"MFESSWF012",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S44600",
+         "WNr":"1.4762",
+         "DIN":"X10CrAl24",
+         "AFNOR":"C10C24",
+         "UNI":"X16Cr26",
+         "JIS":"SCH 2"
+      },{
+         "ASTM":"4140",
+         "CMS2":"",
+         "NEWBS":"708M40",
+         "OLDBS":"",
+         "ISO":"42CrMo4",
+         "UNS":"",
+         "WNr":"1.7225",
+         "DIN":"",
+         "AFNOR":"42CD4",
+         "UNI":"42CrMo4",
+         "JIS":"SCM440(H)"
+      },{
+         "ASTM":"4140",
+         "CMS2":"",
+         "NEWBS":"709M40-QT",
+         "OLDBS":"",
+         "ISO":"42CrMoS4",
+         "UNS":"",
+         "WNr":"1.7227-QT",
+         "DIN":"",
+         "AFNOR":"0",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"4340",
+         "CMS2":"",
+         "NEWBS":"817M40-T",
+         "OLDBS":"EN24T",
+         "ISO":"",
+         "UNS":"",
+         "WNr":"1.6582",
+         "DIN":"34CrNiMo6",
+         "AFNOR":"35NCD6",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"4820",
+         "CMS2":"",
+         "NEWBS":"820A16",
+         "OLDBS":"",
+         "ISO":"18CrNiMo7-6",
+         "UNS":"",
+         "WNr":"1.6587",
+         "DIN":"",
+         "AFNOR":"18NCD6",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"5005",
+         "CMS2":"",
+         "NEWBS":"N41",
+         "OLDBS":"EN AW-5005A",
+         "ISO":"Al-Mg1",
+         "UNS":"A95005",
+         "WNr":"3.3315",
+         "DIN":"",
+         "AFNOR":"A-G0,6",
+         "UNI":"",
+         "JIS":"A5005"
+      },{
+         "ASTM":"5049",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-5049",
+         "ISO":"AlMg2Mn0,8",
+         "UNS":"A95049",
+         "WNr":"3.3527",
+         "DIN":"",
+         "AFNOR":"A-G2,5MC",
+         "UNI":"",
+         "JIS":"A5049"
+      },{
+         "ASTM":"5050",
+         "CMS2":"",
+         "NEWBS":"3L 44",
+         "OLDBS":"EN AW-5050B",
+         "ISO":"Al-Mg1,5",
+         "UNS":"A95050",
+         "WNr":"3.3316",
+         "DIN":"",
+         "AFNOR":"A-G1,5",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"5052",
+         "CMS2":"",
+         "NEWBS":"L80/L81",
+         "OLDBS":"EN AW-5052",
+         "ISO":"Al-Mg2,5",
+         "UNS":"A95052",
+         "WNr":"3.3523",
+         "DIN":"",
+         "AFNOR":"A-G2,5C",
+         "UNI":"",
+         "JIS":"A5052"
+      },{
+         "ASTM":"5056",
+         "CMS2":"",
+         "NEWBS":"N6/2L58",
+         "OLDBS":"EN AW-5056A",
+         "ISO":"Al-Mg5",
+         "UNS":"A95056",
+         "WNr":"3.3355",
+         "DIN":"",
+         "AFNOR":"A-G5",
+         "UNI":"",
+         "JIS":"A5056"
+      },{
+         "ASTM":"5082",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-5082",
+         "ISO":"Al-Mg4",
+         "UNS":"A95082",
+         "WNr":"3.3345",
+         "DIN":"",
+         "AFNOR":"A-G4,5",
+         "UNI":"",
+         "JIS":"A5082"
+      },{
+         "ASTM":"5083",
+         "CMS2":"",
+         "NEWBS":"N8",
+         "OLDBS":"EN AW-5083",
+         "ISO":"Al-Mg4,5Mn",
+         "UNS":"A95083",
+         "WNr":"3.3547",
+         "DIN":"",
+         "AFNOR":"A-G4,5MC",
+         "UNI":"",
+         "JIS":"A5083"
+      },{
+         "ASTM":"5086",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-5086",
+         "ISO":"AlMg4",
+         "UNS":"A95086",
+         "WNr":"3.3545",
+         "DIN":"",
+         "AFNOR":"A-G4MC",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"5251",
+         "CMS2":"",
+         "NEWBS":"N4",
+         "OLDBS":"EN AW-5251",
+         "ISO":"Al-Mg2",
+         "UNS":"A95251",
+         "WNr":"3.3525",
+         "DIN":"",
+         "AFNOR":"A-G2M",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"5454",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-5454",
+         "ISO":"Al-Mg3Mn",
+         "UNS":"A95454",
+         "WNr":"3.3537",
+         "DIN":"",
+         "AFNOR":"A-G2,5MC",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"5754",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-5754",
+         "ISO":"Al-Mg3",
+         "UNS":"A95754",
+         "WNr":"3.3535",
+         "DIN":"",
+         "AFNOR":"A-G3M",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"6005",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-6005A",
+         "ISO":"(Al-SiMg)",
+         "UNS":"A96005",
+         "WNr":"3.321",
+         "DIN":"",
+         "AFNOR":"A-SG0,5",
+         "UNI":"",
+         "JIS":"A6005"
+      },{
+         "ASTM":"6012",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-6012",
+         "ISO":"AlMgSiPb",
+         "UNS":"A96012",
+         "WNr":"3.0615",
+         "DIN":"",
+         "AFNOR":"A-SGPb",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"6060",
+         "CMS2":"",
+         "NEWBS":"H9",
+         "OLDBS":"EN AW-6060",
+         "ISO":"Al-MgSi",
+         "UNS":"A96060",
+         "WNr":"3.3206",
+         "DIN":"",
+         "AFNOR":"AGS",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"6061",
+         "CMS2":"",
+         "NEWBS":"H20",
+         "OLDBS":"EN AW-6061",
+         "ISO":"Al-Mg1SiCu",
+         "UNS":"A96061",
+         "WNr":"3.3211",
+         "DIN":"",
+         "AFNOR":"A-GSUC",
+         "UNI":"",
+         "JIS":"A6061"
+      },{
+         "ASTM":"6082",
+         "CMS2":"",
+         "NEWBS":"H30",
+         "OLDBS":"EN AW-6082",
+         "ISO":"Al-Si1Mg",
+         "UNS":"A96082",
+         "WNr":"3.2315",
+         "DIN":"",
+         "AFNOR":"A-SGM0,7",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"7020",
+         "CMS2":"",
+         "NEWBS":"H17",
+         "OLDBS":"EN AW-7020",
+         "ISO":"Al-Zn4,5Mg1",
+         "UNS":"A97020",
+         "WNr":"3.4335",
+         "DIN":"",
+         "AFNOR":"A-Z5G",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"7022",
+         "CMS2":"",
+         "NEWBS":"",
+         "OLDBS":"EN AW-7022",
+         "ISO":"AlZn5Mg3Cu",
+         "UNS":"A97022",
+         "WNr":"3.4345",
+         "DIN":"",
+         "AFNOR":"A-Z4GU",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"7075",
+         "CMS2":"",
+         "NEWBS":"2L95",
+         "OLDBS":"EN AW7075",
+         "ISO":"Al-Zn6MgCu",
+         "UNS":"A97075",
+         "WNr":"3.4365",
+         "DIN":"",
+         "AFNOR":"A-Z5GU",
+         "UNI":"",
+         "JIS":"A7075"
+      },{
+         "ASTM":"CA-15",
+         "CMS2":"MFESSCM002-005",
+         "NEWBS":"410C21",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J91150",
+         "WNr":"1.4106",
+         "DIN":"X10 CrMo 13",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"CA-40",
+         "CMS2":"MFESSCM006-009",
+         "NEWBS":"420C24",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J91153",
+         "WNr":"1.4028",
+         "DIN":"X30 Cr 13",
+         "AFNOR":"Z30 C13 M",
+         "UNI":"GX30 Cr 13",
+         "JIS":"SCH 1"
+      },{
+         "ASTM":"CA-6NM",
+         "CMS2":"MFESSCM001",
+         "NEWBS":"425C11",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J91540",
+         "WNr":"1.4313",
+         "DIN":"G-X5 CrNi 13 4",
+         "AFNOR":"Z4 CND 13.4 M",
+         "UNI":"GX6 CrNi 13 04",
+         "JIS":"SCS 5"
+      },{
+         "ASTM":"CB-30",
+         "CMS2":"MFESSCF001",
+         "NEWBS":"ANC2",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J91803",
+         "WNr":"1.4059",
+         "DIN":"G-X22CrNi17",
+         "AFNOR":"Z20CN17.2M",
+         "UNI":"GX25Cr19",
+         "JIS":""
+      },{
+         "ASTM":"CB-7Cu",
+         "CMS2":"MFESSCM010-015",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92180",
+         "WNr":"1.4542",
+         "DIN":"X5CrNiCuNb 17 4",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":"SCS 24"
+      },{
+         "ASTM":"CC-50, high Ni",
+         "CMS2":"MFESSCF003",
+         "NEWBS":"452C11",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92615",
+         "WNr":"1.4776",
+         "DIN":"G-X40CrSi29",
+         "AFNOR":"",
+         "UNI":"GX35Cr28",
+         "JIS":""
+      },{
+         "ASTM":"CD-4MCu",
+         "CMS2":"MFESSCD001",
+         "NEWBS":"ANC21",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J93370",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"Z3CNUD26.5M",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"CE-30",
+         "CMS2":"MFESSCA001-002",
+         "NEWBS":"309C40",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J93423",
+         "WNr":"1.4837",
+         "DIN":"G-X40 CrNi 25 12",
+         "AFNOR":"",
+         "UNI":"GX35 CrNi 25 12",
+         "JIS":"SCH 17"
+      },{
+         "ASTM":"CF-12M",
+         "CMS2":"MFESSCA011",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"CF-16F",
+         "CMS2":"MFESSCA012",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92701",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"CF-20",
+         "CMS2":"MFESSCA013",
+         "NEWBS":"302C35",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92602",
+         "WNr":"1.4825",
+         "DIN":"G-X25 CrNiSi 18 9",
+         "AFNOR":"",
+         "UNI":"GX16 CrNi 20 10",
+         "JIS":""
+      },{
+         "ASTM":"CF-3",
+         "CMS2":"MFESSCA003",
+         "NEWBS":"304C12",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92500",
+         "WNr":"1.4306",
+         "DIN":"G-X2 CrNi 18 9",
+         "AFNOR":"Z2 CN 18.10 M",
+         "UNI":"GX2 CrNi 19 10",
+         "JIS":"SCS 19A"
+      },{
+         "ASTM":"CF-3A",
+         "CMS2":"MFESSCA004",
+         "NEWBS":"304C12",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92500",
+         "WNr":"1.4306",
+         "DIN":"G-X2 CrNi 18 9",
+         "AFNOR":"Z2 CN 18.10 M",
+         "UNI":"GX2 CrNi 19 10",
+         "JIS":"SCS 19A"
+      },{
+         "ASTM":"CF-3M",
+         "CMS2":"MFESSCA005",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92800",
+         "WNr":"1.4404",
+         "DIN":"G-X2 CrNiMo 18 10",
+         "AFNOR":"Z3 CND 20.10 M",
+         "UNI":"GX2 CrNiMo 19 11",
+         "JIS":"SCS 16A"
+      },{
+         "ASTM":"CF-3MA",
+         "CMS2":"MFESSCA006",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92800",
+         "WNr":"1.4404",
+         "DIN":"G-X2 CrNiMo 18 10",
+         "AFNOR":"Z3 CND 20.10 M",
+         "UNI":"GX2 CrNiMo 19 11",
+         "JIS":"SCS 16A"
+      },{
+         "ASTM":"CF-8",
+         "CMS2":"MFESSCA007",
+         "NEWBS":"304C15",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92600",
+         "WNr":"1.4308",
+         "DIN":"G-X6 CrNi 18 9",
+         "AFNOR":"Z6 CN 18.10 M",
+         "UNI":"",
+         "JIS":"SCS 13"
+      },{
+         "ASTM":"CF-8A",
+         "CMS2":"MFESSCA008",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92600",
+         "WNr":"1.4308",
+         "DIN":"G-X6 CrNi 18 9",
+         "AFNOR":"Z6 CN 18.10 M",
+         "UNI":"",
+         "JIS":"SCS 13"
+      },{
+         "ASTM":"CF-8C",
+         "CMS2":"MFESSCA009",
+         "NEWBS":"347C17",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J92710",
+         "WNr":"1.4815",
+         "DIN":"G-X8 CrNi 19 10",
+         "AFNOR":"Z6 CN 18.10 M",
+         "UNI":"",
+         "JIS":"SCS 13A"
+      },{
+         "ASTM":"CF-8M",
+         "CMS2":"MFESSCA010",
+         "NEWBS":"316C16",
+         "OLDBS":"En 845B",
+         "ISO":"",
+         "UNS":"J92900",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"CG-8M",
+         "CMS2":"MFESSCA014",
+         "NEWBS":"317C16",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J93000",
+         "WNr":"1.4448",
+         "DIN":"G-X6 CrNiMo 17 13",
+         "AFNOR":"Z8 CND 18.10.3 M",
+         "UNI":"GX6 CrNiMo 20 11",
+         "JIS":""
+      },{
+         "ASTM":"CH-10",
+         "CMS2":"MFESSCA015",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J93401",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"CH-20",
+         "CMS2":"MFESSCA016",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J93402",
+         "WNr":"",
+         "DIN":"",
+         "AFNOR":"",
+         "UNI":"GX16 CrNi 24 14",
+         "JIS":""
+      },{
+         "ASTM":"CK-20",
+         "CMS2":"MFESSCA017",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J94202",
+         "WNr":"1.484",
+         "DIN":"G-X15 CrNi 25 20",
+         "AFNOR":"",
+         "UNI":"GX16 CrNi 25 21",
+         "JIS":"SCS18"
+      },{
+         "ASTM":"CN-7M",
+         "CMS2":"MFESSCA018",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J95150",
+         "WNr":"1.45",
+         "DIN":"G-X7 NiCrMoCuNb 25 20",
+         "AFNOR":"",
+         "UNI":"GX5 NiCrCuMo 29 21",
+         "JIS":"SCS 23"
+      },{
+         "ASTM":"CN-7MS",
+         "CMS2":"MFESSCA019",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"J95150",
+         "WNr":"1.45",
+         "DIN":"G-X7 NiCrMoCuNb 25 20",
+         "AFNOR":"",
+         "UNI":"GX5 NiCrCuMo 29 21",
+         "JIS":"SCS 23"
+      },{
+         "ASTM":"PH 13-8Mo",
+         "CMS2":"MFESSWP001",
+         "NEWBS":"",
+         "OLDBS":"",
+         "ISO":"",
+         "UNS":"S13800",
+         "WNr":"1.4534",
+         "DIN":"X3CrNiMoAl 13 8 2",
+         "AFNOR":"",
+         "UNI":"",
+         "JIS":""
+      },{
+         "ASTM":"420",
+         "CMS2":"",
+         "NEWBS":"420S37",
+         "OLDBS":"",
+         "ISO":"X40Cr14; X42Cr13",
+         "UNS":"",
+         "WNr":"1.2083",
+         "DIN":"",
+         "AFNOR":"Z40C14",
+         "UNI":"",
+         "JIS":"SUS420J2"
+      },{
+         "ASTM":"422 + S",
+         "CMS2":"",
+         "NEWBS":"420S37",
+         "OLDBS":"",
+         "ISO":"X33CrS16",
+         "UNS":"",
+         "WNr":"1.2085",
+         "DIN":"",
+         "AFNOR":"Z35CD17.S",
+         "UNI":"",
+         "JIS":"SUS420J2"
+      },{
+         "ASTM":"422",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"X38CrMo16",
+         "UNS":"",
+         "WNr":"1.2316",
+         "DIN":"",
+         "AFNOR":"Z35CD17",
+         "UNI":"X38CrMo16KU",
+         "JIS":"0"
+      },{
+         "ASTM":"420",
+         "CMS2":"",
+         "NEWBS":"420S37",
+         "OLDBS":"",
+         "ISO":"X20Cr13",
+         "UNS":"",
+         "WNr":"1.4021",
+         "DIN":"",
+         "AFNOR":"Z20C13",
+         "UNI":"X20Cr13",
+         "JIS":"SUS420J1"
+      },{
+         "ASTM":"420",
+         "CMS2":"",
+         "NEWBS":"420S45",
+         "OLDBS":"",
+         "ISO":"X46Cr13",
+         "UNS":"",
+         "WNr":"1.4034",
+         "DIN":"",
+         "AFNOR":"Z40CM",
+         "UNI":"X40Cr14",
+         "JIS":"0"
+      },{
+         "ASTM":"431",
+         "CMS2":"",
+         "NEWBS":"431S29",
+         "OLDBS":"",
+         "ISO":"X17CrNi16-2",
+         "UNS":"",
+         "WNr":"1.4057",
+         "DIN":"",
+         "AFNOR":"Z6CNi6.02",
+         "UNI":"X16CrNi16",
+         "JIS":"SUS431"
+      },{
+         "ASTM":"430F",
+         "CMS2":"",
+         "NEWBS":"441S29",
+         "OLDBS":"",
+         "ISO":"X14CrMoS17",
+         "UNS":"",
+         "WNr":"1.4104",
+         "DIN":"",
+         "AFNOR":"Z10CF17",
+         "UNI":"X10CrS17",
+         "JIS":"SUS430F"
+      },{
+         "ASTM":"440B",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"X90CrMoV18",
+         "UNS":"",
+         "WNr":"1.4112",
+         "DIN":"",
+         "AFNOR":"Z90CDV18",
+         "UNI":"",
+         "JIS":"SUS440B"
+      },{
+         "ASTM":"430",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"X39CrMo17-1",
+         "UNS":"",
+         "WNr":"1.4122",
+         "DIN":"",
+         "AFNOR":"Z38CD 16-01",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"304",
+         "CMS2":"",
+         "NEWBS":"304S15",
+         "OLDBS":"",
+         "ISO":"X5CrNi18.10(V2A)",
+         "UNS":"",
+         "WNr":"1.4301",
+         "DIN":"",
+         "AFNOR":"Z6CN18.09",
+         "UNI":"X5CrNi1810",
+         "JIS":"SUS304"
+      },{
+         "ASTM":"303",
+         "CMS2":"",
+         "NEWBS":"303S31",
+         "OLDBS":"",
+         "ISO":"X10CrNiS18-9; X8CrNiS18-9",
+         "UNS":"",
+         "WNr":"1.4305",
+         "DIN":"",
+         "AFNOR":"Z8CNF18-09",
+         "UNI":"",
+         "JIS":"SUS303"
+      },{
+         "ASTM":"415",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"X3CrNiMo13-4",
+         "UNS":"",
+         "WNr":"1.4313",
+         "DIN":"",
+         "AFNOR":"Z6CN13-04",
+         "UNI":"",
+         "JIS":"SUS Ti6NM"
+      },{
+         "ASTM":"316L",
+         "CMS2":"",
+         "NEWBS":"316S12",
+         "OLDBS":"",
+         "ISO":"X2CrNiMo17-12-2",
+         "UNS":"",
+         "WNr":"1.4404",
+         "DIN":"",
+         "AFNOR":"Z2CND17.12",
+         "UNI":"X2CrNiMo1712",
+         "JIS":"SUS316"
+      },{
+         "ASTM":"316L",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"0",
+         "UNS":"",
+         "WNr":"0",
+         "DIN":"",
+         "AFNOR":"0",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"316L",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"0",
+         "UNS":"",
+         "WNr":"0",
+         "DIN":"",
+         "AFNOR":"0",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"316L",
+         "CMS2":"",
+         "NEWBS":"316S13",
+         "OLDBS":"",
+         "ISO":"X2CrNiMo18-14-3",
+         "UNS":"",
+         "WNr":"1.4435",
+         "DIN":"",
+         "AFNOR":"Z2CND17.12",
+         "UNI":"X2CrNiMo1712",
+         "JIS":"SCS16"
+      },{
+         "ASTM":"318LN",
+         "CMS2":"",
+         "NEWBS":"318S13",
+         "OLDBS":"",
+         "ISO":"X2CrNiMoN22-5-3",
+         "UNS":"",
+         "WNr":"1.4462",
+         "DIN":"",
+         "AFNOR":"Z3CND22-05Az",
+         "UNI":"",
+         "JIS":"SUS329J3L"
+      },{
+         "ASTM":"904L",
+         "CMS2":"",
+         "NEWBS":"904S13",
+         "OLDBS":"",
+         "ISO":"X1NiCrMoCu25-20-5",
+         "UNS":"",
+         "WNr":"1.4539",
+         "DIN":"",
+         "AFNOR":"Z2 NCDU 25-20-5",
+         "UNI":"",
+         "JIS":"QS2025MC"
+      },{
+         "ASTM":"321",
+         "CMS2":"",
+         "NEWBS":"321S12",
+         "OLDBS":"",
+         "ISO":"X6CrNiTi18-10",
+         "UNS":"",
+         "WNr":"1.4541",
+         "DIN":"",
+         "AFNOR":"Z6CNT18.10",
+         "UNI":"X6CrNiTi1811",
+         "JIS":"SUS321"
+      },{
+         "ASTM":"630",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"X5CrNiCuNb16-4",
+         "UNS":"",
+         "WNr":"1.4542",
+         "DIN":"",
+         "AFNOR":"Z7 CNU 16-04",
+         "UNI":"",
+         "JIS":"SUS630"
+      },{
+         "ASTM":"316Ti",
+         "CMS2":"",
+         "NEWBS":"320S17",
+         "OLDBS":"",
+         "ISO":"X6CrNiMoTi17-12-2",
+         "UNS":"",
+         "WNr":"1.4571",
+         "DIN":"",
+         "AFNOR":"Z6NDT17.12",
+         "UNI":"X6CrNiMoTi1712",
+         "JIS":"SUS316TI"
+      },{
+         "ASTM":"309",
+         "CMS2":"",
+         "NEWBS":"309S24",
+         "OLDBS":"",
+         "ISO":"X15CrNiSi20-12",
+         "UNS":"",
+         "WNr":"1.4828",
+         "DIN":"",
+         "AFNOR":"Z15CNS20.12",
+         "UNI":"",
+         "JIS":"SUH309"
+      },{
+         "ASTM":"314",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"X15CrNiSi25-21",
+         "UNS":"",
+         "WNr":"1.4841",
+         "DIN":"",
+         "AFNOR":"Z15CNS25-20",
+         "UNI":"",
+         "JIS":"0"
+      },{
+         "ASTM":"5115",
+         "CMS2":"",
+         "NEWBS":"527M20",
+         "OLDBS":"",
+         "ISO":"16MnCr5",
+         "UNS":"",
+         "WNr":"1.7131",
+         "DIN":"",
+         "AFNOR":"16MC5",
+         "UNI":"16MnCr5",
+         "JIS":"SCR415"
+      },{
+         "ASTM":"5117",
+         "CMS2":"",
+         "NEWBS":"0",
+         "OLDBS":"",
+         "ISO":"16MnCrS5",
+         "UNS":"",
+         "WNr":"1.7139",
+         "DIN":"",
+         "AFNOR":"16MC5",
+         "UNI":"16MnCr5",
+         "JIS":"0"
+      }]);
+      
+      public static var _1402980078AlloyConditionList:ArrayCollection = new ArrayCollection([{
+         "family":"Aluminum - Cast",
+         "alloy":"208",
+         "condition":"T4",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"208",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"208",
+         "condition":"T7",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"222",
+         "condition":"T551",
+         "hardness":"100–130"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"222",
+         "condition":"T65",
+         "hardness":"125–155"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"242",
+         "condition":"T571",
+         "hardness":"90–120"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"242",
+         "condition":"T61",
+         "hardness":"95–125"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"296",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"308",
+         "condition":"As Cast",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"319",
+         "condition":"As Cast",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"319",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"332",
+         "condition":"T5",
+         "hardness":"90–120"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"333",
+         "condition":"As Cast",
+         "hardness":"65–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"333",
+         "condition":"T5",
+         "hardness":"70–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"333",
+         "condition":"T6",
+         "hardness":"85–115"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"333",
+         "condition":"T7",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"336",
+         "condition":"T551",
+         "hardness":"90–120"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"336",
+         "condition":"T65",
+         "hardness":"110–140"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T51",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T62",
+         "hardness":"90–120"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T7",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T71",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"C355.0",
+         "condition":"T61",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"As Cast",
+         "hardness":"40–70"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T51",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T6",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T7",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T71",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"A356.0",
+         "condition":"T61",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"357",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"A357.0",
+         "condition":"T61",
+         "hardness":"85–115"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"359",
+         "condition":"T61",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"359",
+         "condition":"T62",
+         "hardness":"85–115"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"443",
+         "condition":"As Cast",
+         "hardness":"30–60"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"B443.0",
+         "condition":"As Cast",
+         "hardness":"30–60"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"513",
+         "condition":"As Cast",
+         "hardness":"45–75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"535",
+         "condition":"As Cast",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"705",
+         "condition":"T5",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"707",
+         "condition":"T7",
+         "hardness":"80–110"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"711",
+         "condition":"T1",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"713",
+         "condition":"T5",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"850",
+         "condition":"T5",
+         "hardness":"30–60"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"851",
+         "condition":"T5",
+         "hardness":"30–60"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"852",
+         "condition":"T5",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"201",
+         "condition":"T7",
+         "hardness":"110–140"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"208",
+         "condition":"As Cast",
+         "hardness":"40–70"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"222",
+         "condition":"O",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"222",
+         "condition":"T61",
+         "hardness":"100–130"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"242",
+         "condition":"O",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"242",
+         "condition":"T571",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"242",
+         "condition":"T61",
+         "hardness":"90–120"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"242",
+         "condition":"T77",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"295",
+         "condition":"T4",
+         "hardness":"45–75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"295",
+         "condition":"T6",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"295",
+         "condition":"T62",
+         "hardness":"80–110"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"295",
+         "condition":"T7",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"319",
+         "condition":"As Cast",
+         "hardness":"55–85"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"319",
+         "condition":"T5",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"319",
+         "condition":"T6",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"328",
+         "condition":"As Cast",
+         "hardness":"45–75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"328",
+         "condition":"T6",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T51",
+         "hardness":"50–80"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T6",
+         "hardness":"70–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T7",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"355",
+         "condition":"T71",
+         "hardness":"60–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"C355.0",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"As Cast",
+         "hardness":"40–70"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T51",
+         "hardness":"45–75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T6",
+         "hardness":"55–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T7",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"356",
+         "condition":"T71",
+         "hardness":"45–75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"A356.0",
+         "condition":"T6",
+         "hardness":"70–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"A380",
+         "condition":"As Cast",
+         "hardness":"80"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"A383",
+         "condition":"As Cast",
+         "hardness":"75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"443",
+         "condition":"As Cast",
+         "hardness":"25–55"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"B443.0",
+         "condition":"As Cast",
+         "hardness":"25–55"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"512",
+         "condition":"As Cast",
+         "hardness":"35–65"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"514",
+         "condition":"As Cast",
+         "hardness":"35–65"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"520",
+         "condition":"T4c",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"535",
+         "condition":"As Cast",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"705",
+         "condition":"As Cast",
+         "hardness":"50–80"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"707",
+         "condition":"T5",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"707",
+         "condition":"T7",
+         "hardness":"65–95"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"710",
+         "condition":"As Cast",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"712",
+         "condition":"As Cast",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"713",
+         "condition":"As Cast",
+         "hardness":"60–90"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"771",
+         "condition":"T5",
+         "hardness":"85–115"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"771",
+         "condition":"T51",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"771",
+         "condition":"T52",
+         "hardness":"70–100"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"771",
+         "condition":"T6",
+         "hardness":"75–105"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"771",
+         "condition":"T71",
+         "hardness":"105–135"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"850",
+         "condition":"T5",
+         "hardness":"30–60"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"851",
+         "condition":"T5",
+         "hardness":"30–60"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"852",
+         "condition":"T5",
+         "hardness":"45–75"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"K100™",
+         "condition":"As Cast",
+         "hardness":"65"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"K100S™",
+         "condition":"As Cast",
+         "hardness":"70"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"MIC 6®",
+         "condition":"As Cast",
+         "hardness":"65"
+      },{
+         "family":"Aluminum - Cast",
+         "alloy":"M-1",
+         "condition":"As Cast",
+         "hardness":"85"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1060",
+         "condition":"O",
+         "hardness":"19"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1060",
+         "condition":"H12",
+         "hardness":"23"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1060",
+         "condition":"H14",
+         "hardness":"26"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1060",
+         "condition":"H16",
+         "hardness":"30"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1060",
+         "condition":"H18",
+         "hardness":"35"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1100",
+         "condition":"O",
+         "hardness":"23"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1100",
+         "condition":"H12",
+         "hardness":"28"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1100",
+         "condition":"H14",
+         "hardness":"32"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1100",
+         "condition":"H16",
+         "hardness":"38"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"1100",
+         "condition":"H18",
+         "hardness":"44"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2011",
+         "condition":"T3",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2011",
+         "condition":"T6",
+         "hardness":"97"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2011",
+         "condition":"T8",
+         "hardness":"100"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2014",
+         "condition":"O",
+         "hardness":"45"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2014",
+         "condition":"T4, T451",
+         "hardness":"105"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2014",
+         "condition":"T6, T651",
+         "hardness":"135"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2017",
+         "condition":"O",
+         "hardness":"45"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2017",
+         "condition":"T4, T451",
+         "hardness":"105"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2018",
+         "condition":"T61",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"O",
+         "hardness":"47"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"T3",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"T4, T351",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"T6",
+         "hardness":"125"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"T81, T851",
+         "hardness":"128"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"T361",
+         "hardness":"130"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2024",
+         "condition":"T86",
+         "hardness":"135"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2025",
+         "condition":"T6",
+         "hardness":"110"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2025",
+         "condition":"T6",
+         "hardness":"110"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2036",
+         "condition":"T4",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2048",
+         "condition":"T851",
+         "hardness":"122"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2090",
+         "condition":"O",
+         "hardness":"57"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2090",
+         "condition":"T3",
+         "hardness":"86"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2090",
+         "condition":"T83",
+         "hardness":"150"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2090",
+         "condition":"T84",
+         "hardness":"140"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2090",
+         "condition":"T86",
+         "hardness":"150"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2117",
+         "condition":"T4",
+         "hardness":"70"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2124",
+         "condition":"T351",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2124",
+         "condition":"T851",
+         "hardness":"128"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2218",
+         "condition":"T71",
+         "hardness":"105"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2218",
+         "condition":"T72",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2219",
+         "condition":"O",
+         "hardness":"46"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2219",
+         "condition":"T31, T351",
+         "hardness":"100"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2219",
+         "condition":"T37",
+         "hardness":"117"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2219",
+         "condition":"T62",
+         "hardness":"115"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2219",
+         "condition":"T81, T87, T851",
+         "hardness":"130"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"2618",
+         "condition":"T61",
+         "hardness":"115"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3003",
+         "condition":"O",
+         "hardness":"28"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3003",
+         "condition":"H12",
+         "hardness":"35"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3003",
+         "condition":"H14",
+         "hardness":"40"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3003",
+         "condition":"H16",
+         "hardness":"47"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3003",
+         "condition":"H18",
+         "hardness":"55"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3004",
+         "condition":"O",
+         "hardness":"45"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3004",
+         "condition":"H32",
+         "hardness":"52"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3004",
+         "condition":"H34",
+         "hardness":"63"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3004",
+         "condition":"H36",
+         "hardness":"70"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3004",
+         "condition":"H38",
+         "hardness":"77"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"3103",
+         "condition":"H14",
+         "hardness":"45"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"4015",
+         "condition":"H14",
+         "hardness":"50"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"4032",
+         "condition":"T6",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"4047",
+         "condition":"T6",
+         "hardness":"200"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5005",
+         "condition":"O",
+         "hardness":"28"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5005",
+         "condition":"H32",
+         "hardness":"36"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5005",
+         "condition":"H34",
+         "hardness":"41"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5005",
+         "condition":"H36",
+         "hardness":"46"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5005",
+         "condition":"H38",
+         "hardness":"51"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5050",
+         "condition":"O",
+         "hardness":"36"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5050",
+         "condition":"H32",
+         "hardness":"46"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5050",
+         "condition":"H34",
+         "hardness":"53"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5050",
+         "condition":"H36",
+         "hardness":"58"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5050",
+         "condition":"H38",
+         "hardness":"63"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5051",
+         "condition":"Typical",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5052",
+         "condition":"O",
+         "hardness":"47"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5052",
+         "condition":"H32",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5052",
+         "condition":"H34",
+         "hardness":"68"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5052",
+         "condition":"H36",
+         "hardness":"73"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5052",
+         "condition":"H38",
+         "hardness":"77"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5056",
+         "condition":"O",
+         "hardness":"65"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5056",
+         "condition":"H18",
+         "hardness":"105"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5056",
+         "condition":"H38",
+         "hardness":"100"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"O/H111",
+         "hardness":"75"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H112",
+         "hardness":"75"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H116",
+         "hardness":"89"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H12",
+         "hardness":"94"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H14",
+         "hardness":"102"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H16",
+         "hardness":"108"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H22/H32",
+         "hardness":"89"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H24/H34",
+         "hardness":"99"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5083",
+         "condition":"H26/36",
+         "hardness":"106"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5154",
+         "condition":"O",
+         "hardness":"58"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5154",
+         "condition":"H32",
+         "hardness":"67"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5154",
+         "condition":"H34",
+         "hardness":"73"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5154",
+         "condition":"H36",
+         "hardness":"78"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5154",
+         "condition":"H38",
+         "hardness":"80"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5154",
+         "condition":"H112",
+         "hardness":"63"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5251",
+         "condition":"O",
+         "hardness":"44"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5251",
+         "condition":"H22",
+         "hardness":"56"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5251",
+         "condition":"H24",
+         "hardness":"62"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5251",
+         "condition":"H26",
+         "hardness":"69"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5252",
+         "condition":"H25",
+         "hardness":"68"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5252",
+         "condition":"H38, H28",
+         "hardness":"75"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5254",
+         "condition":"O",
+         "hardness":"58"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5254",
+         "condition":"H32",
+         "hardness":"67"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5254",
+         "condition":"H34",
+         "hardness":"73"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5254",
+         "condition":"H36",
+         "hardness":"78"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5254",
+         "condition":"H38",
+         "hardness":"80"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5254",
+         "condition":"H112",
+         "hardness":"63"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5454",
+         "condition":"O",
+         "hardness":"62"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5454",
+         "condition":"H32",
+         "hardness":"73"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5454",
+         "condition":"H34",
+         "hardness":"81"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5454",
+         "condition":"H111",
+         "hardness":"70"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5454",
+         "condition":"H112",
+         "hardness":"62"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5456",
+         "condition":"H321, H116",
+         "hardness":"90"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5457",
+         "condition":"O",
+         "hardness":"32"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5457",
+         "condition":"H25",
+         "hardness":"48"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5457",
+         "condition":"H38, H28",
+         "hardness":"55"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5652",
+         "condition":"O",
+         "hardness":"47"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5652",
+         "condition":"H32",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5652",
+         "condition":"H34",
+         "hardness":"68"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5652",
+         "condition":"H36",
+         "hardness":"73"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5652",
+         "condition":"H38",
+         "hardness":"77"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5657",
+         "condition":"H25",
+         "hardness":"40"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5657",
+         "condition":"H38, H28",
+         "hardness":"50"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5754",
+         "condition":"H111",
+         "hardness":"44"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5754",
+         "condition":"H114",
+         "hardness":"52"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5754",
+         "condition":"H22",
+         "hardness":"63"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5754",
+         "condition":"H24",
+         "hardness":"70"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"5754",
+         "condition":"H26",
+         "hardness":"78"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6026",
+         "condition":"T9",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6061",
+         "condition":"O",
+         "hardness":"30"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6061",
+         "condition":"T4, T451",
+         "hardness":"65"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6061",
+         "condition":"T6, T651",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"O",
+         "hardness":"25"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T1",
+         "hardness":"42"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T5",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T52",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T6",
+         "hardness":"73"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T83",
+         "hardness":"82"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T831",
+         "hardness":"70"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6063",
+         "condition":"T832",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6066",
+         "condition":"O",
+         "hardness":"43"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6066",
+         "condition":"T4, T451",
+         "hardness":"90"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6066",
+         "condition":"T6, T651",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6082",
+         "condition":"O",
+         "hardness":"35"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6082",
+         "condition":"T4, T451",
+         "hardness":"71"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6082",
+         "condition":"T6, T651",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6101",
+         "condition":"T6",
+         "hardness":"71"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6105",
+         "condition":"T5",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6106",
+         "condition":"T6",
+         "hardness":"75"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6262",
+         "condition":"T9",
+         "hardness":"120"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6351",
+         "condition":"T6",
+         "hardness":"95"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6463",
+         "condition":"T1",
+         "hardness":"42"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6463",
+         "condition":"T5",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"6463",
+         "condition":"T6",
+         "hardness":"74"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7049",
+         "condition":"T73",
+         "hardness":"135"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7049",
+         "condition":"T7352",
+         "hardness":"135"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7050",
+         "condition":"T73510",
+         "hardness":"132"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7050",
+         "condition":"T73511",
+         "hardness":"132"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7050",
+         "condition":"T7451",
+         "hardness":"140"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7050",
+         "condition":"T7451",
+         "hardness":"140"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7075",
+         "condition":"O",
+         "hardness":"60"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7075",
+         "condition":"T6, T651",
+         "hardness":"150"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7475",
+         "condition":"T61",
+         "hardness":"148"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7475",
+         "condition":"T651",
+         "hardness":"150"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7475",
+         "condition":"T761",
+         "hardness":"140"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"7475",
+         "condition":"T7651",
+         "hardness":"140"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"QC-10",
+         "condition":"",
+         "hardness":"170"
+      },{
+         "family":"Aluminum - Wrought (6061)",
+         "alloy":"Dibond ACM Composite",
+         "condition":"",
+         "hardness":"120"
+      },{
+         "family":"Brass",
+         "alloy":"C26000 - Cartridge Brass",
+         "condition":"H00 Temper",
+         "hardness":"109"
+      },{
+         "family":"Brass",
+         "alloy":"C26000 - Cartridge Brass",
+         "condition":"H04 Temper",
+         "hardness":"154"
+      },{
+         "family":"Brass",
+         "alloy":"C26000 - Cartridge Brass",
+         "condition":"H08 Temper",
+         "hardness":"189"
+      },{
+         "family":"Brass",
+         "alloy":"C35300 - Flanging Brass",
+         "condition":"1/4 Hard",
+         "hardness":"117"
+      },{
+         "family":"Brass",
+         "alloy":"C36000 - Free-Cutting Brass",
+         "condition":"H01 Temper ",
+         "hardness":"112"
+      },{
+         "family":"Brass",
+         "alloy":"C36000 - Free-Cutting Brass",
+         "condition":"H02 Temper ",
+         "hardness":"143"
+      },{
+         "family":"Brass",
+         "alloy":"C46400 - Naval Brass \"Lead Free\"",
+         "condition":"Hard",
+         "hardness":"190"
+      },{
+         "family":"Brass",
+         "alloy":"C48500 - Naval Brass \"Leaded\"",
+         "condition":"Half Hard",
+         "hardness":"145"
+      },{
+         "family":"Brass",
+         "alloy":"C69300, ASTM B371, B124, B283, Green Dot - Silicon Brass",
+         "condition":"Half Hard",
+         "hardness":"110"
+      },{
+         "family":"Brass",
+         "alloy":"C85700 - Leaded Yellow Brass",
+         "condition":"As Cast",
+         "hardness":"75"
+      },{
+         "family":"Cobalt Chrome (CoCr ASTM F75)",
+         "alloy":"CoCr ASTM F75",
+         "condition":"",
+         "hardness":"400",
+         "SFM":0.55
+      },{
+         "family":"Cobalt Chrome (CoCr ASTM F75)",
+         "alloy":"CoCr ASTM F799",
+         "condition":"",
+         "hardness":"400",
+         "SFM":0.55
+      },{
+         "family":"Cobalt Chrome (CoCr ASTM F75)",
+         "alloy":"Stellite 6",
+         "condition":"",
+         "hardness":"364",
+         "SFM":0.55
+      },{
+         "family":"Cobalt Chrome (CoCr ASTM F75)",
+         "alloy":"Stellite 25",
+         "condition":"",
+         "hardness":"350",
+         "SFM":0.55
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"B20 - Bell Metal / Bronze",
+         "condition":"",
+         "hardness":"85"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C101 - Oxygen Free Copper",
+         "condition":"1/2 Hard",
+         "hardness":"180"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C101 - Oxygen Free Copper",
+         "condition":"Full Hard",
+         "hardness":"199"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C101 - Oxygen Free Copper",
+         "condition":"Spring",
+         "hardness":"223"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C110 - Electrolytic tough pitch Copper",
+         "condition":"H02 1/2 Hard",
+         "hardness":"40"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C110 - Electrolytic tough pitch Copper",
+         "condition":"H04 Full Hard",
+         "hardness":"50"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C11000 - Electrolytic tough pitch Copper",
+         "condition":"1/8 Hard",
+         "hardness":"50"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C11000 - Electrolytic tough pitch Copper",
+         "condition":"Cold Worked",
+         "hardness":"95"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C11000 - Electrolytic tough pitch Copper",
+         "condition":"Hard",
+         "hardness":"80"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C14500 - Tellurium Copper",
+         "condition":"Half Hard",
+         "hardness":"76"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C14500 - Tellurium Copper",
+         "condition":"Hard",
+         "hardness":"81"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C14700 - Sulfur Copper",
+         "condition":"Half Hard",
+         "hardness":"77"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C15000 - Zirconium Copper",
+         "condition":"",
+         "hardness":"126"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C17200 - Beryllium Copper",
+         "condition":"Over Aged FMC",
+         "hardness":"322"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C17300 - Beryllium Copper",
+         "condition":"TH04",
+         "hardness":"102"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C17300 - Beryllium Copper",
+         "condition":"TD04",
+         "hardness":"175"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C17500 - Beryllium Copper",
+         "condition":"TH04",
+         "hardness":"185"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C17510 - Beryllium Copper",
+         "condition":"TH04",
+         "hardness":"185"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C18000 - Beryllium Free Copper",
+         "condition":"",
+         "hardness":"185"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C18150 - Chromium Copper",
+         "condition":"",
+         "hardness":"130"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C18200 - Chromium Copper",
+         "condition":"TH04 Temper ",
+         "hardness":"160"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C18400 - Chromium Copper",
+         "condition":"TH04 Temper ",
+         "hardness":"160"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C18500 - Chromium Copper",
+         "condition":"TH04 Temper ",
+         "hardness":"160"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C21000 - Gliding Copper",
+         "condition":" Half Hard ",
+         "hardness":"98"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C21000 - Gliding Copper",
+         "condition":" Quarter Hard ",
+         "hardness":"82"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C22000 - 90-10 Bronze",
+         "condition":"H01 Temper ",
+         "hardness":"86"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C22000 - 90-10 Bronze",
+         "condition":"H04 Temper ",
+         "hardness":"125"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C22000 - 90-10 Bronze",
+         "condition":"H08 Temper ",
+         "hardness":"143"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C28000 - Muntz metal",
+         "condition":" H00  Temper",
+         "hardness":"102"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C28000 - Muntz metal",
+         "condition":" H02  Temper",
+         "hardness":"135"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C31600 - Commercial Bronze",
+         "condition":"Half Hard",
+         "hardness":"117"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C54400 - Phosphor Bronze",
+         "condition":"Hard",
+         "hardness":"140"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C62400 - Aluminum Bronze",
+         "condition":"HR50",
+         "hardness":"188"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C63000, AMS 4640 - Nickel-Aluminum Bronze",
+         "condition":"HR50",
+         "hardness":"208"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C64200 - Aluminum Silicon Bronze",
+         "condition":"HR50",
+         "hardness":"189"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C65500 - High Silicon Bronze",
+         "condition":"",
+         "hardness":"153"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C70600 - 90/10 Nickel Copper",
+         "condition":"Annealed",
+         "hardness":"100"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C72900 - Toughmet 3 Nickel Bronze",
+         "condition":"Annealed",
+         "hardness":"485"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C70600 - 90/10 Nickel Copper",
+         "condition":"Annealed",
+         "hardness":"100"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C75200 - Nickel Silver Alloy",
+         "condition":"Annealed",
+         "hardness":"85"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C75200 - Nickel Silver Alloy",
+         "condition":"1/4 Hard",
+         "hardness":"141"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C75200 - Nickel Silver Alloy",
+         "condition":"1/2 Hard",
+         "hardness":"185"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C75200 - Nickel Silver Alloy",
+         "condition":"Hard",
+         "hardness":"205"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C75200 - Nickel Silver Alloy",
+         "condition":"Extra Hard",
+         "hardness":"222"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C75200 - Nickel Silver Alloy",
+         "condition":"Spring",
+         "hardness":"240"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C79200 - Nickel Silver \"Leaded\"",
+         "condition":"Hard",
+         "hardness":"151"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C83300",
+         "condition":"As Cast",
+         "hardness":"35"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C84400 - Valve Metal",
+         "condition":"As Cast",
+         "hardness":"55"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C86300 - Manganese Bronze, SAE 430B",
+         "condition":"",
+         "hardness":"225"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C93200 - Bronze Bushing, SAE 660",
+         "condition":"Cast",
+         "hardness":"70"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C95400 - Aluminum Bronze",
+         "condition":"M01 Sand Cast",
+         "hardness":"179"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"C95400 - Aluminum Bronze",
+         "condition":"M02 Centrif. Cast",
+         "hardness":"150"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"Ampco 21 Aluminum Bronze",
+         "condition":"",
+         "hardness":"286"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"MoldMax HH® - Copper Beryllium",
+         "condition":"Cast",
+         "hardness":"370"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"MoldMax LH® - Copper Beryllium",
+         "condition":"Cast",
+         "hardness":"285"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"MoldMax XL® - Copper Beryllium",
+         "condition":"Cast",
+         "hardness":"285"
+      },{
+         "family":"Copper Alloy - Wrought",
+         "alloy":"MoldMax V® - Copper Beryllium",
+         "condition":"Cast",
+         "hardness":"270"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"grade 60-40-18",
+         "hardness":"167"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"grade 65-45-12",
+         "hardness":"167"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"grade 80-55-06",
+         "hardness":"192"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"grade 100-70-03",
+         "hardness":"243"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"grade 120-90-02",
+         "hardness":"331"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"Casting grade D4018",
+         "hardness":"170"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"Casting grade D4512",
+         "hardness":"184"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"Casting grade D5506",
+         "hardness":"221"
+      },{
+         "family":"Cast Iron - Ductile",
+         "alloy":"Ductile Cast Iron",
+         "condition":"Casting grade D7003",
+         "hardness":"272"
+      },{
+         "family":"Cast Iron - Gray",
+         "alloy":"Gray Cast Iron",
+         "condition":"ASTM class 20 ",
+         "hardness":"156"
+      },{
+         "family":"Cast Iron - Gray",
+         "alloy":"Gray Cast Iron",
+         "condition":"ASTM class 35",
+         "hardness":"212"
+      },{
+         "family":"Cast Iron - Gray",
+         "alloy":"Gray Cast Iron",
+         "condition":"ASTM class 60",
+         "hardness":"302"
+      },{
+         "family":"Cast Iron - Gray",
+         "alloy":"Malleable Cast Iron",
+         "condition":"ASTM class 47",
+         "hardness":"156"
+      },{
+         "family":"Cast Iron - Gray",
+         "alloy":"Malleable Cast Iron",
+         "condition":"ASTM class 220",
+         "hardness":"173"
+      },{
+         "family":"Composite: Fiberglass/PC Board",
+         "alloy":"Composite: Fiberglass/PC Board",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Composite: Fiberglass/PC Board",
+         "alloy":"Phenolic",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Composite: Fiberglass/PC Board",
+         "alloy":"Composite: Tufnol",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Composite: Fiberglass/PC Board",
+         "alloy":"G10",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Composite: Fiberglass/PC Board",
+         "alloy":"PAI - Polyamide-imide (Torlon) Carbon/Graphite Composite",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.507,
+         "IPT":0.167
+      },{
+         "family":"Composite: Fiberglass/PC Board",
+         "alloy":"Aluminum Composite Material (e.g. Reynobond)",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.8,
+         "IPT":1.719
+      },{
+         "family":"Graphite",
+         "alloy":"Graphite",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N03301 -   Duranickel® alloy 301",
+         "condition":"Annealed",
+         "hardness":"114"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N03301 - Duranickel Alloy 301",
+         "condition":"Annealed",
+         "hardness":"395"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N05500 -   Monel® alloy K500",
+         "condition":"Annealed",
+         "hardness":"295"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06002 -   Inconel® alloy HX",
+         "condition":"Annealed",
+         "hardness":"171"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06002 -   Hastelloy® X",
+         "condition":"Heat Treated and Rapid Cooled (Solution)",
+         "hardness":"196"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06022 - Hastelloy® alloy C22",
+         "condition":"Plate, Quenched",
+         "hardness":"210"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06022 - Haynes 188 / Inconel 188",
+         "condition":"Plate",
+         "hardness":"282"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06075 - Nimonic® alloy 75",
+         "condition":"Annealed",
+         "hardness":"162"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06075 - Nimonic Alloy 75",
+         "condition":"Annealed",
+         "hardness":"230"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06455 - Hastelloy® alloy C4",
+         "condition":"Annealed",
+         "hardness":"320"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06600 - Inconel® alloy 600",
+         "condition":"Annealed",
+         "hardness":"162"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06601 - Inconel® alloy 601",
+         "condition":"Annealed",
+         "hardness":"138"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06625 - Inconel® alloy 625",
+         "condition":"Annealed",
+         "hardness":"190"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06686 - Inconel® alloy 686",
+         "condition":"Annealed",
+         "hardness":"95"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N06686 - Inconel® Alloy 686",
+         "condition":"Annealed",
+         "hardness":"209"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N07001 - Waspaloy®",
+         "condition":"Annealed",
+         "hardness":"351"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N07080 - Nimonic® alloy 80A",
+         "condition":"Annealed",
+         "hardness":"290"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N07090 - Nimonic® alloy 90",
+         "condition":"Annealed",
+         "hardness":"342"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N07718 - Inconel® alloy 718",
+         "condition":"Annealed",
+         "hardness":"405"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N07725 - Inconel® alloy 725",
+         "condition":"Annealed",
+         "hardness":"340"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N07750 - Inconel® alloy X750",
+         "condition":"Annealed",
+         "hardness":"310"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08020 - Incoloy® alloy 020, Alloy 20, DIN 2.4660, CN7M",
+         "condition":"Annealed",
+         "hardness":"171"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08028 - Incoloy Alloy 28",
+         "condition":"Annealed",
+         "hardness":"310"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08031",
+         "condition":"Annealed",
+         "hardness":"234"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08031",
+         "condition":"Hardened",
+         "hardness":"324"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08367 - Incoloy Alloy 25-6HN",
+         "condition":"Annealed",
+         "hardness":"190"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08800 - Incoloy® alloy 800",
+         "condition":"Annealed",
+         "hardness":"156"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N08925/6 - Incoloy® alloy 25-6MO",
+         "condition":"Annealed",
+         "hardness":"171"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N09706 - Inconel Alloy 706",
+         "condition":"Annealed",
+         "hardness":"395"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N09925 - Incoloy® alloy 925",
+         "condition":"Annealed",
+         "hardness":"304"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N09945 - Incoloy Alloy 945",
+         "condition":"Annealed",
+         "hardness":"385"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N10665 - Hastelloy® alloy B2",
+         "condition":"Annealed",
+         "hardness":"250"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"R30783 - Inconel Alloy 783",
+         "condition":"Annealed",
+         "hardness":"355"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"Rene 41",
+         "condition":"Annealed",
+         "hardness":"286"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"Rene 41",
+         "condition":"Fully Hardened",
+         "hardness":"421"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"S35115 - Incoloy Alloy 865",
+         "condition":"Annealed",
+         "hardness":"175"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"S66286 - Incoloy Alloy A-286",
+         "condition":"Annealed",
+         "hardness":"295"
+      },{
+         "family":"High Temp Nickel Alloy",
+         "alloy":"N10276 - Hastelloy® alloy C276",
+         "condition":"Annealed",
+         "hardness":"162"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AM100A",
+         "condition":"T61 ",
+         "hardness":"109"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31B",
+         "condition":" Extruded ",
+         "hardness":"49"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31B",
+         "condition":" Annealed ",
+         "hardness":"56"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31B",
+         "condition":"Hard rolled ",
+         "hardness":"73"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31B",
+         "condition":"F ",
+         "hardness":"82"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31B",
+         "condition":"H24 ",
+         "hardness":"116"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31C",
+         "condition":"F ",
+         "hardness":"82"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ31C",
+         "condition":"H24 ",
+         "hardness":"116"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ61A",
+         "condition":"F ",
+         "hardness":"95"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ63",
+         "condition":"F Temper",
+         "hardness":"50"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ63",
+         "condition":"T4 Temper",
+         "hardness":"55"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ63",
+         "condition":"T6 Temper",
+         "hardness":"73"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ63A",
+         "condition":"T6 ",
+         "hardness":"89"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ80A",
+         "condition":"T5 ",
+         "hardness":"135"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ81A",
+         "condition":"T4 ",
+         "hardness":"89"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91A",
+         "condition":"F ",
+         "hardness":"99"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91B",
+         "condition":"F",
+         "hardness":"99"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91C",
+         "condition":"T6 ",
+         "hardness":"110"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91E",
+         "condition":"T4 Temper",
+         "hardness":"55"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91E",
+         "condition":"F Temper",
+         "hardness":"63"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91E",
+         "condition":"T6 Temper",
+         "hardness":"70"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ91E",
+         "condition":"T6",
+         "hardness":"110"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"AZ92A",
+         "condition":"T6",
+         "hardness":"133"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"EZ33A",
+         "condition":"T5 ",
+         "hardness":"83"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"FAZ91B",
+         "condition":"F",
+         "hardness":"99"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"HK31A",
+         "condition":"T6 ",
+         "hardness":"89"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"HK31A",
+         "condition":"H24 ",
+         "hardness":"107"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"HZ32A",
+         "condition":"T6 ",
+         "hardness":"89"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"M1A",
+         "condition":"F ",
+         "hardness":"78"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"QE22A",
+         "condition":"T6 ",
+         "hardness":"130"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"ZE41A",
+         "condition":"T5 ",
+         "hardness":"98"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"ZE63A",
+         "condition":"T6 ",
+         "hardness":"142"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"ZH62A",
+         "condition":"T5 ",
+         "hardness":"110"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"ZK51A",
+         "condition":"T5 ",
+         "hardness":"98"
+      },{
+         "family":"Magnesium Alloy",
+         "alloy":"ZK60A",
+         "condition":"F ",
+         "hardness":"151"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N02200 - Nickel 200",
+         "condition":"Annealed",
+         "hardness":"105"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N02201 - Nickel 201",
+         "condition":"Annealed",
+         "hardness":"95"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N04400 - Monel® alloy 400",
+         "condition":"Annealed",
+         "hardness":"133"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N06110 - Allcorr",
+         "condition":"Annealed",
+         "hardness":"185"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N06690 - Inconel® alloy 690",
+         "condition":"Annealed",
+         "hardness":"85"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N06690 - Inconel Alloy 690",
+         "condition":"Annealed",
+         "hardness":"162"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"N08825 - Incoloy® alloy 825",
+         "condition":"Annealed",
+         "hardness":"148"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"Kovar®, ASTM F15, UNS K94610",
+         "condition":"Annealed",
+         "hardness":"120"
+      },{
+         "family":"Nickel Alloy",
+         "alloy":"Invar® 36",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"ABS (Acrylonitrate-butadiene-styrene)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"HIS (High Impact Styrene)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Nylon 66",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Polypropylene",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Composite Acrylic-PVC",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"CPVC",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Nylon 6",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Acrylic",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"ECTFE",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"PET-G",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"PET-P",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Plexiglass",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Polyester",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"HD Cutting Board",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"PBT (Polybutylene Terephthalate)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"High Temp Epoxy Modeling Board (RenShape 2000)",
+         "condition":"",
+         "hardness":"",
+         "SFM":2.8,
+         "IPT":0.565
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"PAI - Polyamide-imide (Torlon, Unfilled)",
+         "condition":"",
+         "hardness":"",
+         "SFM":1.926,
+         "IPT":0.189
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"PVC",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_HARD,
+         "alloy":"Sintra PVC Foam Board",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Acetal - Delrin",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"APET (Amorphous Poly Ethylene Terphthalate",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Cellulose Acetate Butyrate",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"HDPE (High Density Polyethylene)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Hydrex",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Lexan",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Nylon",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"PEEK (Polyetheretherketone)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polycarbonate",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyurethane",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyurethane Model Board (RenShape 5020/5025)",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.96,
+         "IPT":1.925
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyurethane Model Board (RenShape 5030)",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.96,
+         "IPT":0.9625
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyurethane Model Board (RenShape 4xx/550/5003/5005/5008/5166)",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.615,
+         "IPT":0.385
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyurethane Foundry Pattern and Tooling Board (RenShape 5169)",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.615,
+         "IPT":1.346
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyurethane Foundry Pattern and Tooling Board (RenShape 5179)",
+         "condition":"",
+         "hardness":"",
+         "SFM":0.577,
+         "IPT":0.615
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyetherimide",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyethylene (UHMW)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"Polyethylene Terephtalate (PTE)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"PTFE (Polytetrafluoroethylene)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":PLASTICS_SOFT,
+         "alloy":"PVDF (Kynar)",
+         "condition":"",
+         "hardness":""
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"301 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"165"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"302 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"155"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"302B (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"165"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"303 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"DIN 1.4305",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"303Se (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"304 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"304L (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"140"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"305 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"156"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"308 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"309 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"165"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"309S (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"165"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"310 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"310S (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"314 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"316 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"316L (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"145"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"317 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"321 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"ASTM A182 F321",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"347 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"348 (Austenitic)",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"AL-6XN, AL6XN, ASTM B-688, ASME-SB-688, N08367",
+         "condition":"Annealed",
+         "hardness":"185"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"Nitronic 50",
+         "condition":"Annealed",
+         "hardness":"185"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"Nitronic 60",
+         "condition":"Annealed",
+         "hardness":"209"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"Super Duplex (32760, Grade 1.4501, etc)",
+         "condition":"Annealed",
+         "hardness":"270"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"Grade 2205 Duplex (UNS S32205, A276, A240)",
+         "condition":"Annealed",
+         "hardness":"293"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"Duplex (31803, Grade 1.4462, etc)",
+         "condition":"Annealed",
+         "hardness":"293"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"Super Duplex (32750, Grade 1.4410, etc)",
+         "condition":"Annealed",
+         "hardness":"310"
+      },{
+         "family":"Stainless - 300 Series (316)",
+         "alloy":"F51 UNS S31803 (Duplex)",
+         "condition":"Annealed",
+         "hardness":"270"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"3CR12",
+         "condition":"Tempered",
+         "hardness":"220"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"155"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Tempered @ 1400F",
+         "hardness":"180"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Tempered @ 1200F",
+         "hardness":"225"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Tempered @ 1000F",
+         "hardness":"300"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"375"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Tempered @ 400F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Tempered @ 800F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"403 (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"410"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"405 (Ferritic)",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"155"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Tempered @ 1400F",
+         "hardness":"180"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Tempered @ 1200F",
+         "hardness":"225"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Tempered @ 1000F",
+         "hardness":"300"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"375"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Tempered @ 400F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Tempered @ 800F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"410 (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"410"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"235"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Tempered @ 1200F",
+         "hardness":"260"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Tempered @ 1000F",
+         "hardness":"325"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"400"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Tempered @ 400F",
+         "hardness":"415"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Tempered @ 800F",
+         "hardness":"415"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"414 (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"426"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"155"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Tempered @ 1400F",
+         "hardness":"180"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Tempered @ 1200F",
+         "hardness":"225"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Tempered @ 1000F",
+         "hardness":"300"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"375"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Tempered @ 400F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Tempered @ 800F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416 (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"410"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"155"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Tempered @ 1400F",
+         "hardness":"180"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Tempered @ 1200F",
+         "hardness":"225"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Tempered @ 1000F",
+         "hardness":"300"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"375"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Tempered @ 400F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Tempered @ 800F",
+         "hardness":"390"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"416Se (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"410"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"195"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420 (Martensitic)",
+         "condition":"Stress Relieved",
+         "hardness":"480"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420 (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"500"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420 (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"540"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420F (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"195"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420F (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"500"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"420F (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"540"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"430 (Ferritic)",
+         "condition":"Annealed",
+         "hardness":"155"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"430F (Ferritic)",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"430FSe (Ferritic)",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"260"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Tempered @ 1200F",
+         "hardness":"260"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Tempered @ 1000F",
+         "hardness":"325"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"400"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Tempered @ 400F",
+         "hardness":"415"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Tempered @ 800F",
+         "hardness":"415"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"431 (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"440"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440A (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"215"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440A (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"510"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440A (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"570"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440B (Martensitic), AEBL, AEB-L",
+         "condition":"Annealed",
+         "hardness":"220"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440B (Martensitic), AEBL, AEB-L",
+         "condition":"Tempered @ 600F",
+         "hardness":"555"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440B (Martensitic), AEBL, AEB-L",
+         "condition":"Hardened",
+         "hardness":"590"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440C (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"230"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440C (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"580"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440C (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"610"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440F (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"230"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440F (Martensitic)",
+         "condition":"Tempered @ 600F",
+         "hardness":"580"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"440F (Martensitic)",
+         "condition":"Hardened",
+         "hardness":"610"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"446 (Ferritic)",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"501 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"160"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"502 (Martensitic)",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"A743 CA6NM",
+         "condition":"Annealed",
+         "hardness":"285"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"A487 CA6NM",
+         "condition":"Annealed",
+         "hardness":"286"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"ATS-34",
+         "condition":"Tempered",
+         "hardness":"222"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"ATS-55",
+         "condition":"Tempered",
+         "hardness":"222"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"ATS-34",
+         "condition":"Hardened",
+         "hardness":"654"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"ATS-55",
+         "condition":"Hardened",
+         "hardness":"654"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CPM 20CV / M390",
+         "condition":"Annealed",
+         "hardness":"311"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CPM 20CV / M390",
+         "condition":"Tempered",
+         "hardness":"613"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CPM® S35VN™",
+         "condition":"Annealed",
+         "hardness":"255"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CPM® S35VN™",
+         "condition":"Hardened and Double Tempered",
+         "hardness":"654"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CPM S90VN",
+         "condition":"Annealed",
+         "hardness":"277"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CPM® S110V™",
+         "condition":"Annealed",
+         "hardness":"400"
+      },{
+         "family":"Stainless - 400 Series (420)",
+         "alloy":"CTS-XHP",
+         "condition":"Annealed",
+         "hardness":"255"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Incoloy A286",
+         "condition":"Annealed",
+         "hardness":"304"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 455 (C455)",
+         "condition":"Annealed",
+         "hardness":"295"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 465 (C465)",
+         "condition":"Annealed",
+         "hardness":"386"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 465 (C465)",
+         "condition":"H1100",
+         "hardness":"390"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 465 (C465)",
+         "condition":"H1050",
+         "hardness":"427"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 465 (C465)",
+         "condition":"H1000",
+         "hardness":"451"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 465 (C465)",
+         "condition":"H950",
+         "hardness":"481"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"Custom 465 (C465)",
+         "condition":"H900",
+         "hardness":"487"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"Annealed",
+         "hardness":"310"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"RH 950",
+         "hardness":"451"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"H 950",
+         "hardness":"442"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"H 1000",
+         "hardness":"421"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"H 1050",
+         "hardness":"400"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"H 1100",
+         "hardness":"327"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"H 1150",
+         "hardness":"311"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"13-8 PH",
+         "condition":"H 1150M",
+         "hardness":"301"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"15-5 PH",
+         "condition":"Annealed",
+         "hardness":"330"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"H 1150-M",
+         "hardness":"310"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"Annealed",
+         "hardness":"330"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"H 1150",
+         "hardness":"330"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"H 1075",
+         "hardness":"347"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"H 1025",
+         "hardness":"356"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"H 925",
+         "hardness":"404"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-4 PH",
+         "condition":"H 900",
+         "hardness":"420"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-7 PH",
+         "condition":"Annealed",
+         "hardness":"162"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-7 PH",
+         "condition":" cold rolled",
+         "hardness":"378"
+      },{
+         "family":"Stainless - PH Series (17-4)",
+         "alloy":"17-7 PH",
+         "condition":"Precipitation hardened",
+         "hardness":"433"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1006",
+         "condition":"Hot Rolled",
+         "hardness":"86"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1006",
+         "condition":"Cold Drawn",
+         "hardness":"95"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1008",
+         "condition":"Hot Rolled",
+         "hardness":"120"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1008",
+         "condition":"Cold Drawn",
+         "hardness":"140"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1010",
+         "condition":"Annealed",
+         "hardness":"99"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1018",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"131"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1018",
+         "condition":"Hot Rolled",
+         "hardness":"140"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1018",
+         "condition":"Cold Drawn",
+         "hardness":"180"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1018",
+         "condition":"Heat Treated: Carb 1700, Aust 1425, Quench, Temper 350",
+         "hardness":"185"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1020",
+         "condition":"Hot Rolled",
+         "hardness":"111"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1020",
+         "condition":"Annealed",
+         "hardness":"111"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1020",
+         "condition":"Cold Drawn",
+         "hardness":"121"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1020",
+         "condition":"Normalized",
+         "hardness":"131"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1025",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"131"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1025",
+         "condition":"Cold Drawn",
+         "hardness":"143"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1030",
+         "condition":"Annealed",
+         "hardness":"137"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1030",
+         "condition":"Hardened",
+         "hardness":"245"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1035",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"163"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1035",
+         "condition":"Cold Drawn",
+         "hardness":"170"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1035",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"179"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1040",
+         "condition":"Hot Rolled",
+         "hardness":"149"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1040",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"170"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1040",
+         "condition":"Cold Drawn",
+         "hardness":"179"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1040",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1108",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1109",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1115",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1117",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"143"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1117",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1117",
+         "condition":"Hot Rolled",
+         "hardness":"155"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1117",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"163"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1117",
+         "condition":"Cold Drawn",
+         "hardness":"190"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1117",
+         "condition":"Heat Treat: Carb 1700, Aust 1450, Quench, Temper 350",
+         "hardness":"195"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1118",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"143"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1118",
+         "condition":"Cold Drawn",
+         "hardness":"149"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1118",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1118",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"163"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1120",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1126",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1132",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1132",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1132",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1132",
+         "condition":"Cold Drawn",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1132",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1132",
+         "condition":"Heat Treat: Aust 1550, Quench, Temper 1000",
+         "hardness":"260"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1137",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1137",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1137",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1137",
+         "condition":"Cold Drawn",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1137",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1137",
+         "condition":"Heat Treat: Aust 1550, Quench, Temper 1000",
+         "hardness":"260"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1139",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1139",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1139",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1139",
+         "condition":"Cold Drawn",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1139",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1139",
+         "condition":"Heat Treat: Aust 1550, Quench, Temper 1000",
+         "hardness":"260"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1140",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"170"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1140",
+         "condition":"Cold Drawn",
+         "hardness":"179"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1140",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1144",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1144",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1144",
+         "condition":"Cold Drawn",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1144",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1144",
+         "condition":"Heat Treat: Aust 1550, Quench, Temper 1000",
+         "hardness":"260"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1146",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1146",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1146",
+         "condition":"Cold Drawn",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1146",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1146",
+         "condition":"Heat Treat: Aust 1550, Quench, Temper 1000",
+         "hardness":"260"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1151",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1151",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1151",
+         "condition":"Cold Drawn",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1151",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"225"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1151",
+         "condition":"Heat Treat: Aust 1550, Quench, Temper 1000",
+         "hardness":"260"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1211",
+         "condition":"Hot Rolled, Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1212",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1212",
+         "condition":"Cold Drawn",
+         "hardness":"210"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1213",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1213",
+         "condition":"Cold Drawn",
+         "hardness":"210"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1215",
+         "condition":"Annealed",
+         "hardness":"150"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"1215",
+         "condition":"Cold Drawn",
+         "hardness":"210"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"12L14",
+         "condition":"Cold Drawn",
+         "hardness":"180"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"12L14 + Te",
+         "condition":"Cold Drawn",
+         "hardness":"180"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A36 / DIN 1.0037",
+         "condition":"Hot Rolled",
+         "hardness":"149"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A106 Gr B",
+         "condition":"Hot Rolled",
+         "hardness":"241"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A500 Grade B",
+         "condition":"Square Tubing",
+         "hardness":"121"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A513",
+         "condition":"DOM Tubing",
+         "hardness":"197"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A569",
+         "condition":"Hot Rolled",
+         "hardness":"149"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A572",
+         "condition":"Grade 50",
+         "hardness":"135"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A572",
+         "condition":"Grade 60",
+         "hardness":"159"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"A1011",
+         "condition":"Hot Rolled",
+         "hardness":"149"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"M1044",
+         "condition":"Hot Rolled",
+         "hardness":"170"
+      },{
+         "family":"Steel - Low Carbon (1020)",
+         "alloy":"SA516 Group 70",
+         "condition":" pressure vessel quality ",
+         "hardness":"165"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4027",
+         "condition":"annealed",
+         "hardness":"143"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4027",
+         "condition":"normalized",
+         "hardness":"179"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4027",
+         "condition":"water quenched ",
+         "hardness":"311"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4037 / 4037H",
+         "condition":"annealed",
+         "hardness":"183"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4037 / 4037H",
+         "condition":"normalized",
+         "hardness":"235"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4820",
+         "condition":"Hot Rolled",
+         "hardness":"235"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"4820",
+         "condition":"Heat Treat: Carb 1700, Aust 1475, Oil Quench, Temper 300",
+         "hardness":"365"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8620",
+         "condition":"Hot Rolled",
+         "hardness":"200"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8620",
+         "condition":"Cold Drawn",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8620",
+         "condition":"Heat Treat: Carb 1700, Aust 1550, Oil Quench, Temper 300",
+         "hardness":"300"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8630",
+         "condition":" annealed",
+         "hardness":"156"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8630",
+         "condition":" normalized",
+         "hardness":"187"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8630",
+         "condition":"water quenched ",
+         "hardness":"293"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8640",
+         "condition":"normalized",
+         "hardness":"170"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"8640",
+         "condition":"oil quenched ",
+         "hardness":"221"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"9310",
+         "condition":"Annealed",
+         "hardness":"241"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"9310",
+         "condition":"Normalized",
+         "hardness":"255"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"A182 F11",
+         "condition":"",
+         "hardness":"175"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"A182 F22",
+         "condition":"",
+         "hardness":"206"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"A182 F91 DIN 1.4903",
+         "condition":"",
+         "hardness":"248"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"A514",
+         "condition":"Quenched & Annealed",
+         "hardness":"264"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"E8620",
+         "condition":"Cold Drawn",
+         "hardness":"220"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"E8620",
+         "condition":"Heat Treat: Carb 1700, Aust 1550, Oil Quench, Temper 300",
+         "hardness":"300"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"E9310",
+         "condition":"Annealed",
+         "hardness":"241"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"E9310",
+         "condition":"Oil Quenched",
+         "hardness":"383"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"P20",
+         "condition":"Prehard",
+         "hardness":"321"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"T1",
+         "condition":"Quenched & Annealed",
+         "hardness":"264"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"Usibor 1500P / 22MnB5",
+         "condition":"Tempered",
+         "hardness":"237"
+      },{
+         "family":"Steel - Low Carbon Alloy (8620)",
+         "alloy":"Usibor 1500P / 22MnB5",
+         "condition":"Hardened",
+         "hardness":"443"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1045",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"179"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1045",
+         "condition":"Cold Drawn",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1045",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1045",
+         "condition":"Hot Rolled",
+         "hardness":"220"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1045",
+         "condition":"Cold Drawn",
+         "hardness":"230"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1045",
+         "condition":"Heat Treated: Aust 1550, Quench, Temper 1000",
+         "hardness":"255"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1050",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1050",
+         "condition":"Cold Drawn",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1050",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1050",
+         "condition":"Hard Drawn, Stress Relieved",
+         "hardness":"290"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1141",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1141",
+         "condition":"Cold Drawn",
+         "hardness":"220"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1141",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"223"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1141",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1144",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1144",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"229"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1144",
+         "condition":"Cold Drawn",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1144",
+         "condition":"Heat Treat: Aust 1550, Oil Quench, Temper 1000",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1145",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"179"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1145",
+         "condition":"Cold Drawn",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1145",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1146",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"179"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1146",
+         "condition":"Cold Drawn",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1146",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1151",
+         "condition":"Cold Drawn, Hi Temp Relieved",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1151",
+         "condition":"Cold Drawn",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1151",
+         "condition":"Cold Drawn, Low Temp Relieved",
+         "hardness":"212"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1340",
+         "condition":"annealed ",
+         "hardness":"207"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1340",
+         "condition":" normalized ",
+         "hardness":"248"
+      },{
+         "family":"Steel - Medium Carbon (1045)",
+         "alloy":"1340",
+         "condition":" oil quenched ",
+         "hardness":"285"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4130",
+         "condition":"Normalized Cold Drawn",
+         "hardness":"217"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4140",
+         "condition":"annealed",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4140",
+         "condition":"as rolled plate",
+         "hardness":"280"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4140",
+         "condition":"normalized",
+         "hardness":"302"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4140",
+         "condition":"oil quenched",
+         "hardness":"311"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4142",
+         "condition":"Hot Rolled Annealed",
+         "hardness":"210"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4142",
+         "condition":"Annealed Cold Drawn",
+         "hardness":"235"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4145",
+         "condition":"Annealed Hot Rolled",
+         "hardness":"187"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4145",
+         "condition":"Annealed Cold Drawn",
+         "hardness":"208"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4145",
+         "condition":"normalized",
+         "hardness":"285"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4145H",
+         "condition":"Heat Treated",
+         "hardness":"341"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4330V, 4330 V-Mod, AMS 6411",
+         "condition":"Quench + Temper",
+         "hardness":"400"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4340",
+         "condition":"Annealed",
+         "hardness":"217"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4340",
+         "condition":"Hot Rolled Annealed",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4340",
+         "condition":"oil quenched ",
+         "hardness":"352"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4340",
+         "condition":" normalized",
+         "hardness":"363"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5115 / 16MnCr5 / 1.7131",
+         "condition":"normalized",
+         "hardness":"165"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5115 / 16MnCr5 / 1.7131",
+         "condition":"Soft Annealed",
+         "hardness":"207"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5140",
+         "condition":" annealed",
+         "hardness":"167"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5140",
+         "condition":" normalized",
+         "hardness":"229"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5140",
+         "condition":"oil quenched",
+         "hardness":"293"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5160, UNS G51600",
+         "condition":" annealed",
+         "hardness":"197"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5160, UNS G51600",
+         "condition":" normalized",
+         "hardness":"285"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"5160, UNS G51600",
+         "condition":" oil quenched",
+         "hardness":"341"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"9260",
+         "condition":"Annealed",
+         "hardness":"222"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"8740",
+         "condition":"Annealed",
+         "hardness":"201"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"8740",
+         "condition":"Normalized",
+         "hardness":"269"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4140 HT",
+         "condition":"Hardened + Tempered",
+         "hardness":"321"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"4142 / 50",
+         "condition":"HR & CF Heat Treated",
+         "hardness":"321"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"41L42 / 50",
+         "condition":"HR & CF Heat Treated",
+         "hardness":"311"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"EN45",
+         "condition":"Annealed",
+         "hardness":"222"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"Nitralloy 125",
+         "condition":"Annealed",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"Nitralloy 125",
+         "condition":"Normalized",
+         "hardness":"350"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"Nitralloy 135/135M",
+         "condition":"Annealed",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"Nitralloy 135/135M",
+         "condition":"Normalized",
+         "hardness":"350"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"Nitralloy 225/230",
+         "condition":"Annealed",
+         "hardness":"250"
+      },{
+         "family":"Steel - Medium Carbon Alloy (4130)",
+         "alloy":"Nitralloy 225/230",
+         "condition":"Normalized",
+         "hardness":"350"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1084",
+         "condition":"Annealed",
+         "hardness":"241"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1090",
+         "condition":"Annealed",
+         "hardness":"197"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1090",
+         "condition":"Hot Rolled",
+         "hardness":"248"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1095",
+         "condition":"Annealed",
+         "hardness":"192"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1095",
+         "condition":"Spheroidize Annealed",
+         "hardness":"220"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1095",
+         "condition":"Heat Treat:  Aust 1450, Quench, Temper 1000",
+         "hardness":"290"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1095",
+         "condition":"Normalized",
+         "hardness":"293"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"1095",
+         "condition":"Hot Rolled",
+         "hardness":"300"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"ASTM A 311 Class B or Stressproof",
+         "condition":"Hard Drawn Stress Relieved",
+         "hardness":"285"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"AR400",
+         "condition":"Hot Rolled",
+         "hardness":"400"
+      },{
+         "family":"Steel - High Carbon (1090)",
+         "alloy":"AR500",
+         "condition":"Hot Rolled",
+         "hardness":"500"
+      },{
+         "family":"Steel - High Carbon Alloy (52100)",
+         "alloy":"4150",
+         "condition":"Hot Rolled Annealed",
+         "hardness":"215"
+      },{
+         "family":"Steel - High Carbon Alloy (52100)",
+         "alloy":"6150",
+         "condition":"Annealed",
+         "hardness":"170"
+      },{
+         "family":"Steel - High Carbon Alloy (52100)",
+         "alloy":"6150",
+         "condition":"Hardened",
+         "hardness":"201"
+      },{
+         "family":"Steel - High Carbon Alloy (52100)",
+         "alloy":"52100",
+         "condition":"Spheroidize Annealed",
+         "hardness":"207"
+      },{
+         "family":"Steel - High Carbon Alloy (52100)",
+         "alloy":"52100",
+         "condition":"Cold Drawn Annealed",
+         "hardness":"220"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"A-11",
+         "condition":"Annealed",
+         "hardness":"277"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"A-11 LV",
+         "condition":"Annealed",
+         "hardness":"255"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"A-2",
+         "condition":"Annealed",
+         "hardness":"212"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"A-2",
+         "condition":"Hardened + Tempered",
+         "hardness":"670"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"A-2",
+         "condition":"Hardened",
+         "hardness":"722"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"A-6",
+         "condition":"Annealed",
+         "hardness":"248"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 700C",
+         "hardness":"271"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 600C",
+         "hardness":"336"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 500C",
+         "hardness":"390"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 400C",
+         "hardness":"432"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 300C",
+         "hardness":"451"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 200C",
+         "hardness":"475"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tempered 100C",
+         "hardness":"487"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Flame or Induction Hardened",
+         "hardness":"560"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A681 / AISI P20",
+         "condition":"Tufftrided",
+         "hardness":"654"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A538, A579 / Maraging Steel 200 / 18Ni",
+         "condition":"Annealed",
+         "hardness":"290"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A538, A579 / Maraging Steel 200 / 18Ni",
+         "condition":"Annealed",
+         "hardness":"504"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A538, A579 / Maraging Steel 200 / 18Ni",
+         "condition":"Annealed",
+         "hardness":"290"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A538, A579 / Maraging Steel 200 / 18Ni",
+         "condition":"Annealed",
+         "hardness":"504"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A538, A579 / Maraging Steel 300 / 18Ni",
+         "condition":"Annealed",
+         "hardness":"304"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"ASTM A538, A579 / Maraging Steel 300 / 18Ni",
+         "condition":"Annealed",
+         "hardness":"562"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Caldie (Uddeholm)",
+         "condition":"Soft Annealed",
+         "hardness":"215"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Caldie (Uddeholm)",
+         "condition":"Hardened",
+         "hardness":"688"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Crucible CPM® 3V",
+         "condition":"Annealed",
+         "hardness":"271"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Crucible CPM® 3V",
+         "condition":"Hardened",
+         "hardness":"654"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Crucible CPM® 10V AISI A11",
+         "condition":"Annealed",
+         "hardness":"277"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Crucible CPM® 10V AISI A11",
+         "condition":"Hardened",
+         "hardness":"705"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"D-2",
+         "condition":"Annealed",
+         "hardness":"221"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"D-2",
+         "condition":"Hardened + Tempered 1000",
+         "hardness":"577"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"D-2",
+         "condition":"Hardened + Tempered 800",
+         "hardness":"634"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"D-2",
+         "condition":"Hardened + Tempered 600",
+         "hardness":"654"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"D-2",
+         "condition":"Hardened + Tempered 400",
+         "hardness":"688"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"D-2",
+         "condition":"Hardened",
+         "hardness":"722"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Annealed",
+         "hardness":"229"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Temper 4",
+         "hardness":"302"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Temper 3",
+         "hardness":"341"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Temper 2",
+         "hardness":"388"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Temper 1",
+         "hardness":"429"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Temper H",
+         "hardness":"477"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"FX-XTRA (A Finkl)",
+         "condition":"Temper XH",
+         "hardness":"534"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"H-13",
+         "condition":"Annealed",
+         "hardness":"235"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"L-6",
+         "condition":"Annealed",
+         "hardness":"235"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M1 HSS",
+         "condition":"Hardened",
+         "hardness":"722"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M2",
+         "condition":"Annealed",
+         "hardness":"255"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M2 HSS",
+         "condition":"Hardened",
+         "hardness":"722"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M7 HSS",
+         "condition":"Hardened",
+         "hardness":"722"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M-42",
+         "condition":"Annealed",
+         "hardness":"255"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M50 HSS",
+         "condition":"Hardened",
+         "hardness":"722"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M35 Cobalt HSS",
+         "condition":"Hardened",
+         "hardness":"745"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"M42 Cobalt HSS",
+         "condition":"Hardened",
+         "hardness":"745"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"O-1",
+         "condition":"Annealed",
+         "hardness":"202"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"O-1",
+         "condition":"Spheroidize Annealed",
+         "hardness":"240"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"O-1",
+         "condition":"Heat Treat: Aust 1450, Oil Quench, Temper 400",
+         "hardness":"682"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"O-6",
+         "condition":"Annealed",
+         "hardness":"207"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"S-7",
+         "condition":"Annealed",
+         "hardness":"220"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"S-7",
+         "condition":"Hardened",
+         "hardness":"627"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Toolox 33",
+         "condition":"Pre-Hardened",
+         "hardness":"300"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Toolox 40",
+         "condition":"Pre-Hardened",
+         "hardness":"421"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"Toolox Nitride",
+         "condition":"Pre-Hardened",
+         "hardness":"711"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"W-1",
+         "condition":"Spheroidize Annealed",
+         "hardness":"230"
+      },{
+         "family":"Steel - Tool (H13)",
+         "alloy":"W-1",
+         "condition":"Heat Treat: Aust 1450, Quench, Temper 400",
+         "hardness":"745"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 1",
+         "condition":"",
+         "hardness":"120"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 1",
+         "condition":"Annealed",
+         "hardness":"120"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 2",
+         "condition":"",
+         "hardness":"170"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 2",
+         "condition":"Annealed",
+         "hardness":"189"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 3",
+         "condition":"",
+         "hardness":"225"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 3",
+         "condition":"Annealed",
+         "hardness":"266"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 4",
+         "condition":"",
+         "hardness":"265"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 4",
+         "condition":"Annealed",
+         "hardness":"265"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 7",
+         "condition":"",
+         "hardness":"200"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Titanium Grade 7",
+         "condition":"Annealed",
+         "hardness":"200"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-15V-3Cr-3Al-3Sn",
+         "condition":"STA",
+         "hardness":"210"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-3Al-2.5V",
+         "condition":"Alpha Annealed",
+         "hardness":"256"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-3Al-2.5V",
+         "condition":"Alpha-Beta Anneal, Quenched",
+         "hardness":"286"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-3Al-2.5V",
+         "condition":"Beta Anneal 950C",
+         "hardness":"286"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-5Al-2.5Sn",
+         "condition":"",
+         "hardness":"320"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-5Al-2.5Sn",
+         "condition":"ELI Annealed",
+         "hardness":"311"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA14 (Ti-5Al-2.5Sn)",
+         "condition":"",
+         "hardness":"320"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA14 (Ti-5Al-2.5Sn)",
+         "condition":"ELI Annealed",
+         "hardness":"311"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA15 (Ti-5Al-2.5Sn)",
+         "condition":"",
+         "hardness":"320"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA15 (Ti-5Al-2.5Sn)",
+         "condition":"ELI Annealed",
+         "hardness":"311"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA16 (Ti-5Al-2.5Sn)",
+         "condition":"",
+         "hardness":"320"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA16 (Ti-5Al-2.5Sn)",
+         "condition":"ELI Annealed",
+         "hardness":"311"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA17 (Ti-5Al-2.5Sn)",
+         "condition":"",
+         "hardness":"320"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"TA17 (Ti-5Al-2.5Sn)",
+         "condition":"ELI Annealed",
+         "hardness":"311"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-2Sn-4Zr-2Mo (Ti-6-2-4-2)",
+         "condition":"Duplex Annealed",
+         "hardness":"304"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-2Sn-4Zr-2Mo (Ti-6-2-4-2)",
+         "condition":"Sheet",
+         "hardness":"318"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-4V (Grade 5)",
+         "condition":"Annealed",
+         "hardness":"334"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-4V (Grade 5)",
+         "condition":"ELI Annealed",
+         "hardness":"326"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-4V (Grade 5)",
+         "condition":"STA",
+         "hardness":"379"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-4V (Grade 5)",
+         "condition":"STA Bar",
+         "hardness":"360"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-6V-2Sn (Ti-6-6-2)",
+         "condition":"Annealed",
+         "hardness":"351"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-6V-2Sn (Ti-6-6-2)",
+         "condition":"STA 870C/565C",
+         "hardness":"389"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-6Al-6V-2Sn (Ti-6-6-2)",
+         "condition":"STA 910C/540C",
+         "hardness":"411"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-8Al-1Mo-1V (Ti-8-1-1)",
+         "condition":"",
+         "hardness":"334"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-8Al-1Mo-1V (Ti-8-1-1)",
+         "condition":"Annealed",
+         "hardness":"334"
+      },{
+         "family":"Titanium Alloy",
+         "alloy":"Ti-8Al-1Mo-1V (Ti-8-1-1)",
+         "condition":"Duplex Annealed",
+         "hardness":"326"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 1",
+         "condition":"Post Sinter Heat Treated",
+         "hardness":"271"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 2",
+         "condition":"Sintered",
+         "hardness":"286"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten (Pure)",
+         "condition":"Sintered",
+         "hardness":"294"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 1",
+         "condition":"Sintered",
+         "hardness":"301"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 3",
+         "condition":"Sintered",
+         "hardness":"301"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 1",
+         "condition":"Swaged After Sintering",
+         "hardness":"311"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 2",
+         "condition":"Swaged After Sintering",
+         "hardness":"421"
+      },{
+         "family":"Tungsten",
+         "alloy":"Tungsten Alloy, AMS-T-21014 Class 3",
+         "condition":"Swaged After Sintering",
+         "hardness":"442"
+      },{
+         "family":"Wax",
+         "alloy":"Machinable Wax",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Wood: Hardwood",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"african blackwood (Dalbergia melanoxylon)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3670"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"afrormosia (Pericopsis elata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1560"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"albarco (Cariniana spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1020"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"alder, Nepalese (Alnus nepalensis )",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1690"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"alder, white (Alnus rhombifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1320"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"andiroba (Carapa guianensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1130"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"angelin (Andira inermis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1750"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"angelique (Dicorynia guianensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1290"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"apple (Malus sylvestris)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1730"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ash, blue (Fraxinus quadrangulata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2030"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ash, green (Fraxinus pennsylvanica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1200"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ash, oregon (Fraxinus latifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1160"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ash, white (Fraxinus americana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1320"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"avodire (Turraeanthus africanus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1080"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"azobe (Lophira alata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3350"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"beech, American (Fagus grandifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1300"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"benge (Guibourtia arnoldiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1750"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"birch, river (Betula nigra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1260"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"birch, sweet (Betula lenta)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1470"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"birch, yellow (Betula alleghaniensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1260"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Blackbutt (Eucalyptus Pilularis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1984"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Blackwood, Tasmanian (Acacia Melanoxylon)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1160"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"bloodwood, conduru, cardinal wood (Brosimum rubescens)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2900"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Brushbox (Tristania Conferta)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2135"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"bubinga (Guibourtia spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2690"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"buckthorn, cascara (Rhamnus purshiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1040"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"bulletwood (Manilkara bidentata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3190"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"cherry, Brazilian (Castenea dentata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2350"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"cherry, wild, European (Prunus avium)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1150"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"coffeetree, Kentucky (Gymnocladus dioicus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1390"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"courbaril (Hymenaea courbaril)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2350"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Cypress Pine (Callitris Glauca)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1360"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"cypress, Australian (Callitris glaucophylla)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1375"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"degame (Calycophyllum candidissimum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1940"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"dogwood, flowering (Cornus florida)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2150"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ebony, African, Gaboon, Nigerian (Diospyros crassiflora)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3220"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ebony, black and white, pale moon (Diospyros malabarica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1790"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ebony, Ceylon, East Indian (Diospyros cebenum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2430"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ebony, Macassar, striped (Diospyros celebica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3220"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ebony, mun (Diospyros mun)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3000"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ebony, persimmon, white (Diospyros virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2300"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"elm, cedar (Ulmus crassifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1320"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"elm, rock (Ulmus thomasii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1320"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"elm, winged (Ulmus alata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1540"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"goncalo alves (Astronium graveolens)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2160"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"granadillo (Platymiscium yucatanum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2450"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"greenheart (Chlorocardium rodiei)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2350"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Grey Box /Grey Ironbark (Eucalyptus Spp)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3244"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hawaiian koa (Acacia Koa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1170"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory, bitternut (Carya cordiformis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1500"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory, pecan (Carya illinoensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1820"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory, pignut (Carya glabra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2140"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory, shagbark (Carya ovata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1880"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory, shellbark (Carya lacinosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1810"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory, water (Carya aquatica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1550"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hickory. mockernut (Carya tomentosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1970"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"holly, American (Ilex opaca)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1020"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"honeylocust (Gleditsia triacanthos)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1580"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hophornbeam, eastern (Ostrya virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1860"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"hornbeam, American (Carpinus caroliniana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1780"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ipe (Handroanthus spp. (lapacho group), Brazilian walnut)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3510"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"iroko (Chlorophora spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1260"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Jarrah (Eucalyptus Mareinata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1910"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"jarrah (Eucalyptus marginata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1910"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"juniper, alligator (Juniperus deppeana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1160"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"kaneelhart (Licaria spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2900"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"kapur (Dryobalanops spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1230"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Karri (Eucalyptus Diversicolor)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2030"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"karri (Eucalyptus diversicolor)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2040"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"kempas (Koompassia malaccensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1710"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"keruing (Dipterocarpus spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1270"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"laurel, California (Umbellularia californica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1270"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"laurel, mountain (Kalmia latifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1790"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"lignumvitae (Guaiacum spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"4500"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"locust, black (Robinia pseudoacacia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1700"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"macawood (Platymiscium spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3150"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"madrone, Pacific (Arbutus menziesii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1460"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"magnolia, southern (Magnolia grandiflora)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1020"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"mahogany, Santos, Cabreuva (Myroxylon balsamum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2200"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"manbarklak (Eschweilera spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3480"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"manni (Symphonia globulifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1120"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"maple, black (Acer nigrum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1180"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"maple, sugar (hard) (Acer saccharum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1450"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"marishballi (Lincania spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3570"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"merbau (Intsia spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1500"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Merbau / Kwilla (Intsia Bijuga)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1925"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"mersawa (Anisoptera spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1290"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"mesquite (Prosopis spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2345"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"mora (Mora spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2300"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"myrtlewood (Umbellularia californica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1270"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"New Guinea Rosewood (Pterocarpus Indicus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1200"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, black (Quercus velutina)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1210"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, bur (Quercus macrocarpa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1370"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, cherrybark (Quercus falcata varpagodifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1480"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, chestnut (Quercus prinus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1130"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, laurel (Quercus laurifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1210"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, live (Quercus virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2680"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, northern red (Quercus rubra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1290"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, overcup (Quercus lyrata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1190"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, pin (Quercus palustris)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1510"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, post (Quercus stellata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1360"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, scarlet (Quercus coccinea)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1400"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, shumard (Quercus shumardii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1290"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, southern red (Quercus falcata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1060"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, swamp chestnut (Quercus michauxii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1240"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, swamp white (Quercus bicolor)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1620"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, water (Quercus nigra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1190"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, white (Quercus alba)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1360"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"oak, willow (Quercus phellos)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1460"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"olive (Olea europaea, O. capensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2700"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"opepe (Nauclea diderrichii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1630"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"osage orange, horse apple (Maclura pomifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2760"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ovangkol (Guibourtia ehie)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1330"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"para-angelim (Hymenolobium excelsum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1720"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"pau marfim, Patagonian maple (Balfourodendron riedelianum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1500"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"pedauk - African (Pterocarpus soyauxii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1970"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"peroba de campos (Paratecoma peroba)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1600"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"peroba rosa (Aspidosperma spp., peroba group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1730"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"persimmon, common (Diospyros virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2300"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"pilon (Hyeronima spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1700"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"pine, Caribbean (Pinus caribaea)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1240"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"pine, heart (Pinus resinosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1225"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"piquia (Caryocar spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1720"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"purpleheart (Peltogyne spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1860"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"ramin (Gonystylus bancanus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1300"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Red Gum/ River Red Gum (Eucalyptus Camaldulensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2160"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Red Ironbark (Eucalyptus Sideroxylon)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3150"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"rosewood, Brazilian (Dalbergia nigra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2720"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"rosewood, Indian (Dalbergia latifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"3170"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"santa maria (Calophyllum brasiliense)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1150"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"sapele (Entandrophragma cylindricum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1510"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"sepetir (Pseudosindora palustris)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1410"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"serviceberry (Amelanchier spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1800"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"shorea (Shorea spp., baulau group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1780"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"shorea, white meranti (Shorea javanica, lauan-meranti group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1140"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Spotted Gum (Eucalyptus Citriodora / Maculata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2473"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"sucupira (Bowdichia brasiliensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2750"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"sucupira (Diplotropis purpurea)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2140"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Sydney Blue Gum (Eucalyptus Saligna)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2023"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Tallow Wood (Eucalyptus Microcorys)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1933"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"tanoak (Lithocarpus densiflorus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1420"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Tasmanian Oak (Eucalyptus Regnans / Delegatensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1210"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"teak (Tectona grandis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1000"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"tornillo (Cedrelinga cateniformis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2299"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"tree-of-heaven (Ailanthus altissima)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1731"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Victorian (Mountain) Ash (Eucalyptus Regnans / Delegatensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1210"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"wallaba (Eperua spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"2040"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"walnut, black (Juglans nigra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1010"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"wenge (Millettia laurentii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1930"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"witch hazel (Hamamelis virginica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1530"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"Wormy Chestnut / Messmate (Eucalyptus Obliqua)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1520"
+      },{
+         "family":"Wood: Hardwood",
+         "alloy":"yew, Pacific (Taxus brevifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"1600"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Wood: Softwood",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"alder, European (Alnus glutinosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"650"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"alder, red (Alnus rubra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"590"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"anime (Protium spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"920"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"ash, black (Fraxinus nigra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"850"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"ash, pumpkin (Fraxinus profunda)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"990"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"aspen, bigtooth (Populus grandidentata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"420"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"aspen, quaking (Populus tremuloides)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"350"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"baldcypress (Taxcodium distichum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"570"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"balsa (Ochroma pyramidale)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"90"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Baltic Pine (Picee Abies / Pinus Sylvestris)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"380"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"banak (Virola spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"510"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"basswood, American (Tilia americana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"410"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"basswood, Carolina (Tilia caroliniana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"410"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"birch, gray (Betula populifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"760"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"birch, paper (Betula papyrifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"910"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"boxelder (Acer negundo)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"720"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"buckeye, yellow (Aesculus octandra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"350"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"butternut (Juglans cinerea)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"490"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"catalpa, northern (Catalpa speciosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"550"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"catalpa, southern (Catalpa bignonioides)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"550"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cativo (Prioria copaifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"630"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cedar, Alaska (Chamaecyparis nootkatensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"580"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cedar, atlantic white (Chamaecyparis thyoides)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"350"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cedar, Port Orford (Chamaecyparis lawsoniana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"720"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cedar, yellow (Cupressus nootkatensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"580"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Cedar_Australian (Toona Australis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"700"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"ceiba (Ceiba pentandra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"240"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Celery Top Pine (Phyliocladus Aspelenifolius)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"980"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"chalviande (Virola spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"481"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cherry, black, American (Prunus serotina)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"950"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"chestnut, American (Castenea dentata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"540"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"chinkapin, giant (Castanopsis chrysophylla)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"730"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cottonwood - balsam poplar (Populus balsamifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"300"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cottonwood, black (Populus trichocarpa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"350"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cottonwood, eastern (Populus deltoides)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"430"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cuangare (Dialyanthera spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"380"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cypress, Mexican (Cupressus lustianica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"460"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"cypress, Monterey (Cupressus macrocarpa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"620"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"determa (Ocotea rubra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"660"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Douglas-fir, coast (Pseudotsuga menziesii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"710"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Douglas-fir, interior north (Pseudotsuga menziesii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"600"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Douglas-fir, interior south (Pseudotsuga menziesii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"510"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Douglas-fir, interior west (Pseudotsuga menziesii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"660"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"ekop (Tetraberlinia tubmaniana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"910"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"elder, blue (Sambucus cerulea)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"840"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"elm, american (Ulmus americana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"830"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"elm, slippery (Ulmus rubra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"860"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, balsam (Abies balsamea)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"400"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, California red (Abies magnifica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"500"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, grand (Abies grandis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"490"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, noble (Abies procera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"410"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, pacific silver (Abies amabilis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"430"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, subalpine (Abies lasiocarpa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"350"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"fir, white (Abies concolor)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"480"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"hackberry (Celtis occidentalis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"880"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"hemlock, eastern (Tsuga canadensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"500"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"hemlock, mountain (Tsuga mertensiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"680"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"hemlock, western (Tsuga heterophylla)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"540"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Hoop Pine (Araucaria Cunninghamii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"750"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Huon Pine (Dacridium Franklinii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"920"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"hura (Hura crepitans)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"550"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"ilomba (Pycnanthus angolensis Exell)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"610"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"incense-cedar (Libocedrus decurrens)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"470"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"jelutong (Dyera costulata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"390"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Kalantis / Surian Cedar (Toona Calanta (Philipines))",
+         "condition":"",
+         "hardness":"0",
+         "janka":"600"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Kauri (1) Queensland (Agathis Microstachya)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"560"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Kauri (2) Damar Minyak (Agathis Dammara)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"730"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Kauri (3) Fijian (Agathis Macrophilla)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"840"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Kauri (4) NZ (Agathis Australis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"730"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"larch, western (Larix occidentalis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"830"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"limba (Terminalia superba)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"490"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"magnolia, cucumber tree (Magnolia acuminata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"700"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"magnolia, sweetbay (Magnolia virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"810"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"mahogany, African (Khaya spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"830"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"mahogany, true (Swietenia macrophylla)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"800"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"maple, bigleaf (Acer macrophyllum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"850"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"maple, red (Acer rubrum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"950"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"maple, silver (Acer saccharimum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"700"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"obeche (Triplochiton scleroxylon)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"430"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"okoume (Aucoumea klaineana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"380"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"parana-pine (Araucaria augustifolia)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"780"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, eastern white (Pinus strobus)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"380"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, jack (Pinus banksiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"570"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, Jeffrey (Pinus jeffreyi)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"500"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, limber (Pinus flexilis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"430"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, loblolly (Pinus taeda)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"690"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, lodgepole (Pinus contorta)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"480"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, longleaf (Pinus palustris)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"870"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, monterey, radiata, insignis (Pinus radiata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"710"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, ocote (Pinus oocarpa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"910"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, pinyon (Pinus edulis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"860"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, pitch (Pinus rigida)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"620"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, pond (Pinus serotina)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"740"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, ponderosa (Pinus ponderosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"460"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, sand (Pinus clausa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"730"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, shortleaf (Pinus echinata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"690"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, slash (Pinus elliotti)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"760"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, spruce (Pinus glabra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"660"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, sugar (Pinus lambertiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"380"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, Table Mountain (Pinus pungens)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"660"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, virginia (Pinus virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"740"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine, western white (Pinus monticola)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"420"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pine. red (Pinus resinosa)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"560"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"poplar (Liriodendron tulipifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"540"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"primavera (Tabebula donnell-smithii)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"660"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"pulgande (Dacryodes spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"666"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Qld Maple (Flindersia Brayleyana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"810"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Radiata Pine / Accoya (Pinus Radiata)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"710"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"red cedar, eastern  (Juniperus virginiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"900"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"red cedar, southern (Juniperus silicicola)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"610"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"red cedar, western  (Thuja plicata )",
+         "condition":"",
+         "hardness":"0",
+         "janka":"350"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"redwood, old growth (Sequoia sempervirens)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"480"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"redwood, second growth (Sequoia sempervirens)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"420"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"robe (Tabebul spp., roble group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"960"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sajo (Campnosperma panamensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"425"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sande (Brosimum spp., utile group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"900"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sassafras (Sassafras albidum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"630"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"shorea, dark red meranti (Shorea spp., lauan-meranti group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"780"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"shorea, light red meranti (Shorea spp., lauan-meranti group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"460"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"shorea, yellow meranti (Shorea spp., lauan-meranti group)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"770"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Silky Oak (Cardwellia Sublimis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"880"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Silver Ash (Flindersia Schottiana / Bourjotiana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"810"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"silverbell, Carolina (Halesia carolina)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"590"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sourwood (Oxydendrum arboreum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"940"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"Spanish-cedar (Cedrela spp.)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"600"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"spruce, black (Picea mariana)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"520"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"spruce, Engelmann (Picea engelmanni)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"390"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"spruce, Norway (Picea abies)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"380"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"spruce, red (Picea rubra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"490"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"spruce, Sitka (Picea sitchensis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"510"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"spruce, white (Picea glauca)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"480"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sumac, staghorn (Rhus typhina)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"680"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sweetgum (Liquidambar styraciflua)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"850"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"sycamore, american (Platanus occidentalis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"770"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"tamarack (Larix laricina)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"590"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"tulapueta (Osteophloeum platyspermum)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"512"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"tupelo, black (Nyssa sylvatica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"810"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"tupelo. water (Nyssa aquatica)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"880"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"white-cedar, northern (Thuja occidentalis)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"320"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"willow, black (Salix nigra)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"360"
+      },{
+         "family":"Wood: Softwood",
+         "alloy":"yellow poplar (Liriodendron tulipifera)",
+         "condition":"",
+         "hardness":"0",
+         "janka":"540"
+      },{
+         "family":"Wood: MDF",
+         "alloy":"Wood: MDF",
+         "condition":"",
+         "hardness":"0"
+      },{
+         "family":"Wood: MDF",
+         "alloy":"Melamine",
+         "condition":"",
+         "hardness":"",
+         "SFM":1.2,
+         "IPT":0.46
+      },{
+         "family":"Wood: Plywood",
+         "alloy":"Wood: Plywood",
+         "condition":"",
+         "hardness":"0"
+      }]);
+      
+      private static var _staticBindingEventDispatcher:EventDispatcher = new EventDispatcher();
+       
+      
+      private var _bindingEventDispatcher:EventDispatcher;
+      
+      public function GWizMaterialsDB()
+      {
+         var _loc1_:int = 0;
+         var _loc2_:int = 0;
+         var _loc3_:Object = null;
+         var _loc4_:String = null;
+         var _loc5_:String = null;
+         var _loc6_:Object = null;
+         var _loc7_:String = null;
+         var _loc8_:Object = null;
+         var _loc9_:int = 0;
+         var _loc10_:Object = null;
+         var _loc11_:String = null;
+         this._bindingEventDispatcher = new EventDispatcher(IEventDispatcher(this));
+         super();
+         if(!MaterialsListAC)
+         {
+            if(GWizAbstractPrefs.isOEM && GWizAbstractPrefs.oemStr == GWizAbstractPrefs.GARR_OEM_STR)
+            {
+               MaterialsListAC = new ArrayCollection(GarrToolMaterialsList);
+            }
+            else
+            {
+               MaterialsListAC = new ArrayCollection(MaterialsList);
+            }
+            if(false && GWizUtils.debug)
+            {
+               MaterialsListAC.removeAll();
+               _loc2_ = 0;
+               while(_loc2_ < MaterialsListISO.length)
+               {
+                  _loc3_ = MaterialsListISO.getItemAt(_loc2_);
+                  _loc4_ = _loc3_.name;
+                  _loc5_ = _loc3_.iso;
+                  MaterialsListAC.addItem(_loc5_ + ": " + _loc4_);
+                  _loc2_++;
+               }
+            }
+            _loc1_ = 0;
+            while(_loc1_ < AlloyConditionList.length)
+            {
+               _loc7_ = (_loc6_ = AlloyConditionList.getItemAt(_loc1_)).alloy;
+               if(GWizUtils.debug && _loc7_.indexOf("434") >= 0)
+               {
+                  log.debug("gotcha");
+               }
+               if(_loc7_ != "" && this.isMetal(_loc6_.family))
+               {
+                  _loc6_.xref = "No";
+                  _loc8_ = null;
+                  _loc9_ = 0;
+                  while(_loc9_ < XRefList.length)
+                  {
+                     _loc11_ = (_loc10_ = XRefList.getItemAt(_loc9_)).ASTM;
+                     if(_loc7_.search(_loc11_) >= 0)
+                     {
+                        _loc8_ = _loc10_;
+                     }
+                     if(_loc7_ == _loc11_)
+                     {
+                        _loc6_.xref = "Yes";
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.CMS2);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.NEWBS);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.OLDBS);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.ISO);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.UNS);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.WNr);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.DIN);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.AFNOR);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.UNI);
+                        _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc10_.JIS);
+                        break;
+                     }
+                     _loc6_.altDesignations = "";
+                     _loc9_++;
+                  }
+                  if(_loc8_ && _loc6_.xref != "Yes")
+                  {
+                     _loc6_.xref = "Yes";
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.CMS2);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.NEWBS);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.OLDBS);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.ISO);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.UNS);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.WNr);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.DIN);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.AFNOR);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.UNI);
+                     _loc6_.altDesignations = this.addWithComma(_loc6_.altDesignations,_loc8_.JIS);
+                  }
+               }
+               if(false && _loc6_.hasOwnProperty("xref"))
+               {
+                  log.debug(_loc6_.family + " (" + _loc7_ + ") = " + _loc6_.xref);
+               }
+               _loc1_++;
+            }
+         }
+      }
+      
+      public static function familyToISOData(param1:String, param2:Boolean = false) : Object
+      {
+         if(!param1)
+         {
+            return null;
+         }
+         var _loc3_:Object = null;
+         var _loc4_:int = 0;
+         while(_loc4_ < MaterialsListISO.length)
+         {
+            _loc3_ = MaterialsListISO.getItemAt(_loc4_);
+            if(_loc3_.name == param1)
+            {
+               break;
+            }
+            _loc4_++;
+         }
+         if(_loc3_.name != param1 && !param2)
+         {
+            if(GWizMaterialsDB.MaterialsListAC && GWizSettings.materialChoice < GWizMaterialsDB.MaterialsListAC.length)
+            {
+               param1 = GWizMaterialsDB.MaterialsListAC[GWizSettings.materialChoice];
+               _loc3_ = familyToISOData(param1,true);
+            }
+         }
+         return _loc3_;
+      }
+      
+      public static function familyToISOCode(param1:String) : String
+      {
+         var _loc2_:Object = familyToISOData(param1);
+         if(_loc2_)
+         {
+            return _loc2_.iso;
+         }
+         return "";
+      }
+      
+      public static function familyToISOColor(param1:String) : uint
+      {
+         var _loc2_:Object = familyToISOData(param1);
+         return _loc2_.color;
+      }
+      
+      public static function isNonFerrous(param1:String) : Boolean
+      {
+         var _loc2_:Boolean = false;
+         param1 = param1.toLowerCase();
+         if(param1.indexOf("aluminum") >= 0 || param1.indexOf("brass") >= 0 || param1.indexOf("copper") >= 0 || param1.indexOf("magnesium") >= 0)
+         {
+            _loc2_ = true;
+         }
+         return _loc2_;
+      }
+      
+      public static function validMaterial(param1:String) : Boolean
+      {
+         var _loc2_:* = false;
+         var _loc3_:int = 0;
+         while(_loc3_ < MaterialsList.length && !_loc2_)
+         {
+            _loc2_ = MaterialsList[_loc3_] == param1;
+            _loc3_++;
+         }
+         return _loc2_;
+      }
+      
+      public static function MaterialsListLabelFcn(param1:Object) : String
+      {
+         var _loc2_:Number = Number(param1.toString());
+         if(0 <= _loc2_ && _loc2_ <= MaterialsList.length)
+         {
+            return MaterialsList[_loc2_];
+         }
+         return "Unknown Material";
+      }
+      
+      public static function woodFeedrateFactor(param1:Number) : Number
+      {
+         var _loc2_:Number = 1;
+         if(param1 < 1000)
+         {
+            _loc2_ = GWizUtils.interpolate(0,1.25,param1,1000,1);
+         }
+         else if(param1 < 2500)
+         {
+            _loc2_ = GWizUtils.interpolate(1000,1,param1,2500,0.75);
+         }
+         else
+         {
+            _loc2_ = GWizUtils.interpolate(2500,0.75,param1,5000,0.5);
+         }
+         return _loc2_;
+      }
+      
+      public static function alloyToFamily(param1:String) : String
+      {
+         var _loc3_:Object = null;
+         var _loc2_:int = 0;
+         while(_loc2_ < AlloyConditionList.length)
+         {
+            _loc3_ = AlloyConditionList.getItemAt(_loc2_);
+            if(param1.indexOf(_loc3_.alloy) >= 0)
+            {
+               return _loc3_.family;
+            }
+            _loc2_++;
+         }
+         return "";
+      }
+      
+      [Bindable(event="propertyChange")]
+      public static function get MaterialsListISO() : ArrayCollection
+      {
+         return GWizMaterialsDB._185045339MaterialsListISO;
+      }
+      
+      public static function set MaterialsListISO(param1:ArrayCollection) : void
+      {
+         var _loc3_:IEventDispatcher = null;
+         var _loc2_:Object = GWizMaterialsDB._185045339MaterialsListISO;
+         switch(param1)
+         {
+            default:
+               _loc3_.dispatchEvent(PropertyChangeEvent.createUpdateEvent(GWizMaterialsDB,"MaterialsListISO",_loc2_,param1));
+               break;
+            case _loc2_:
+            case _loc3_:
+         }
+      }
+      
+      [Bindable(event="propertyChange")]
+      public static function get MaterialsListAC() : ArrayCollection
+      {
+         return GWizMaterialsDB._2072241044MaterialsListAC;
+      }
+      
+      public static function set MaterialsListAC(param1:ArrayCollection) : void
+      {
+         var _loc3_:IEventDispatcher = null;
+         var _loc2_:Object = GWizMaterialsDB._2072241044MaterialsListAC;
+         switch(param1)
+         {
+            default:
+               _loc3_.dispatchEvent(PropertyChangeEvent.createUpdateEvent(GWizMaterialsDB,"MaterialsListAC",_loc2_,param1));
+               break;
+            case _loc2_:
+            case _loc3_:
+         }
+      }
+      
+      [Bindable(event="propertyChange")]
+      public static function get FabricationsList() : ArrayCollection
+      {
+         return GWizMaterialsDB._801570913FabricationsList;
+      }
+      
+      public static function set FabricationsList(param1:ArrayCollection) : void
+      {
+         var _loc3_:IEventDispatcher = null;
+         var _loc2_:Object = GWizMaterialsDB._801570913FabricationsList;
+         switch(param1)
+         {
+            default:
+               _loc3_.dispatchEvent(PropertyChangeEvent.createUpdateEvent(GWizMaterialsDB,"FabricationsList",_loc2_,param1));
+               break;
+            case _loc2_:
+            case _loc3_:
+         }
+      }
+      
+      [Bindable(event="propertyChange")]
+      public static function get HardnessUnits() : ArrayCollection
+      {
+         return GWizMaterialsDB._142933331HardnessUnits;
+      }
+      
+      public static function set HardnessUnits(param1:ArrayCollection) : void
+      {
+         var _loc3_:IEventDispatcher = null;
+         var _loc2_:Object = GWizMaterialsDB._142933331HardnessUnits;
+         switch(param1)
+         {
+            default:
+               _loc3_.dispatchEvent(PropertyChangeEvent.createUpdateEvent(GWizMaterialsDB,"HardnessUnits",_loc2_,param1));
+               break;
+            case _loc2_:
+            case _loc3_:
+         }
+      }
+      
+      [Bindable(event="propertyChange")]
+      public static function get HardnessConv() : ArrayCollection
+      {
+         return GWizMaterialsDB._1806261194HardnessConv;
+      }
+      
+      public static function set HardnessConv(param1:ArrayCollection) : void
+      {
+         var _loc3_:IEventDispatcher = null;
+         var _loc2_:Object = GWizMaterialsDB._1806261194HardnessConv;
+         switch(param1)
+         {
+            default:
+               _loc3_.dispatchEvent(PropertyChangeEvent.createUpdateEvent(GWizMaterialsDB,"HardnessConv",_loc2_,param1));
+               break;
+            case _loc2_:
+            case _loc3_:
+         }
+      }
+      
+      [Bindable(event="propertyChange")]
+      public static function get AlloyConditionList() : ArrayCollection
+      {
+         return GWizMaterialsDB._1402980078AlloyConditionList;
+      }
+      
+      public static function set AlloyConditionList(param1:ArrayCollection) : void
+      {
+         var _loc3_:IEventDispatcher = null;
+         var _loc2_:Object = GWizMaterialsDB._1402980078AlloyConditionList;
+         switch(param1)
+         {
+            default:
+               _loc3_.dispatchEvent(PropertyChangeEvent.createUpdateEvent(GWizMaterialsDB,"AlloyConditionList",_loc2_,param1));
+               break;
+            case _loc2_:
+            case _loc3_:
+         }
+      }
+      
+      public static function get staticEventDispatcher() : IEventDispatcher
+      {
+         return _staticBindingEventDispatcher;
+      }
+      
+      private function addWithComma(param1:String, param2:String) : String
+      {
+         if(param2 != "" && param1 != "")
+         {
+            param2 = ", " + param2;
+         }
+         return param1 + param2;
+      }
+      
+      public function isMetal(param1:String) : Boolean
+      {
+         var _loc2_:Boolean = true;
+         if(param1.search("Wood") >= 0)
+         {
+            _loc2_ = false;
+         }
+         else if(param1.search("Wax") >= 0)
+         {
+            _loc2_ = false;
+         }
+         else if(param1.search("Plastic") >= 0)
+         {
+            _loc2_ = false;
+         }
+         else if(param1.search("Graphite") >= 0)
+         {
+            _loc2_ = false;
+         }
+         else if(param1.search("Composite") >= 0)
+         {
+            _loc2_ = false;
+         }
+         return _loc2_;
+      }
+      
+      public function addEventListener(param1:String, param2:Function, param3:Boolean = false, param4:int = 0, param5:Boolean = false) : void
+      {
+         this._bindingEventDispatcher.addEventListener(param1,param2,param3,param4,param5);
+      }
+      
+      public function dispatchEvent(param1:Event) : Boolean
+      {
+         return this._bindingEventDispatcher.dispatchEvent(param1);
+      }
+      
+      public function hasEventListener(param1:String) : Boolean
+      {
+         return this._bindingEventDispatcher.hasEventListener(param1);
+      }
+      
+      public function removeEventListener(param1:String, param2:Function, param3:Boolean = false) : void
+      {
+         this._bindingEventDispatcher.removeEventListener(param1,param2,param3);
+      }
+      
+      public function willTrigger(param1:String) : Boolean
+      {
+         return this._bindingEventDispatcher.willTrigger(param1);
+      }
+   }
+}
