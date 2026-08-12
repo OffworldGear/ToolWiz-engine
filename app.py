@@ -47,6 +47,7 @@ def calculate():
         flute_length = float(data.get("fluteLength", 1.0))
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
         max_rpm = float(data.get("maxRpm", 16000))
+        max_hp = float(data.get("maxHp", 10.0))
         
         # Determine sizes
         shank_size = float(data.get("shankDiameter", diameter))
@@ -75,7 +76,7 @@ def calculate():
         )
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
-            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness
+            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp
         )
         
         return jsonify({

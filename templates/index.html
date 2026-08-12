@@ -91,9 +91,15 @@
                     <label for="isCarbide">Tool is Solid Carbide (Stiffer)</label>
                 </div>
 
-                <div class="input-group">
-                    <label for="maxRpm">Machine Max RPM</label>
-                    <input type="number" id="maxRpm" value="16000" oninput="calculate()" style="width:100%; border:1px solid rgba(255,255,255,0.2); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
+                    <div class="input-group" style="margin:0;">
+                        <label for="maxRpm">Machine Max RPM</label>
+                        <input type="number" id="maxRpm" value="16000" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                        <label for="maxHp">Machine Max HP</label>
+                        <input type="number" id="maxHp" value="10.0" step="0.5" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                    </div>
                 </div>
 
                 <div class="slider-group">
@@ -442,6 +448,7 @@
                 cutterThickness: p_thick,
                 aggressiveness: parseFloat(document.getElementById('aggressiveness').value),
                 maxRpm: parseFloat(document.getElementById('maxRpm').value),
+                maxHp: parseFloat(document.getElementById('maxHp').value),
                 diameter: p_dia,
                 flutes: document.getElementById('flutes').value,
                 cutDepth: p_depth,

@@ -247,10 +247,10 @@ class GWizardPhysics:
         deflection = (cutting_force * (stickout ** 3)) / (3 * E * I)
         return deflection
 
-    def recommend_cut_parameters(self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide=True, operation="Roughing", aggressiveness=0.5, geometry="Square", cutter_thickness=0.125):
+    def recommend_cut_parameters(self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide=True, operation="Roughing", aggressiveness=0.5, geometry="Square", cutter_thickness=0.125, max_hp=10.0):
         """
         Iteratively calculates safe max DOC and WOC targeting physical deflection limits
-        and spindle power caps (Brother Speedio ~ 10 HP max continuous payload).
+        and spindle power caps (customizable max_hp).
         """
         # Baseline breaking geometry rule of thumb: ~0.002" per inch of diameter
         default_max_deflect = diameter * 0.002 
@@ -289,8 +289,8 @@ class GWizardPhysics:
             # Unit HP of 1.0 is standard aluminum/mild steel average
             est_hp = self.calc_mrr(current_doc, target_woc, feed, diameter=diameter) * 1.0 
             
-            # S500X2 limit around 10-12 HP continuous
-            if deflect >= target_deflection or est_hp >= 10.0:
+            # S500X2 limit around custom HP continuous
+            if deflect >= target_deflection or est_hp >= max_hp:
                 break
                 
             best_doc = current_doc
