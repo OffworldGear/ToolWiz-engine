@@ -37,14 +37,22 @@ class GWizardPhysics:
         ipt = 0.001
         for row in self.ipt_data:
             if row[0] == material and row[1] == tool_type:
-                # Interpolate or exact match
-                matched = False
-                for i, d in enumerate(diameters):
-                    if diameter <= d:
-                        ipt = row[2 + i]
-                        matched = True
-                        break
-                if not matched: ipt = row[-1]
+                if diameter <= diameters[0]:
+                    ipt = row[2]
+                elif diameter >= diameters[-1]:
+                    ipt = row[-1]
+                else:
+                    for i in range(len(diameters) - 1):
+                        d1 = diameters[i]
+                        d2 = diameters[i+1]
+                        if d1 <= diameter <= d2:
+                            ipt1 = row[2 + i]
+                            ipt2 = row[2 + i + 1]
+                            if d1 == d2:
+                                ipt = ipt1
+                            else:
+                                ipt = ipt1 + (ipt2 - ipt1) * ((diameter - d1) / (d2 - d1))
+                            break
                 break
                 
         if geometry in ["T-Slot", "Thread Mill", "Lollipop", "Drill", "Spot Drill", "Parabolic"]:
@@ -203,7 +211,7 @@ class GWizardPhysics:
             
         return angle, ramp_feed, plunge_feed
         
-    def tool_deflection(self, diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide=True):
+    def tool_deflection(self, diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide=True, material_family=None):
         """
         Calculate Tool Deflection (inches).
         Simplified mechanical deflection equation for an endmill modeled as a cantilever beam.
@@ -215,8 +223,11 @@ class GWizardPhysics:
         # Horsepower rough estimate based on MRR and Material Factor (MF)
         mrr = self.calc_mrr(cut_depth, cut_width, feedrate, diameter=diameter)
         
-        # Standard unit horsepower for material (K-factor), 1.0 is a rough default for mild steel
+        # Unit horsepower for material (K-factor)
         unit_hp = 1.0 
+        if material_family and material_family in self.machinability:
+            unit_hp = self.machinability[material_family].get("unit_hp", 1.0)
+            
         estimated_hp = mrr * unit_hp 
         
         if estimated_hp <= 0: return 0
@@ -247,7 +258,7 @@ class GWizardPhysics:
         deflection = (cutting_force * (stickout ** 3)) / (3 * E * I)
         return deflection
 
-    def recommend_cut_parameters(self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide=True, operation="Roughing", aggressiveness=0.5, geometry="Square", cutter_thickness=0.125, max_hp=10.0):
+    def recommend_cut_parameters(self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide=True, operation="Roughing", aggressiveness=0.5, geometry="Square", cutter_thickness=0.125, max_hp=10.0, material_family=None):
         """
         Iteratively calculates safe max DOC and WOC targeting physical deflection limits
         and spindle power caps (customizable max_hp).
@@ -284,10 +295,13 @@ class GWizardPhysics:
             adj_ipt = self.calc_adjusted_chipload(base_ipt, current_doc, target_woc, diameter, diameter, operation=operation)
             feed = self.calc_feedrate(rpm, flutes, adj_ipt)
             
-            deflect = self.tool_deflection(diameter, shank_size, stickout, current_doc, target_woc, feed, rpm, flutes, is_carbide)
+            deflect = self.tool_deflection(diameter, shank_size, stickout, current_doc, target_woc, feed, rpm, flutes, is_carbide, material_family)
             
-            # Unit HP of 1.0 is standard aluminum/mild steel average
-            est_hp = self.calc_mrr(current_doc, target_woc, feed, diameter=diameter) * 1.0 
+            unit_hp = 1.0 
+            if material_family and material_family in self.machinability:
+                unit_hp = self.machinability[material_family].get("unit_hp", 1.0)
+                
+            est_hp = self.calc_mrr(current_doc, target_woc, feed, diameter=diameter) * unit_hp 
             
             # S500X2 limit around custom HP continuous
             if deflect >= target_deflection or est_hp >= max_hp:
