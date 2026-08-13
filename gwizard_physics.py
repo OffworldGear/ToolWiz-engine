@@ -169,6 +169,46 @@ class GWizardPhysics:
             adjusted_ipt = max(adjusted_ipt, min_ipt)
             
         return adjusted_ipt
+
+    def get_coating_multiplier(self, coating, material_family):
+        if coating == "Uncoated" or not material_family:
+            return 1.0
+            
+        mat_lower = material_family.lower()
+        is_aluminum = "aluminum" in mat_lower
+        is_ferrous = "steel" in mat_lower or "iron" in mat_lower or "stainless" in mat_lower
+        is_titanium = "titanium" in mat_lower or "cobalt" in mat_lower or "nickel" in mat_lower
+        
+        if coating in ["TiAlN", "AlTiN"]:
+            if is_aluminum:
+                return 0.8 # Severe galling penalty due to aluminum affinity
+            if is_ferrous or is_titanium:
+                return 1.4 # Optimal for high heat ferrous/titanium
+            return 1.2
+            
+        if coating == "Diamond":
+            if is_ferrous or is_titanium:
+                return 0.5 # Severe chemical dissolution penalty at heat
+            if is_aluminum or "graphite" in mat_lower or "plastic" in mat_lower:
+                return 2.0 # Incredible performance on non-ferrous
+            return 1.5
+            
+        if coating == "ZrN":
+            if is_aluminum or "brass" in mat_lower or "copper" in mat_lower:
+                return 1.4 # Optimal non-ferrous
+            return 1.0 # Neutral on ferrous
+            
+        if coating == "TiCN":
+            if is_ferrous:
+                return 1.3
+            return 1.1
+            
+        if coating == "TiN":
+            if is_ferrous:
+                return 1.2
+            return 1.05
+            
+        return 1.0
         
     def calc_ramping(self, family_name, diameter, feedrate, geometry="Square", flutes=4, aggressiveness=0.5):
         """Calculate safe Ramping Angle, Ramp Feed, and Plunge Feed"""

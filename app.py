@@ -64,8 +64,7 @@ def calculate():
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
         # Apply Coating Modifier
-        coating_mults = {"TiN": 1.2, "TiCN": 1.3, "TiAlN": 1.4, "AlTiN": 1.4, "ZrN": 1.35, "Diamond": 2.0}
-        target_sfm *= coating_mults.get(coating, 1.0)
+        target_sfm *= physics.get_coating_multiplier(coating, family)
         
         effective_diameter = physics.calc_effective_diameter(diameter, cut_depth, geometry, corner_radius)
         
