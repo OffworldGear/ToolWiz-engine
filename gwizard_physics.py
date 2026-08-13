@@ -211,7 +211,7 @@ class GWizardPhysics:
             
         return angle, ramp_feed, plunge_feed
         
-    def tool_deflection(self, diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide=True, material_family=None):
+    def tool_deflection(self, diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide=True, material_family=None, helix_angle=30.0, neck_length=0.5, taper_angle=0.0, flute_length=1.0, neck_diameter=None):
         """
         Calculate Tool Deflection (inches).
         Simplified mechanical deflection equation for an endmill modeled as a cantilever beam.
@@ -247,18 +247,43 @@ class GWizardPhysics:
         # Elastic Modulus (psi). Carbide is 3x stiffer than HSS.
         E = 90000000.0 if is_carbide else 30000000.0
         
-        # Moment of Inertia for a cylinder I = (pi * d^4) / 64
-        # GWizard uses shank_size^4 / 12 as a simplified approximation in its code: 
-        # _loc16_ = Math.pow(shankSize,4) / 12;
-        I = (shank_size ** 4) / 12.0
+        # Segment 1: Fluted section
+        # Core diameter is roughly reduced by flute depth. Standard endmill core is ~60-70% of diameter.
+        # Helix angle increases the effective length of the flutes and weakens the moment of inertia.
+        core_dia = diameter * max(0.4, (1.0 - (flutes * 0.05))) * max(0.5, math.cos(math.radians(helix_angle)))
+        I1 = (core_dia ** 4) / 12.0
+        L1 = min(flute_length, stickout)
         
-        if I <= 0: return 0
+        # Segment 2: Neck / Taper
+        if neck_diameter is None:
+            neck_diameter = shank_size
+            
+        L2 = max(0.0, min(neck_length, stickout) - L1)
+        if taper_angle > 0:
+            # Average diameter for a simplified taper
+            avg_neck_dia = neck_diameter + (L2 * math.tan(math.radians(taper_angle)))
+            I2 = (avg_neck_dia ** 4) / 12.0
+        else:
+            I2 = (neck_diameter ** 4) / 12.0
+            
+        # Segment 3: Solid Shank
+        L3 = max(0.0, stickout - L1 - L2)
+        I3 = (shank_size ** 4) / 12.0
         
-        # Classic cantilever deflection formula: Deflection = (F * L^3) / (3 * E * I)
-        deflection = (cutting_force * (stickout ** 3)) / (3 * E * I)
+        # Superposition of cantilever beam segments under a single end load (cutting force)
+        # Deflection at tip = sum of deflections contributed by each segment's bending
+        deflection = 0.0
+        
+        if I1 > 0 and L1 > 0:
+            deflection += (cutting_force * (L1 ** 3)) / (3 * E * I1)
+        if I2 > 0 and L2 > 0:
+            deflection += (cutting_force * (L2 ** 3)) / (3 * E * I2) + ((cutting_force * (L2 ** 2)) / (2 * E * I2)) * L1
+        if I3 > 0 and L3 > 0:
+            deflection += (cutting_force * (L3 ** 3)) / (3 * E * I3) + ((cutting_force * (L3 ** 2)) / (2 * E * I3)) * (L1 + L2)
+            
         return deflection
 
-    def recommend_cut_parameters(self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide=True, operation="Roughing", aggressiveness=0.5, geometry="Square", cutter_thickness=0.125, max_hp=10.0, material_family=None):
+    def recommend_cut_parameters(self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide=True, operation="Roughing", aggressiveness=0.5, geometry="Square", cutter_thickness=0.125, max_hp=10.0, material_family=None, helix_angle=30.0, neck_length=0.5, taper_angle=0.0, flute_length=1.0, neck_diameter=None):
         """
         Iteratively calculates safe max DOC and WOC targeting physical deflection limits
         and spindle power caps (customizable max_hp).
@@ -295,7 +320,7 @@ class GWizardPhysics:
             adj_ipt = self.calc_adjusted_chipload(base_ipt, current_doc, target_woc, diameter, diameter, operation=operation)
             feed = self.calc_feedrate(rpm, flutes, adj_ipt)
             
-            deflect = self.tool_deflection(diameter, shank_size, stickout, current_doc, target_woc, feed, rpm, flutes, is_carbide, material_family)
+            deflect = self.tool_deflection(diameter, shank_size, stickout, current_doc, target_woc, feed, rpm, flutes, is_carbide, material_family, helix_angle, neck_length, taper_angle, flute_length, neck_diameter)
             
             unit_hp = 1.0 
             if material_family and material_family in self.machinability:

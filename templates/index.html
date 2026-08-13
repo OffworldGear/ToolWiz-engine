@@ -49,9 +49,23 @@
                     <select id="alloy" onchange="calculate()"></select>
                 </div>
 
-                <div class="input-group">
-                    <label for="tool">Tool Category</label>
-                    <select id="tool" onchange="calculate()"></select>
+                <div class="grid-layout" style="gap: 1rem; margin-bottom: 0rem">
+                    <div class="input-group" style="margin:0;">
+                        <label for="tool">Tool Category</label>
+                        <select id="tool" onchange="calculate()"></select>
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                        <label for="coating">Tool Coating</label>
+                        <select id="coating" onchange="calculate()">
+                            <option value="Uncoated">Uncoated / Bright</option>
+                            <option value="TiN">TiN (Gold)</option>
+                            <option value="TiCN">TiCN (Blue-Gray)</option>
+                            <option value="TiAlN">TiAlN (Dark Violet)</option>
+                            <option value="AlTiN">AlTiN (Black)</option>
+                            <option value="ZrN">ZrN (Pale Gold)</option>
+                            <option value="Diamond">Diamond / DLC</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
@@ -126,9 +140,19 @@
                     <input type="number" id="shankDiameter" step="any" list="diameters_list" value="0.25" oninput="calculate()">
                 </div>
 
-                <div class="input-group" id="neckGroup" style="display: none;">
-                    <label for="neckDiameter">Neck Diameter (<span class="unit-lbl">in</span>)</label>
-                    <input type="number" id="neckDiameter" step="any" value="0.125" oninput="calculate()">
+                <div class="grid-layout" id="neckGroup" style="display: none; gap: 1rem; margin-bottom: 1.5rem">
+                    <div class="input-group" style="margin:0;">
+                        <label for="neckDiameter">Neck Diameter (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="neckDiameter" step="any" value="0.125" oninput="calculate()">
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                        <label for="neckLength">Neck Length (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="neckLength" step="any" value="0.5" oninput="calculate()">
+                    </div>
+                    <div class="input-group" style="margin:0;">
+                        <label for="taperAngle">Taper Angle (°)</label>
+                        <input type="number" id="taperAngle" step="any" value="0.0" oninput="calculate()">
+                    </div>
                 </div>
 
                 <div class="input-group" id="thicknessGroup" style="display: none;">
@@ -151,12 +175,22 @@
                     </datalist>
                 </div>
 
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <label for="flutes">Flutes</label>
-                        <input type="number" id="flutes_val" value="4" class="inline-num" oninput="document.getElementById('flutes').value = this.value; calculate()">
+                <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
+                    <div class="slider-group" style="margin:0;">
+                        <div class="slider-header">
+                            <label for="flutes">Flutes</label>
+                            <input type="number" id="flutes_val" value="4" class="inline-num" oninput="document.getElementById('flutes').value = this.value; calculate()">
+                        </div>
+                        <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
                     </div>
-                    <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
+                    
+                    <div class="slider-group" style="margin:0;">
+                        <div class="slider-header">
+                            <label for="helixAngle">Helix Angle (°)</label>
+                            <input type="number" id="helix_val" value="30" class="inline-num" oninput="document.getElementById('helixAngle').value = this.value; calculate()">
+                        </div>
+                        <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" oninput="document.getElementById('helix_val').value = this.value; calculate()">
+                    </div>
                 </div>
 
                 <div class="slider-group">
@@ -342,6 +376,10 @@
             let sVal = parseFloat(shankInput.value);
             shankInput.value = isMetric ? (sVal * 25.4).toFixed(1) : (sVal / 25.4).toFixed(3);
             
+            let nlInput = document.getElementById('neckLength');
+            let nlVal = parseFloat(nlInput.value);
+            nlInput.value = isMetric ? (nlVal * 25.4).toFixed(1) : (nlVal / 25.4).toFixed(3);
+            
             let crInput = document.getElementById('cornerRadius');
             let crVal = parseFloat(crInput.value);
             crInput.value = isMetric ? (crVal * 25.4).toFixed(2) : (crVal / 25.4).toFixed(3);
@@ -423,6 +461,7 @@
             let p_thick = parseFloat(document.getElementById('cutterThickness')?.value) || 0.125;
             let p_flute = parseFloat(document.getElementById('fluteLength')?.value) || 1.0;
             let p_neck = parseFloat(document.getElementById('neckDiameter')?.value) || p_shank;
+            let p_neckLength = parseFloat(document.getElementById('neckLength')?.value) || 0.5;
             
             if(isMetric) {
                 p_dia /= 25.4;
@@ -434,16 +473,21 @@
                 p_thick /= 25.4;
                 p_flute /= 25.4;
                 p_neck /= 25.4;
+                p_neckLength /= 25.4;
             }
 
             const payload = {
                 family: document.getElementById('family').value,
                 tool: document.getElementById('tool').value,
+                coating: document.getElementById('coating').value,
                 geometry: document.getElementById('geometry').value,
                 operation: document.getElementById('operation').value,
                 cornerRadius: p_cr,
                 shankDiameter: p_shank,
                 neckDiameter: p_neck,
+                neckLength: p_neckLength,
+                taperAngle: parseFloat(document.getElementById('taperAngle').value) || 0.0,
+                helixAngle: parseFloat(document.getElementById('helixAngle').value) || 30.0,
                 fluteLength: p_flute,
                 cutterThickness: p_thick,
                 aggressiveness: parseFloat(document.getElementById('aggressiveness').value),

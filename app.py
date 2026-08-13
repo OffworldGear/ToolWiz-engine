@@ -42,9 +42,13 @@ def calculate():
         is_carbide = bool(data.get("isCarbide", True))
         geometry = data.get("geometry", "Square")
         operation = data.get("operation", "Roughing")
+        coating = data.get("coating", "Uncoated")
         corner_radius = float(data.get("cornerRadius", 0.0))
         cutter_thickness = float(data.get("cutterThickness", 0.125))
         flute_length = float(data.get("fluteLength", 1.0))
+        neck_length = float(data.get("neckLength", 0.5))
+        taper_angle = float(data.get("taperAngle", 0.0))
+        helix_angle = float(data.get("helixAngle", 30.0))
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
         max_rpm = float(data.get("maxRpm", 16000))
         max_hp = float(data.get("maxHp", 10.0))
@@ -59,6 +63,10 @@ def calculate():
         
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
+        # Apply Coating Modifier
+        coating_mults = {"TiN": 1.2, "TiCN": 1.3, "TiAlN": 1.4, "AlTiN": 1.4, "ZrN": 1.35, "Diamond": 2.0}
+        target_sfm *= coating_mults.get(coating, 1.0)
+        
         effective_diameter = physics.calc_effective_diameter(diameter, cut_depth, geometry, corner_radius)
         
         # 2. Physics Equations
@@ -72,11 +80,13 @@ def calculate():
         ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
         
         deflection = physics.tool_deflection(
-            diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide
+            diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
+            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
         )
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
-            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp
+            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
+            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
         )
         
         return jsonify({
