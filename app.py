@@ -107,6 +107,72 @@ def calculate():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route("/api/calculate_for_fusion", methods=["POST"])
+def calculate_for_fusion():
+    """Endpoint specifically designed for the Fusion 360 Add-in"""
+    try:
+        data = request.json
+        family = data.get("family", "")
+        tool = data.get("tool", "Carbide Endmill") # default fallback
+        operation = data.get("operation", "Roughing")
+        aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0
+        max_rpm = float(data.get("maxRpm", 16000))
+        max_hp = float(data.get("maxHp", 10.0))
+        
+        # Tool Geometry from Fusion JSON payload
+        diameter = float(data.get("diameter", 0.25))
+        flutes = int(data.get("flutes", 4))
+        coating = data.get("coating", "Uncoated")
+        geometry = data.get("geometry", "Square")
+        corner_radius = float(data.get("cornerRadius", 0.0))
+        cutter_thickness = float(data.get("cutterThickness", 0.125))
+        flute_length = float(data.get("fluteLength", 1.0))
+        neck_length = float(data.get("neckLength", 0.5))
+        shank_size = float(data.get("shankDiameter", diameter))
+        neck_diameter = float(data.get("neckDiameter", shank_size))
+        taper_angle = float(data.get("taperAngle", 0.0))
+        helix_angle = float(data.get("helixAngle", 30.0))
+        stickout = float(data.get("stickout", 1.5))
+        is_carbide = True  # Assuming Fusion tool implies carbide if not specified
+        
+        # 1. Lookup Base Parameters
+        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry)
+        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry)
+        target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
+        target_sfm *= physics.get_coating_multiplier(coating, family)
+        
+        # 2. Physics Equations
+        rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
+        # Using recommended DOC and WOC for the final feedrate
+        rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
+            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
+            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
+        )
+        
+        effective_diameter = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_radius)
+        adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry)
+        feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
+        actual_sfm = physics.calc_sfm(rpm, diameter)
+        
+        # 3. Ramping Params
+        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+        
+        return jsonify({
+            "success": True,
+            "name": f"ToolWiz: {family} - {operation}",
+            "rpm": round(rpm),
+            "feed": round(feedrate, 2),
+            "sfm": round(actual_sfm, 1),
+            "ipt": round(adjusted_ipt, 6),
+            "doc": round(rec_doc, 3),
+            "woc": round(rec_woc, 3),
+            "ramp_feed": round(ramp_feed, 2),
+            "plunge_feed": round(plunge_feed, 2)
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 if __name__ == "__main__":
     # Run the Flask app on localhost:5000
     app.run(host="127.0.0.1", port=5000, debug=True)

@@ -1,164 +1,236 @@
-import adsk.core
-import adsk.cam
-import traceback
-import threading
-import json
-import queue
-import socket
-import os
-import tempfile
+import adsk.core, adsk.cam, adsk.fusion, traceback
+import urllib.request, json
+import tempfile, os
 from . import json_mutator
 
-# Globals
 app = None
 ui = None
 handlers = []
-task_queue = queue.Queue()
-custom_event_id = 'ToolWizDataEvent'
-stop_flag = threading.Event()
-response_event = threading.Event()
-shared_response = {}
+commandId = 'ToolWizCalcCmd'
+workspaceToUse = 'CAMEnvironment'
+panelToUse = 'CAMManagePanel'
 
-class ToolWizCustomEventHandler(adsk.core.CustomEventHandler):
+# Global materials list cache
+materials_list = ["Aluminum - Wrought", "Aluminum - Cast", "Steel - Low Carbon", "Steel - Alloy", "Stainless - 300 Series", "Titanium - Alloys", "Brass", "Plastics"]
+
+class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
         super().__init__()
-
     def notify(self, args):
         try:
-            while not task_queue.empty():
-                payload = task_queue.get()
-                process_tool_update(payload)
-        except Exception as e:
-            if ui:
-                ui.messageBox(f'Error processing ToolWiz payload:\n{traceback.format_exc()}')
-
-def process_tool_update(payload):
-    global app, ui
-    cam = adsk.cam.CAM.cast(app.activeProduct)
-    if not cam:
-        ui.messageBox('Please switch to the Manufacture workspace before importing ToolWiz data.')
-        return
-
-    # Identify target tool from selection
-    selections = ui.activeSelections
-    target_tool = None
-    for i in range(selections.count):
-        obj = selections.item(i).entity
-        if obj.objectType == adsk.cam.Tool.classType():
-            target_tool = obj
-            break
+            eventArgs = adsk.core.CommandEventArgs.cast(args)
+            inputs = eventArgs.command.commandInputs
             
-    if not target_tool:
-        shared_response['error'] = 'No tool selected! Please select a tool in the local Tool Library.'
-        response_event.set()
-        return
-        
-    action = payload.get("action")
-    if action == "get_selected_tool":
-        shared_response['tool_name'] = target_tool.description
-        response_event.set()
-        return
-
-    # Check library safety (prevent cloud overwrites)
-    try:
-        parent_lib = target_tool.parent
-        if parent_lib and hasattr(parent_lib, 'url'):
-            if parent_lib.url.protocol == 'hub':
-                shared_response['error'] = 'SECURITY REJECTION: Cannot safely update tools in a Cloud/Hub library.'
-                response_event.set()
+            # 1. Get User Intent from UI
+            family_input = inputs.itemById('matFamily')
+            op_input = inputs.itemById('operation')
+            agg_input = inputs.itemById('aggressiveness')
+            
+            family = family_input.selectedItem.name if family_input.selectedItem else "Aluminum - Wrought"
+            operation = op_input.selectedItem.name if op_input.selectedItem else "Roughing"
+            aggressiveness = agg_input.valueOne
+            
+            # 2. Get Target Tool
+            selections = ui.activeSelections
+            target_tool = None
+            for i in range(selections.count):
+                obj = selections.item(i).entity
+                if obj.objectType == adsk.cam.Tool.classType():
+                    target_tool = obj
+                    break
+                    
+            if not target_tool:
+                ui.messageBox('No tool selected! Please select a tool in the local Tool Library.')
                 return
-    except:
-        pass
-
-    try:
-        raw_json = target_tool.toJson()
-        temp_dir = tempfile.gettempdir()
-        shadow_path = os.path.join(temp_dir, 'toolwiz_pristine_tool.json')
-        with open(shadow_path, 'w') as f:
-            f.write(raw_json)
+                
+            # Check library safety
+            try:
+                parent_lib = target_tool.parent
+                if parent_lib and hasattr(parent_lib, 'url'):
+                    if parent_lib.url.protocol == 'hub':
+                        ui.messageBox('SECURITY REJECTION: Cannot safely update tools in a Cloud/Hub library due to sync overwrites. Please copy the tool to your Local Document library first.')
+                        return
+            except:
+                pass
+                
+            raw_json = target_tool.toJson()
+            tool_dict = json.loads(raw_json)
+            geo = tool_dict.get("geometry", {})
             
-        mutated_json = json_mutator.mutate_tool_json(raw_json, payload)
-        temp_tool = adsk.cam.Tool.createFromJson(mutated_json)
-        
-        if not temp_tool:
-            raise Exception("Failed to reconstitute tool from mutated JSON.")
+            # 3. Extract Geometry for Physics Engine
+            # Fusion stores geometry in mm internally. We need to parse and convert to inch for our physics engine if it assumes inches.
+            # Actually, `tool.toJson()` might return the values as they are in the JSON schema which defaults to mm if unitless, 
+            # BUT the schema usually stores explicitly with units OR as base metric (mm).
+            # Wait, `tool.toJson()` returns mm or unit-suffixed strings?
+            # Fusion CAM tool JSON `geometry.DC` is typically in metric (mm) natively.
             
-        parent_lib.updateTool(target_tool, temp_tool)
-        shared_response['success'] = f"Successfully injected preset into {target_tool.description}"
-        response_event.set()
-        
-    except Exception as e:
-        shared_response['error'] = f"Data Corruption Safety Rollback Triggered: {str(e)}"
-        response_event.set()
-
-
-def tcp_server_thread():
-    HOST = '127.0.0.1'
-    PORT = 8001
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            s.bind((HOST, PORT))
-            s.listen()
-            s.settimeout(1.0) # Allows checking stop_flag
-            while not stop_flag.is_set():
-                try:
-                    conn, addr = s.accept()
-                    with conn:
-                        data = conn.recv(8192)
-                        if data:
-                            payload = json.loads(data.decode('utf-8'))
-                            
-                            # Clear event and shared response
-                            response_event.clear()
-                            shared_response.clear()
-                            
-                            task_queue.put(payload)
-                            app.fireCustomEvent(custom_event_id, '')
-                            
-                            # Wait up to 5 seconds for the main thread to process it
-                            response_event.wait(timeout=5.0)
-                            
-                            conn.sendall(json.dumps(shared_response).encode('utf-8'))
-                except socket.timeout:
-                    continue
-                except Exception as e:
-                    print(f"TCP error: {e}")
+            def parse_dim_to_inches(val):
+                if isinstance(val, (int, float)):
+                    return val / 25.4 # Assume base mm
+                if isinstance(val, str):
+                    if "in" in val: return float(val.replace("in", ""))
+                    if "mm" in val: return float(val.replace("mm", "")) / 25.4
+                return 0.25 # safe fallback
+                
+            diameter = parse_dim_to_inches(geo.get("DC", 6.35))
+            flutes = int(geo.get("NOF", 4))
+            flute_length = parse_dim_to_inches(geo.get("LCF", 25.4))
+            shank_diameter = parse_dim_to_inches(geo.get("SF", diameter * 25.4))
+            corner_radius = parse_dim_to_inches(geo.get("RE", 0.0))
+            
+            # Payload for calculation
+            payload = {
+                "family": family,
+                "operation": operation,
+                "aggressiveness": aggressiveness,
+                "diameter": diameter,
+                "flutes": flutes,
+                "fluteLength": flute_length,
+                "shankDiameter": shank_diameter,
+                "cornerRadius": corner_radius,
+                # Safe defaults for un-extracted complex geometry
+                "stickout": flute_length * 1.5,
+                "coating": "Uncoated", # Would parse from JSON if available
+                "geometry": "Square" if corner_radius == 0 else "Radiused"
+            }
+            
+            # 4. Call ToolWiz API
+            req = urllib.request.Request("http://127.0.0.1:5000/api/calculate_for_fusion")
+            req.add_header('Content-Type', 'application/json; charset=utf-8')
+            jsondata = json.dumps(payload).encode('utf-8')
+            
+            try:
+                response = urllib.request.urlopen(req, jsondata, timeout=5.0)
+                res_body = response.read().decode('utf-8')
+                calc_result = json.loads(res_body)
+                
+                if not calc_result.get("success"):
+                    ui.messageBox(f"ToolWiz Calculation Error: {calc_result.get('error')}")
+                    return
+            except Exception as e:
+                ui.messageBox(f"Failed to connect to ToolWiz server at http://127.0.0.1:5000.\nError: {str(e)}")
+                return
+                
+            # 5. Inject Result and Update Tool
+            # Shadow copy rollback safety
+            temp_dir = tempfile.gettempdir()
+            shadow_path = os.path.join(temp_dir, 'toolwiz_pristine_tool.json')
+            with open(shadow_path, 'w') as f:
+                f.write(raw_json)
+                
+            # Mutate
+            mutated_json = json_mutator.mutate_tool_json(raw_json, calc_result)
+            temp_tool = adsk.cam.Tool.createFromJson(mutated_json)
+            
+            if not temp_tool:
+                raise Exception("Failed to reconstitute tool from mutated JSON.")
+                
+            parent_lib.updateTool(target_tool, temp_tool)
+            ui.messageBox(f'Successfully injected cutting data preset:\n{calc_result.get("name")}\n\nRPM: {calc_result.get("rpm")}\nFeed: {calc_result.get("feed")} IPM\nDOC: {calc_result.get("doc")} in\nWOC: {calc_result.get("woc")} in')
+            
         except Exception as e:
             if ui:
-                ui.messageBox(f'ToolWiz TCP Bind Error: {e}')
+                ui.messageBox(f'Command Execute Failed:\n{traceback.format_exc()}')
+
+class ToolWizDestroyHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            pass
+        except:
+            pass
+
+class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            cmd = args.command
+            onExecute = ToolWizExecuteHandler()
+            cmd.execute.add(onExecute)
+            handlers.append(onExecute)
+            
+            onDestroy = ToolWizDestroyHandler()
+            cmd.destroy.add(onDestroy)
+            handlers.append(onDestroy)
+            
+            inputs = cmd.commandInputs
+            
+            # Fetch dynamic materials from server if possible
+            global materials_list
+            try:
+                response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.0)
+                data = json.loads(response.read().decode('utf-8'))
+                if "families" in data:
+                    materials_list = data["families"]
+            except:
+                pass # Use cached/fallback list
+                
+            # Build UI
+            mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for m in materials_list:
+                mat_input.listItems.add(m, True if m == "Aluminum - Wrought" else False)
+                
+            op_input = inputs.addDropDownCommandInput('operation', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
+            op_input.listItems.add('Roughing', True)
+            op_input.listItems.add('Finishing', False)
+            op_input.listItems.add('Slotting', False)
+            
+            agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
+            agg_input.valueOne = 50
+            
+            msg = inputs.addTextBoxCommandInput('info', '', 'Select a tool in the local Tool Library, then click OK to fetch and inject optimized cutting data.', 3, True)
+            msg.isFullWidth = True
+            
+        except Exception as e:
+            if ui:
+                ui.messageBox(f'Command Created Failed:\n{traceback.format_exc()}')
 
 def run(context):
-    global app, ui, handlers, custom_event_id, stop_flag
+    global app, ui
     app = adsk.core.Application.get()
     ui = app.userInterface
     
     try:
-        # Register custom event
-        custom_event = app.registerCustomEvent(custom_event_id)
-        if not custom_event:
-            ui.messageBox('Failed to register ToolWiz custom event.')
-            return
+        # Create Command Definition
+        cmdDef = ui.commandDefinitions.itemById(commandId)
+        if not cmdDef:
+            cmdDef = ui.commandDefinitions.addButtonDefinition(commandId, 'ToolWiz Calculator', 'Calculate and inject optimal speeds and feeds.')
             
-        on_custom_event = ToolWizCustomEventHandler()
-        custom_event.add(on_custom_event)
-        handlers.append(on_custom_event)
+        onCommandCreated = ToolWizCreatedHandler()
+        cmdDef.commandCreated.add(onCommandCreated)
+        handlers.append(onCommandCreated)
         
-        # Start TCP listener thread
-        stop_flag.clear()
-        t = threading.Thread(target=tcp_server_thread)
-        t.daemon = True
-        t.start()
-        
-    except:
+        # Add to UI
+        workSpace = ui.workspaces.itemById(workspaceToUse)
+        if workSpace:
+            toolbarPanels = workSpace.toolbarPanels
+            panel = toolbarPanels.itemById(panelToUse)
+            if panel:
+                buttonControl = panel.controls.itemById(commandId)
+                if not buttonControl:
+                    panel.controls.addCommand(cmdDef)
+                    
+    except Exception as e:
         if ui:
-            ui.messageBox(f'ToolWiz Addin Init Failed:\n{traceback.format_exc()}')
+            ui.messageBox(f'Add-in Start Failed:\n{traceback.format_exc()}')
 
 def stop(context):
-    global app, ui, custom_event_id, stop_flag
+    global app, ui
     try:
-        stop_flag.set()
-        app.unregisterCustomEvent(custom_event_id)
-    except:
+        workSpace = ui.workspaces.itemById(workspaceToUse)
+        if workSpace:
+            panel = workSpace.toolbarPanels.itemById(panelToUse)
+            if panel:
+                buttonControl = panel.controls.itemById(commandId)
+                if buttonControl:
+                    buttonControl.deleteMe()
+                    
+        cmdDef = ui.commandDefinitions.itemById(commandId)
+        if cmdDef:
+            cmdDef.deleteMe()
+            
+    except Exception as e:
         if ui:
-            ui.messageBox(f'ToolWiz Addin Stop Failed:\n{traceback.format_exc()}')
+            ui.messageBox(f'Add-in Stop Failed:\n{traceback.format_exc()}')
