@@ -259,9 +259,68 @@
                 </div>
             </section>
         </main>
+
+        <button class="export-button" onclick="exportToFusion()" style="margin-top: 1.5rem; width: 100%; padding: 1rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">Export Cutting Data to Fusion 360 Tool Library</button>
     </div>
 
     <script>
+        function exportToFusion() {
+            // Dual Gate Approval Phase 1: Identify Tool
+            fetch('http://127.0.0.1:8000/get_selected_tool', { method: 'POST' })
+            .then(response => {
+                if (!response.ok) throw new Error("MCP Server not running or Fusion Add-in disabled.");
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert("Fusion Error: " + data.error);
+                    return;
+                }
+                
+                // Dual Gate Approval Phase 2: Explicit Consent
+                let confirmed = confirm("Acknowledge modification of Tool: " + data.tool_name + "\n\nThis will inject the current cutting parameters into the tool's start-values.presets array.");
+                if (!confirmed) return;
+                
+                // Proceed with injection
+                let payload = {
+                    name: "ToolWiz: " + document.getElementById('alloy').value + " - " + document.getElementById('operation').value,
+                    sfm: parseFloat(document.getElementById('res-sfm').innerText),
+                    ipt: parseFloat(document.getElementById('res-ipt').innerText),
+                    rpm: parseFloat(document.getElementById('res-rpm').innerText),
+                    feed: parseFloat(document.getElementById('res-feed').innerText),
+                    doc: parseFloat(document.getElementById('cutDepth_val').value),
+                    woc: parseFloat(document.getElementById('cutWidth_val').value),
+                    ramp_feed: parseFloat(document.getElementById('ramp_feed').innerText),
+                    plunge_feed: parseFloat(document.getElementById('plunge_feed').innerText)
+                };
+                
+                // Make sure we pass standard imperial values over for internal mutator conversion
+                // if we are in metric mode, convert the doc/woc back to inches
+                if (isMetric) {
+                    payload.doc = payload.doc / 25.4;
+                    payload.woc = payload.woc / 25.4;
+                    // We assume sfm/ipt/feed in UI are metric, so convert them to imperial!
+                    payload.sfm = payload.sfm / 0.3048; // SMM -> SFM
+                    payload.ipt = payload.ipt / 25.4; // mm -> in
+                    payload.feed = payload.feed / 25.4; // mm/min -> in/min
+                    payload.ramp_feed = payload.ramp_feed / 25.4;
+                    payload.plunge_feed = payload.plunge_feed / 25.4;
+                }
+                
+                fetch('http://127.0.0.1:8000/push_to_fusion', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(resData => {
+                    if (resData.error) alert("Export Failed: " + resData.error);
+                    else if (resData.success) alert(resData.success);
+                })
+                .catch(err => alert("Export Error: " + err));
+            })
+            .catch(err => alert("Connection Error: " + err.message));
+        }
         let fullAlloys = [];
         let isMetric = false;
         

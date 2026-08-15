@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"id":	"08ef12fc-9c60-4927-b080-6bc1ab0ea9a6",
+	"author":	"ToolWiz Engine",
+	"description":	{
+		"":	"Receives ToolWiz Cutting Data securely via MCP and Custom Events"
+	},
+	"version":	"1.0.0",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
