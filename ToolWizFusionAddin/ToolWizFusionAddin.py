@@ -10,8 +10,15 @@ commandId = 'ToolWizCalcCmd'
 workspaceToUse = 'CAMEnvironment'
 panelToUse = 'CAMManagePanel'
 
-# Global materials list cache
-materials_list = ["Aluminum - Wrought", "Aluminum - Cast", "Steel - Low Carbon", "Steel - Alloy", "Stainless - 300 Series", "Titanium - Alloys", "Brass", "Plastics"]
+# Global caches
+families_list = ["Aluminum - Wrought", "Aluminum - Cast", "Steel - Low Carbon"]
+alloys_dict = {
+    "Aluminum - Wrought": ["6061", "7075"],
+    "Aluminum - Cast": ["A356"],
+    "Steel - Low Carbon": ["1018"]
+}
+# Map dropdown string -> adsk.cam.Tool
+available_tools_map = {}
 
 class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -21,26 +28,26 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             eventArgs = adsk.core.CommandEventArgs.cast(args)
             inputs = eventArgs.command.commandInputs
             
-            # 1. Get User Intent from UI
+            tool_input = inputs.itemById('targetTool')
             family_input = inputs.itemById('matFamily')
+            alloy_input = inputs.itemById('matAlloy')
             op_input = inputs.itemById('operation')
             agg_input = inputs.itemById('aggressiveness')
             
+            if not family_input or not op_input or not agg_input or not tool_input:
+                ui.messageBox('Error: UI elements did not load correctly. Please restart the Add-in.')
+                return
+                
             family = family_input.selectedItem.name if family_input.selectedItem else "Aluminum - Wrought"
+            alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
             operation = op_input.selectedItem.name if op_input.selectedItem else "Roughing"
             aggressiveness = agg_input.valueOne
             
-            # 2. Get Target Tool
-            selections = ui.activeSelections
-            target_tool = None
-            for i in range(selections.count):
-                obj = selections.item(i).entity
-                if obj.objectType == adsk.cam.Tool.classType():
-                    target_tool = obj
-                    break
-                    
+            tool_name = tool_input.selectedItem.name if tool_input.selectedItem else ""
+            target_tool = available_tools_map.get(tool_name)
+            
             if not target_tool:
-                ui.messageBox('No tool selected! Please select a tool in the local Tool Library.')
+                ui.messageBox('No tool selected! Please select a tool from the dropdown.')
                 return
                 
             # Check library safety
@@ -57,20 +64,13 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             tool_dict = json.loads(raw_json)
             geo = tool_dict.get("geometry", {})
             
-            # 3. Extract Geometry for Physics Engine
-            # Fusion stores geometry in mm internally. We need to parse and convert to inch for our physics engine if it assumes inches.
-            # Actually, `tool.toJson()` might return the values as they are in the JSON schema which defaults to mm if unitless, 
-            # BUT the schema usually stores explicitly with units OR as base metric (mm).
-            # Wait, `tool.toJson()` returns mm or unit-suffixed strings?
-            # Fusion CAM tool JSON `geometry.DC` is typically in metric (mm) natively.
-            
             def parse_dim_to_inches(val):
                 if isinstance(val, (int, float)):
-                    return val / 25.4 # Assume base mm
+                    return val / 25.4
                 if isinstance(val, str):
                     if "in" in val: return float(val.replace("in", ""))
                     if "mm" in val: return float(val.replace("mm", "")) / 25.4
-                return 0.25 # safe fallback
+                return 0.25
                 
             diameter = parse_dim_to_inches(geo.get("DC", 6.35))
             flutes = int(geo.get("NOF", 4))
@@ -78,9 +78,9 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             shank_diameter = parse_dim_to_inches(geo.get("SF", diameter * 25.4))
             corner_radius = parse_dim_to_inches(geo.get("RE", 0.0))
             
-            # Payload for calculation
             payload = {
                 "family": family,
+                "alloy": alloy,
                 "operation": operation,
                 "aggressiveness": aggressiveness,
                 "diameter": diameter,
@@ -88,13 +88,11 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 "fluteLength": flute_length,
                 "shankDiameter": shank_diameter,
                 "cornerRadius": corner_radius,
-                # Safe defaults for un-extracted complex geometry
                 "stickout": flute_length * 1.5,
-                "coating": "Uncoated", # Would parse from JSON if available
+                "coating": "Uncoated",
                 "geometry": "Square" if corner_radius == 0 else "Radiused"
             }
             
-            # 4. Call ToolWiz API
             req = urllib.request.Request("http://127.0.0.1:5000/api/calculate_for_fusion")
             req.add_header('Content-Type', 'application/json; charset=utf-8')
             jsondata = json.dumps(payload).encode('utf-8')
@@ -111,14 +109,11 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 ui.messageBox(f"Failed to connect to ToolWiz server at http://127.0.0.1:5000.\nError: {str(e)}")
                 return
                 
-            # 5. Inject Result and Update Tool
-            # Shadow copy rollback safety
             temp_dir = tempfile.gettempdir()
             shadow_path = os.path.join(temp_dir, 'toolwiz_pristine_tool.json')
             with open(shadow_path, 'w') as f:
                 f.write(raw_json)
                 
-            # Mutate
             mutated_json = json_mutator.mutate_tool_json(raw_json, calc_result)
             temp_tool = adsk.cam.Tool.createFromJson(mutated_json)
             
@@ -131,6 +126,29 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
         except Exception as e:
             if ui:
                 ui.messageBox(f'Command Execute Failed:\n{traceback.format_exc()}')
+
+class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            eventArgs = adsk.core.InputChangedEventArgs.cast(args)
+            inputs = eventArgs.inputs
+            cmdInput = eventArgs.input
+            
+            if cmdInput.id == 'matFamily':
+                family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
+                alloy_input = inputs.itemById('matAlloy')
+                if alloy_input:
+                    alloy_input.listItems.clear()
+                    alloys = alloys_dict.get(family, [])
+                    if not alloys:
+                        alloy_input.listItems.add("Default", True)
+                    else:
+                        for i, a in enumerate(alloys):
+                            alloy_input.listItems.add(a, True if i == 0 else False)
+        except Exception as e:
+            pass
 
 class ToolWizDestroyHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -151,36 +169,106 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
             
+            onInputChanged = ToolWizInputChangedHandler()
+            cmd.inputChanged.add(onInputChanged)
+            handlers.append(onInputChanged)
+            
             onDestroy = ToolWizDestroyHandler()
             cmd.destroy.add(onDestroy)
             handlers.append(onDestroy)
             
             inputs = cmd.commandInputs
             
-            # Fetch dynamic materials from server if possible
-            global materials_list
+            # --- 1. POPULATE TOOLS ---
+            global available_tools_map
+            available_tools_map.clear()
+            
+            camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+            if camObj:
+                # Iterate operations to find tools in use
+                for setup in camObj.setups:
+                    for op in setup.allOperations:
+                        if hasattr(op, 'tool') and op.tool:
+                            t = op.tool
+                            try:
+                                t_dict = json.loads(t.toJson())
+                                desc = t_dict.get("description", "Unnamed Tool")
+                                t_num = t_dict.get("postProcess", {}).get("number", 0)
+                                # Keep it short and readable
+                                name = f"T{t_num} - {desc}"
+                                # If same tool used in multiple ops, it just overwrites map with same tool, which is fine.
+                                if name not in available_tools_map:
+                                    available_tools_map[name] = t
+                            except:
+                                pass
+            
+            tool_input = inputs.addDropDownCommandInput('targetTool', 'Target Tool', adsk.core.DropDownStyles.TextListDropDownStyle)
+            if not available_tools_map:
+                tool_input.listItems.add("No tools found. Add an operation first.", True)
+            else:
+                # Pre-select based on active selection if it's an operation
+                preselect_name = None
+                try:
+                    sel = ui.activeSelections
+                    if sel.count > 0:
+                        ent = sel.item(0).entity
+                        if ent.objectType == adsk.cam.Operation.classType():
+                            t = ent.tool
+                            if t:
+                                t_dict = json.loads(t.toJson())
+                                t_num = t_dict.get("postProcess", {}).get("number", 0)
+                                desc = t_dict.get("description", "Unnamed Tool")
+                                preselect_name = f"T{t_num} - {desc}"
+                except:
+                    pass
+                
+                for i, t_name in enumerate(available_tools_map.keys()):
+                    is_selected = (t_name == preselect_name) if preselect_name else (i == 0)
+                    tool_input.listItems.add(t_name, is_selected)
+            
+            # --- 2. POPULATE MATERIALS ---
+            global families_list, alloys_dict
             try:
                 response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.0)
                 data = json.loads(response.read().decode('utf-8'))
-                if "families" in data:
-                    materials_list = data["families"]
-            except:
-                pass # Use cached/fallback list
                 
-            # Build UI
+                if "families" in data and isinstance(data["families"], list):
+                    families_list = data["families"]
+                    
+                if "alloys" in data and isinstance(data["alloys"], list):
+                    new_alloys_dict = {}
+                    for a in data["alloys"]:
+                        if isinstance(a, dict):
+                            f = a.get("family", "")
+                            name = f"{a.get('alloy', '')} - {a.get('condition', '')}".strip(" -")
+                            if f and name:
+                                if f not in new_alloys_dict:
+                                    new_alloys_dict[f] = []
+                                new_alloys_dict[f].append(name)
+                    if new_alloys_dict:
+                        alloys_dict = new_alloys_dict
+            except:
+                pass 
+                
             mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
-            for m in materials_list:
+            for m in families_list:
                 mat_input.listItems.add(m, True if m == "Aluminum - Wrought" else False)
+                
+            alloy_input = inputs.addDropDownCommandInput('matAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
+            init_alloys = alloys_dict.get("Aluminum - Wrought", ["Default"])
+            for i, a in enumerate(init_alloys):
+                alloy_input.listItems.add(a, True if i == 0 else False)
                 
             op_input = inputs.addDropDownCommandInput('operation', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
             op_input.listItems.add('Roughing', True)
+            op_input.listItems.add('Adaptive Roughing', False)
             op_input.listItems.add('Finishing', False)
             op_input.listItems.add('Slotting', False)
             
             agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
             agg_input.valueOne = 50
             
-            msg = inputs.addTextBoxCommandInput('info', '', 'Select a tool in the local Tool Library, then click OK to fetch and inject optimized cutting data.', 3, True)
+            msg = inputs.addTextBoxCommandInput('info', '', 'Tools are extracted automatically from the operations in your active Document. Select a tool above to update its preset parameters.', 3, True)
             msg.isFullWidth = True
             
         except Exception as e:
@@ -193,7 +281,6 @@ def run(context):
     ui = app.userInterface
     
     try:
-        # Create Command Definition
         cmdDef = ui.commandDefinitions.itemById(commandId)
         if not cmdDef:
             cmdDef = ui.commandDefinitions.addButtonDefinition(commandId, 'ToolWiz Calculator', 'Calculate and inject optimal speeds and feeds.')
@@ -202,7 +289,6 @@ def run(context):
         cmdDef.commandCreated.add(onCommandCreated)
         handlers.append(onCommandCreated)
         
-        # Add to UI
         workSpace = ui.workspaces.itemById(workspaceToUse)
         if workSpace:
             toolbarPanels = workSpace.toolbarPanels
