@@ -7865,6 +7865,24 @@
       "alloy": "Wood: Plywood",
       "condition": "",
       "hardness": "0"
+    },
+    {
+      "family": "Steel - Tool (H13)",
+      "alloy": "CPM MagnaCut (Annealed ~22 HRC)",
+      "condition": "Annealed",
+      "hardness": "200 HB"
+    },
+    {
+      "family": "Steel - Tool (H13)",
+      "alloy": "CPM MagnaCut (Hardened ~62 HRC)",
+      "condition": "Hardened & Tempered",
+      "hardness": "62 HRC"
+    },
+    {
+      "family": "Stainless - 400 Series (420)",
+      "alloy": "CPM MagnaCut (Hardened ~62 HRC)",
+      "condition": "Hardened & Tempered",
+      "hardness": "62 HRC"
     }
   ],
   "machinability_factors": [

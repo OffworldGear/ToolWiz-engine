@@ -138,6 +138,13 @@ def calculate_for_fusion():
         # 1. Lookup Base Parameters
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry)
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry)
+        
+        # Alloy-specific hardness adjustment (e.g. Hardened Tool Steels / CPM MagnaCut @ 62 HRC)
+        alloy = data.get("alloy", "")
+        if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy or "64 HRC" in alloy:
+            target_sfm *= 0.55
+            base_ipt *= 0.75
+            
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         target_sfm *= physics.get_coating_multiplier(coating, family)
         

@@ -142,7 +142,7 @@ class GWizardPhysics:
             axial_factor = diameter / effective_diameter
             adjusted_ipt *= min(axial_factor, 5.0) # Prevent insane scaling
         
-        if operation == "Adaptive":
+        if "Adaptive" in operation:
             # Trochoidal cuts allow for aggressive heat dissipation
             adjusted_ipt *= 1.3
             
@@ -341,7 +341,7 @@ class GWizardPhysics:
             target_woc = diameter * 0.05
         elif operation == "Slotting":
             target_woc = diameter
-        elif operation == "Adaptive":
+        elif "Adaptive" in operation:
             target_woc = diameter * 0.15 # Trochoidal
         else:
             target_woc = diameter * 0.5 # Standard stepover
