@@ -39,32 +39,56 @@ alloys_dict = {
 # Maps dropdown display name -> adsk.cam.Operation
 available_ops_map = {}
 
-def parse_dim_to_inches(val, default=0.25):
-    """Safely converts Fusion dimension expressions/floats/strings to inches"""
+def parse_dim_to_inches(val, default=0.25, tool_unit=""):
+    """Safely converts Fusion dimension expressions/floats/strings to inches, respecting tool unit context."""
     if val is None:
         return default
     if isinstance(val, (int, float)):
-        # Fusion tool JSON raw numbers default to mm
-        return float(val) / 25.4
+        u = str(tool_unit).strip().lower()
+        if u in ["inches", "in", "inch"]:
+            return float(val)
+        elif u in ["millimeters", "mm", "millimeter"]:
+            return float(val) / 25.4
+        else:
+            # Heuristic fallback if unit is unspecified:
+            # Standard cutting tools > 1.5 are almost certainly metric mm (3mm, 6mm, 10mm, etc.)
+            # Values <= 1.5 are standard inch sizes (0.125", 0.250", 0.500", etc.)
+            if float(val) > 1.5:
+                return float(val) / 25.4
+            return float(val)
+            
     if isinstance(val, str):
         val_clean = val.strip().lower()
-        if val_clean.endswith("in"):
-            return float(val_clean.replace("in", "").strip())
-        elif val_clean.endswith("mm"):
-            return float(val_clean.replace("mm", "").strip()) / 25.4
+        if "in" in val_clean:
+            val_clean = val_clean.replace("in", "").strip()
+            if "/" in val_clean:
+                num, den = val_clean.split("/")
+                return float(num) / float(den)
+            return float(val_clean)
+        elif "mm" in val_clean:
+            val_clean = val_clean.replace("mm", "").strip()
+            return float(val_clean) / 25.4
         else:
             try:
                 if "/" in val_clean:
                     num, den = val_clean.split("/")
                     return float(num) / float(den)
                 f = float(val_clean)
-                return f / 25.4
+                u = str(tool_unit).strip().lower()
+                if u in ["inches", "in", "inch"]:
+                    return f
+                elif u in ["millimeters", "mm", "millimeter"]:
+                    return f / 25.4
+                else:
+                    if f > 1.5:
+                        return f / 25.4
+                    return f
             except:
                 return default
     return default
 
 def get_op_tool_info(op):
-    """Extracts tool metadata and geometry formatted in inches"""
+    """Extracts tool metadata and geometry formatted in inches with dual unit display"""
     if not op or not hasattr(op, 'tool') or not op.tool:
         return None, "No Tool Found"
     
@@ -73,12 +97,13 @@ def get_op_tool_info(op):
         raw_json = t.toJson()
         t_dict = json.loads(raw_json)
         geo = t_dict.get("geometry", {})
+        tool_unit = t_dict.get("unit", geo.get("unit", ""))
         
-        diameter = parse_dim_to_inches(geo.get("DC", 6.35), 0.25)
+        diameter = parse_dim_to_inches(geo.get("DC", 6.35), 0.25, tool_unit)
         flutes = int(geo.get("NOF", 4))
-        flute_length = parse_dim_to_inches(geo.get("LCF", 25.4), diameter * 3)
-        shank_diameter = parse_dim_to_inches(geo.get("SF", diameter * 25.4), diameter)
-        corner_radius = parse_dim_to_inches(geo.get("RE", 0.0), 0.0)
+        flute_length = parse_dim_to_inches(geo.get("LCF", 25.4), diameter * 3, tool_unit)
+        shank_diameter = parse_dim_to_inches(geo.get("SF", diameter * 25.4), diameter, tool_unit)
+        corner_radius = parse_dim_to_inches(geo.get("RE", 0.0), 0.0, tool_unit)
         desc = t_dict.get("description", f"{diameter:.3f}in Endmill")
         t_num = t_dict.get("postProcess", {}).get("number", 1)
         
@@ -95,7 +120,9 @@ def get_op_tool_info(op):
             "number": t_num
         }
         
-        summary = f"T{t_num}: {desc} | Dia: {diameter:.3f}\", Flutes: {flutes}, Flute L: {flute_length:.3f}\""
+        dia_mm = diameter * 25.4
+        fl_mm = flute_length * 25.4
+        summary = f"T{t_num}: {desc} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
         return geo_payload, summary
     except Exception as e:
         return None, f"Error extracting tool: {str(e)}"
