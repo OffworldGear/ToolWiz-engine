@@ -7,10 +7,15 @@ def format_unit(value, unit_string):
     """
     return f"{float(value):.6f}{unit_string}"
 
-def mutate_tool_json(original_json_string, new_preset_data):
+def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_replace=None):
     """
     Safely mutates a Fusion Tool JSON string by injecting or updating a preset 
     in the start-values.presets array.
+    
+    Parameters:
+      - original_json_string: raw tool JSON string
+      - new_preset_data: dictionary with rpm, feed, sfm, ipt, doc, woc, name, etc.
+      - target_preset_to_replace: optional name of an existing preset to overwrite
     """
     tool_dict = json.loads(original_json_string)
     
@@ -22,7 +27,6 @@ def mutate_tool_json(original_json_string, new_preset_data):
         
     presets = tool_dict["start-values"]["presets"]
     
-    # Map external app variables to Fusion schema and force stringification
     preset_name = new_preset_data.get("name", "ToolWiz Auto Preset")
     
     mapped_data = {
@@ -43,13 +47,26 @@ def mutate_tool_json(original_json_string, new_preset_data):
     if "plunge_feed" in new_preset_data:
         mapped_data["v_f_plunge"] = format_unit(new_preset_data["plunge_feed"], "in/min")
         
-    # Check for name collision
-    existing_preset = next((p for p in presets if p.get("name") == preset_name), None)
-    if existing_preset:
-        # Update in place
-        existing_preset.update(mapped_data)
-    else:
-        # Append new
+    was_updated = False
+    
+    # 1. If user explicitly selected an existing preset to replace:
+    if target_preset_to_replace and target_preset_to_replace != "+ Create New Preset (Auto-Named)":
+        for p in presets:
+            if p.get("name") == target_preset_to_replace:
+                p.update(mapped_data)
+                was_updated = True
+                break
+                
+    # 2. If not already updated, check for name collision with preset_name
+    if not was_updated:
+        for p in presets:
+            if p.get("name") == preset_name:
+                p.update(mapped_data)
+                was_updated = True
+                break
+                
+    # 3. If no match found, append as a new preset
+    if not was_updated:
         presets.append(mapped_data)
         
-    return json.dumps(tool_dict)
+    return json.dumps(tool_dict), preset_name, was_updated

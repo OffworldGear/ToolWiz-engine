@@ -1,6 +1,7 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
 import urllib.request, json
 import os
+from . import json_mutator
 
 app = None
 ui = None
@@ -50,9 +51,6 @@ def parse_dim_to_inches(val, default=0.25, tool_unit=""):
         elif u in ["millimeters", "mm", "millimeter"]:
             return float(val) / 25.4
         else:
-            # Heuristic fallback if unit is unspecified:
-            # Standard cutting tools > 1.5 are almost certainly metric mm (3mm, 6mm, 10mm, etc.)
-            # Values <= 1.5 are standard inch sizes (0.125", 0.250", 0.500", etc.)
             if float(val) > 1.5:
                 return float(val) / 25.4
             return float(val)
@@ -90,7 +88,7 @@ def parse_dim_to_inches(val, default=0.25, tool_unit=""):
 def get_op_tool_info(op):
     """Extracts tool metadata and geometry formatted in inches with dual unit display"""
     if not op or not hasattr(op, 'tool') or not op.tool:
-        return None, "No Tool Found"
+        return None, "No Tool Found", []
     
     try:
         t = op.tool
@@ -107,6 +105,10 @@ def get_op_tool_info(op):
         desc = t_dict.get("description", f"{diameter:.3f}in Endmill")
         t_num = t_dict.get("postProcess", {}).get("number", 1)
         
+        # Get list of existing presets
+        presets = t_dict.get("start-values", {}).get("presets", [])
+        preset_names = [p.get("name", "Unnamed Preset") for p in presets if p.get("name")]
+        
         geo_payload = {
             "diameter": diameter,
             "flutes": flutes,
@@ -117,15 +119,16 @@ def get_op_tool_info(op):
             "coating": "Uncoated",
             "geometry": "Square" if corner_radius == 0 else "Radiused",
             "desc": desc,
-            "number": t_num
+            "number": t_num,
+            "raw_json": raw_json
         }
         
         dia_mm = diameter * 25.4
         fl_mm = flute_length * 25.4
         summary = f"T{t_num}: {desc} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
-        return geo_payload, summary
+        return geo_payload, summary, preset_names
     except Exception as e:
-        return None, f"Error extracting tool: {str(e)}"
+        return None, f"Error extracting tool: {str(e)}", []
 
 def apply_param(op, name, expr_str):
     """Safely updates a single CAMParameter on an Operation"""
@@ -147,6 +150,7 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             inputs = eventArgs.command.commandInputs
             
             op_input = inputs.itemById('targetOp')
+            preset_action_input = inputs.itemById('presetAction')
             family_input = inputs.itemById('matFamily')
             alloy_input = inputs.itemById('matAlloy')
             strat_input = inputs.itemById('strategy')
@@ -168,7 +172,12 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             strategy = strat_input.selectedItem.name if strat_input.selectedItem else "Adaptive Roughing"
             aggressiveness = agg_input.valueOne
             
-            geo_payload, summary_str = get_op_tool_info(target_op)
+            preset_choice = preset_action_input.selectedItem.name if (preset_action_input and preset_action_input.selectedItem) else "+ Create New Preset (Auto-Named)"
+            target_preset_to_replace = None
+            if preset_choice.startswith("Replace: "):
+                target_preset_to_replace = preset_choice.replace("Replace: ", "").strip()
+                
+            geo_payload, summary_str, existing_presets = get_op_tool_info(target_op)
             if not geo_payload:
                 ui.messageBox(f'Could not read tool geometry: {summary_str}')
                 return
@@ -205,6 +214,11 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 ui.messageBox(f"Failed to connect to ToolWiz server at http://127.0.0.1:5000.\nPlease verify app.py is running.\n\nError: {str(e)}")
                 return
                 
+            # Standard auto-generated preset name
+            material_label = alloy if alloy else family
+            standard_preset_name = f"{material_label} - {strategy}"
+            calc_result["name"] = standard_preset_name
+            
             # Extract calculated values
             rpm = calc_result.get("rpm", 5000)
             feed = calc_result.get("feed", 30.0)
@@ -215,7 +229,28 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             sfm = calc_result.get("sfm", 300)
             ipt = calc_result.get("ipt", 0.002)
             
-            # Direct Operation Parameter Injection
+            # 1. Mutate Tool JSON to Add/Update the Cutting Data Preset
+            raw_json = geo_payload["raw_json"]
+            mutated_json, final_preset_name, was_updated = json_mutator.mutate_tool_json(
+                raw_json, 
+                calc_result, 
+                target_preset_to_replace=target_preset_to_replace
+            )
+            
+            # 2. Update Tool in Library if parent library exists
+            target_tool = target_op.tool
+            tool_saved_to_lib = False
+            try:
+                parent_lib = target_tool.parent
+                if parent_lib:
+                    temp_tool = adsk.cam.Tool.createFromJson(mutated_json)
+                    if temp_tool:
+                        parent_lib.updateTool(target_tool, temp_tool)
+                        tool_saved_to_lib = True
+            except:
+                pass
+                
+            # 3. Direct Operation Parameter Injection
             applied = []
             
             # Speeds & Feedrates
@@ -242,23 +277,27 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
                 applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
                 
-            # Confirmation Display
+            # Action description
+            action_desc = "Updated existing preset in-place (no duplicate created)" if was_updated else "Created and added new Cutting Data Preset"
+            lib_status = "Saved to Tool Library definition & applied to operation" if tool_saved_to_lib else "Applied directly to operation & tool JSON updated"
+            
             applied_summary = "\n".join([f" • {item}" for item in applied])
             msg = (
-                f"ToolWiz Parameters Applied Successfully!\n"
+                f"Cutting Data Preset Configured Successfully!\n"
                 f"====================================\n"
-                f"Operation: {op_name}\n"
-                f"Material: {family} ({alloy})\n"
-                f"Strategy: {strategy}\n\n"
+                f"Preset Name: {final_preset_name}\n"
+                f"Action: {action_desc}\n"
+                f"Status: {lib_status}\n"
+                f"Operation: {op_name}\n\n"
                 f"Applied Parameters:\n"
                 f"{applied_summary}\n\n"
                 f"Ramp Feed: {ramp_feed:.2f} in/min | Plunge Feed: {plunge_feed:.2f} in/min"
             )
-            ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
+            ui.messageBox(msg, 'ToolWiz CAM & Preset Injector')
             
         except Exception as e:
             if ui:
-                ui.messageBox(f'Operation Auto-Setter Failed:\n{traceback.format_exc()}')
+                ui.messageBox(f'Operation & Preset Injector Failed:\n{traceback.format_exc()}')
 
 class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
@@ -273,10 +312,17 @@ class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
                 op_name = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
                 target_op = available_ops_map.get(op_name)
                 tool_info_box = inputs.itemById('toolInfo')
-                if tool_info_box and target_op:
-                    _, summary_str = get_op_tool_info(target_op)
-                    tool_info_box.text = summary_str
-                    
+                preset_action_input = inputs.itemById('presetAction')
+                if target_op:
+                    _, summary_str, existing_presets = get_op_tool_info(target_op)
+                    if tool_info_box:
+                        tool_info_box.text = summary_str
+                    if preset_action_input:
+                        preset_action_input.listItems.clear()
+                        preset_action_input.listItems.add("+ Create New Preset (Auto-Named)", True)
+                        for p in existing_presets:
+                            preset_action_input.listItems.add(f"Replace: {p}", False)
+                            
             elif cmdInput.id == 'matFamily':
                 family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
                 alloy_input = inputs.itemById('matAlloy')
@@ -357,11 +403,17 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             for op_label in available_ops_map.keys():
                 op_input.listItems.add(op_label, op_label == preselect_op_name)
                 
-            # Initial Tool Info Display
+            # Initial Tool Info Display & Preset Extraction
             initial_op = available_ops_map.get(preselect_op_name)
-            _, initial_summary = get_op_tool_info(initial_op)
+            _, initial_summary, existing_presets = get_op_tool_info(initial_op)
             tool_info_box = inputs.addTextBoxCommandInput('toolInfo', 'Detected Tool', initial_summary, 2, True)
             tool_info_box.isFullWidth = True
+            
+            # Preset Selection Dropdown (Create New or Replace Existing)
+            preset_input = inputs.addDropDownCommandInput('presetAction', 'Cutting Data Preset', adsk.core.DropDownStyles.TextListDropDownStyle)
+            preset_input.listItems.add('+ Create New Preset (Auto-Named)', True)
+            for p in existing_presets:
+                preset_input.listItems.add(f"Replace: {p}", False)
             
             # --- 2. FETCH DYNAMIC MATERIAL DATABASE ---
             global families_list, alloys_dict
@@ -425,7 +477,7 @@ def run(context):
             cmdDef = ui.commandDefinitions.addButtonDefinition(
                 commandId, 
                 'ToolWiz Speeds & Feeds', 
-                'Calculates and applies optimal speeds, feeds, stepover, and stepdown directly to the selected CAM operation.'
+                'Calculates and injects named Cutting Data presets into tool definitions and applies parameters to operations.'
             )
             
         onCommandCreated = ToolWizCreatedHandler()
