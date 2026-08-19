@@ -1,0 +1,171 @@
+{
+  "library_name": "Main_Milling_Hub_Library",
+  "tools": [
+    {
+      "description": "1/4 4-Flute Flat Carbide Endmill",
+      "type": "flat end mill",
+      "unit": "inches",
+      "geometry": {
+        "DC": 0.25,
+        "NOF": 4,
+        "LCF": 0.75,
+        "SF": 0.25,
+        "RE": 0.0
+      },
+      "postProcess": {
+        "number": 1
+      },
+      "start-values": {
+        "presets": [
+          {
+            "name": "Default Preset",
+            "n": "5000.000000rpm",
+            "v_f": "30.000000in/min"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
+            "n": "2352.946679rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.001775in",
+            "v_f": "16.704557in/min",
+            "v_f_ramp": "8.352278in/min",
+            "v_f_plunge": "4.176139in/min",
+            "stepdown": "0.047500in",
+            "stepover": "0.037500in",
+            "tool-coolant": "flood"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
+            "n": "2352.946679rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.000975in",
+            "v_f": "9.176492in/min",
+            "v_f_ramp": "4.588246in/min",
+            "v_f_plunge": "2.294123in/min",
+            "stepdown": "0.022500in",
+            "stepover": "0.125000in",
+            "tool-coolant": "flood"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
+            "n": "2352.946679rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.001342in",
+            "v_f": "12.631390in/min",
+            "v_f_ramp": "6.315695in/min",
+            "v_f_plunge": "3.157847in/min",
+            "stepdown": "0.197500in",
+            "stepover": "0.012500in",
+            "tool-coolant": "flood"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
+            "n": "2352.946679rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.000975in",
+            "v_f": "9.176492in/min",
+            "v_f_ramp": "4.588246in/min",
+            "v_f_plunge": "2.294123in/min",
+            "stepdown": "0.010000in",
+            "stepover": "0.250000in",
+            "tool-coolant": "flood"
+          }
+        ]
+      }
+    },
+    {
+      "description": "6mm 3-Flute Aluminum Endmill",
+      "type": "flat end mill",
+      "unit": "millimeters",
+      "geometry": {
+        "DC": 6.0,
+        "NOF": 3,
+        "LCF": 20.0,
+        "SF": 6.0,
+        "RE": 0.0
+      },
+      "postProcess": {
+        "number": 2
+      },
+      "start-values": {
+        "presets": []
+      }
+    },
+    {
+      "description": "1/8 Ball Endmill",
+      "type": "ball end mill",
+      "unit": "inches",
+      "geometry": {
+        "DC": 0.125,
+        "NOF": 2,
+        "LCF": 0.5,
+        "SF": 0.125,
+        "RE": 0.0625
+      },
+      "postProcess": {
+        "number": 3
+      },
+      "start-values": {
+        "presets": [
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
+            "n": "4705.893357rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.001066in",
+            "v_f": "10.033898in/min",
+            "v_f_ramp": "5.016949in/min",
+            "v_f_plunge": "2.508474in/min",
+            "stepdown": "0.022500in",
+            "stepover": "0.018750in",
+            "tool-coolant": "flood"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
+            "n": "4705.893357rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.000829in",
+            "v_f": "7.805769in/min",
+            "v_f_ramp": "3.902884in/min",
+            "v_f_plunge": "1.951442in/min",
+            "stepdown": "0.010000in",
+            "stepover": "0.062500in",
+            "tool-coolant": "flood"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
+            "n": "4705.893357rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.000625in",
+            "v_f": "5.882367in/min",
+            "v_f_ramp": "2.941183in/min",
+            "v_f_plunge": "1.470592in/min",
+            "stepdown": "0.103750in",
+            "stepover": "0.006250in",
+            "tool-coolant": "flood"
+          },
+          {
+            "name": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
+            "description": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
+            "n": "4705.893357rpm",
+            "v_c": "154.000000ft/min",
+            "f_z": "0.000829in",
+            "v_f": "7.805769in/min",
+            "v_f_ramp": "3.902884in/min",
+            "v_f_plunge": "1.951442in/min",
+            "stepdown": "0.010000in",
+            "stepover": "0.125000in",
+            "tool-coolant": "flood"
+          }
+        ]
+      }
+    }
+  ],
+  "last_modified": "2026-08-19T14:44:33.932818"
+}

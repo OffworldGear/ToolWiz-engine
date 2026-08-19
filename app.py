@@ -101,7 +101,8 @@ def calculate():
             "ramp_feed": round(ramp_feed, 2),
             "plunge_feed": round(plunge_feed, 2),
             "rec_doc": round(rec_doc, 3),
-            "rec_woc": round(rec_woc, 3)
+            "rec_woc": round(rec_woc, 3),
+            "rec_limit": round(rec_limit, 6)
         })
         
     except Exception as e:
@@ -180,6 +181,266 @@ def calculate_for_fusion():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+from backup_manager import BackupManager
+from ToolWizFusionAddin.json_mutator import format_unit
+
+bm = BackupManager()
+
+def parse_dim(val, tool_unit=""):
+    """Helper to parse tool dimensions from JSON to inches"""
+    if val is None: return 0.25
+    if isinstance(val, (int, float)):
+        u = str(tool_unit).strip().lower()
+        if u in ["inches", "in", "inch"]: return float(val)
+        elif u in ["millimeters", "mm", "millimeter"]: return float(val) / 25.4
+        else: return float(val) / 25.4 if float(val) > 1.5 else float(val)
+    if isinstance(val, str):
+        v = val.strip().lower()
+        if "in" in v:
+            v = v.replace("in", "").strip()
+            if "/" in v:
+                n, d = v.split("/")
+                return float(n)/float(d)
+            return float(v)
+        elif "mm" in v:
+            v = v.replace("mm", "").strip()
+            return float(v) / 25.4
+        else:
+            try:
+                f = float(v)
+                u = str(tool_unit).strip().lower()
+                if u in ["inches", "in", "inch"]: return f
+                elif u in ["millimeters", "mm", "millimeter"]: return f / 25.4
+                return f / 25.4 if f > 1.5 else f
+            except:
+                return 0.25
+    return 0.25
+
+@app.route("/api/twin/export_receive", methods=["POST"])
+def twin_export_receive():
+    """Receives exported tool library JSON from Fusion 360 Add-in"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"success": False, "error": "No JSON payload received"}), 400
+            
+        lib_name = data.get("library_name", "Fusion_Hub_Library")
+        backup_info = bm.save_working_library(data, lib_name)
+        
+        tools = data.get("tools", [])
+        return jsonify({
+            "success": True,
+            "library_name": lib_name,
+            "tool_count": len(tools),
+            "backup": backup_info
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/load", methods=["GET"])
+def twin_load():
+    """Returns active Digital Twin working library tools and backup history"""
+    try:
+        data = bm.load_working_library()
+        backups = bm.list_backups()
+        
+        if not data:
+            return jsonify({
+                "has_library": False,
+                "library_name": "No Library Loaded",
+                "tools": [],
+                "backups": backups
+            })
+            
+        lib_name = data.get("library_name", "Digital_Twin_Library")
+        raw_tools = data.get("tools", [])
+        
+        tool_manifest = []
+        for idx, t in enumerate(raw_tools):
+            # t can be dict or JSON string
+            t_dict = json.loads(t) if isinstance(t, str) else t
+            geo = t_dict.get("geometry", {})
+            tool_unit = t_dict.get("unit", geo.get("unit", ""))
+            
+            dia_in = parse_dim(geo.get("DC", 6.35), tool_unit)
+            flutes = int(geo.get("NOF", 4))
+            flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
+            t_num = t_dict.get("postProcess", {}).get("number", idx + 1)
+            desc = t_dict.get("description", f"{dia_in:.3f}in Tool")
+            t_type = geo.get("type", t_dict.get("type", "end mill"))
+            
+            presets = t_dict.get("start-values", {}).get("presets", [])
+            preset_names = [p.get("name", "Preset") for p in presets if p.get("name")]
+            
+            tool_manifest.append({
+                "index": idx,
+                "number": t_num,
+                "description": desc,
+                "type": t_type,
+                "diameter_in": round(dia_in, 4),
+                "diameter_mm": round(dia_in * 25.4, 2),
+                "flutes": flutes,
+                "flute_length_in": round(flute_len, 4),
+                "presets": preset_names,
+                "preset_count": len(preset_names)
+            })
+            
+        return jsonify({
+            "has_library": True,
+            "library_name": lib_name,
+            "last_modified": data.get("last_modified", ""),
+            "tool_count": len(tool_manifest),
+            "tools": tool_manifest,
+            "backups": backups
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/backups", methods=["GET", "POST"])
+def twin_backups():
+    """List or restore backups"""
+    try:
+        if request.method == "POST":
+            filename = request.json.get("filename")
+            if not filename:
+                return jsonify({"success": False, "error": "Filename required"}), 400
+            restored = bm.restore_backup(filename)
+            return jsonify({"success": True, "restored": filename})
+        else:
+            return jsonify({"backups": bm.list_backups()})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/batch_generate", methods=["POST"])
+def twin_batch_generate():
+    """Batch calculates and injects multi-operation presets into selected tools"""
+    try:
+        req_data = request.json
+        tool_indices = req_data.get("tool_indices", []) # list of integer indices
+        family = req_data.get("family", "Steel - Tool (H13)")
+        alloy = req_data.get("alloy", "CPM MagnaCut (Hardened ~62 HRC)")
+        strategies = req_data.get("strategies", ["Adaptive Roughing", "Roughing", "Finishing", "Slotting"])
+        aggressiveness = float(req_data.get("aggressiveness", 50.0)) / 100.0
+        coating = req_data.get("coating", "AlTiN")
+        max_rpm = float(req_data.get("maxRpm", 16000))
+        max_hp = float(req_data.get("maxHp", 10.0))
+        
+        library_data = bm.load_working_library()
+        if not library_data or "tools" not in library_data:
+            return jsonify({"success": False, "error": "No working library found to modify."}), 400
+            
+        tools = library_data["tools"]
+        indices_to_update = range(len(tools)) if tool_indices == "all" else tool_indices
+        
+        updated_tools_count = 0
+        total_presets_injected = 0
+        
+        for idx in indices_to_update:
+            if idx < 0 or idx >= len(tools):
+                continue
+                
+            raw_t = tools[idx]
+            t_dict = json.loads(raw_t) if isinstance(raw_t, str) else raw_t
+            
+            geo = t_dict.get("geometry", {})
+            tool_unit = t_dict.get("unit", geo.get("unit", ""))
+            
+            diameter = parse_dim(geo.get("DC", 6.35), tool_unit)
+            flutes = int(geo.get("NOF", 4))
+            flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
+            shank_dia = parse_dim(geo.get("SF", diameter * 25.4), tool_unit)
+            corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
+            stickout = flute_len * 1.5
+            is_carbide = True
+            geometry = "Square" if corner_rad == 0 else "Radiused"
+            
+            if "start-values" not in t_dict:
+                t_dict["start-values"] = {}
+            if "presets" not in t_dict["start-values"]:
+                t_dict["start-values"]["presets"] = []
+                
+            presets_list = t_dict["start-values"]["presets"]
+            
+            for strat in strategies:
+                # 1. Physics lookup
+                target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry)
+                base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry)
+                
+                # Hardness modifier (e.g. MagnaCut 62 HRC)
+                if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy:
+                    target_sfm *= 0.55
+                    base_ipt *= 0.75
+                    
+                target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
+                target_sfm *= physics.get_coating_multiplier(coating, family)
+                
+                rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
+                rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
+                    diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, 0.125, max_hp, material_family=family
+                )
+                
+                eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
+                adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry)
+                feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
+                actual_sfm = physics.calc_sfm(rpm, diameter)
+                _, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+                
+                # Standard Preset Name
+                material_label = alloy if alloy else family
+                preset_name = f"{material_label} - {strat}"
+                
+                preset_dict = {
+                    "name": preset_name,
+                    "description": preset_name,
+                    "n": format_unit(rpm, "rpm"),
+                    "v_c": format_unit(actual_sfm, "ft/min"),
+                    "f_z": format_unit(adj_ipt, "in"),
+                    "v_f": format_unit(feedrate, "in/min"),
+                    "v_f_ramp": format_unit(ramp_feed, "in/min"),
+                    "v_f_plunge": format_unit(plunge_feed, "in/min"),
+                    "stepdown": format_unit(rec_doc, "in"),
+                    "stepover": format_unit(rec_woc, "in"),
+                    "tool-coolant": "flood"
+                }
+                
+                # Update in place if duplicate name exists, else append
+                existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == preset_name), None)
+                if existing_idx is not None:
+                    presets_list[existing_idx].update(preset_dict)
+                else:
+                    presets_list.append(preset_dict)
+                    
+                total_presets_injected += 1
+                
+            tools[idx] = t_dict
+            updated_tools_count += 1
+            
+        library_data["tools"] = tools
+        lib_name = library_data.get("library_name", "Modified_Library")
+        backup_info = bm.save_working_library(library_data, lib_name)
+        
+        return jsonify({
+            "success": True,
+            "updated_tools_count": updated_tools_count,
+            "total_presets_injected": total_presets_injected,
+            "backup": backup_info
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/get_import_payload", methods=["GET"])
+def twin_get_import_payload():
+    """Serves the latest Digital Twin JSON payload for the Fusion Add-in to re-import"""
+    try:
+        data = bm.load_working_library()
+        if not data:
+            return jsonify({"success": False, "error": "No working library found."}), 404
+        return jsonify({"success": True, "library": data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == "__main__":
     # Run the Flask app on localhost:5000
     app.run(host="127.0.0.1", port=5000, debug=True)
+

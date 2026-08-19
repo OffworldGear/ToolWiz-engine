@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GWizard Optimize - Speeds & Feeds</title>
+    <title>ToolWiz - Speeds & Feeds & Digital Twin</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="background-orbs">
@@ -15,255 +15,395 @@
 
     <div class="container">
         <header>
-            <h1>Speeds & Feeds Engine</h1>
-            <p>Dynamic Optimization Calculator</p>
+            <h1>ToolWiz CAM & Physics Engine</h1>
+            <p>Dynamic Optimization Calculator & Fusion Hub Digital Twin</p>
             
-            <div class="stat-card" style="grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); padding-bottom: 3rem; position: relative;">
-                <div class="stat-label" style="color: var(--primary);">Recommended Max Cut (DOC &times; WOC)</div>
-                <div class="stat-value" style="font-size: 1.5rem;"><span id="recOutput">-- / --</span> <span style="font-size:1rem; opacity:0.7" class="unit-lbl">in</span></div>
-                <div style="font-size:0.8rem; color:var(--text-muted); text-align:center; margin-top:0.25rem;">Dynamically clamped by Deflection & HP</div>
-                <button onclick="applyRecommendations()" style="position: absolute; bottom: 0.75rem; background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s;">Auto-Set Slider Dials</button>
-            </div>
-            
-            <div class="unit-toggle">
-                <div class="toggle-track" onclick="toggleUnit()">
-                    <div id="toggle-knob" class="toggle-knob"></div>
-                    <span class="toggle-label imp-label">Imperial</span>
-                    <span class="toggle-label met-label">Metric</span>
-                </div>
-            </div>
+            <nav class="nav-tabs" style="margin-top: 1rem;">
+                <button class="nav-tab active" id="tabCalcBtn" onclick="switchTab('calculator')">⚡ Speeds & Feeds Calculator</button>
+                <button class="nav-tab" id="tabTwinBtn" onclick="switchTab('digital-twin')">📦 Digital Twin Library Manager</button>
+            </nav>
         </header>
 
-        <main class="grid-layout">
-            <!-- INPUTS PANEL -->
-            <section class="glass-panel inputs-panel">
-                <h2>Parameters</h2>
-                
-                <div class="input-group">
-                    <label for="family">Material Family</label>
-                    <select id="family" onchange="updateAlloys(); calculate()"></select>
-                </div>
-
-                <div class="input-group">
-                    <label for="alloy">Specific Alloy</label>
-                    <select id="alloy" onchange="calculate()"></select>
-                </div>
-
-                <div class="grid-layout" style="gap: 1rem; margin-bottom: 0rem">
-                    <div class="input-group" style="margin:0;">
-                        <label for="tool">Tool Category</label>
-                        <select id="tool" onchange="calculate()"></select>
+        <!-- VIEW 1: SINGLE-CUT CALCULATOR -->
+        <div id="calculatorView">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <div class="glass-panel" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem;">
+                    <div>
+                        <span style="color: var(--accent); font-weight: 600; font-size: 0.9rem;">Recommended Cut (DOC &times; WOC):</span>
+                        <span id="recOutput" style="font-size: 1.2rem; font-weight: 700; margin-left: 0.5rem;">-- / --</span>
+                        <span class="unit-lbl" style="opacity: 0.7;">in</span>
                     </div>
-                    <div class="input-group" style="margin:0;">
-                        <label for="coating">Tool Coating</label>
-                        <select id="coating" onchange="calculate()">
-                            <option value="Uncoated">Uncoated / Bright</option>
-                            <option value="TiN">TiN (Gold)</option>
-                            <option value="TiCN">TiCN (Blue-Gray)</option>
-                            <option value="TiAlN">TiAlN (Dark Violet)</option>
-                            <option value="AlTiN">AlTiN (Black)</option>
-                            <option value="ZrN">ZrN (Pale Gold)</option>
-                            <option value="Diamond">Diamond / DLC</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
-                    <div class="input-group" style="margin:0;">
-                        <label for="geometry">Geometry</label>
-                        <select id="geometry" onchange="updateGeometryDisplay(); calculate()">
-                            <option value="Square">Square Endmill</option>
-                            <option value="Ball">Ball Endmill</option>
-                            <option value="Radiused">Bullnose / Radiused</option>
-                            <option value="Drill">Standard Twist Drill</option>
-                            <option value="Spot Drill">Spot Drill (90/120 Degree)</option>
-                            <option value="Parabolic">Parabolic Deep Drill</option>
-                            <option value="Rougher">Rougher (Corncob)</option>
-                            <option value="Indexable Mill">Indexable Mill</option>
-                            <option value="T-Slot">T-Slot / Woodruff</option>
-                            <option value="Dovetail">Dovetail Cutter</option>
-                            <option value="Keyseat">Keyseat Cutter</option>
-                            <option value="Lollipop">Lollipop</option>
-                            <option value="V-Bit">V-Bit / Chamfer</option>
-                            <option value="Engraving">Engraving Tool</option>
-                            <option value="Thread Mill">Thread Mill</option>
-                        </select>
-                    </div>
-                    <div class="input-group" style="margin:0;">
-                        <label for="operation">Operation</label>
-                        <select id="operation" onchange="calculate()">
-                            <option value="Roughing">Standard Roughing</option>
-                            <option value="Adaptive">Adaptive (High Speed/Trochoidal)</option>
-                            <option value="Finishing">Finishing</option>
-                            <option value="Slotting">Slotting (Full radial)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="checkbox-group">
-                    <input type="checkbox" id="isCarbide" checked onchange="calculate()">
-                    <label for="isCarbide">Tool is Solid Carbide (Stiffer)</label>
-                </div>
-
-                <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
-                    <div class="input-group" style="margin:0;">
-                        <label for="maxRpm">Machine Max RPM</label>
-                        <input type="number" id="maxRpm" value="16000" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
-                    </div>
-                    <div class="input-group" style="margin:0;">
-                        <label for="maxHp">Machine Max HP</label>
-                        <input type="number" id="maxHp" value="10.0" step="0.5" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
-                    </div>
-                </div>
-
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <label for="aggressiveness">Tortoise to Hare (Aggressiveness)</label>
-                        <span id="aggrVol">50%</span>
-                    </div>
-                    <input type="range" id="aggressiveness" min="0" max="100" step="1" value="50" oninput="document.getElementById('aggrVol').innerText = this.value + '%'; calculate()">
-                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
-                        <span>Conservative</span>
-                        <span>Aggressive</span>
-                    </div>
-                </div>
-
-                <div class="input-group" id="cornerRadiusGroup" style="display: none;">
-                    <label for="cornerRadius">Corner Radius (<span class="unit-lbl">in</span>)</label>
-                    <input type="number" id="cornerRadius" step="any" value="0.030" oninput="calculate()">
+                    <button onclick="applyRecommendations()" style="background: var(--accent); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Auto-Set Dials</button>
                 </div>
                 
-                <div class="input-group combo-group" id="shankGroup" style="display: none;">
-                    <div class="slider-header">
-                        <label for="shankDiameter">Shank Diameter (<span class="unit-lbl">in</span>)</label>
-                    </div>
-                    <input type="number" id="shankDiameter" step="any" list="diameters_list" value="0.25" oninput="calculate()">
-                </div>
-
-                <div class="grid-layout" id="neckGroup" style="display: none; gap: 1rem; margin-bottom: 1.5rem">
-                    <div class="input-group" style="margin:0;">
-                        <label for="neckDiameter">Neck Diameter (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="neckDiameter" step="any" value="0.125" oninput="calculate()">
-                    </div>
-                    <div class="input-group" style="margin:0;">
-                        <label for="neckLength">Neck Length (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="neckLength" step="any" value="0.5" oninput="calculate()">
-                    </div>
-                    <div class="input-group" style="margin:0;">
-                        <label for="taperAngle">Taper Angle (°)</label>
-                        <input type="number" id="taperAngle" step="any" value="0.0" oninput="calculate()">
+                <div class="unit-toggle" style="margin: 0;">
+                    <div class="toggle-track" onclick="toggleUnit()">
+                        <div id="toggle-knob" class="toggle-knob"></div>
+                        <span class="toggle-label imp-label">Imperial</span>
+                        <span class="toggle-label met-label">Metric</span>
                     </div>
                 </div>
+            </div>
 
-                <div class="input-group" id="thicknessGroup" style="display: none;">
-                    <label for="cutterThickness">Cutter Thickness (<span class="unit-lbl">in</span>)</label>
-                    <input type="number" id="cutterThickness" step="any" value="0.125" oninput="calculate()">
-                </div>
-
-                <div class="input-group" id="fluteLengthGroup" style="display: block;">
-                    <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
-                    <input type="number" id="fluteLength" step="any" value="1.000" oninput="calculate()">
-                </div>
-
-                <div class="input-group combo-group">
-                    <div class="slider-header">
-                        <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
+            <main class="grid-layout">
+                <!-- INPUTS PANEL -->
+                <section class="glass-panel inputs-panel">
+                    <h2>Parameters</h2>
+                    
+                    <div class="input-group">
+                        <label for="family">Material Family</label>
+                        <select id="family" onchange="updateAlloys(); calculate()"></select>
                     </div>
-                    <input type="number" id="diameter" step="any" list="diameters_list" value="0.5" oninput="calculate()">
-                    <datalist id="diameters_list">
-                        <!-- Populated by JS -->
-                    </datalist>
-                </div>
 
-                <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
-                    <div class="slider-group" style="margin:0;">
-                        <div class="slider-header">
-                            <label for="flutes">Flutes</label>
-                            <input type="number" id="flutes_val" value="4" class="inline-num" oninput="document.getElementById('flutes').value = this.value; calculate()">
+                    <div class="input-group">
+                        <label for="alloy">Specific Alloy</label>
+                        <select id="alloy" onchange="calculate()"></select>
+                    </div>
+
+                    <div class="grid-layout" style="gap: 1rem; margin-bottom: 0rem">
+                        <div class="input-group" style="margin:0;">
+                            <label for="tool">Tool Category</label>
+                            <select id="tool" onchange="calculate()"></select>
                         </div>
-                        <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
+                        <div class="input-group" style="margin:0;">
+                            <label for="coating">Tool Coating</label>
+                            <select id="coating" onchange="calculate()">
+                                <option value="Uncoated">Uncoated / Bright</option>
+                                <option value="TiN">TiN (Gold)</option>
+                                <option value="TiCN">TiCN (Blue-Gray)</option>
+                                <option value="TiAlN">TiAlN (Dark Violet)</option>
+                                <option value="AlTiN" selected>AlTiN (Black)</option>
+                                <option value="ZrN">ZrN (Pale Gold)</option>
+                                <option value="Diamond">Diamond / DLC</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
+                        <div class="input-group" style="margin:0;">
+                            <label for="geometry">Geometry</label>
+                            <select id="geometry" onchange="updateGeometryDisplay(); calculate()">
+                                <option value="Square">Square Endmill</option>
+                                <option value="Ball">Ball Endmill</option>
+                                <option value="Radiused">Bullnose / Radiused</option>
+                                <option value="Drill">Standard Twist Drill</option>
+                                <option value="Spot Drill">Spot Drill (90/120 Degree)</option>
+                                <option value="Parabolic">Parabolic Deep Drill</option>
+                                <option value="Rougher">Rougher (Corncob)</option>
+                                <option value="Indexable Mill">Indexable Mill</option>
+                                <option value="T-Slot">T-Slot / Woodruff</option>
+                                <option value="Dovetail">Dovetail Cutter</option>
+                                <option value="Keyseat">Keyseat Cutter</option>
+                                <option value="Lollipop">Lollipop</option>
+                                <option value="V-Bit">V-Bit / Chamfer</option>
+                                <option value="Engraving">Engraving Tool</option>
+                                <option value="Thread Mill">Thread Mill</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="margin:0;">
+                            <label for="operation">Operation</label>
+                            <select id="operation" onchange="calculate()">
+                                <option value="Adaptive">Adaptive (High Speed/Trochoidal)</option>
+                                <option value="Roughing">Standard Roughing</option>
+                                <option value="Finishing">Finishing</option>
+                                <option value="Slotting">Slotting (Full radial)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isCarbide" checked onchange="calculate()">
+                        <label for="isCarbide">Tool is Solid Carbide (Stiffer)</label>
+                    </div>
+
+                    <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
+                        <div class="input-group" style="margin:0;">
+                            <label for="maxRpm">Machine Max RPM</label>
+                            <input type="number" id="maxRpm" value="16000" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                        </div>
+                        <div class="input-group" style="margin:0;">
+                            <label for="maxHp">Machine Max HP</label>
+                            <input type="number" id="maxHp" value="10.0" step="0.5" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label for="aggressiveness">Tortoise to Hare (Aggressiveness)</label>
+                            <span id="aggrVol">50%</span>
+                        </div>
+                        <input type="range" id="aggressiveness" min="0" max="100" step="1" value="50" oninput="document.getElementById('aggrVol').innerText = this.value + '%'; calculate()">
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
+                            <span>Conservative</span>
+                            <span>Aggressive</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group" id="cornerRadiusGroup" style="display: none;">
+                        <label for="cornerRadius">Corner Radius (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="cornerRadius" step="any" value="0.030" oninput="calculate()">
                     </div>
                     
-                    <div class="slider-group" style="margin:0;">
+                    <div class="input-group combo-group" id="shankGroup" style="display: none;">
                         <div class="slider-header">
-                            <label for="helixAngle">Helix Angle (°)</label>
-                            <input type="number" id="helix_val" value="30" class="inline-num" oninput="document.getElementById('helixAngle').value = this.value; calculate()">
+                            <label for="shankDiameter">Shank Diameter (<span class="unit-lbl">in</span>)</label>
                         </div>
-                        <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" oninput="document.getElementById('helix_val').value = this.value; calculate()">
+                        <input type="number" id="shankDiameter" step="any" list="diameters_list" value="0.25" oninput="calculate()">
                     </div>
-                </div>
 
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <label for="cutDepth_range">Axial Depth of Cut (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="cutDepth_val" step="0.001" value="0.250" class="inline-num" oninput="document.getElementById('cutDepth_range').value = this.value; calculate()">
+                    <div class="grid-layout" id="neckGroup" style="display: none; gap: 1rem; margin-bottom: 1.5rem">
+                        <div class="input-group" style="margin:0;">
+                            <label for="neckDiameter">Neck Diameter (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="neckDiameter" step="any" value="0.125" oninput="calculate()">
+                        </div>
+                        <div class="input-group" style="margin:0;">
+                            <label for="neckLength">Neck Length (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="neckLength" step="any" value="0.5" oninput="calculate()">
+                        </div>
+                        <div class="input-group" style="margin:0;">
+                            <label for="taperAngle">Taper Angle (°)</label>
+                            <input type="number" id="taperAngle" step="any" value="0.0" oninput="calculate()">
+                        </div>
                     </div>
-                    <input type="range" id="cutDepth_range" min="0.001" max="2.0" step="0.001" value="0.25" oninput="document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
-                </div>
 
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <label for="cutWidth_range">Radial Width of Cut (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="cutWidth_val" step="0.001" value="0.100" class="inline-num" oninput="document.getElementById('cutWidth_range').value = this.value; calculate()">
+                    <div class="input-group" id="thicknessGroup" style="display: none;">
+                        <label for="cutterThickness">Cutter Thickness (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="cutterThickness" step="any" value="0.125" oninput="calculate()">
                     </div>
-                    <input type="range" id="cutWidth_range" min="0.001" max="2.0" step="0.001" value="0.10" oninput="document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
-                </div>
 
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <label for="stickout_range">Stickout (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="stickout_val" step="0.001" value="1.500" class="inline-num" oninput="document.getElementById('stickout_range').value = this.value; calculate()">
+                    <div class="input-group" id="fluteLengthGroup" style="display: block;">
+                        <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
+                        <input type="number" id="fluteLength" step="any" value="1.000" oninput="calculate()">
                     </div>
-                    <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" oninput="document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
-                </div>
-            </section>
 
-            <!-- RESULTS PANEL -->
-            <section class="results-panel">
-                <div class="glass-panel result-card primary-card">
-                    <h3>Spindle Speed</h3>
-                    <div class="result-val"><span id="rpm">0</span> <span class="unit">RPM</span></div>
-                    <div class="sub-val">Surface Speed: <span id="sfm">0</span> <span class="sfm-lbl">SFM</span></div>
-                </div>
+                    <div class="input-group combo-group">
+                        <div class="slider-header">
+                            <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
+                        </div>
+                        <input type="number" id="diameter" step="any" list="diameters_list" value="0.5" oninput="calculate()">
+                        <datalist id="diameters_list">
+                            <!-- Populated by JS -->
+                        </datalist>
+                    </div>
 
-                <div class="glass-panel result-card primary-card">
-                    <h3>Feedrate</h3>
-                    <div class="result-val"><span id="feedrate">0.0</span> <span class="feed-lbl">IPM</span></div>
-                    <div class="sub-val">Chipload: <span id="adj_ipt">0.000</span> (Base: <span id="base_ipt">0.0</span>)</div>
-                </div>
+                    <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
+                        <div class="slider-group" style="margin:0;">
+                            <div class="slider-header">
+                                <label for="flutes">Flutes</label>
+                                <input type="number" id="flutes_val" value="4" class="inline-num" oninput="document.getElementById('flutes').value = this.value; calculate()">
+                            </div>
+                            <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
+                        </div>
+                        
+                        <div class="slider-group" style="margin:0;">
+                            <div class="slider-header">
+                                <label for="helixAngle">Helix Angle (°)</label>
+                                <input type="number" id="helix_val" value="30" class="inline-num" oninput="document.getElementById('helixAngle').value = this.value; calculate()">
+                            </div>
+                            <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" oninput="document.getElementById('helix_val').value = this.value; calculate()">
+                        </div>
+                    </div>
 
-                <div class="glass-panel result-card metric-card">
-                    <h3>Material Removal Rate</h3>
-                    <div class="result-val"><span id="mrr">0.00</span> <span class="mrr-lbl">in³/min</span></div>
-                </div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label for="cutDepth_range">Axial Depth of Cut (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="cutDepth_val" step="0.001" value="0.250" class="inline-num" oninput="document.getElementById('cutDepth_range').value = this.value; calculate()">
+                        </div>
+                        <input type="range" id="cutDepth_range" min="0.001" max="2.0" step="0.001" value="0.25" oninput="document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                    </div>
 
-                <div class="glass-panel result-card metric-card" id="deflectionCard">
-                    <h3>Tool Deflection</h3>
-                    <div class="result-val"><span id="deflection">0.00000</span> <span class="unit-lbl">in</span></div>
-                    <div class="sub-val" id="deflectionWarning">Safe Limit: < <span id="defLimit">0.0010</span></div>
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label for="cutWidth_range">Radial Width of Cut (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="cutWidth_val" step="0.001" value="0.100" class="inline-num" oninput="document.getElementById('cutWidth_range').value = this.value; calculate()">
+                        </div>
+                        <input type="range" id="cutWidth_range" min="0.001" max="2.0" step="0.001" value="0.10" oninput="document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-header">
+                            <label for="stickout_range">Stickout (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="stickout_val" step="0.001" value="1.500" class="inline-num" oninput="document.getElementById('stickout_range').value = this.value; calculate()">
+                        </div>
+                        <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" oninput="document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                    </div>
+                </section>
+
+                <!-- RESULTS PANEL -->
+                <section class="results-panel">
+                    <div class="glass-panel result-card primary-card">
+                        <h3>Spindle Speed</h3>
+                        <div class="result-val"><span id="rpm">0</span> <span class="unit">RPM</span></div>
+                        <div class="sub-val">Surface Speed: <span id="sfm">0</span> <span class="sfm-lbl">SFM</span></div>
+                    </div>
+
+                    <div class="glass-panel result-card primary-card">
+                        <h3>Feedrate</h3>
+                        <div class="result-val"><span id="feedrate">0.0</span> <span class="feed-lbl">IPM</span></div>
+                        <div class="sub-val">Feed / Tooth: <span id="adj_ipt" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipt-lbl">in/tooth</span> <span style="opacity:0.75; font-size:0.75rem;">(Base: <span id="base_ipt">0.0000</span>)</span></div>
+                    </div>
+
+                    <div class="glass-panel result-card metric-card">
+                        <h3>Material Removal Rate</h3>
+                        <div class="result-val"><span id="mrr">0.00</span> <span class="mrr-lbl">in³/min</span></div>
+                    </div>
+
+                    <div class="glass-panel result-card metric-card" id="deflectionCard">
+                        <h3>Tool Deflection</h3>
+                        <div class="result-val">
+                            <span id="deflection">0.00000</span> <span class="unit-lbl">in</span>
+                            <span id="deflection_um_wrap" style="display:none; font-size:0.9rem; opacity:0.85; margin-left:4px;">(<span id="deflection_um">0.0</span> µm)</span>
+                        </div>
+                        <div class="sub-val" id="deflectionWarning">Safe Limit: < <span id="defLimit">0.0010</span> <span class="unit-lbl">in</span></div>
+                    </div>
+                    
+                    <div class="glass-panel result-card primary-card vertical-card" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-around;">
+                        <div>
+                            <h3>Ramp Angle</h3>
+                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_angle">0</span>°</div>
+                        </div>
+                        <div>
+                            <h3>Ramp Feed</h3>
+                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
+                        </div>
+                        <div>
+                            <h3>Plunge Feed</h3>
+                            <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- VIEW 2: DIGITAL TWIN LIBRARY MANAGER -->
+        <div id="digitalTwinView" style="display: none;">
+            <div class="glass-panel twin-header-card">
+                <div>
+                    <h2 style="margin: 0 0 0.25rem 0; font-size: 1.3rem;">Digital Twin: <span id="twinLibName" style="color: #38bdf8;">Loading...</span></h2>
+                    <span id="twinToolCountBadge" class="twin-badge">0 Tools In Library</span>
+                    <span id="twinLastSync" style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">Synced: --</span>
                 </div>
                 
-                <div class="glass-panel result-card primary-card vertical-card" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-around;">
-                    <div>
-                        <h3>Ramp Angle</h3>
-                        <div class="result-val" style="font-size: 2rem;"><span id="ramp_angle">0</span>°</div>
-                    </div>
-                    <div>
-                        <h3>Ramp Feed</h3>
-                        <div class="result-val" style="font-size: 2rem;"><span id="ramp_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
-                    </div>
-                    <div>
-                        <h3>Plunge Feed</h3>
-                        <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
-                    </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select id="twinBackupSelect" style="width: auto; min-width: 200px; font-size: 0.85rem;">
+                        <option value="">-- Backup History (0) --</option>
+                    </select>
+                    <button onclick="restoreSelectedBackup()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--panel-border); color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Restore</button>
+                    <button onclick="loadDigitalTwin()" style="background: var(--accent); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">🔄 Refresh</button>
                 </div>
-            </section>
-        </main>
+            </div>
+
+            <main class="grid-layout" style="grid-template-columns: 1.25fr 0.75fr; gap: 1.25rem;">
+                <!-- LEFT COLUMN: INTERACTIVE TOOL TABLE -->
+                <section class="glass-panel" style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h3 style="margin: 0; font-size: 1.1rem;">Library Tools</h3>
+                        <span id="selectedCountBadge" style="font-size: 0.85rem; color: var(--accent); font-weight: 600;">0 selected</span>
+                    </div>
+
+                    <div class="twin-filter-bar">
+                        <input type="text" id="twinSearchInput" placeholder="🔍 Search tool name, #, or diameter..." oninput="filterTwinTools()" style="flex: 1; padding: 0.4rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white; font-size: 0.85rem;">
+                        <button class="filter-btn active" onclick="setToolTypeFilter('all', this)">All</button>
+                        <button class="filter-btn" onclick="setToolTypeFilter('flat', this)">Flat Endmills</button>
+                        <button class="filter-btn" onclick="setToolTypeFilter('ball', this)">Ball</button>
+                        <button class="filter-btn" onclick="setToolTypeFilter('bullnose', this)">Bullnose</button>
+                        <button class="filter-btn" onclick="setToolTypeFilter('drill', this)">Drills</button>
+                    </div>
+
+                    <div class="twin-table-container">
+                        <table class="twin-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAllTwinCheckbox" onchange="toggleSelectAllTwin(this.checked)"></th>
+                                    <th style="width: 45px;">#</th>
+                                    <th>Description & Geometry</th>
+                                    <th style="width: 90px;">Dia (in/mm)</th>
+                                    <th style="width: 50px;">Flutes</th>
+                                    <th>Existing Presets</th>
+                                </tr>
+                            </thead>
+                            <tbody id="twinToolsTbody">
+                                <tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Click 'Export Digital Twin' in Fusion 360 to populate this library.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- RIGHT COLUMN: BATCH PRESET INJECTION PANEL -->
+                <section class="glass-panel" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <h3 style="margin: 0; font-size: 1.1rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.5rem;">Batch Presets Generator</h3>
+                    
+                    <div class="input-group">
+                        <label for="twinFamily">Target Material Family</label>
+                        <select id="twinFamily" onchange="updateTwinAlloys()"></select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="twinAlloy">Specific Alloy</label>
+                        <select id="twinAlloy"></select>
+                    </div>
+
+                    <div class="input-group">
+                        <label style="margin-bottom: 0.5rem;">Operation Strategies to Generate:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--panel-border);">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;">
+                                <input type="checkbox" id="stratAdaptive" checked style="accent-color: var(--accent);"> Adaptive Roughing
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;">
+                                <input type="checkbox" id="stratRoughing" checked style="accent-color: var(--accent);"> Standard Roughing
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;">
+                                <input type="checkbox" id="stratFinishing" checked style="accent-color: var(--accent);"> Finishing Pass
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white;">
+                                <input type="checkbox" id="stratSlotting" checked style="accent-color: var(--accent);"> Slotting (100% WOC)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white; grid-column: span 2;">
+                                <input type="checkbox" id="stratFacing" style="accent-color: var(--accent);"> Facing / Pocketing
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid-layout" style="gap: 0.75rem;">
+                        <div class="input-group" style="margin: 0;">
+                            <label for="twinCoating">Tool Coating</label>
+                            <select id="twinCoating">
+                                <option value="AlTiN" selected>AlTiN (Black)</option>
+                                <option value="TiAlN">TiAlN (Dark Violet)</option>
+                                <option value="TiN">TiN (Gold)</option>
+                                <option value="TiCN">TiCN (Blue-Gray)</option>
+                                <option value="Uncoated">Uncoated / Bright</option>
+                                <option value="Diamond">Diamond / DLC</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="margin: 0;">
+                            <label for="twinAggressiveness">Aggressiveness</label>
+                            <input type="range" id="twinAggressiveness" min="0" max="100" value="50" oninput="document.getElementById('twinAggrVal').innerText = this.value + '%'">
+                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary);">
+                                <span>Safe (0%)</span>
+                                <span id="twinAggrVal" style="color:var(--accent); font-weight:bold;">50%</span>
+                                <span>Hard (100%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" onclick="runBatchPresetGeneration()" style="margin-top: 0.5rem;">
+                        ⚡ Generate & Inject Presets to Selected Tools
+                    </button>
+
+                    <div id="twinStatusBox" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.75rem; font-size: 0.85rem; color: #a7f3d0;">
+                        <!-- Live Status Log -->
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
 
     <script>
         let fullAlloys = [];
         let isMetric = false;
+        let activeTwinTools = [];
+        let activeTwinTypeFilter = 'all';
         
         const SIZES_IMP = [
             {v: 0.03125, l: "1/32\""},
@@ -294,19 +434,36 @@
             {v: 25.0, l: "25 mm"}
         ];
 
+        function switchTab(tabName) {
+            document.getElementById('tabCalcBtn').classList.toggle('active', tabName === 'calculator');
+            document.getElementById('tabTwinBtn').classList.toggle('active', tabName === 'digital-twin');
+            document.getElementById('calculatorView').style.display = tabName === 'calculator' ? 'block' : 'none';
+            document.getElementById('digitalTwinView').style.display = tabName === 'digital-twin' ? 'block' : 'none';
+            
+            if (tabName === 'digital-twin') {
+                loadDigitalTwin();
+            }
+        }
+
         async function init() {
             const response = await fetch('/api/data');
             const data = await response.json();
             
             const familySelect = document.getElementById('family');
+            const twinFamilySelect = document.getElementById('twinFamily');
+            familySelect.innerHTML = '';
+            twinFamilySelect.innerHTML = '';
+            
             data.families.forEach(f => {
-                let opt = document.createElement('option');
-                opt.value = f; opt.innerText = f;
-                if(f.includes("Aluminum - Wrought")) opt.selected = true;
-                familySelect.appendChild(opt);
+                let opt1 = document.createElement('option'); opt1.value = f; opt1.innerText = f;
+                let opt2 = document.createElement('option'); opt2.value = f; opt2.innerText = f;
+                if(f.includes("Steel - Tool")) { opt1.selected = true; opt2.selected = true; }
+                familySelect.appendChild(opt1);
+                twinFamilySelect.appendChild(opt2);
             });
 
             const toolSelect = document.getElementById('tool');
+            toolSelect.innerHTML = '';
             data.tools.forEach(t => {
                 let opt = document.createElement('option');
                 opt.value = t; opt.innerText = t;
@@ -316,6 +473,7 @@
 
             fullAlloys = data.alloys;
             updateAlloys();
+            updateTwinAlloys();
             buildDatalist();
             updateGeometryDisplay();
             calculate();
@@ -330,8 +488,6 @@
             document.getElementById('thicknessGroup').style.display = (geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail') ? 'block' : 'none';
             document.getElementById('neckGroup').style.display = showShank ? 'block' : 'none';
             
-            // Standard formatting fixes for UI
-            let flLabel = document.querySelector('label[for="fluteLength"]');
             if(geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Lollipop') {
                 document.getElementById('fluteLengthGroup').style.display = 'none';
             } else {
@@ -360,14 +516,12 @@
             if(isMetric) knob.classList.add("metric-active");
             else knob.classList.remove("metric-active");
             
-            // Update labels
             document.querySelectorAll('.unit-lbl').forEach(e => e.innerText = isMetric ? "mm" : "in");
             document.querySelectorAll('.feed-lbl').forEach(e => e.innerText = isMetric ? "mm/min" : "IPM");
             document.querySelectorAll('.mrr-lbl').forEach(e => e.innerText = isMetric ? "cm³/min" : "in³/min");
             document.querySelectorAll('.sfm-lbl').forEach(e => e.innerText = isMetric ? "SMM" : "SFM");
-            document.getElementById('defLimit').innerText = isMetric ? "0.025" : "0.0010";
+            document.querySelectorAll('.ipt-lbl').forEach(e => e.innerText = isMetric ? "mm/tooth" : "in/tooth");
             
-            // Adjust Sliders and Diameters bounds visually mapping directly
             let diaInput = document.getElementById('diameter');
             let dVal = parseFloat(diaInput.value);
             diaInput.value = isMetric ? (dVal * 25.4).toFixed(1) : (dVal / 25.4).toFixed(3);
@@ -384,7 +538,6 @@
             let crVal = parseFloat(crInput.value);
             crInput.value = isMetric ? (crVal * 25.4).toFixed(2) : (crVal / 25.4).toFixed(3);
             
-            let cfps = isMetric ? 25.4 : 1.0;
             ["cutDepth", "cutWidth", "stickout"].forEach(prefix => {
                 let range = document.getElementById(prefix + "_range");
                 let valNode = document.getElementById(prefix + "_val");
@@ -431,18 +584,25 @@
             filtered.forEach(a => {
                 let opt = document.createElement('option');
                 opt.value = a.alloy; 
-                opt.innerText = `${a.alloy} - ${a.condition}`;
-                if(a.alloy === "6061") opt.selected = true;
+                opt.innerText = a.condition ? `${a.alloy} (${a.condition})` : a.alloy;
+                if(a.alloy.includes("MagnaCut") || a.alloy.includes("6061")) opt.selected = true;
                 alloySelect.appendChild(opt);
             });
         }
 
-        function updateSlider(viewId, rangeId) {
-            const val = document.getElementById(rangeId).value;
-            document.getElementById(viewId).innerText = parseFloat(val).toFixed(isMetric ? 1 : 3);
-        }
-        function updateVal(id, val) {
-            document.getElementById(id).innerText = parseFloat(val);
+        function updateTwinAlloys() {
+            const family = document.getElementById('twinFamily').value;
+            const alloySelect = document.getElementById('twinAlloy');
+            alloySelect.innerHTML = '';
+            
+            const filtered = fullAlloys.filter(a => a.family === family);
+            filtered.forEach(a => {
+                let opt = document.createElement('option');
+                opt.value = a.alloy;
+                opt.innerText = a.condition ? `${a.alloy} (${a.condition})` : a.alloy;
+                if(a.alloy.includes("MagnaCut") || a.alloy.includes("6061")) opt.selected = true;
+                alloySelect.appendChild(opt);
+            });
         }
 
         let abortController = null;
@@ -451,7 +611,6 @@
             if (abortController) abortController.abort();
             abortController = new AbortController();
 
-            // Prepare Payload via Standard Conversion to Imperial Baseline 
             let p_dia = parseFloat(document.getElementById('diameter').value) || 0.5;
             let p_depth = parseFloat(document.getElementById('cutDepth_val').value) || 0.25;
             let p_width = parseFloat(document.getElementById('cutWidth_val').value) || 0.1;
@@ -464,20 +623,14 @@
             let p_neckLength = parseFloat(document.getElementById('neckLength')?.value) || 0.5;
             
             if(isMetric) {
-                p_dia /= 25.4;
-                p_depth /= 25.4;
-                p_width /= 25.4;
-                p_stick /= 25.4;
-                p_shank /= 25.4;
-                p_cr /= 25.4;
-                p_thick /= 25.4;
-                p_flute /= 25.4;
-                p_neck /= 25.4;
-                p_neckLength /= 25.4;
+                p_dia /= 25.4; p_depth /= 25.4; p_width /= 25.4; p_stick /= 25.4;
+                p_shank /= 25.4; p_cr /= 25.4; p_thick /= 25.4; p_flute /= 25.4;
+                p_neck /= 25.4; p_neckLength /= 25.4;
             }
 
             const payload = {
                 family: document.getElementById('family').value,
+                alloy: document.getElementById('alloy').value,
                 tool: document.getElementById('tool').value,
                 coating: document.getElementById('coating').value,
                 geometry: document.getElementById('geometry').value,
@@ -529,26 +682,40 @@
                     document.getElementById('mrr').innerText = out_mrr.toFixed(isMetric ? 1 : 3);
                     
                     let out_def = isMetric ? res.deflection * 25.4 : res.deflection;
-                    document.getElementById('deflection').innerText = out_def.toFixed(5);
+                    document.getElementById('deflection').innerText = out_def.toFixed(isMetric ? 4 : 5);
                     
-                    let out_sfm = isMetric ? res.sfm * 0.3048 : res.sfm; // SFM to SMM
+                    let def_um_wrap = document.getElementById('deflection_um_wrap');
+                    if (isMetric) {
+                        def_um_wrap.style.display = 'inline';
+                        document.getElementById('deflection_um').innerText = (res.deflection * 25.4 * 1000).toFixed(1);
+                    } else {
+                        def_um_wrap.style.display = 'none';
+                    }
+                    
+                    let limit_val = res.rec_limit ? res.rec_limit : (p_dia * 0.001);
+                    let out_limit = isMetric ? limit_val * 25.4 : limit_val;
+                    document.getElementById('defLimit').innerText = out_limit.toFixed(isMetric ? 4 : 5);
+                    
+                    let out_sfm = isMetric ? res.sfm * 0.3048 : res.sfm;
                     document.getElementById('sfm').innerText = Math.round(out_sfm);
                     
                     let out_ipt = isMetric ? res.adj_ipt * 25.4 : res.adj_ipt;
                     let out_bipt = isMetric ? res.base_ipt * 25.4 : res.base_ipt;
-                    document.getElementById('adj_ipt').innerText = out_ipt.toFixed(isMetric ? 3 : 5);
-                    document.getElementById('base_ipt').innerText = out_bipt.toFixed(isMetric ? 3 : 5);
+                    document.getElementById('adj_ipt').innerText = out_ipt.toFixed(isMetric ? 4 : 5);
+                    document.getElementById('base_ipt').innerText = out_bipt.toFixed(isMetric ? 4 : 5);
                     
-                    // Ramping Updates
                     document.getElementById('ramp_angle').innerText = res.ramp_angle;
                     document.getElementById('ramp_feed').innerText = (isMetric ? res.ramp_feed * 25.4 : res.ramp_feed).toFixed(1);
                     document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
 
                     const defCard = document.getElementById('deflectionCard');
-                    if (res.deflection > 0.001) {
+                    let defRatio = res.deflection / limit_val;
+                    if (defRatio >= 1.0) {
                         defCard.classList.add("danger");
-                    } else if (res.deflection > 0.0005) {
-                        defCard.classList.add("warning"); defCard.classList.remove("danger");
+                        defCard.classList.remove("warning");
+                    } else if (defRatio >= 0.65) {
+                        defCard.classList.add("warning"); 
+                        defCard.classList.remove("danger");
                     } else {
                         defCard.classList.remove("danger", "warning");
                     }
@@ -573,6 +740,207 @@
                 }
                 obj.innerHTML = current;
             }, stepTime);
+        }
+
+        /* --- DIGITAL TWIN MANAGER FUNCTIONS --- */
+
+        async function loadDigitalTwin() {
+            try {
+                const res = await fetch('/api/twin/load');
+                const data = await res.json();
+                
+                document.getElementById('twinLibName').innerText = data.library_name || "No Library Exported Yet";
+                document.getElementById('twinToolCountBadge').innerText = `${data.tool_count || 0} Tools in Library`;
+                document.getElementById('twinLastSync').innerText = data.last_modified ? `Last Modified: ${data.last_modified.replace('T', ' ').substring(0, 19)}` : '';
+                
+                activeTwinTools = data.tools || [];
+                renderTwinTools();
+                renderTwinBackups(data.backups || []);
+            } catch (e) {
+                console.error("Failed to load Digital Twin data:", e);
+            }
+        }
+
+        function renderTwinBackups(backups) {
+            const select = document.getElementById('twinBackupSelect');
+            select.innerHTML = `<option value="">-- Backup History (${backups.length}) --</option>`;
+            backups.forEach(b => {
+                let opt = document.createElement('option');
+                opt.value = b.filename;
+                opt.innerText = `${b.timestamp} | ${b.library_name} (${b.tool_count} tools, ${b.size_kb}KB)`;
+                select.appendChild(opt);
+            });
+        }
+
+        async function restoreSelectedBackup() {
+            const filename = document.getElementById('twinBackupSelect').value;
+            if (!filename) {
+                alert('Please select a backup from the history dropdown to restore.');
+                return;
+            }
+            if (!confirm(`Are you sure you want to restore the library from snapshot:\n${filename}?`)) {
+                return;
+            }
+            try {
+                const res = await fetch('/api/twin/backups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`Successfully restored snapshot: ${filename}`);
+                    loadDigitalTwin();
+                } else {
+                    alert(`Restore failed: ${data.error}`);
+                }
+            } catch (e) {
+                alert(`Restore error: ${e}`);
+            }
+        }
+
+        function setToolTypeFilter(filterType, btn) {
+            activeTwinTypeFilter = filterType;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderTwinTools();
+        }
+
+        function filterTwinTools() {
+            renderTwinTools();
+        }
+
+        function renderTwinTools() {
+            const tbody = document.getElementById('twinToolsTbody');
+            const search = document.getElementById('twinSearchInput').value.toLowerCase();
+            tbody.innerHTML = '';
+            
+            if (activeTwinTools.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No tools found. Click "Export Digital Twin" in Fusion 360 to populate.</td></tr>';
+                return;
+            }
+
+            let renderedCount = 0;
+
+            activeTwinTools.forEach(t => {
+                // Type Filter
+                const tType = (t.type || '').toLowerCase();
+                const desc = (t.description || '').toLowerCase();
+                
+                if (activeTwinTypeFilter === 'flat' && !desc.includes('flat') && !tType.includes('flat')) return;
+                if (activeTwinTypeFilter === 'ball' && !desc.includes('ball') && !tType.includes('ball')) return;
+                if (activeTwinTypeFilter === 'bullnose' && !desc.includes('bull') && !desc.includes('radius') && !tType.includes('bull')) return;
+                if (activeTwinTypeFilter === 'drill' && !desc.includes('drill') && !tType.includes('drill')) return;
+
+                // Search Filter
+                if (search && !desc.includes(search) && !t.number.toString().includes(search) && !t.diameter_in.toString().includes(search)) {
+                    return;
+                }
+
+                renderedCount++;
+                const tr = document.createElement('tr');
+                tr.id = `twin_tool_row_${t.index}`;
+                
+                let presetTags = (t.presets || []).map(p => `<span class="preset-tag" title="${p}">${p.length > 22 ? p.substring(0, 20) + '...' : p}</span>`).join(' ');
+                if (!presetTags) presetTags = '<span style="opacity: 0.4; font-size: 0.75rem;">None</span>';
+
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="twin-tool-chk" value="${t.index}" onchange="updateTwinSelectionCount()"></td>
+                    <td style="font-weight: 700; color: var(--accent);">T${t.number}</td>
+                    <td>
+                        <div style="font-weight: 600;">${t.description}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${t.type || 'End Mill'}</div>
+                    </td>
+                    <td>
+                        <div>${t.diameter_in}"</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${t.diameter_mm}mm</div>
+                    </td>
+                    <td style="font-weight: 600;">${t.flutes}</td>
+                    <td>${presetTags}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateTwinSelectionCount();
+        }
+
+        function toggleSelectAllTwin(checked) {
+            document.querySelectorAll('.twin-tool-chk').forEach(chk => {
+                chk.checked = checked;
+            });
+            updateTwinSelectionCount();
+        }
+
+        function updateTwinSelectionCount() {
+            const selected = document.querySelectorAll('.twin-tool-chk:checked');
+            document.getElementById('selectedCountBadge').innerText = `${selected.length} of ${activeTwinTools.length} selected`;
+            
+            document.querySelectorAll('.twin-tool-chk').forEach(chk => {
+                const row = document.getElementById(`twin_tool_row_${chk.value}`);
+                if (row) {
+                    row.classList.toggle('selected', chk.checked);
+                }
+            });
+        }
+
+        async function runBatchPresetGeneration() {
+            const checked = Array.from(document.querySelectorAll('.twin-tool-chk:checked')).map(c => parseInt(c.value));
+            if (checked.length === 0) {
+                alert('Please select at least one tool from the table to inject presets into.');
+                return;
+            }
+
+            const strategies = [];
+            if (document.getElementById('stratAdaptive').checked) strategies.push('Adaptive Roughing');
+            if (document.getElementById('stratRoughing').checked) strategies.push('Roughing');
+            if (document.getElementById('stratFinishing').checked) strategies.push('Finishing');
+            if (document.getElementById('stratSlotting').checked) strategies.push('Slotting');
+            if (document.getElementById('stratFacing').checked) strategies.push('Facing');
+
+            if (strategies.length === 0) {
+                alert('Please select at least one operation strategy checkbox.');
+                return;
+            }
+
+            const payload = {
+                tool_indices: checked,
+                family: document.getElementById('twinFamily').value,
+                alloy: document.getElementById('twinAlloy').value,
+                strategies: strategies,
+                aggressiveness: parseFloat(document.getElementById('twinAggressiveness').value),
+                coating: document.getElementById('twinCoating').value,
+                maxRpm: parseFloat(document.getElementById('maxRpm').value) || 16000,
+                maxHp: parseFloat(document.getElementById('maxHp').value) || 10.0
+            };
+
+            const statusBox = document.getElementById('twinStatusBox');
+            statusBox.style.display = 'block';
+            statusBox.innerHTML = `⏳ Computing GWizard cutting physics and injecting presets across ${checked.length} tools...`;
+
+            try {
+                const res = await fetch('/api/twin/batch_generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    statusBox.innerHTML = `
+                        <strong>✅ Batch Injection Complete!</strong><br>
+                        • Updated Tools: <strong>${data.updated_tools_count}</strong><br>
+                        • Total Presets Injected: <strong>${data.total_presets_injected}</strong><br>
+                        • Material: <strong>${payload.alloy}</strong><br>
+                        • Backup Created: <code>${data.backup.filename}</code><br><br>
+                        <em>Click 'Import Digital Twin' in Fusion 360 to sync your updated library!</em>
+                    `;
+                    loadDigitalTwin();
+                } else {
+                    statusBox.innerHTML = `❌ Error: ${data.error}`;
+                }
+            } catch (e) {
+                statusBox.innerHTML = `❌ Network Error: ${e}`;
+            }
         }
 
         init();
