@@ -290,7 +290,14 @@
                     </select>
                     <button onclick="restoreSelectedBackup()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--panel-border); color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Restore</button>
                     <button onclick="loadDigitalTwin()" style="background: var(--accent); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">🔄 Refresh</button>
+                    <a href="/api/twin/download" style="text-decoration: none; display: inline-block; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: #a7f3d0; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">⬇️ Download Updated</a>
                 </div>
+            </div>
+
+            <div id="dropZone" style="border: 2px dashed rgba(56, 189, 248, 0.5); border-radius: 8px; padding: 1.5rem; text-align: center; margin-bottom: 1.25rem; background: rgba(56, 189, 248, 0.05); transition: all 0.2s; cursor: pointer;">
+                <h3 style="margin: 0 0 0.5rem 0; color: #38bdf8;">📤 Drag & Drop Fusion Tool Library Here</h3>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Drop a .tools or .json Hub library file exported from Fusion, or click to browse.</p>
+                <input type="file" id="twinFileInput" style="display: none;" accept=".json,.tools">
             </div>
 
             <main class="grid-layout" style="grid-template-columns: 1.25fr 0.75fr; gap: 1.25rem;">
@@ -940,6 +947,74 @@
                 }
             } catch (e) {
                 statusBox.innerHTML = `❌ Network Error: ${e}`;
+            }
+        }
+
+        // Drag and Drop Upload Logic
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('twinFileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.background = 'rgba(56, 189, 248, 0.15)';
+            dropZone.style.borderColor = '#38bdf8';
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.style.background = 'rgba(56, 189, 248, 0.05)';
+            dropZone.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.background = 'rgba(56, 189, 248, 0.05)';
+            dropZone.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+            
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        async function handleFileUpload(file) {
+            if (!file.name.endsWith('.json') && !file.name.endsWith('.tools')) {
+                alert('Please upload a .json or .tools file.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            dropZone.querySelector('h3').innerHTML = '⏳ Uploading and Parsing...';
+            
+            try {
+                const res = await fetch('/api/twin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    dropZone.querySelector('h3').innerHTML = '✅ Upload Complete!';
+                    setTimeout(() => {
+                        dropZone.querySelector('h3').innerHTML = '📤 Drag & Drop Fusion Tool Library Here';
+                    }, 3000);
+                    loadDigitalTwin();
+                } else {
+                    alert('Error: ' + data.error);
+                    dropZone.querySelector('h3').innerHTML = '📤 Drag & Drop Fusion Tool Library Here';
+                }
+            } catch (e) {
+                alert('Network error during upload');
+                dropZone.querySelector('h3').innerHTML = '📤 Drag & Drop Fusion Tool Library Here';
             }
         }
 

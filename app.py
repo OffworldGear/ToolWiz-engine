@@ -440,6 +440,90 @@ def twin_get_import_payload():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+import zipfile
+import io
+from flask import send_file
+
+@app.route("/api/twin/upload", methods=["POST"])
+def twin_upload():
+    """Handles manual drag-and-drop file uploads of .tools or .json libraries"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No file uploaded"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "No selected file"}), 400
+            
+        filename = file.filename.lower()
+        library_data = None
+        
+        if filename.endswith('.json'):
+            library_data = json.loads(file.read().decode('utf-8'))
+        elif filename.endswith('.tools'):
+            with zipfile.ZipFile(file, 'r') as z:
+                json_files = [n for n in z.namelist() if n.endswith('.json')]
+                if not json_files:
+                    return jsonify({"success": False, "error": "No .json found inside .tools archive"}), 400
+                with z.open(json_files[0]) as f:
+                    library_data = json.loads(f.read().decode('utf-8'))
+        else:
+            return jsonify({"success": False, "error": "Unsupported file type. Please upload .tools or .json"}), 400
+            
+        tools_list = []
+        if isinstance(library_data, dict) and "data" in library_data:
+            tools_list = library_data["data"]
+        elif isinstance(library_data, list):
+            tools_list = library_data
+        elif isinstance(library_data, dict) and "tools" in library_data:
+            tools_list = library_data["tools"]
+            
+        lib_name = file.filename.replace('.json', '').replace('.tools', '')
+        normalized_data = {
+            "library_name": lib_name,
+            "tools": tools_list
+        }
+        
+        backup_info = bm.save_working_library(normalized_data, lib_name)
+        
+        return jsonify({
+            "success": True,
+            "library_name": lib_name,
+            "tool_count": len(tools_list),
+            "backup": backup_info
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/download", methods=["GET"])
+def twin_download():
+    """Provides the active Digital Twin library as a downloadable .json file"""
+    try:
+        data = bm.load_working_library()
+        if not data:
+            return "No active library found", 404
+            
+        fusion_format = {
+            "data": data.get("tools", [])
+        }
+        
+        json_str = json.dumps(fusion_format, indent=2)
+        lib_name = data.get("library_name", "ToolWiz_Digital_Twin")
+        
+        mem_file = io.BytesIO()
+        mem_file.write(json_str.encode('utf-8'))
+        mem_file.seek(0)
+        
+        return send_file(
+            mem_file,
+            mimetype='application/json',
+            as_attachment=True,
+            download_name=f"{lib_name}_Updated.json"
+        )
+    except Exception as e:
+        return str(e), 500
+
 if __name__ == "__main__":
     # Run the Flask app on localhost:5000
     app.run(host="127.0.0.1", port=5000, debug=True)
