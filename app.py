@@ -389,17 +389,38 @@ def twin_batch_generate():
                 material_label = alloy if alloy else family
                 preset_name = f"{material_label} - {strat}"
                 
+                # Convert to pure numeric values based on the tool's native unit
+                if tool_unit == "inches":
+                    p_n = float(rpm)
+                    p_vc = float(actual_sfm)
+                    p_fz = float(adj_ipt)
+                    p_vf = float(feedrate)
+                    p_vf_ramp = float(ramp_feed)
+                    p_vf_plunge = float(plunge_feed)
+                    p_stepdown = float(rec_doc)
+                    p_stepover = float(rec_woc)
+                else:
+                    # tool_unit == "millimeters"
+                    p_n = float(rpm)
+                    p_vc = float(actual_sfm * 0.3048) # SFM to m/min
+                    p_fz = float(adj_ipt * 25.4)
+                    p_vf = float(feedrate * 25.4)
+                    p_vf_ramp = float(ramp_feed * 25.4)
+                    p_vf_plunge = float(plunge_feed * 25.4)
+                    p_stepdown = float(rec_doc * 25.4)
+                    p_stepover = float(rec_woc * 25.4)
+                
                 preset_dict = {
                     "name": preset_name,
                     "description": preset_name,
-                    "n": format_unit(rpm, "rpm"),
-                    "v_c": format_unit(actual_sfm, "ft/min"),
-                    "f_z": format_unit(adj_ipt, "in"),
-                    "v_f": format_unit(feedrate, "in/min"),
-                    "v_f_ramp": format_unit(ramp_feed, "in/min"),
-                    "v_f_plunge": format_unit(plunge_feed, "in/min"),
-                    "stepdown": format_unit(rec_doc, "in"),
-                    "stepover": format_unit(rec_woc, "in"),
+                    "n": p_n,
+                    "v_c": p_vc,
+                    "f_z": p_fz,
+                    "v_f": p_vf,
+                    "v_f_ramp": p_vf_ramp,
+                    "v_f_plunge": p_vf_plunge,
+                    "stepdown": p_stepdown,
+                    "stepover": p_stepover,
                     "tool-coolant": "flood"
                 }
                 
