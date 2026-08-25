@@ -415,8 +415,13 @@ def twin_batch_generate():
                     "guid": str(uuid.uuid4()),
                     "name": preset_name,
                     "description": preset_name,
-                    "n": p_n,
-                    "n_ramp": p_n,
+                    "material": {
+                        "category": "all",
+                        "query": material_label,
+                        "use-hardness": False
+                    },
+                    "n": int(p_n),
+                    "n_ramp": int(p_n),
                     "v_c": p_vc,
                     "f_z": p_fz,
                     "f_n": float(p_fz * flutes),
@@ -430,6 +435,7 @@ def twin_batch_generate():
                     "stepover": p_stepover,
                     "use-stepdown": True,
                     "use-stepover": True,
+                    "ramp-angle": 2.0,
                     "tool-coolant": "flood"
                 }
                 
