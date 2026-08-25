@@ -343,6 +343,23 @@ def twin_batch_generate():
             raw_t = tools[idx]
             t_dict = json.loads(raw_t) if isinstance(raw_t, str) else raw_t
             
+            if t_dict.get("type") == "holder":
+                continue
+                
+            tool_type = t_dict.get("type", "end mill").lower()
+            valid_milling_types = [
+                "end mill", "ball end mill", "bull nose end mill", 
+                "chamfer mill", "face mill", "slot mill", "tapered mill", 
+                "dovetail mill", "lollipop mill", "radius mill", "form mill",
+                "engraving chamfer mill", "thread mill"
+            ]
+            
+            # Skip drills, probes, waterjets, and other non-milling tools
+            # that crash the Fusion schema parser if given milling parameters
+            if tool_type not in valid_milling_types:
+                tools[idx] = t_dict
+                continue
+
             geo = t_dict.get("geometry", {})
             tool_unit = t_dict.get("unit", geo.get("unit", ""))
             

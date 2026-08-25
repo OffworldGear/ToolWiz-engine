@@ -360,11 +360,16 @@
             "v_f_transition": 480
           },
           {
-            "guid": "95a3e549-179b-4420-8796-3ee54a1e66e2",
+            "guid": "eebd1de6-7b3d-41c0-8ff8-2bb57d61de9b",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.02071428727182299,
             "f_n": 0.04142857454364598,
@@ -378,14 +383,20 @@
             "stepover": 0.15,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "793dc6be-db4f-4494-ba4c-725a87d80efa",
+            "guid": "80c9ef43-4ae3-4887-8294-4a519394c297",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.011379199999999999,
             "f_n": 0.022758399999999998,
@@ -399,14 +410,20 @@
             "stepover": 0.49999999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "02ae072f-e433-474d-b7af-3601f25c8229",
+            "guid": "bc39da8f-6d55-4b45-811f-6b17ba9efcca",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.015663405113159376,
             "f_n": 0.03132681022631875,
@@ -420,14 +437,20 @@
             "stepover": 0.049999999999999996,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "68116f0c-d8b6-456d-add7-a5407c567a8e",
+            "guid": "48289044-565e-41f9-b74c-17a170c9b011",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.011379199999999999,
             "f_n": 0.022758399999999998,
@@ -441,14 +464,20 @@
             "stepover": 0.9999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "6e1f93db-ba5c-4037-ac16-06a043db5691",
+            "guid": "12611cf2-e378-4691-9e49-60d860a680bc",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.025892859089778734,
             "f_n": 0.05178571817955747,
@@ -462,14 +491,20 @@
             "stepover": 0.15,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "35e2270b-8bb3-499a-9dc4-c7966a6ad057",
+            "guid": "f2245200-5fbe-4b91-900a-ffc823621c72",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.014223999999999999,
             "f_n": 0.028447999999999998,
@@ -483,14 +518,20 @@
             "stepover": 0.49999999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c54da67b-1be4-4734-abbe-21caa105c31e",
+            "guid": "656710a3-8b4f-428b-9f5a-b06a5f8f964d",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.01957925639144922,
             "f_n": 0.03915851278289844,
@@ -504,14 +545,20 @@
             "stepover": 0.049999999999999996,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "8bdcc01f-7a03-48a5-a17d-c54c07f660e7",
+            "guid": "cfe57a05-d4c0-40ef-8045-5315d31b5709",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 50.26548245743669,
             "f_z": 0.014223999999999999,
             "f_n": 0.028447999999999998,
@@ -525,6 +572,7 @@
             "stepover": 0.9999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           }
         ]
@@ -669,11 +717,16 @@
             "v_f_transition": 39.37007874015748
           },
           {
-            "guid": "69734fa2-058a-45d3-a191-d953bb9b6475",
+            "guid": "0f2317bd-8e67-44ab-9140-dbdc9d081e51",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 598.9318818434206,
-            "n_ramp": 598.9318818434206,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 598,
+            "n_ramp": 598,
             "v_c": 313.6,
             "f_z": 0.00917463511055152,
             "f_n": 0.0458731755527576,
@@ -687,14 +740,20 @@
             "stepover": 0.3,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "00c764de-1962-405c-a469-2f4a94bc1361",
+            "guid": "08b6b014-9ef3-41d8-8ec8-4b48f2794ad7",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 598.9318818434206,
-            "n_ramp": 598.9318818434206,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 598,
+            "n_ramp": 598,
             "v_c": 313.6,
             "f_z": 0.005039999999999999,
             "f_n": 0.025199999999999997,
@@ -708,14 +767,20 @@
             "stepover": 1.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bfe6c772-888e-42c7-98d7-1062f24096b8",
+            "guid": "9f0aab74-c2e9-49d6-9658-cefa4b4ee6d6",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 598.9318818434206,
-            "n_ramp": 598.9318818434206,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 598,
+            "n_ramp": 598,
             "v_c": 313.6,
             "f_z": 0.0069375317922457875,
             "f_n": 0.03468765896122894,
@@ -729,14 +794,20 @@
             "stepover": 0.1,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "cd1fc2b0-7f23-428b-8ad0-d3d6ae758bcf",
+            "guid": "61d33cd1-ee80-4670-8fd2-0698f9ab814b",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 598.9318818434206,
-            "n_ramp": 598.9318818434206,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 598,
+            "n_ramp": 598,
             "v_c": 313.6,
             "f_z": 0.005039999999999999,
             "f_n": 0.025199999999999997,
@@ -750,14 +821,20 @@
             "stepover": 2.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "55124031-40a3-4050-939a-27bb8ecf789f",
+            "guid": "cd779d07-77c7-4aca-8f2f-fd03c0b46dcf",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 1540.1105533116527,
-            "n_ramp": 1540.1105533116527,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 1540,
+            "n_ramp": 1540,
             "v_c": 806.4,
             "f_z": 0.010194039011723914,
             "f_n": 0.05097019505861957,
@@ -771,14 +848,20 @@
             "stepover": 0.3,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "849403e7-060c-421b-a670-0b914c38a339",
+            "guid": "69a359bc-5475-4f97-bec9-c363686d5169",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 1540.1105533116527,
-            "n_ramp": 1540.1105533116527,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 1540,
+            "n_ramp": 1540,
             "v_c": 806.4,
             "f_z": 0.0056,
             "f_n": 0.028,
@@ -792,14 +875,20 @@
             "stepover": 1.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "a07cee79-986b-4a76-9016-7dcb0e943087",
+            "guid": "a24d6bcd-b1c4-4ccd-9c98-ce28087592b9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 1540.1105533116527,
-            "n_ramp": 1540.1105533116527,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 1540,
+            "n_ramp": 1540,
             "v_c": 806.4,
             "f_z": 0.007708368658050876,
             "f_n": 0.03854184329025438,
@@ -813,14 +902,20 @@
             "stepover": 0.1,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "8e4845cb-38c9-4005-b5bc-f14dc5301530",
+            "guid": "39c7e112-db1c-43da-89d8-7711c9352f59",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 1540.1105533116527,
-            "n_ramp": 1540.1105533116527,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 1540,
+            "n_ramp": 1540,
             "v_c": 806.4,
             "f_z": 0.0056,
             "f_n": 0.028,
@@ -834,6 +929,7 @@
             "stepover": 2.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           }
         ]
@@ -1603,11 +1699,16 @@
             "v_f_transition": 9.153620989261176
           },
           {
-            "guid": "5916979b-82cd-45bf-926e-0fadda25fd99",
+            "guid": "ac880cbc-29ce-4c14-8bef-bd3c73c37975",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000815523120937913,
             "f_n": 0.002446569362813739,
@@ -1621,14 +1722,20 @@
             "stepover": 0.009375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "ddc0ca82-54ed-453a-9036-128787e44b1e",
+            "guid": "23060e56-ef44-48f5-9186-5f278223b054",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000448,
             "f_n": 0.001344,
@@ -1642,14 +1749,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "6320250c-0cd4-429c-b18c-ce055e5771e7",
+            "guid": "2f46434f-4497-4bd8-b261-ead5ab27d821",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0006166694926440701,
             "f_n": 0.0018500084779322103,
@@ -1663,14 +1776,20 @@
             "stepover": 0.003125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "8b1ac448-b85a-40fe-aa40-f43c7af13392",
+            "guid": "18414e85-8548-44cf-b491-5bee9668d053",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000448,
             "f_n": 0.001344,
@@ -1684,14 +1803,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9b67308b-7a12-4165-a7e8-3fbc946af022",
+            "guid": "fd4c3fd5-4b76-4589-aad4-10b87b9ee23c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0010194039011723912,
             "f_n": 0.0030582117035171733,
@@ -1705,14 +1830,20 @@
             "stepover": 0.009375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "848e082c-4158-4234-a869-e76e60d3d375",
+            "guid": "be1f6080-6c4b-40a8-bd86-19f1fac6a52c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.00056,
             "f_n": 0.0016799999999999999,
@@ -1726,14 +1857,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "fa8e4ab2-5a5a-4d72-847c-54121ea38e46",
+            "guid": "7ddc45c0-6867-4ae9-a0fa-047798d6d142",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0007708368658050876,
             "f_n": 0.0023125105974152625,
@@ -1747,14 +1884,20 @@
             "stepover": 0.003125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "fe711c2c-ceee-4b98-92f2-cdaba1a1faed",
+            "guid": "38a38107-cd2f-41d4-9fba-ac44c9dc89b3",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.00056,
             "f_n": 0.0016799999999999999,
@@ -1768,6 +1911,7 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -2567,11 +2711,16 @@
             "v_f_transition": 10.356241680896597
           },
           {
-            "guid": "a066e289-0683-446d-bb2b-1b89fe2089db",
+            "guid": "47179b1f-d308-427d-8092-caeab95b20f3",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.003465973263986129,
             "f_n": 0.013863893055944517,
@@ -2585,14 +2734,20 @@
             "stepover": 0.056249999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "3de4793c-3614-43e5-a4da-f83dd1b1f53f",
+            "guid": "f795b257-542a-4c60-9dd9-7069655ab458",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.0019039999999999997,
             "f_n": 0.007615999999999999,
@@ -2606,14 +2761,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "b64ce469-d5d5-4642-8e4d-f273193d0c05",
+            "guid": "0e0b92c5-afb0-4f51-bcc0-4289a92e91dc",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.002620845343737297,
             "f_n": 0.010483381374949188,
@@ -2627,14 +2788,20 @@
             "stepover": 0.018750000000000003,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "8d05dce2-f097-479d-b0ef-0d4e90744a26",
+            "guid": "3c286a86-cf6e-4d1c-9da4-acc9bdf02408",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.0019039999999999997,
             "f_n": 0.007615999999999999,
@@ -2648,14 +2815,20 @@
             "stepover": 0.375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "557f4f24-6848-46d2-97c3-2f9b11ee3282",
+            "guid": "fcb935f5-7ba8-499d-9bb1-0737ab961de9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.005097019505861957,
             "f_n": 0.020388078023447827,
@@ -2669,14 +2842,20 @@
             "stepover": 0.056249999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c3fb9039-f818-40bc-896f-968c0fc702dc",
+            "guid": "a119d671-4870-4f16-a077-c36fd7cbd002",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.0028,
             "f_n": 0.0112,
@@ -2690,14 +2869,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "17c74a72-1268-4303-a643-e30a05cfcaa0",
+            "guid": "85fa0a72-d1c5-4452-8ddf-453de46a16a6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.003854184329025437,
             "f_n": 0.015416737316101749,
@@ -2711,14 +2896,20 @@
             "stepover": 0.018750000000000003,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "29418888-ecbe-440c-85d4-a7472d197f8a",
+            "guid": "719afb98-9870-42c0-8792-d8918faf59aa",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.002819799156288629,
             "f_n": 0.011279196625154517,
@@ -2732,6 +2923,7 @@
             "stepover": 0.375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -3099,11 +3291,16 @@
             "v_f_transition": 800
           },
           {
-            "guid": "27495d40-3aa3-44cb-af0e-706389726477",
+            "guid": "ebc135a0-32c6-4348-aeba-a6c681fd9661",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.020714287271822986,
             "f_n": 0.04142857454364597,
@@ -3117,14 +3314,20 @@
             "stepover": 0.22499999999999998,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "34928f57-ed2f-4258-902f-f388d56e22bb",
+            "guid": "b118f9f6-5e3b-42bb-82d3-1653c6bcb5ca",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.011379199999999999,
             "f_n": 0.022758399999999998,
@@ -3138,14 +3341,20 @@
             "stepover": 0.75,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "57cde6e8-fc43-4684-96fc-96c88bab9c2a",
+            "guid": "97abe9a0-dd4a-4ae4-870d-12f7bbc12783",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.01566340511315938,
             "f_n": 0.03132681022631876,
@@ -3159,14 +3368,20 @@
             "stepover": 0.07500000000000001,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bb8ef8f5-e50d-4e79-8fe5-3bb5eb8902a1",
+            "guid": "2976047d-915d-4fb4-8bb3-fe5741f21892",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.011379199999999999,
             "f_n": 0.022758399999999998,
@@ -3180,14 +3395,20 @@
             "stepover": 1.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "f8946edc-6609-47a1-8b50-9aa8049ce86a",
+            "guid": "2f8e198b-2bde-4ec8-bc1f-a370348df244",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.025892859089778727,
             "f_n": 0.051785718179557454,
@@ -3201,14 +3422,20 @@
             "stepover": 0.22499999999999998,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bc29378d-7781-45cc-b265-b66294d6b099",
+            "guid": "9a05628a-0948-4360-a833-74f6f83cde30",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.014223999999999999,
             "f_n": 0.028447999999999998,
@@ -3222,14 +3449,20 @@
             "stepover": 0.75,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c6ffb945-42dc-408d-9ad0-ec80e5959af6",
+            "guid": "47a4e185-a54c-4e6e-90e2-b07b72094ee7",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.019579256391449223,
             "f_n": 0.03915851278289845,
@@ -3243,14 +3476,20 @@
             "stepover": 0.07500000000000001,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "7a300460-5d9b-4b19-9c58-f8c40d450c00",
+            "guid": "acf8f5b6-b097-4f2e-a280-d1bdeeee1d85",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 75.39822368615503,
             "f_z": 0.014223999999999999,
             "f_n": 0.028447999999999998,
@@ -3264,6 +3503,7 @@
             "stepover": 1.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           }
         ]
@@ -3475,11 +3715,16 @@
             "v_f_transition": 86.85404
           },
           {
-            "guid": "e292cd75-01e3-4c1f-b31e-2d892fb1e14f",
+            "guid": "13d5e571-5dd9-443b-9c21-6e9f7b1207b6",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 5070.956599607626,
-            "n_ramp": 5070.956599607626,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 5070,
+            "n_ramp": 5070,
             "v_c": 95.58528,
             "f_z": 0.06389623652548546,
             "f_n": 0.2555849461019418,
@@ -3493,14 +3738,20 @@
             "stepover": 0.8999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "3febdb68-bd19-4535-adae-c3222b8aa917",
+            "guid": "72cce576-f9f1-4cde-bb1c-8f2a23f2c386",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 5070.956599607626,
-            "n_ramp": 5070.956599607626,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 5070,
+            "n_ramp": 5070,
             "v_c": 95.58528,
             "f_z": 0.035100799999999995,
             "f_n": 0.14040319999999998,
@@ -3514,14 +3765,20 @@
             "stepover": 3.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "da63dff4-fc30-4a11-ace4-cedfb6945925",
+            "guid": "333d5eee-ed30-48c8-86c6-1dcd6f8d9a48",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 5070.956599607626,
-            "n_ramp": 5070.956599607626,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 5070,
+            "n_ramp": 5070,
             "v_c": 95.58528,
             "f_z": 0.04831605474866289,
             "f_n": 0.19326421899465157,
@@ -3535,14 +3792,20 @@
             "stepover": 0.30000000000000004,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "760e826d-beeb-4aee-be7f-ecb34d3d3e8f",
+            "guid": "b840350b-2a6f-42f0-b266-4308d4627bb4",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 5070.956599607626,
-            "n_ramp": 5070.956599607626,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 5070,
+            "n_ramp": 5070,
             "v_c": 95.58528,
             "f_z": 0.035100799999999995,
             "f_n": 0.14040319999999998,
@@ -3556,14 +3819,20 @@
             "stepover": 6.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c790b363-eb55-4480-96a8-6ff66a936b09",
+            "guid": "4e33a0da-3672-496d-8172-dc62ba477db5",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 13039.602684705324,
-            "n_ramp": 13039.602684705324,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 13039,
+            "n_ramp": 13039,
             "v_c": 245.79071999999994,
             "f_z": 0.09786277451254953,
             "f_n": 0.3914510980501981,
@@ -3577,14 +3846,20 @@
             "stepover": 0.8999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "fd481fe0-9d98-43a4-b4de-17cb1ed2a1ac",
+            "guid": "8952a055-81b6-4445-9f2e-09b1a89534d0",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 13039.602684705324,
-            "n_ramp": 13039.602684705324,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 13039,
+            "n_ramp": 13039,
             "v_c": 245.79071999999994,
             "f_z": 0.053759999999999995,
             "f_n": 0.21503999999999998,
@@ -3598,14 +3873,20 @@
             "stepover": 3.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9494c1da-6e64-4598-bcad-bb4ef00ac23f",
+            "guid": "6e3af1d2-5b90-436c-893b-960a4c24d562",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 13039.602684705324,
-            "n_ramp": 13039.602684705324,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 13039,
+            "n_ramp": 13039,
             "v_c": 245.79071999999994,
             "f_z": 0.07400033911728841,
             "f_n": 0.29600135646915365,
@@ -3619,14 +3900,20 @@
             "stepover": 0.30000000000000004,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "40e05837-c38b-4e70-9422-08c49d4c548a",
+            "guid": "de59bb8f-3fc1-4e7c-b585-47105e0678f6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 13039.602684705324,
-            "n_ramp": 13039.602684705324,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 13039,
+            "n_ramp": 13039,
             "v_c": 245.79071999999994,
             "f_z": 0.053759999999999995,
             "f_n": 0.21503999999999998,
@@ -3640,6 +3927,7 @@
             "stepover": 6.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -3889,11 +4177,16 @@
             "v_f_transition": 50.12308
           },
           {
-            "guid": "05b2a596-d588-4898-8924-26bc56cd9611",
+            "guid": "f076ae3b-c78f-4aeb-b7f5-8c3525d1370c",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 3803.2174497057204,
-            "n_ramp": 3803.2174497057204,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3803,
+            "n_ramp": 3803,
             "v_c": 95.58528,
             "f_z": 0.07808633882980516,
             "f_n": 0.31234535531922064,
@@ -3907,14 +4200,20 @@
             "stepover": 1.2,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "a160ebb1-6d86-4b84-af43-7d95297fbbd3",
+            "guid": "485f0a3a-9fcb-403d-aa23-b82680eb999f",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 3803.2174497057204,
-            "n_ramp": 3803.2174497057204,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3803,
+            "n_ramp": 3803,
             "v_c": 95.58528,
             "f_z": 0.04289599999999999,
             "f_n": 0.17158399999999996,
@@ -3928,14 +4227,20 @@
             "stepover": 3.9999999999999996,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "874276cb-a196-42a2-892f-34f909663215",
+            "guid": "c4572dcc-15d5-451a-84fb-7b222e09b850",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 3803.2174497057204,
-            "n_ramp": 3803.2174497057204,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3803,
+            "n_ramp": 3803,
             "v_c": 95.58528,
             "f_z": 0.059046103920669696,
             "f_n": 0.23618441568267878,
@@ -3949,14 +4254,20 @@
             "stepover": 0.39999999999999997,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "06c32a4c-0724-4278-8915-f042d55b794e",
+            "guid": "5fbc8a92-73c7-4e96-99ba-8deec6a0fd51",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 3803.2174497057204,
-            "n_ramp": 3803.2174497057204,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3803,
+            "n_ramp": 3803,
             "v_c": 95.58528,
             "f_z": 0.04289599999999999,
             "f_n": 0.17158399999999996,
@@ -3970,14 +4281,20 @@
             "stepover": 7.999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "537bcda3-6c8c-41a6-9a0c-50606748a5ff",
+            "guid": "e2756233-a03e-449a-8a7d-98a66bc7fa37",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 9779.702013528995,
-            "n_ramp": 9779.702013528995,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 9779,
+            "n_ramp": 9779,
             "v_c": 245.79072,
             "f_z": 0.1170275678545905,
             "f_n": 0.468110271418362,
@@ -3991,14 +4308,20 @@
             "stepover": 1.2,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "0919771c-3155-42ab-8f7d-e0e054648de7",
+            "guid": "ee7c1a64-e0dd-4f3b-9719-b1a2c380530c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 9779.702013528995,
-            "n_ramp": 9779.702013528995,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 9779,
+            "n_ramp": 9779,
             "v_c": 245.79072,
             "f_z": 0.06428799999999998,
             "f_n": 0.25715199999999994,
@@ -4012,14 +4335,20 @@
             "stepover": 3.9999999999999996,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "224aa5ee-ee79-4c79-b8b9-64a715fe2def",
+            "guid": "a2a058fc-b07e-465f-8436-b021a41f77ac",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 9779.702013528995,
-            "n_ramp": 9779.702013528995,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 9779,
+            "n_ramp": 9779,
             "v_c": 245.79072,
             "f_z": 0.08849207219442404,
             "f_n": 0.35396828877769615,
@@ -4033,14 +4362,20 @@
             "stepover": 0.39999999999999997,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9755d32d-80b1-48c9-8e45-2dbea05b536a",
+            "guid": "058fc114-5862-4036-b4e4-4fb73e9ef3cf",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 9779.702013528995,
-            "n_ramp": 9779.702013528995,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 9779,
+            "n_ramp": 9779,
             "v_c": 245.79072,
             "f_z": 0.06428799999999998,
             "f_n": 0.25715199999999994,
@@ -4054,6 +4389,7 @@
             "stepover": 7.999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -4257,11 +4593,16 @@
             "v_f_transition": 30.80448
           },
           {
-            "guid": "8987d6e5-5478-4a36-a252-e396a511f63c",
+            "guid": "3cbe3c58-7546-40bf-8d6c-eaf8c05453a6",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.003465973263986129,
             "f_n": 0.027727786111889034,
@@ -4275,14 +4616,20 @@
             "stepover": 0.056249999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "58485ce8-f9c9-4fcf-9d5a-bff13fd2a1b4",
+            "guid": "cb16267b-581c-4eaf-a068-bec85bf6ed86",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.0019039999999999997,
             "f_n": 0.015231999999999997,
@@ -4296,14 +4643,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "00a7144a-cc3d-4367-8259-75174a3de670",
+            "guid": "f007d82c-defa-4824-8884-55c340a5db58",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.002620845343737297,
             "f_n": 0.020966762749898376,
@@ -4317,14 +4670,20 @@
             "stepover": 0.018750000000000003,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "2c82f4f3-0dc8-4d2a-865e-e4919f6c16ce",
+            "guid": "30eee36d-051f-438b-ae05-8f5a7030077b",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.0019039999999999997,
             "f_n": 0.015231999999999997,
@@ -4338,14 +4697,20 @@
             "stepover": 0.375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.2599999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "5156d03b-c858-4529-a8aa-2a370f4f3488",
+            "guid": "525ae386-4dc4-4f7a-96cf-2690dd6d4202",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.005097019505861957,
             "f_n": 0.040776156046895655,
@@ -4359,14 +4724,20 @@
             "stepover": 0.056249999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "41b93703-ce2d-47f5-aad5-f1b6b8805471",
+            "guid": "941ffd46-fd8c-4c7b-a389-518a9d5b3de6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.0028,
             "f_n": 0.0224,
@@ -4380,14 +4751,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "e7fbf526-8a8a-4bc0-bd0d-fcc716d6c52c",
+            "guid": "ac8243d8-effe-4e8c-855f-68344fd65c57",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.003854184329025437,
             "f_n": 0.030833474632203497,
@@ -4401,14 +4778,20 @@
             "stepover": 0.018750000000000003,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "03c79fe8-3c00-417f-abdf-84beff6addd0",
+            "guid": "871a24c6-13df-42d5-9f94-5e1a48ac1a65",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.0028,
             "f_n": 0.0224,
@@ -4422,6 +4805,7 @@
             "stepover": 0.375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           }
         ]
@@ -4613,11 +4997,16 @@
             "v_f_transition": 146.7
           },
           {
-            "guid": "e1ae2152-39b1-48ce-94a8-6be52676521b",
+            "guid": "a3aeb68d-aed6-489e-b4a4-09ccee92b116",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.004077615604689565,
             "f_n": 0.01631046241875826,
@@ -4631,14 +5020,20 @@
             "stepover": 0.075,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bb5b5f50-9d26-499d-81d0-fb942c03acc3",
+            "guid": "0ea97cf3-6563-4000-892b-0a9a519b9835",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.00224,
             "f_n": 0.00896,
@@ -4652,14 +5047,20 @@
             "stepover": 0.25,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bd3766c4-f12a-4199-b80f-fe6bfa282e84",
+            "guid": "6f40d51b-c7bd-48e2-9a4c-b44705efdfb2",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.0030833474632203503,
             "f_n": 0.012333389852881401,
@@ -4673,14 +5074,20 @@
             "stepover": 0.025,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "6b7b777b-136e-4bde-9698-6fe28c72a40a",
+            "guid": "3244d996-8361-494c-9028-859602675861",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.00224,
             "f_n": 0.00896,
@@ -4694,14 +5101,20 @@
             "stepover": 0.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "7865972b-a8cf-49c8-a3f6-1c3304ec67ed",
+            "guid": "ef07ff64-3acc-4c0e-afc7-5eb49899664c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.0061164234070343465,
             "f_n": 0.024465693628137386,
@@ -4715,14 +5128,20 @@
             "stepover": 0.075,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "94d66ef2-7f34-4ea3-bfdc-d93faaf8dec5",
+            "guid": "ad377835-9709-4131-87cf-0fd5879440bd",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.0033599999999999997,
             "f_n": 0.013439999999999999,
@@ -4736,14 +5155,20 @@
             "stepover": 0.25,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9a81c66e-3189-48ec-b781-d524274612a4",
+            "guid": "0e3205ec-7711-49dc-a863-0cb184b5eb43",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.004625021194830525,
             "f_n": 0.0185000847793221,
@@ -4757,14 +5182,20 @@
             "stepover": 0.025,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "098170fc-4ca4-4745-b3c7-2a61efa22388",
+            "guid": "ac575e5a-551d-4340-897c-cf453b35c8b6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.0033599999999999997,
             "f_n": 0.013439999999999999,
@@ -4778,6 +5209,7 @@
             "stepover": 0.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -5942,11 +6374,16 @@
             "v_f_transition": 12.125314832421903
           },
           {
-            "guid": "982bd64c-9bc7-4b3a-8bd0-ac7efafbe34d",
+            "guid": "31930557-4dfe-47db-911e-e7b03725a3ec",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000815523120937913,
             "f_n": 0.003262092483751652,
@@ -5960,14 +6397,20 @@
             "stepover": 0.009375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "0f4b4c3e-2b28-4457-acc9-579e48ed8a9a",
+            "guid": "17dcdc06-b245-4c4e-b633-e6abdfb22dbd",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000448,
             "f_n": 0.001792,
@@ -5981,14 +6424,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "52302472-2b49-45f9-aa1b-004ce1738584",
+            "guid": "4581a2c8-2bb0-4b55-b8ca-f238a7266d15",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0006166694926440701,
             "f_n": 0.0024666779705762804,
@@ -6002,14 +6451,20 @@
             "stepover": 0.003125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "d0f3b0d3-ecfe-460e-937f-e951a5cb7bbf",
+            "guid": "f4526fba-07f0-4f9b-8bf8-3af8bf9c4bc0",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000448,
             "f_n": 0.001792,
@@ -6023,14 +6478,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "dd3bd4bd-4a7a-47fb-9cdc-e06ddf231478",
+            "guid": "31b3e42d-cc6f-4f63-be1b-e2d6e9fd899a",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0010194039011723912,
             "f_n": 0.004077615604689565,
@@ -6044,14 +6505,20 @@
             "stepover": 0.009375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "249ba193-07c9-4dfe-8362-40dafd5b4621",
+            "guid": "c9bbd4d3-88bc-4e28-96b4-d53c5f407c6c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.00056,
             "f_n": 0.00224,
@@ -6065,14 +6532,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "1cd48a18-ba98-4b28-a180-641036ee2791",
+            "guid": "aa57061d-5d27-473b-89e6-bb663e1a69b6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0007708368658050876,
             "f_n": 0.0030833474632203503,
@@ -6086,14 +6559,20 @@
             "stepover": 0.003125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "0a61908a-b782-4f1f-b9d0-71a48bf071ef",
+            "guid": "32e81fe8-5131-47a6-b97e-9b94fe2a5cb9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.00056,
             "f_n": 0.00224,
@@ -6107,6 +6586,7 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -6448,11 +6928,16 @@
             "v_f_transition": 5.5
           },
           {
-            "guid": "1c7dec5c-ac51-4b80-b4e1-699e1ad1b3e1",
+            "guid": "0c52c3fb-e1aa-4a43-9001-9095eb0dbd71",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.000815523120937913,
             "f_n": 0.001631046241875826,
@@ -6466,14 +6951,20 @@
             "stepover": 0.0046875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c89d2858-499c-444a-a7a9-93ca1d55e993",
+            "guid": "11dfc8c6-f85a-419e-8fb5-152d2f50b43e",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.000448,
             "f_n": 0.000896,
@@ -6487,14 +6978,20 @@
             "stepover": 0.015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "1110437a-d9dd-44af-beed-89d1c4a30ea3",
+            "guid": "e96f5f8b-3376-4938-8693-75e0a388ac1f",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.0006166694926440701,
             "f_n": 0.0012333389852881402,
@@ -6508,14 +7005,20 @@
             "stepover": 0.0015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "80f91c14-fe1b-4530-bb20-aa5f052aced6",
+            "guid": "fb8b8b47-7e57-44a3-ac54-03c021a1a58f",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.000448,
             "f_n": 0.000896,
@@ -6529,14 +7032,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "2380f8d2-63c4-44f7-a5c2-da94d5a1a5cb",
+            "guid": "4ad664c4-9ff4-47f0-9690-fcb1eabc8878",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.0010194039011723912,
             "f_n": 0.0020388078023447823,
@@ -6550,14 +7059,20 @@
             "stepover": 0.0046875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "8fd20f86-3ab2-4929-9527-35faa8271de5",
+            "guid": "7ed02384-35c7-4451-b41f-396c83fcd839",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.00056,
             "f_n": 0.00112,
@@ -6571,14 +7086,20 @@
             "stepover": 0.015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9831ded0-3364-4031-a4fe-2c6ba7585304",
+            "guid": "afb4bce8-79f7-465e-b78d-e7a63f5c7cd7",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.0007708368658050876,
             "f_n": 0.0015416737316101751,
@@ -6592,14 +7113,20 @@
             "stepover": 0.0015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c73e8b37-9e5b-49d5-b15f-5da26fe5e851",
+            "guid": "bcada029-5573-4499-b1a6-5a8c7eb709eb",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.00056,
             "f_n": 0.00112,
@@ -6613,6 +7140,7 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           }
         ]
@@ -6846,11 +7374,16 @@
             "v_f_transition": 14.4
           },
           {
-            "guid": "f217e4e8-1a0b-4dba-b7ef-c5d19260440f",
+            "guid": "f5b111bf-dd2a-49bd-8e5e-48fba22023ea",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.000815523120937913,
             "f_n": 0.003262092483751652,
@@ -6864,14 +7397,20 @@
             "stepover": 0.0046875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "18f58716-7526-4be4-8301-00bac9f350a4",
+            "guid": "a97a70d9-e0d6-4cc4-8bd9-ef1f6e1cf515",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.000448,
             "f_n": 0.001792,
@@ -6885,14 +7424,20 @@
             "stepover": 0.015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "396d964e-c2a0-4dcb-aad5-4bd23e164348",
+            "guid": "b3382eeb-d56f-406a-b429-bba4ab84833c",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.0006166694926440701,
             "f_n": 0.0024666779705762804,
@@ -6906,14 +7451,20 @@
             "stepover": 0.0015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c6603267-3f0c-4600-9ad6-103178fce293",
+            "guid": "7307d5dd-98bd-4efa-99f1-949a180982de",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.000448,
             "f_n": 0.001792,
@@ -6927,14 +7478,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9747503c-afa2-43a8-9d16-05b52ba9b8d7",
+            "guid": "384b4c0b-55d4-4ee7-8c06-6f438a056119",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.0010194039011723912,
             "f_n": 0.004077615604689565,
@@ -6948,14 +7505,20 @@
             "stepover": 0.0046875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "fc4035f2-0319-4d4d-848d-e4b3d5b7404b",
+            "guid": "452fb042-65d3-4d73-a7e9-fceea315f67d",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.00056,
             "f_n": 0.00224,
@@ -6969,14 +7532,20 @@
             "stepover": 0.015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "78b7de18-e22f-40f5-b30b-f9c90b7ee950",
+            "guid": "77e83d96-d10f-4b48-92bd-6f452dde496c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.0007708368658050876,
             "f_n": 0.0030833474632203503,
@@ -6990,14 +7559,20 @@
             "stepover": 0.0015625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "12146e67-3ea7-46ed-8dd1-e4bf1863df8a",
+            "guid": "224998a8-c18f-48a8-80da-80d1406d5f21",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 130.89969389957471,
             "f_z": 0.00056,
             "f_n": 0.00224,
@@ -7011,6 +7586,7 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -7782,11 +8358,16 @@
             "v_f_transition": 9.153620989261176
           },
           {
-            "guid": "4555066e-6096-48a6-866b-520f01831ea4",
+            "guid": "25b27fc0-e950-4209-859c-c8998796d973",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000815523120937913,
             "f_n": 0.002446569362813739,
@@ -7800,14 +8381,20 @@
             "stepover": 0.009375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "514165ff-b36c-4e55-b23a-4b46730ec6d3",
+            "guid": "65ec18ea-c4b7-477f-9ceb-6797715f8ccb",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000448,
             "f_n": 0.001344,
@@ -7821,14 +8408,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "7241ac20-2f09-436b-bbdf-da7bea60dcb2",
+            "guid": "2cfe9096-de84-40be-bae9-2459a9768ea0",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0006166694926440701,
             "f_n": 0.0018500084779322103,
@@ -7842,14 +8435,20 @@
             "stepover": 0.003125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "832360c1-8866-469e-84a0-4dd0147a98ea",
+            "guid": "055e1f8d-2880-4a34-96b0-e8e8126fd9a8",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.000448,
             "f_n": 0.001344,
@@ -7863,14 +8462,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "ef1aba9e-2e50-4fbe-8229-9473d7bc6fcc",
+            "guid": "92aecef8-bf3d-4652-bd5e-35361b920738",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0010194039011723912,
             "f_n": 0.0030582117035171733,
@@ -7884,14 +8489,20 @@
             "stepover": 0.009375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "08869f2a-3d5b-4dbe-8bb5-ee92b99b7c63",
+            "guid": "0957365e-f916-4cc0-ad9a-62537692309d",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.00056,
             "f_n": 0.0016799999999999999,
@@ -7905,14 +8516,20 @@
             "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9de4c7c8-a228-4fb8-80a9-9c27999d3353",
+            "guid": "09d9a569-9e15-4db3-971e-c432affbffac",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.0007708368658050876,
             "f_n": 0.0023125105974152625,
@@ -7926,14 +8543,20 @@
             "stepover": 0.003125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "af0a3f1b-ed44-4041-84c0-16e9ad2d09af",
+            "guid": "558f2ebd-c16a-4ea2-8384-b9549c360d55",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 261.79938779914943,
             "f_z": 0.00056,
             "f_n": 0.0016799999999999999,
@@ -7947,6 +8570,7 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -8134,11 +8758,16 @@
             "v_f_transition": 0
           },
           {
-            "guid": "864e7436-d265-45d5-a3b5-3180aa1582a2",
+            "guid": "08dae10e-cb09-4587-b338-2d1d90662043",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.000815523120937913,
             "f_n": 0.003262092483751652,
@@ -8152,14 +8781,20 @@
             "stepover": 0.00465,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "7386bf80-18d3-4298-865c-910839e578b5",
+            "guid": "17fb75e0-d8bd-45a2-8d4f-c1a493283e1b",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.000448,
             "f_n": 0.001792,
@@ -8173,14 +8808,20 @@
             "stepover": 0.0155,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "cc9bf3db-e001-47db-8557-321bf330c77f",
+            "guid": "909e886f-56fc-4863-9019-84bb0fad27fb",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.00061666949264407,
             "f_n": 0.00246667797057628,
@@ -8194,14 +8835,20 @@
             "stepover": 0.0015500000000000002,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "21b1c3fa-a8fe-48c8-9cfd-21e6323fd60b",
+            "guid": "53279663-fe9f-4ef7-ac62-0aec25275e84",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.000448,
             "f_n": 0.001792,
@@ -8215,14 +8862,20 @@
             "stepover": 0.031,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "e3bd7d34-0452-49ca-acf9-bdbe88a53ce1",
+            "guid": "262a8e40-3c32-4858-8f79-fd32612f5b08",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.0010194039011723912,
             "f_n": 0.004077615604689565,
@@ -8236,14 +8889,20 @@
             "stepover": 0.00465,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "962e9481-e7e5-4429-afe5-52f764746c8d",
+            "guid": "2e5c5866-50af-4656-a2ba-2652c99ead01",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.00056,
             "f_n": 0.00224,
@@ -8257,14 +8916,20 @@
             "stepover": 0.0155,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "1fdde432-2ed5-458e-abf7-4c49c289ea96",
+            "guid": "3d84b602-acf8-49ba-a16a-ffa06f1e72d5",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.0007708368658050875,
             "f_n": 0.00308334746322035,
@@ -8278,14 +8943,20 @@
             "stepover": 0.0015500000000000002,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "62102c53-8c16-4b9b-86c2-480ff303565a",
+            "guid": "b8e6c3b5-84c3-47c6-a208-7861502364a7",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 129.8524963483781,
             "f_z": 0.00056,
             "f_n": 0.00224,
@@ -8299,6 +8970,7 @@
             "stepover": 0.031,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -8939,11 +9611,16 @@
             "v_f_transition": 4.644777859193874
           },
           {
-            "guid": "e807c3f2-563f-4f37-a683-48484f0a84ec",
+            "guid": "d0290b7b-1059-4339-b311-9fc4a513e0d2",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0012232846814068693,
             "f_n": 0.004893138725627477,
@@ -8957,14 +9634,20 @@
             "stepover": 0.01875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "87ec81d1-ea3a-4a69-9429-d801bcd60809",
+            "guid": "5bc6a577-c034-4cf8-b8fe-1564da80a08c",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0006813521234301761,
             "f_n": 0.0027254084937207044,
@@ -8978,14 +9661,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "00fd89b6-9b8e-48d6-9f9f-4361b2cdd320",
+            "guid": "1fa5cb68-9b59-4f5b-8553-22339d7f4a59",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0009250042389661049,
             "f_n": 0.0037000169558644197,
@@ -8999,14 +9688,20 @@
             "stepover": 0.00625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "606094c3-468f-4f22-84ba-2cfa4c2d29b8",
+            "guid": "3906dd68-18d3-4c44-895a-b4baefacbc53",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0006813521234301761,
             "f_n": 0.0027254084937207044,
@@ -9020,14 +9715,20 @@
             "stepover": 0.125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "89d4a24b-636c-4a06-af41-28760e83f27c",
+            "guid": "e82002e4-9796-48bc-92a9-3ccb665aad5f",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.002067181585407185,
             "f_n": 0.00826872634162874,
@@ -9041,14 +9742,20 @@
             "stepover": 0.01875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "fd18231b-5bfe-4f50-b98f-8fa4215ee64a",
+            "guid": "574c2b7e-2125-4b67-aa46-52e86237a175",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.001135586872383627,
             "f_n": 0.004542347489534508,
@@ -9062,14 +9769,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "58bbd28e-3719-4bf4-9d40-c1d1b960eb98",
+            "guid": "1e1be490-8e8e-4bae-bbae-0ce17762055f",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.0015416737316101751,
             "f_n": 0.0061666949264407005,
@@ -9083,14 +9796,20 @@
             "stepover": 0.00625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "d56fe9e8-59cc-44d0-9c8a-348ee0895edb",
+            "guid": "9141f694-eb08-4208-afdb-23a3feaeef9d",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.001135586872383627,
             "f_n": 0.004542347489534508,
@@ -9104,6 +9823,7 @@
             "stepover": 0.125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -9346,11 +10066,16 @@
             "v_f_retract": 2.2918311805232925
           },
           {
-            "guid": "c089ca3e-f322-4046-a4bd-8af5a68025b8",
+            "guid": "3b59483c-e31c-41bb-859a-195e2a4c9aa7",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 6388.606739663152,
-            "n_ramp": 6388.606739663152,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 6388,
+            "n_ramp": 6388,
             "v_c": 313.6,
             "f_z": 0.0020388078023447823,
             "f_n": 0.0020388078023447823,
@@ -9364,14 +10089,20 @@
             "stepover": 0.028124999999999997,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "7e66c73c-1996-4238-936a-a649c12c30d0",
+            "guid": "77b2c917-0f10-4251-aa01-3f33f66e5e04",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 6388.606739663152,
-            "n_ramp": 6388.606739663152,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 6388,
+            "n_ramp": 6388,
             "v_c": 313.6,
             "f_z": 0.00112,
             "f_n": 0.00112,
@@ -9385,14 +10116,20 @@
             "stepover": 0.09375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "e0c5ea9f-04d2-4589-abd2-60ee2b2e4fd7",
+            "guid": "79352d11-df1b-4a14-a192-a858bcb27609",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 6388.606739663152,
-            "n_ramp": 6388.606739663152,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 6388,
+            "n_ramp": 6388,
             "v_c": 313.6,
             "f_z": 0.001541673731610175,
             "f_n": 0.001541673731610175,
@@ -9406,14 +10143,20 @@
             "stepover": 0.009375000000000001,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bbb8d4c5-9b60-4534-98d6-cf91f8f88e50",
+            "guid": "5b81479e-0cb7-484b-8464-f4cadec9bec2",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 6388.606739663152,
-            "n_ramp": 6388.606739663152,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 6388,
+            "n_ramp": 6388,
             "v_c": 313.6,
             "f_z": 0.00112,
             "f_n": 0.00112,
@@ -9427,14 +10170,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "40009b46-92b1-4f96-ba1f-1828f78e007e",
+            "guid": "97caa597-9e5a-479f-a7fb-fa9672e68c90",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 785.3981633974482,
             "f_z": 0.0030582117035171733,
             "f_n": 0.0030582117035171733,
@@ -9448,14 +10197,20 @@
             "stepover": 0.028124999999999997,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "eb5b08ae-7ff6-414f-9d8b-c9009cfcd14d",
+            "guid": "a66ade29-0623-45d6-a5a7-21f8ef5af86e",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 785.3981633974482,
             "f_z": 0.0016799999999999999,
             "f_n": 0.0016799999999999999,
@@ -9469,14 +10224,20 @@
             "stepover": 0.09375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "5bdc6f73-8086-478d-a2e4-c1c476f99156",
+            "guid": "f24adc69-e1fa-4bb1-b862-d0e8564be00c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 785.3981633974482,
             "f_z": 0.002312510597415262,
             "f_n": 0.002312510597415262,
@@ -9490,14 +10251,20 @@
             "stepover": 0.009375000000000001,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "88068cc0-25a8-4d22-aee4-b470bd18aa20",
+            "guid": "aa17bba0-cbed-4cce-8b13-85758701561f",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 785.3981633974482,
             "f_z": 0.0016799999999999999,
             "f_n": 0.0016799999999999999,
@@ -9511,6 +10278,7 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           }
         ]
@@ -9878,11 +10646,16 @@
             "v_f_transition": 1120
           },
           {
-            "guid": "4f401741-d1a3-48a4-9ee8-730fb3719554",
+            "guid": "448c371a-f154-47c2-a148-c17bb2339c61",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 15212.869798822881,
-            "n_ramp": 15212.869798822881,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 15212,
+            "n_ramp": 15212,
             "v_c": 95.58528,
             "f_z": 0.0234055135709181,
             "f_n": 0.0468110271418362,
@@ -9896,14 +10669,20 @@
             "stepover": 0.3,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "3f298395-0cb4-452c-a91d-3e395e276aae",
+            "guid": "46118096-d776-4be9-bf34-bd3cc58876dc",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 15212.869798822881,
-            "n_ramp": 15212.869798822881,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 15212,
+            "n_ramp": 15212,
             "v_c": 95.58528,
             "f_z": 0.012857599999999999,
             "f_n": 0.025715199999999997,
@@ -9917,14 +10696,20 @@
             "stepover": 0.9999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "f0c55377-f225-42f9-b633-6b77d42bc962",
+            "guid": "efb79185-fd8a-42b8-8a77-ffcf128561d3",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 15212.869798822881,
-            "n_ramp": 15212.869798822881,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 15212,
+            "n_ramp": 15212,
             "v_c": 95.58528,
             "f_z": 0.017698414438884803,
             "f_n": 0.035396828877769605,
@@ -9938,14 +10723,20 @@
             "stepover": 0.09999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "3310314a-eb3f-49b0-906f-e41e04de28a7",
+            "guid": "0a6c5053-9690-42e8-8583-2e23cb4e5f80",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 15212.869798822881,
-            "n_ramp": 15212.869798822881,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 15212,
+            "n_ramp": 15212,
             "v_c": 95.58528,
             "f_z": 0.012857599999999999,
             "f_n": 0.025715199999999997,
@@ -9959,14 +10750,20 @@
             "stepover": 1.9999999999999998,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "80d4e9c3-bd14-4aa9-96c1-4df5233669c1",
+            "guid": "967b0054-65e8-4940-ac1c-a23c6312e011",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 100.53096491487338,
             "f_z": 0.03262092483751651,
             "f_n": 0.06524184967503302,
@@ -9980,14 +10777,20 @@
             "stepover": 0.3,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "ff1982da-153d-4bea-99c3-396bbc29be7e",
+            "guid": "8c511429-c4fc-42d7-a7b1-10947691fcf9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 100.53096491487338,
             "f_z": 0.01792,
             "f_n": 0.03584,
@@ -10001,14 +10804,20 @@
             "stepover": 0.9999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "d4c4364a-f982-4be4-b4d3-d0193e718a37",
+            "guid": "6294e0b6-041d-4805-981b-e40a2649b7e6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 100.53096491487338,
             "f_z": 0.024666779705762795,
             "f_n": 0.04933355941152559,
@@ -10022,14 +10831,20 @@
             "stepover": 0.09999999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           },
           {
-            "guid": "632bd4c9-39ec-4b0f-84a1-df038d9db402",
+            "guid": "73788023-43f6-4da3-9ae9-e1ceb2361e39",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 100.53096491487338,
             "f_z": 0.01792,
             "f_n": 0.03584,
@@ -10043,6 +10858,7 @@
             "stepover": 1.9999999999999998,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
             "tool-coolant": "flood"
           }
         ]
@@ -10211,11 +11027,16 @@
             "v_f_transition": 58.8
           },
           {
-            "guid": "0f7a949d-3145-46ee-a453-bcb95170cfe5",
+            "guid": "d21d3275-2310-412d-a153-3005ca2bf820",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.004077615604689565,
             "f_n": 0.012232846814068693,
@@ -10229,14 +11050,20 @@
             "stepover": 0.075,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "88b60f75-b9e2-4663-82af-9a41a6b65a3d",
+            "guid": "c8d9ba70-157f-4003-9ceb-c388d954df13",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.00224,
             "f_n": 0.006719999999999999,
@@ -10250,14 +11077,20 @@
             "stepover": 0.25,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "53a07365-f8b7-4611-9d79-327a71f4f8d9",
+            "guid": "6c88af9b-dede-45cd-8d69-c54e8b440e3c",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.0030833474632203503,
             "f_n": 0.00925004238966105,
@@ -10271,14 +11104,20 @@
             "stepover": 0.025,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "326cb0d0-a007-4701-b4ef-1091b5d22287",
+            "guid": "b72234b4-2d38-4e7b-81ed-69b1b1e1dc7a",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 2395.7275273736823,
-            "n_ramp": 2395.7275273736823,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 2395,
+            "n_ramp": 2395,
             "v_c": 313.6,
             "f_z": 0.00224,
             "f_n": 0.006719999999999999,
@@ -10292,14 +11131,20 @@
             "stepover": 0.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "6f980eba-01ec-46bd-9e29-22b35befe077",
+            "guid": "6b47e6d8-c47c-4495-8e8e-0837fbf7c7ea",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.0061164234070343465,
             "f_n": 0.01834927022110304,
@@ -10313,14 +11158,20 @@
             "stepover": 0.075,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "d41d6a43-7c88-46d0-919d-c1273404b61a",
+            "guid": "3f6e4d4e-4dc1-49ce-8f2a-58ae2eb282a6",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.0033599999999999997,
             "f_n": 0.010079999999999999,
@@ -10334,14 +11185,20 @@
             "stepover": 0.25,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "f37f7c10-f2d9-4aaf-bfa0-f886ee0538fb",
+            "guid": "939d5823-e7d3-4762-82be-294d947a4da9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.004625021194830525,
             "f_n": 0.013875063584491575,
@@ -10355,14 +11212,20 @@
             "stepover": 0.025,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "939bf197-a288-46ef-b2a2-db9803967877",
+            "guid": "d6526983-7366-468b-a8b8-e928f459de3e",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 6160.442213246611,
-            "n_ramp": 6160.442213246611,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 6160,
+            "n_ramp": 6160,
             "v_c": 806.4,
             "f_z": 0.0033599999999999997,
             "f_n": 0.010079999999999999,
@@ -10376,6 +11239,7 @@
             "stepover": 0.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -10530,11 +11394,16 @@
             "v_f_transition": 1000
           },
           {
-            "guid": "dee1a803-f5ea-4acc-ab7a-69266f87e674",
+            "guid": "daf59e0c-1f3d-42cf-99e5-5bd7fb4d76ee",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.0279473227722185,
             "f_n": 0.055894645544437,
@@ -10548,14 +11417,20 @@
             "stepover": 0.075,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "0437f305-eb01-416b-a4ac-e1de7cabce0c",
+            "guid": "5e25bcce-7deb-4f69-9e61-5d0893d89646",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.015352600411321856,
             "f_n": 0.030705200822643712,
@@ -10569,14 +11444,20 @@
             "stepover": 0.24999999999999997,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c92beef4-d29c-4dc1-af9a-94ceecca88df",
+            "guid": "ccb65b76-2adf-4239-b811-d31588e6931a",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.02113276854110935,
             "f_n": 0.0422655370822187,
@@ -10590,14 +11471,20 @@
             "stepover": 0.024999999999999998,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "21777425-34d9-4e46-945c-caaf6b018e1a",
+            "guid": "e804f2fe-363d-4a5c-9bf0-a52dad41ed07",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.015352600411321856,
             "f_n": 0.030705200822643712,
@@ -10611,14 +11498,20 @@
             "stepover": 0.49999999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.5199999999999996,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c8720383-57cd-47d5-8730-c1d88d903011",
+            "guid": "bd011968-e46b-4801-95e2-ef31752c3330",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.034934153465273114,
             "f_n": 0.06986830693054623,
@@ -10632,14 +11525,20 @@
             "stepover": 0.075,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 4.359999999999999,
             "tool-coolant": "flood"
           },
           {
-            "guid": "b8030538-45b5-4159-975c-cb4df86d6fd8",
+            "guid": "c4961c0a-afc2-401e-907e-a3c5a8b7515e",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.019190750514152317,
             "f_n": 0.038381501028304635,
@@ -10653,14 +11552,20 @@
             "stepover": 0.24999999999999997,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 4.359999999999999,
             "tool-coolant": "flood"
           },
           {
-            "guid": "39587392-6521-457c-a3d6-cfdb73acf61e",
+            "guid": "73ca3e6b-974b-4535-853c-a265c193652a",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.026415960676386685,
             "f_n": 0.05283192135277337,
@@ -10674,14 +11579,20 @@
             "stepover": 0.024999999999999998,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 4.359999999999999,
             "tool-coolant": "flood"
           },
           {
-            "guid": "72930089-e835-4d14-b9be-24891beca7ce",
+            "guid": "7de95a1b-ef3f-4ac6-b826-ac6578664a3b",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 25.132741228718345,
             "f_z": 0.019190750514152317,
             "f_n": 0.038381501028304635,
@@ -10695,6 +11606,7 @@
             "stepover": 0.49999999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 4.359999999999999,
             "tool-coolant": "flood"
           }
         ]
@@ -11175,11 +12087,16 @@
             "v_f_transition": 174.63753595587494
           },
           {
-            "guid": "6dd4bdb6-7732-449f-b809-1971833b58a9",
+            "guid": "528e20f9-0607-4374-8edd-8bc63eef533b",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 10141.913199215252,
-            "n_ramp": 10141.913199215252,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 10141,
+            "n_ramp": 10141,
             "v_c": 95.58528,
             "f_z": 0.0299296985384214,
             "f_n": 0.0897890956152642,
@@ -11193,14 +12110,20 @@
             "stepover": 0.44999999999999996,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "bad980c0-e55c-42cd-bbba-4c479fc7e06e",
+            "guid": "420be75d-2767-433a-b7a3-c1ad1f48701e",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 10141.913199215252,
-            "n_ramp": 10141.913199215252,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 10141,
+            "n_ramp": 10141,
             "v_c": 95.58528,
             "f_z": 0.0164416,
             "f_n": 0.0493248,
@@ -11214,14 +12137,20 @@
             "stepover": 1.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "468963e6-c989-4ad9-b547-9b6226813026",
+            "guid": "d4003f9b-17ce-4868-9aa6-88fbb759a3e0",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 10141.913199215252,
-            "n_ramp": 10141.913199215252,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 10141,
+            "n_ramp": 10141,
             "v_c": 95.58528,
             "f_z": 0.022631770380037372,
             "f_n": 0.06789531114011212,
@@ -11235,14 +12164,20 @@
             "stepover": 0.15000000000000002,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "70dea05d-8ad8-4daf-b1e5-08793b804450",
+            "guid": "bd681f2c-bc18-4c0b-9496-0645a9d9d054",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 10141.913199215252,
-            "n_ramp": 10141.913199215252,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 10141,
+            "n_ramp": 10141,
             "v_c": 95.58528,
             "f_z": 0.0164416,
             "f_n": 0.0493248,
@@ -11256,14 +12191,20 @@
             "stepover": 3.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "3baa840d-0897-4e89-ab32-ff4b2726e44b",
+            "guid": "db433eaa-63d0-4d59-9455-8e7b95527b1c",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 150.79644737231007,
             "f_z": 0.048931387256274765,
             "f_n": 0.1467941617688243,
@@ -11277,14 +12218,20 @@
             "stepover": 0.44999999999999996,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "6cd500b9-4417-4f48-8609-caedd4b55367",
+            "guid": "e216f9e1-412a-4cf2-8348-dcd6433ccf05",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 150.79644737231007,
             "f_z": 0.026879999999999998,
             "f_n": 0.08063999999999999,
@@ -11298,14 +12245,20 @@
             "stepover": 1.5,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "155fdc68-8db0-42c9-b07b-70b2f55e20ce",
+            "guid": "26b30e70-cd9f-4290-b204-c5d01626d380",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 150.79644737231007,
             "f_z": 0.03700016955864421,
             "f_n": 0.11100050867593261,
@@ -11319,14 +12272,20 @@
             "stepover": 0.15000000000000002,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "fc5416d7-5fc4-4ea1-94f7-31d853c8f82c",
+            "guid": "c390672d-97c3-4316-aad3-d1580281a145",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 150.79644737231007,
             "f_z": 0.026879999999999998,
             "f_n": 0.08063999999999999,
@@ -11340,6 +12299,7 @@
             "stepover": 3.0,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -11467,11 +12427,16 @@
       "start-values": {
         "presets": [
           {
-            "guid": "3882ba54-f5bb-434a-b568-c8e088955230",
+            "guid": "7ccd3bf2-45f7-432d-b019-7f986dc10916",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 4791.455054747365,
-            "n_ramp": 4791.455054747365,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 4791,
+            "n_ramp": 4791,
             "v_c": 95.58528000000001,
             "f_z": 0.06732143363342472,
             "f_n": 0.26928573453369886,
@@ -11485,14 +12450,20 @@
             "stepover": 0.9524999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "e32bf4ab-8b9e-49c2-b7e2-4c4f6e5c773c",
+            "guid": "3cb21e13-879a-4fd3-a233-26a5c066fb13",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 4791.455054747365,
-            "n_ramp": 4791.455054747365,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 4791,
+            "n_ramp": 4791,
             "v_c": 95.58528000000001,
             "f_z": 0.03698239999999999,
             "f_n": 0.14792959999999997,
@@ -11506,14 +12477,20 @@
             "stepover": 3.175,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "1edcbf79-59dc-44f1-a3ce-faca3ee697b8",
+            "guid": "144dd8a6-ec03-4452-8c19-0060737b34c5",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 4791.455054747365,
-            "n_ramp": 4791.455054747365,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 4791,
+            "n_ramp": 4791,
             "v_c": 95.58528000000001,
             "f_z": 0.050906066617767975,
             "f_n": 0.2036242664710719,
@@ -11527,14 +12504,20 @@
             "stepover": 0.3175,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9466ac50-a3dd-4796-845d-ab8651dc6fb0",
+            "guid": "d7be9930-8588-454b-b014-b15e02420745",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 4791.455054747365,
-            "n_ramp": 4791.455054747365,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 4791,
+            "n_ramp": 4791,
             "v_c": 95.58528000000001,
             "f_z": 0.03698239999999999,
             "f_n": 0.14792959999999997,
@@ -11548,14 +12531,20 @@
             "stepover": 6.35,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c163c895-6723-484b-912d-b87c7c9764d7",
+            "guid": "a28f45eb-a058-4ab7-922a-9d10ff1df9b8",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 12320.884426493221,
-            "n_ramp": 12320.884426493221,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
             "v_c": 245.79072,
             "f_z": 0.10357143635911494,
             "f_n": 0.41428574543645974,
@@ -11569,14 +12558,20 @@
             "stepover": 0.9524999999999999,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "3d08c37d-74b1-46a8-a3ea-95031d2310a7",
+            "guid": "242bb978-1c27-4e27-b80a-cfcd2c20ff93",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 12320.884426493221,
-            "n_ramp": 12320.884426493221,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
             "v_c": 245.79072,
             "f_z": 0.056895999999999995,
             "f_n": 0.22758399999999998,
@@ -11590,14 +12585,20 @@
             "stepover": 3.175,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "4a005087-7a71-468b-9337-6a7dd9fc5f36",
+            "guid": "70ead1d5-eda5-4b6f-98db-ef5bcfd059e9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 12320.884426493221,
-            "n_ramp": 12320.884426493221,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
             "v_c": 245.79072,
             "f_z": 0.0783170255657969,
             "f_n": 0.3132681022631876,
@@ -11611,14 +12612,20 @@
             "stepover": 0.3175,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "021ebdd8-53b7-4f8e-82a8-3e43216bf860",
+            "guid": "1573ff94-9478-482e-9c41-9a0eb76784c1",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 12320.884426493221,
-            "n_ramp": 12320.884426493221,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
             "v_c": 245.79072,
             "f_z": 0.056895999999999995,
             "f_n": 0.22758399999999998,
@@ -11632,6 +12639,7 @@
             "stepover": 6.35,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -12437,11 +13445,16 @@
             "v_f_transition": 9.87519340424243
           },
           {
-            "guid": "1340616c-7c88-4438-8fbb-3502568c2d48",
+            "guid": "719d98e7-ca04-4025-9e23-613071ff3d61",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0012232846814068693,
             "f_n": 0.004893138725627477,
@@ -12455,14 +13468,20 @@
             "stepover": 0.01875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "28b81b69-5bbc-4bf1-9c95-d05d624a23f7",
+            "guid": "0236a6b4-165a-44d5-bede-eaec5d386fdc",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0006719999999999999,
             "f_n": 0.0026879999999999994,
@@ -12476,14 +13495,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "b7e17f77-7246-49f4-957d-a174dca09fcf",
+            "guid": "d036d26e-f410-4b14-8d32-b85d84465b0e",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0009250042389661049,
             "f_n": 0.0037000169558644197,
@@ -12497,14 +13522,20 @@
             "stepover": 0.00625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "20d3acc5-cd08-421a-8810-9cdaba1bd88d",
+            "guid": "622b01f1-6c84-4c45-95ec-81b3479fc498",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 9582.91010949473,
-            "n_ramp": 9582.91010949473,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 9582,
+            "n_ramp": 9582,
             "v_c": 313.6,
             "f_z": 0.0006719999999999999,
             "f_n": 0.0026879999999999994,
@@ -12518,14 +13549,20 @@
             "stepover": 0.125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 1.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "b1b7deab-a1ff-46ac-bd98-be65f910b7be",
+            "guid": "e1ff304a-7ffd-4e5e-bbde-199bb3df3c1a",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.0020388078023447823,
             "f_n": 0.00815523120937913,
@@ -12539,14 +13576,20 @@
             "stepover": 0.01875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "9865aae3-fb5a-4731-88ad-42cfd302997a",
+            "guid": "6cc1dbe1-976d-46db-9cb7-08a70d48f6a9",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.00112,
             "f_n": 0.00448,
@@ -12560,14 +13603,20 @@
             "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "be0bca94-ea29-4471-960c-20aab490466f",
+            "guid": "4a18a308-82ae-41c2-a001-5d9659b40364",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.0015416737316101751,
             "f_n": 0.0061666949264407005,
@@ -12581,14 +13630,20 @@
             "stepover": 0.00625,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "18a7d2be-d00a-4aa9-93a2-9f2fc745ba39",
+            "guid": "41a03812-bcfa-40e1-b736-77327df0b2ef",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 16000.0,
-            "n_ramp": 16000.0,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
             "v_c": 523.5987755982989,
             "f_z": 0.00112,
             "f_n": 0.00448,
@@ -12602,6 +13657,7 @@
             "stepover": 0.125,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -13463,11 +14519,16 @@
             "v_f_transition": 28
           },
           {
-            "guid": "3dd68095-7294-4a0e-8a28-dd5f9f54658e",
+            "guid": "2a70f7f0-ff6b-4fcd-9d6a-4b15bd5ecab6",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.003465973263986129,
             "f_n": 0.013863893055944517,
@@ -13481,14 +14542,20 @@
             "stepover": 0.056249999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "f5a9467b-866e-4fef-ad0a-0114e3e40d10",
+            "guid": "46d790a5-7484-493d-8a96-385d4a55781a",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.0019039999999999997,
             "f_n": 0.007615999999999999,
@@ -13502,14 +14569,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "d7acf971-cdce-4163-8f9c-ea8282471a25",
+            "guid": "5c77bcac-1e8b-4d1d-af06-c90491704ea2",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Finishing",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.002620845343737297,
             "f_n": 0.010483381374949188,
@@ -13523,14 +14596,20 @@
             "stepover": 0.018750000000000003,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "c1955b32-1680-411a-8238-0fcbfd2c5dc5",
+            "guid": "87642962-9052-42c8-b8cd-cc01823c5318",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
             "description": "CPM MagnaCut (Annealed ~22 HRC) - Slotting",
-            "n": 3194.303369831576,
-            "n_ramp": 3194.303369831576,
+            "material": {
+              "category": "all",
+              "query": "CPM MagnaCut (Annealed ~22 HRC)",
+              "use-hardness": false
+            },
+            "n": 3194,
+            "n_ramp": 3194,
             "v_c": 313.6,
             "f_z": 0.0019369563812795666,
             "f_n": 0.007747825525118266,
@@ -13544,14 +14623,20 @@
             "stepover": 0.375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 2.6799999999999997,
             "tool-coolant": "flood"
           },
           {
-            "guid": "e997e46a-bffb-4ba2-bb2a-ac810684a26b",
+            "guid": "99f67090-64c2-4359-9748-ee74717aab90",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Adaptive Roughing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.005097019505861957,
             "f_n": 0.020388078023447827,
@@ -13565,14 +14650,20 @@
             "stepover": 0.056249999999999994,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "a0b963ee-82c2-4ecc-9e6d-84ecd0e2b9ed",
+            "guid": "3fd0e6b9-5dfb-4bfd-bcd4-8d286b66dd53",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Roughing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.002802077216782533,
             "f_n": 0.011208308867130132,
@@ -13586,14 +14677,20 @@
             "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "afe68862-2db9-40cd-bf1c-d734e50842b6",
+            "guid": "a58b3d7a-a21d-46bf-aff3-5508991cfee5",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Finishing",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.003854184329025437,
             "f_n": 0.015416737316101749,
@@ -13607,14 +14704,20 @@
             "stepover": 0.018750000000000003,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           },
           {
-            "guid": "7e97f315-5a6c-4691-afa2-1fa9f5637590",
+            "guid": "5f97e3e8-e832-43e5-a506-8cd2b2a34ca0",
             "name": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
             "description": "C72900 - Toughmet 3 Nickel Bronze - Slotting",
-            "n": 8213.922950995482,
-            "n_ramp": 8213.922950995482,
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
             "v_c": 806.4,
             "f_z": 0.002968900206028364,
             "f_n": 0.011875600824113456,
@@ -13628,6 +14731,7 @@
             "stepover": 0.375,
             "use-stepdown": true,
             "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
             "tool-coolant": "flood"
           }
         ]
@@ -13637,5 +14741,5 @@
       "vendor": "Speed Tiger"
     }
   ],
-  "last_modified": "2026-08-25T16:19:55.884891"
+  "last_modified": "2026-08-25T18:12:05.115902"
 }
