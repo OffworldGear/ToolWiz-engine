@@ -985,7 +985,8 @@
         });
 
         async function handleFileUpload(file) {
-            if (!file.name.endsWith('.json') && !file.name.endsWith('.tools')) {
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.json') && !fileName.endsWith('.tools')) {
                 alert('Please upload a .json or .tools file.');
                 return;
             }
