@@ -384,7 +384,7 @@ def twin_batch_generate():
                 adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry)
                 feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
                 actual_sfm = physics.calc_sfm(rpm, diameter)
-                _, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+                ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
                 
                 # Standard Preset Name
                 material_label = alloy if alloy else family
@@ -435,7 +435,7 @@ def twin_batch_generate():
                     "stepover": p_stepover,
                     "use-stepdown": True,
                     "use-stepover": True,
-                    "ramp-angle": 2.0,
+                    "ramp-angle": float(ramp_angle),
                     "tool-coolant": "flood"
                 }
                 
