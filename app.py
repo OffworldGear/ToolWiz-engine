@@ -1,4 +1,5 @@
 import os
+import uuid
 from flask import Flask, render_template, request, jsonify
 from gwizard_physics import GWizardPhysics
 
@@ -411,16 +412,24 @@ def twin_batch_generate():
                     p_stepover = float(rec_woc * 25.4)
                 
                 preset_dict = {
+                    "guid": str(uuid.uuid4()),
                     "name": preset_name,
                     "description": preset_name,
                     "n": p_n,
+                    "n_ramp": p_n,
                     "v_c": p_vc,
                     "f_z": p_fz,
+                    "f_n": float(p_fz * flutes),
                     "v_f": p_vf,
+                    "v_f_leadIn": p_vf,
+                    "v_f_leadOut": p_vf,
+                    "v_f_transition": p_vf,
                     "v_f_ramp": p_vf_ramp,
                     "v_f_plunge": p_vf_plunge,
                     "stepdown": p_stepdown,
                     "stepover": p_stepover,
+                    "use-stepdown": True,
+                    "use-stepover": True,
                     "tool-coolant": "flood"
                 }
                 
