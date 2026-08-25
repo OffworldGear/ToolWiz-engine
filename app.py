@@ -265,7 +265,7 @@ def twin_load():
             dia_in = parse_dim(geo.get("DC", 6.35), tool_unit)
             flutes = int(geo.get("NOF", 4))
             flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            t_num = t_dict.get("postProcess", {}).get("number", idx + 1)
+            t_num = t_dict.get("post-process", {}).get("number", 0)
             desc = t_dict.get("description", f"{dia_in:.3f}in Tool")
             t_type = geo.get("type", t_dict.get("type", "end mill"))
             
