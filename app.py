@@ -493,7 +493,7 @@ def twin_batch_generate():
                     
                     rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
                     rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
-                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, 0.125, max_hp, material_family=family
+                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, 0.125, max_hp, material_family=family, flute_length=flute_len
                     )
                     
                     eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)

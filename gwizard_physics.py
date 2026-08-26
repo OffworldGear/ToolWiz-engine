@@ -350,7 +350,7 @@ class GWizardPhysics:
             # T-Slots must mathematically plunge exactly their own thickness
             return cutter_thickness, min(diameter * 0.35, target_woc), target_deflection
             
-        max_doc = diameter * 4.0 # Limit recommended cuts to 4xD flute lengths
+        max_doc = min(diameter * 4.0, flute_length) # Limit recommended cuts to 4xD flute lengths or physical flute length
         best_doc = 0.010
         current_doc = 0.010
         step = max(diameter * 0.05, 0.005) # Iteration step
