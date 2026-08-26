@@ -195,6 +195,11 @@
                             <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
                         </div>
                         
+                        <div class="input-group" id="pitchGroup" style="display: none;">
+                            <label for="pitch">Thread Pitch (in)</label>
+                            <input type="number" id="pitch" value="0.05" min="0.001" step="0.001" onchange="calculate()">
+                        </div>
+
                         <div class="slider-group" style="margin:0;">
                             <div class="slider-header">
                                 <label for="helixAngle">Helix Angle (°)</label>
@@ -640,10 +645,17 @@
                 p_neck /= 25.4; p_neckLength /= 25.4;
             }
 
+            const toolType = document.getElementById('tool').value;
+            const isTap = toolType === 'Tapping';
+            const pitchGroup = document.getElementById('pitchGroup');
+            if (pitchGroup) {
+                pitchGroup.style.display = isTap ? 'block' : 'none';
+            }
+
             const payload = {
                 family: document.getElementById('family').value,
                 alloy: document.getElementById('alloy').value,
-                tool: document.getElementById('tool').value,
+                tool: toolType,
                 coating: document.getElementById('coating').value,
                 geometry: document.getElementById('geometry').value,
                 operation: document.getElementById('operation').value,
@@ -660,6 +672,7 @@
                 maxHp: parseFloat(document.getElementById('maxHp').value),
                 diameter: p_dia,
                 flutes: document.getElementById('flutes').value,
+                pitch: parseFloat(document.getElementById('pitch')?.value || 0.05),
                 cutDepth: p_depth,
                 cutWidth: p_width,
                 stickout: p_stick,

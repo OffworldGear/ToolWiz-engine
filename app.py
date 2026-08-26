@@ -21,7 +21,10 @@ def get_data():
     
     # Extract unique tools from ipt_data mapping where possible
     tools = sorted(list(set(item[1] for item in physics.ipt_data if len(item) > 1)))
-    
+    if "Tapping" not in tools:
+        tools.append("Tapping")
+        tools.sort()
+        
     return jsonify({
         "families": families,
         "tools": tools,
@@ -71,8 +74,15 @@ def calculate():
         
         # 2. Physics Equations
         rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
-        adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry)
-        feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
+        
+        if tool == "Tapping":
+            pitch = float(data.get("pitch", 0.05))
+            feedrate = rpm * pitch
+            adjusted_ipt = 0.0
+        else:
+            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry)
+            feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
+            
         mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=geometry, diameter=diameter)
         
         actual_sfm = physics.calc_sfm(rpm, diameter)
