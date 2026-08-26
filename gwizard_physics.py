@@ -12,7 +12,7 @@ class GWizardPhysics:
         self.machinability = {item["material"]: item for item in self.db.get("machinability_factors", [])}
         self.specific_alloys = self.db.get("specific_alloys", [])
         
-    def get_base_sfm(self, material, tool_type, geometry="Square"):
+    def get_base_sfm(self, material, tool_type, geometry="Square", diameter=None):
         """Lookup base Surface Feet per Minute (SFM) from DB"""
         sfm = 500
         for entry in self.sfm_data:
@@ -28,6 +28,12 @@ class GWizardPhysics:
             
         if geometry == "Indexable Mill":
             sfm *= 1.25 # Indexables often run higher SFMs in mild materials
+
+        # Micro-Tool Thermal/Chip Evacuation Limit
+        if diameter is not None and diameter < 0.125:
+            # Below 1/8", sfm must drop exponentially to prevent the RPM from skyrocketing and melting the tool
+            scale = max(0.2, (diameter / 0.125) ** 1.25)
+            sfm *= scale
             
         return sfm
         

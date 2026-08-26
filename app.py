@@ -62,7 +62,7 @@ def calculate():
         neck_diameter = float(data.get("neckDiameter", shank_size))
         
         # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry)
+        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry)
         
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
@@ -148,7 +148,7 @@ def calculate_for_fusion():
         is_carbide = True  # Assuming Fusion tool implies carbide if not specified
         
         # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry)
+        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry)
         
         # Alloy-specific hardness adjustment (e.g. Hardened Tool Steels / CPM MagnaCut @ 62 HRC)
@@ -440,7 +440,7 @@ def twin_batch_generate():
                 is_tap = "tap" in tool_type
                 db_tool_type = "Tapping" if is_tap else "Carbide Twist Drill"
                 
-                rpm = physics.calc_rpm(physics.get_base_sfm(family, db_tool_type), diameter, max_rpm=max_rpm)
+                rpm = physics.calc_rpm(physics.get_base_sfm(family, db_tool_type, diameter=diameter), diameter, max_rpm=max_rpm)
                 adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter)
                 
                 if is_tap:
@@ -502,7 +502,7 @@ def twin_batch_generate():
             elif is_milling:
                 for strat in strategies:
                     # 1. Physics lookup
-                    target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry)
+                    target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
                     base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry)
                     
                     # Hardness modifier (e.g. MagnaCut 62 HRC)
