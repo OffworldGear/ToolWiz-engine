@@ -939,6 +939,141 @@
             "v_f_plunge": 2.398625788110564,
             "v_f_ramp": 7.999999999999997,
             "v_f_transition": 5.999999999999999
+          },
+          {
+            "guid": "72f12943-e80e-4c04-baa3-0a0efb1371df",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.0020388078023447823,
+            "f_n": 0.00815523120937913,
+            "v_f": 130.48369935006608,
+            "v_f_leadIn": 130.48369935006608,
+            "v_f_leadOut": 130.48369935006608,
+            "v_f_transition": 130.48369935006608,
+            "v_f_ramp": 78.29021961003964,
+            "v_f_plunge": 45.66929477252312,
+            "stepdown": 0.01,
+            "stepover": 0.01875,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "7436c6e3-2fc0-4b06-835a-3bf389d56fe0",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.00112,
+            "f_n": 0.00448,
+            "v_f": 71.67999999999999,
+            "v_f_leadIn": 71.67999999999999,
+            "v_f_leadOut": 71.67999999999999,
+            "v_f_transition": 71.67999999999999,
+            "v_f_ramp": 43.007999999999996,
+            "v_f_plunge": 25.087999999999997,
+            "stepdown": 0.01,
+            "stepover": 0.0625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "1aac6a2c-147a-4866-b2af-e8bce44ef1c7",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.0015416737316101751,
+            "f_n": 0.0061666949264407005,
+            "v_f": 98.66711882305121,
+            "v_f_leadIn": 98.66711882305121,
+            "v_f_leadOut": 98.66711882305121,
+            "v_f_transition": 98.66711882305121,
+            "v_f_ramp": 59.200271293830724,
+            "v_f_plunge": 34.533491588067925,
+            "stepdown": 0.01625,
+            "stepover": 0.00625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "cef2695a-e5b1-4dd9-9b7b-3c1be0ee0be9",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.00112,
+            "f_n": 0.00448,
+            "v_f": 71.67999999999999,
+            "v_f_leadIn": 71.67999999999999,
+            "v_f_leadOut": 71.67999999999999,
+            "v_f_transition": 71.67999999999999,
+            "v_f_ramp": 43.007999999999996,
+            "v_f_plunge": 25.087999999999997,
+            "stepdown": 0.01,
+            "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "127f378f-714a-46dc-9778-e593202f2fc8",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.00112,
+            "f_n": 0.00448,
+            "v_f": 71.67999999999999,
+            "v_f_leadIn": 71.67999999999999,
+            "v_f_leadOut": 71.67999999999999,
+            "v_f_transition": 71.67999999999999,
+            "v_f_ramp": 43.007999999999996,
+            "v_f_plunge": 25.087999999999997,
+            "stepdown": 0.01,
+            "stepover": 0.0625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -1887,6 +2022,141 @@
             "v_f_plunge": 2.682482816950808,
             "v_f_ramp": 5,
             "v_f_transition": 11.999999999999998
+          },
+          {
+            "guid": "a9cfc588-fe53-490a-9c6e-19ec50424a28",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 261.79938779914943,
+            "f_z": 0.0010194039011723912,
+            "f_n": 0.004077615604689565,
+            "v_f": 65.24184967503304,
+            "v_f_leadIn": 65.24184967503304,
+            "v_f_leadOut": 65.24184967503304,
+            "v_f_transition": 65.24184967503304,
+            "v_f_ramp": 39.14510980501982,
+            "v_f_plunge": 22.83464738626156,
+            "stepdown": 0.01,
+            "stepover": 0.009375,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "85a4cb2a-ea03-47c8-b89e-c8f385ba0966",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 261.79938779914943,
+            "f_z": 0.00056,
+            "f_n": 0.00224,
+            "v_f": 35.839999999999996,
+            "v_f_leadIn": 35.839999999999996,
+            "v_f_leadOut": 35.839999999999996,
+            "v_f_transition": 35.839999999999996,
+            "v_f_ramp": 21.503999999999998,
+            "v_f_plunge": 12.543999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.03125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "d70f66af-9350-4da2-a723-87efd1f0d184",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 261.79938779914943,
+            "f_z": 0.0007708368658050876,
+            "f_n": 0.0030833474632203503,
+            "v_f": 49.333559411525606,
+            "v_f_leadIn": 49.333559411525606,
+            "v_f_leadOut": 49.333559411525606,
+            "v_f_transition": 49.333559411525606,
+            "v_f_ramp": 29.600135646915362,
+            "v_f_plunge": 17.266745794033962,
+            "stepdown": 0.01,
+            "stepover": 0.003125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "9154308f-a681-446c-95b7-5ce50022e37d",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 261.79938779914943,
+            "f_z": 0.00056,
+            "f_n": 0.00224,
+            "v_f": 35.839999999999996,
+            "v_f_leadIn": 35.839999999999996,
+            "v_f_leadOut": 35.839999999999996,
+            "v_f_transition": 35.839999999999996,
+            "v_f_ramp": 21.503999999999998,
+            "v_f_plunge": 12.543999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.0625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "e9579939-0112-4ffa-be2c-56201549cbc7",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 261.79938779914943,
+            "f_z": 0.00056,
+            "f_n": 0.00224,
+            "v_f": 35.839999999999996,
+            "v_f_leadIn": 35.839999999999996,
+            "v_f_leadOut": 35.839999999999996,
+            "v_f_transition": 35.839999999999996,
+            "v_f_ramp": 21.503999999999998,
+            "v_f_plunge": 12.543999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.03125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -2737,9 +3007,9 @@
             "v_f_transition": 8.499999999999998
           },
           {
-            "guid": "727b1b4d-be06-48d8-b117-cc751501ebbf",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "759bab61-9093-4fbc-b8c4-e20a21fb18e5",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -2764,9 +3034,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "49eb9fd6-cb05-49a9-9322-d6b626a46015",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "1e68fa21-75f5-4d0b-9869-ba1c327a4257",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -2791,9 +3061,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "7ad5c5bf-fbcc-4f07-b50f-c5c1fec3db7c",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "35cc1edb-9df5-4a41-a030-691f5c3312bb",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -2818,9 +3088,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "cc272d59-eb91-4dcc-8104-34438ef5d1e4",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "d4b613b2-1e79-4a51-95f7-f1ce94c6c0c1",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -2839,6 +3109,33 @@
             "v_f_plunge": 41.153363327861896,
             "stepdown": 0.01,
             "stepover": 0.25,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "0a443f4c-1ede-4429-b92d-801ec4b0efdf",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.0023858075851027082,
+            "f_n": 0.009543230340410833,
+            "v_f": 117.58103807960543,
+            "v_f_leadIn": 117.58103807960543,
+            "v_f_leadOut": 117.58103807960543,
+            "v_f_transition": 117.58103807960543,
+            "v_f_ramp": 70.54862284776326,
+            "v_f_plunge": 41.153363327861896,
+            "stepdown": 0.01,
+            "stepover": 0.125,
             "use-stepdown": true,
             "use-stepover": true,
             "ramp-angle": 3.2399999999999998,
@@ -3820,9 +4117,9 @@
             "v_f_transition": 11.999999999999998
           },
           {
-            "guid": "d2fcee60-f43b-4338-9ec0-e3f9f9a54edd",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "45fa2204-e657-496b-a3df-55cda480a9b6",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -3847,9 +4144,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "1584cbfc-0f6e-435c-b9a9-578aa08ec091",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "794d777f-3921-4c39-ae09-bc5a5cdd7d59",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -3874,9 +4171,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "72e2aaf3-4756-431a-b37f-b59611c3cf51",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "6f51c006-7903-4d38-95b9-d79f8eab08a0",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -3901,9 +4198,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "fd717728-33f7-4c2d-a9ea-fa0022af1727",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "382ecb8e-6414-4b7b-8ded-bf6115235018",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -3922,6 +4219,33 @@
             "v_f_plunge": 17.108282594501794,
             "stepdown": 0.01,
             "stepover": 0.0625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "90025046-3520-4961-afd7-fa20d8fcb6d1",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 261.79938779914943,
+            "f_z": 0.0007637626158259731,
+            "f_n": 0.0030550504633038923,
+            "v_f": 48.880807412862275,
+            "v_f_leadIn": 48.880807412862275,
+            "v_f_leadOut": 48.880807412862275,
+            "v_f_transition": 48.880807412862275,
+            "v_f_ramp": 29.328484447717365,
+            "v_f_plunge": 17.108282594501794,
+            "stepdown": 0.01,
+            "stepover": 0.03125,
             "use-stepdown": true,
             "use-stepover": true,
             "ramp-angle": 3.2399999999999998,
@@ -4282,6 +4606,141 @@
             "v_f_plunge": 4.5,
             "v_f_ramp": 3.9999999999999987,
             "v_f_transition": 7.999999999999997
+          },
+          {
+            "guid": "2513656a-3c44-482e-b291-ef9333593783",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.0010194039011723912,
+            "f_n": 0.0020388078023447823,
+            "v_f": 32.62092483751652,
+            "v_f_leadIn": 32.62092483751652,
+            "v_f_leadOut": 32.62092483751652,
+            "v_f_transition": 32.62092483751652,
+            "v_f_ramp": 19.57255490250991,
+            "v_f_plunge": 11.41732369313078,
+            "stepdown": 0.01,
+            "stepover": 0.0046875,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "2cd67abf-6797-4cfb-9928-ea88f1336e9e",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.00056,
+            "f_n": 0.00112,
+            "v_f": 17.919999999999998,
+            "v_f_leadIn": 17.919999999999998,
+            "v_f_leadOut": 17.919999999999998,
+            "v_f_transition": 17.919999999999998,
+            "v_f_ramp": 10.751999999999999,
+            "v_f_plunge": 6.271999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.015625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "28bb664f-da8c-4fe6-9fc9-118e10708c23",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.0007708368658050876,
+            "f_n": 0.0015416737316101751,
+            "v_f": 24.666779705762803,
+            "v_f_leadIn": 24.666779705762803,
+            "v_f_leadOut": 24.666779705762803,
+            "v_f_transition": 24.666779705762803,
+            "v_f_ramp": 14.800067823457681,
+            "v_f_plunge": 8.633372897016981,
+            "stepdown": 0.01,
+            "stepover": 0.0015625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "0d817d87-caf8-4de9-8c27-135a5c73f017",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.00056,
+            "f_n": 0.00112,
+            "v_f": 17.919999999999998,
+            "v_f_leadIn": 17.919999999999998,
+            "v_f_leadOut": 17.919999999999998,
+            "v_f_transition": 17.919999999999998,
+            "v_f_ramp": 10.751999999999999,
+            "v_f_plunge": 6.271999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.03125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "8c03e20b-2a14-48a9-bdcf-53e455642dd5",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.00056,
+            "f_n": 0.00112,
+            "v_f": 17.919999999999998,
+            "v_f_leadIn": 17.919999999999998,
+            "v_f_leadOut": 17.919999999999998,
+            "v_f_transition": 17.919999999999998,
+            "v_f_ramp": 10.751999999999999,
+            "v_f_plunge": 6.271999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.015625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -4696,9 +5155,9 @@
             "v_f_transition": 0
           },
           {
-            "guid": "c54767b4-3997-4e5b-ad05-e02b0276c3c9",
-            "name": "Bronze - Toughmet3",
-            "description": "Bronze - Toughmet3",
+            "guid": "1fa9c135-dcf8-4126-b4aa-cbd5213c2db0",
+            "name": "Bronze - Toughmet 3",
+            "description": "Bronze - Toughmet 3",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -4706,8 +5165,15 @@
             },
             "n": 16000,
             "v_c": 72.8849495632832,
+            "f_z": 0.0254,
+            "f_n": 0.0508,
+            "v_f": 812.8,
+            "v_f_leadIn": 812.8,
+            "v_f_leadOut": 812.8,
+            "v_f_transition": 812.8,
+            "v_f_ramp": 812.8,
             "v_f_plunge": 812.8,
-            "v_f_retract": 812.8,
+            "v_f_retract": 1625.6,
             "use-feed-per-revolution": false,
             "tool-coolant": "flood"
           }
@@ -4959,9 +5425,9 @@
             "v_f_transition": 45
           },
           {
-            "guid": "f59ca672-ec5a-4841-85dc-ec0a11d5ec98",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "39fbdc88-399a-433e-ad09-30e6210b7be8",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -4986,9 +5452,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "2b880d89-68e0-4412-ad32-2ee59be12dd3",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "54770666-3608-4e8b-81f8-22dd3f40c960",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -5013,9 +5479,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "6e2e0bde-d411-4c71-aac5-25b387b0b10e",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "6ad5bd8d-c591-458f-b5bd-fdde0ee08c4e",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -5040,9 +5506,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "90a62f97-abc1-4eaf-b2b4-25c4bf561670",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "5143b79f-22df-4569-86ee-410e9b9c7d6b",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -5061,6 +5527,33 @@
             "v_f_plunge": 802.8159999999999,
             "stepdown": 15.853999999999978,
             "stepover": 3.9999999999999996,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "3a7a6801-437c-4311-9038-5fc0c76f6608",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 201.06192982974676,
+            "f_z": 0.03584,
+            "f_n": 0.14336,
+            "v_f": 2293.7599999999998,
+            "v_f_leadIn": 2293.7599999999998,
+            "v_f_leadOut": 2293.7599999999998,
+            "v_f_transition": 2293.7599999999998,
+            "v_f_ramp": 1376.2559999999999,
+            "v_f_plunge": 802.8159999999999,
+            "stepdown": 15.853999999999978,
+            "stepover": 1.9999999999999998,
             "use-stepdown": true,
             "use-stepover": true,
             "ramp-angle": 3.2399999999999998,
@@ -6072,9 +6565,9 @@
             "v_f_transition": 10.356241680896591
           },
           {
-            "guid": "37d23c8b-4ec9-4bd0-bd7f-2671b7d36ee7",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "08d56b60-319d-4bc4-b3b5-147f5e5d43f0",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -6099,9 +6592,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "329b137c-420d-4d89-b237-d11299b903e2",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "688633e6-782d-4c07-aa1b-6676b8be62c8",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -6126,9 +6619,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "14cc4b7d-fd6f-4f02-87b4-ac911ac67ed2",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "58368df6-6de6-4515-a515-9f3ead71ebdf",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -6153,9 +6646,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "2a2e5c58-99bf-44e1-9e95-192b3244863b",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "4d35ef35-a71a-4be1-be93-f326acd4b470",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -6174,6 +6667,33 @@
             "v_f_plunge": 32.42625820985161,
             "stepdown": 0.04750000000000001,
             "stepover": 0.375,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "c286e36f-a109-43df-b75c-db9fda9be69b",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
+            "v_c": 806.4,
+            "f_z": 0.0028,
+            "f_n": 0.0112,
+            "v_f": 91.9959370511494,
+            "v_f_leadIn": 91.9959370511494,
+            "v_f_leadOut": 91.9959370511494,
+            "v_f_transition": 91.9959370511494,
+            "v_f_ramp": 55.197562230689634,
+            "v_f_plunge": 32.19857796790229,
+            "stepdown": 0.085,
+            "stepover": 0.1875,
             "use-stepdown": true,
             "use-stepover": true,
             "ramp-angle": 3.2399999999999998,
@@ -6407,6 +6927,141 @@
             "v_f_plunge": 4.5,
             "v_f_ramp": 13.123359580052496,
             "v_f_transition": 14.399999999999995
+          },
+          {
+            "guid": "ecb7def0-ba90-4a5a-b425-fba2ec9bb7c3",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.0010194039011723912,
+            "f_n": 0.004077615604689565,
+            "v_f": 65.24184967503304,
+            "v_f_leadIn": 65.24184967503304,
+            "v_f_leadOut": 65.24184967503304,
+            "v_f_transition": 65.24184967503304,
+            "v_f_ramp": 39.14510980501982,
+            "v_f_plunge": 22.83464738626156,
+            "stepdown": 0.01,
+            "stepover": 0.0046875,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "a2b03d76-28be-40f8-9c49-27e2e44fa2e8",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.00056,
+            "f_n": 0.00224,
+            "v_f": 35.839999999999996,
+            "v_f_leadIn": 35.839999999999996,
+            "v_f_leadOut": 35.839999999999996,
+            "v_f_transition": 35.839999999999996,
+            "v_f_ramp": 21.503999999999998,
+            "v_f_plunge": 12.543999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.015625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "a8c53540-c612-4a65-a690-07da161a03d9",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.0007708368658050876,
+            "f_n": 0.0030833474632203503,
+            "v_f": 49.333559411525606,
+            "v_f_leadIn": 49.333559411525606,
+            "v_f_leadOut": 49.333559411525606,
+            "v_f_transition": 49.333559411525606,
+            "v_f_ramp": 29.600135646915362,
+            "v_f_plunge": 17.266745794033962,
+            "stepdown": 0.01,
+            "stepover": 0.0015625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "33008e85-3da1-4517-a9cc-024d18570790",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.00056,
+            "f_n": 0.00224,
+            "v_f": 35.839999999999996,
+            "v_f_leadIn": 35.839999999999996,
+            "v_f_leadOut": 35.839999999999996,
+            "v_f_transition": 35.839999999999996,
+            "v_f_ramp": 21.503999999999998,
+            "v_f_plunge": 12.543999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.03125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "d6bb5645-5b8f-49cb-8166-c23a698a0189",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 130.89969389957471,
+            "f_z": 0.00056,
+            "f_n": 0.00224,
+            "v_f": 35.839999999999996,
+            "v_f_leadIn": 35.839999999999996,
+            "v_f_leadOut": 35.839999999999996,
+            "v_f_transition": 35.839999999999996,
+            "v_f_ramp": 21.503999999999998,
+            "v_f_plunge": 12.543999999999999,
+            "stepdown": 0.01,
+            "stepover": 0.015625,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -7132,9 +7787,9 @@
             "v_f_transition": 0
           },
           {
-            "guid": "597f4c38-afb0-4e13-b26b-e459792a57cb",
-            "name": "Bronze - Toughmet3",
-            "description": "Bronze - Toughmet3",
+            "guid": "3909f5d4-d22c-48f6-9b9f-908ca8777760",
+            "name": "Bronze - Toughmet 3",
+            "description": "Bronze - Toughmet 3",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -7142,8 +7797,15 @@
             },
             "n": 10780,
             "v_c": 152.40000000000006,
+            "f_z": 0.0254,
+            "f_n": 0.0508,
+            "v_f": 547.6288164542251,
+            "v_f_leadIn": 547.6288164542251,
+            "v_f_leadOut": 547.6288164542251,
+            "v_f_transition": 547.6288164542251,
+            "v_f_ramp": 547.6288164542251,
             "v_f_plunge": 547.6288164542251,
-            "v_f_retract": 547.6288164542251,
+            "v_f_retract": 1095.2576329084502,
             "use-feed-per-revolution": false,
             "tool-coolant": "flood"
           }
@@ -7292,9 +7954,9 @@
             "v_f_transition": 39.37007874015748
           },
           {
-            "guid": "84c27233-447e-48fa-905f-a1591c2963ac",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "e3431124-41f2-433d-84ec-99e9782510c0",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -7319,9 +7981,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "ebf7ea0c-eaee-4d9e-85c6-9ad21fb03b1c",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "6ef0cac0-e08e-43d9-9af6-a7fd0125980c",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -7346,9 +8008,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "b3113cd6-3bfc-4af2-a553-fa9ab8f6fae0",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "a9fa48e2-d11e-4897-b003-2d7f4267fa81",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -7373,9 +8035,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "de4b956c-9af3-48d1-b24c-146d1d9f943c",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "48cbcb8f-0562-4bf7-a3e4-d16f5bed09f6",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -7394,6 +8056,33 @@
             "v_f_plunge": 6.271999999999999,
             "stepdown": 0.4974999999999993,
             "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "09da07d4-9ad7-4ec9-a896-0b8d55fa08eb",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.00112,
+            "f_n": 0.00112,
+            "v_f": 17.919999999999998,
+            "v_f_leadIn": 17.919999999999998,
+            "v_f_leadOut": 17.919999999999998,
+            "v_f_transition": 17.919999999999998,
+            "v_f_ramp": 10.751999999999999,
+            "v_f_plunge": 6.271999999999999,
+            "stepdown": 0.4974999999999993,
+            "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
             "ramp-angle": 3.3599999999999994,
@@ -8184,6 +8873,141 @@
             "v_f_plunge": 3.411993203911018,
             "v_f_ramp": 10.236733608247423,
             "v_f_transition": 10.235979611733054
+          },
+          {
+            "guid": "63cce26c-db22-47f4-a888-110adffd860f",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.004077615604689565,
+            "f_n": 0.01631046241875826,
+            "v_f": 200.9593224041816,
+            "v_f_leadIn": 200.9593224041816,
+            "v_f_leadOut": 200.9593224041816,
+            "v_f_transition": 200.9593224041816,
+            "v_f_ramp": 120.57559344250895,
+            "v_f_plunge": 70.33576284146355,
+            "stepdown": 0.0225,
+            "stepover": 0.0375,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "2bdf6a1d-f5f8-4a1d-906d-bfe57558a669",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.00224,
+            "f_n": 0.00896,
+            "v_f": 110.39512446137925,
+            "v_f_leadIn": 110.39512446137925,
+            "v_f_leadOut": 110.39512446137925,
+            "v_f_transition": 110.39512446137925,
+            "v_f_ramp": 66.23707467682755,
+            "v_f_plunge": 38.63829356148273,
+            "stepdown": 0.01,
+            "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "4a69c2da-6dc9-4b6c-b86c-a936fa5717fc",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.0030833474632203503,
+            "f_n": 0.012333389852881401,
+            "v_f": 151.95827096423596,
+            "v_f_leadIn": 151.95827096423596,
+            "v_f_leadOut": 151.95827096423596,
+            "v_f_transition": 151.95827096423596,
+            "v_f_ramp": 91.17496257854158,
+            "v_f_plunge": 53.18539483748258,
+            "stepdown": 0.10999999999999999,
+            "stepover": 0.0125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "5482042e-277b-40e0-8a78-220b7c544d7f",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.00224,
+            "f_n": 0.00896,
+            "v_f": 110.39512446137925,
+            "v_f_leadIn": 110.39512446137925,
+            "v_f_leadOut": 110.39512446137925,
+            "v_f_transition": 110.39512446137925,
+            "v_f_ramp": 66.23707467682755,
+            "v_f_plunge": 38.63829356148273,
+            "stepdown": 0.01,
+            "stepover": 0.25,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "421421ae-ecd6-4300-ab98-9068a980b5bd",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.00224,
+            "f_n": 0.00896,
+            "v_f": 110.39512446137925,
+            "v_f_leadIn": 110.39512446137925,
+            "v_f_leadOut": 110.39512446137925,
+            "v_f_transition": 110.39512446137925,
+            "v_f_ramp": 66.23707467682755,
+            "v_f_plunge": 38.63829356148273,
+            "stepdown": 0.01,
+            "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -9064,9 +9888,9 @@
             "v_f_transition": 15.999999999999995
           },
           {
-            "guid": "1f6a5f33-12f7-4185-92dd-baa3afe5ac4a",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "9bdc48fc-b663-4554-bec7-39f4b066a4d7",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9091,9 +9915,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "4e7a9c7b-eeb5-4607-a26b-56c508a03cb2",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "75951d07-389a-4975-a638-0c78f83560ce",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9118,9 +9942,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "19d42704-6683-45ef-9600-5232a394b08c",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "57913d99-8343-43e1-b25a-33970cc05d6c",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9145,9 +9969,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "f89a1316-caad-4534-9237-89d9df8996ef",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "db8c86ac-4a75-48eb-9e08-96028b4f3f3a",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9166,6 +9990,33 @@
             "v_f_plunge": 46.23779745017573,
             "stepdown": 0.01,
             "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "21f46680-ab5f-4085-a10b-58908d7e52a4",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.0020641873861685592,
+            "f_n": 0.008256749544674237,
+            "v_f": 132.1079927147878,
+            "v_f_leadIn": 132.1079927147878,
+            "v_f_leadOut": 132.1079927147878,
+            "v_f_transition": 132.1079927147878,
+            "v_f_ramp": 79.26479562887268,
+            "v_f_plunge": 46.23779745017573,
+            "stepdown": 0.01,
+            "stepover": 0.0625,
             "use-stepdown": true,
             "use-stepover": true,
             "ramp-angle": 3.2399999999999998,
@@ -9612,9 +10463,9 @@
             "v_f_transition": 7.362
           },
           {
-            "guid": "0b6dc781-85b5-4b72-b02c-1959cd647ade",
-            "name": "Bronze - Toughmet3 - Adaptive Roughing",
-            "description": "Bronze - Toughmet3 - Adaptive Roughing",
+            "guid": "f59086a2-0161-4d3e-a8d8-570f77a43f63",
+            "name": "Bronze - Toughmet 3 - Adaptive Roughing",
+            "description": "Bronze - Toughmet 3 - Adaptive Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9639,9 +10490,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "63e39746-60d3-45f1-af5b-53780ae30c0b",
-            "name": "Bronze - Toughmet3 - Roughing",
-            "description": "Bronze - Toughmet3 - Roughing",
+            "guid": "d616aba6-4196-46dc-8b7b-a78d73fe75b7",
+            "name": "Bronze - Toughmet 3 - Roughing",
+            "description": "Bronze - Toughmet 3 - Roughing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9666,9 +10517,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "51da4a99-6415-436e-8ca5-436891f8c190",
-            "name": "Bronze - Toughmet3 - Finishing",
-            "description": "Bronze - Toughmet3 - Finishing",
+            "guid": "e3b77d5d-2d7d-4c02-9d3b-b0c44f403eeb",
+            "name": "Bronze - Toughmet 3 - Finishing",
+            "description": "Bronze - Toughmet 3 - Finishing",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9693,9 +10544,9 @@
             "tool-coolant": "flood"
           },
           {
-            "guid": "06891227-ae03-4e87-94bb-89b39162c469",
-            "name": "Bronze - Toughmet3 - Slotting",
-            "description": "Bronze - Toughmet3 - Slotting",
+            "guid": "2e4c9167-a434-44b1-a6b6-5ad42564c82a",
+            "name": "Bronze - Toughmet 3 - Slotting",
+            "description": "Bronze - Toughmet 3 - Slotting",
             "material": {
               "category": "all",
               "query": "C72900 - Toughmet 3 Nickel Bronze",
@@ -9718,6 +10569,33 @@
             "use-stepover": true,
             "ramp-angle": 2.2399999999999998,
             "tool-coolant": "flood"
+          },
+          {
+            "guid": "f03a1703-2233-480b-a372-5f806d526813",
+            "name": "Bronze - Toughmet 3 - Facing",
+            "description": "Bronze - Toughmet 3 - Facing",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.00224,
+            "f_n": 0.00896,
+            "v_f": 110.39512446137925,
+            "v_f_leadIn": 110.39512446137925,
+            "v_f_leadOut": 110.39512446137925,
+            "v_f_transition": 110.39512446137925,
+            "v_f_ramp": 66.23707467682755,
+            "v_f_plunge": 38.63829356148273,
+            "stepdown": 0.7224999999999995,
+            "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -9726,5 +10604,5 @@
       "vendor": "SpeTool"
     }
   ],
-  "last_modified": "2026-08-26T12:29:37.287542"
+  "last_modified": "2026-08-26T12:58:08.236234"
 }

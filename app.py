@@ -395,7 +395,7 @@ def twin_batch_generate():
                 "engraving chamfer mill", "thread mill"
             ]
             valid_drilling_types = [
-                "drill", "spot drill", "center drill", "tap", "reamer", "bore", "counterbore", "countersink"
+                "drill", "spot drill", "center drill", "tap", "tap right hand", "tap left hand", "reamer", "bore", "counterbore", "countersink"
             ]
             
             is_milling = tool_type in valid_milling_types
@@ -567,6 +567,17 @@ def twin_batch_generate():
                 
             tools[idx] = t_dict
             updated_tools_count += 1
+            
+        # Deduplicate tool GUIDs to prevent Fusion's library manager from silently dropping tools
+        seen_guids = set()
+        for i, t in enumerate(tools):
+            if isinstance(t, str):
+                t = json.loads(t)
+            g = t.get("guid", "")
+            if g in seen_guids or not g:
+                t["guid"] = str(uuid.uuid4())
+            seen_guids.add(t["guid"])
+            tools[i] = t
             
         library_data["tools"] = tools
         lib_name = library_data.get("library_name", "Modified_Library")
