@@ -916,7 +916,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    fetchTwinLibrary(); // Reload the table to reflect deletion
+                    loadDigitalTwin(); // Reload the table to reflect deletion
                 } else {
                     alert('Error deleting preset: ' + data.error);
                 }

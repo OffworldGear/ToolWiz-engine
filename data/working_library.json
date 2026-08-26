@@ -138,38 +138,6 @@
           {
             "description": "",
             "expressions": {
-              "tool_feedCutting": "200 mmpm",
-              "tool_feedPlunge": "50 mmpm",
-              "tool_feedRamp": "100 mmpm",
-              "tool_rampAngle": ".25 degrees",
-              "tool_spindleSpeed": "16000 rpm"
-            },
-            "f_n": 0.003125,
-            "f_z": 0.00625,
-            "guid": "7a26b71d-5c53-42fd-83ac-9331230f017b",
-            "material": {
-              "category": "all",
-              "query": "",
-              "use-hardness": false
-            },
-            "n": 16000,
-            "n_ramp": 16000,
-            "name": "Default preset",
-            "ramp-angle": 0.25,
-            "tool-coolant": "flood",
-            "use-stepdown": false,
-            "use-stepover": false,
-            "v_c": 50.2654824574367,
-            "v_f": 200,
-            "v_f_leadIn": 200,
-            "v_f_leadOut": 200,
-            "v_f_plunge": 50,
-            "v_f_ramp": 100,
-            "v_f_transition": 200
-          },
-          {
-            "description": "",
-            "expressions": {
               "tool_feedCutting": "190 mmpm",
               "tool_feedPlunge": "50 mmpm",
               "tool_feedRamp": "100 mmpm",
@@ -583,58 +551,6 @@
       },
       "start-values": {
         "presets": [
-          {
-            "description": "",
-            "f_n": 0.002624671916010499,
-            "f_z": 0.0015748031496062994,
-            "guid": "2573831d-f4ea-4e78-9af3-6b19e11ad64c",
-            "material": {
-              "category": "all",
-              "query": "",
-              "use-hardness": false
-            },
-            "n": 5000,
-            "n_ramp": 5000,
-            "name": "Default preset",
-            "ramp-angle": 2,
-            "tool-coolant": "flood",
-            "use-stepdown": false,
-            "use-stepover": false,
-            "v_c": 2617.9938779914937,
-            "v_f": 39.37007874015748,
-            "v_f_leadIn": 39.37007874015748,
-            "v_f_leadOut": 39.37007874015748,
-            "v_f_plunge": 13.123359580052496,
-            "v_f_ramp": 13.123359580052496,
-            "v_f_transition": 39.37007874015748
-          },
-          {
-            "guid": "a569f680-15f4-4d7f-92fd-feb5c1d238a1",
-            "name": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "description": "CPM MagnaCut (Annealed ~22 HRC) - Adaptive Roughing",
-            "material": {
-              "category": "all",
-              "query": "CPM MagnaCut (Annealed ~22 HRC)",
-              "use-hardness": false
-            },
-            "n": 598,
-            "n_ramp": 598,
-            "v_c": 313.6,
-            "f_z": 0.00917463511055152,
-            "f_n": 0.0458731755527576,
-            "v_f": 27.4749073599467,
-            "v_f_leadIn": 27.4749073599467,
-            "v_f_leadOut": 27.4749073599467,
-            "v_f_transition": 27.4749073599467,
-            "v_f_ramp": 13.73745367997335,
-            "v_f_plunge": 6.868726839986675,
-            "stepdown": 1.2100000000000002,
-            "stepover": 0.3,
-            "use-stepdown": true,
-            "use-stepover": true,
-            "ramp-angle": 1.2599999999999998,
-            "tool-coolant": "flood"
-          },
           {
             "guid": "9eddf356-b01e-40ab-b914-36ca83dc399d",
             "name": "CPM MagnaCut (Annealed ~22 HRC) - Roughing",
@@ -11389,5 +11305,5 @@
       "vendor": "Speed Tiger"
     }
   ],
-  "last_modified": "2026-08-26T10:10:50.203387"
+  "last_modified": "2026-08-26T11:18:28.193728"
 }
