@@ -277,7 +277,7 @@ class GWizardPhysics:
         youngs_modulus = mat_props.get("youngs_modulus_ksi", 30000)
         
         mat_lower = material_family.lower() if material_family else ""
-        is_highly_elastic = "plastic" in mat_lower or "titanium" in mat_lower or "wood" in mat_lower
+        is_highly_elastic = "plastic" in mat_lower or "titanium" in mat_lower or "wood" in mat_lower or "zirconium" in mat_lower
         
         # 2. Minimum Chip Thickness (MCT) based on edge radius
         # Uncoated tools are razor sharp. Coated tools have an edge hone that causes rubbing on light cuts.
