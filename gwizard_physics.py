@@ -263,6 +263,51 @@ class GWizardPhysics:
             
         return angle, ramp_feed, plunge_feed
         
+    def apply_alloy_hardness_scaling(self, material_family, alloy_name, sfm, ipt):
+        """
+        Dynamically scale SFM and IPT based on the specific alloy's Brinell Hardness (BHN).
+        If the alloy is significantly harder than the family baseline, it mathematically curves the feeds/speeds down.
+        """
+        if not alloy_name or not material_family:
+            return sfm, ipt
+            
+        # 1. Find the specific alloy's hardness
+        alloy_hardness = None
+        for a in self.specific_alloys:
+            if a.get('family') == material_family and a.get('alloy') == alloy_name:
+                h_str = a.get('hardness', '')
+                import re
+                nums = [int(n) for n in re.findall(r'\d+', str(h_str))]
+                if nums:
+                    alloy_hardness = max(nums)
+                break
+                
+        if not alloy_hardness:
+            return sfm, ipt
+            
+        # 2. Find the family's baseline minBHN and curve exponent (cexp)
+        mat_props = self.machinability.get(material_family)
+        if not mat_props:
+            return sfm, ipt
+            
+        min_bhn = float(mat_props.get('minBHN', 1))
+        cexp = float(mat_props.get('cexp', 10.0))
+        
+        if alloy_hardness <= min_bhn:
+            return sfm, ipt
+            
+        # 3. Calculate exponential decay multipliers
+        # SFM drops aggressively as hardness increases (15.0 divisor)
+        # IPT drops slightly less aggressively (25.0 divisor) to prevent rubbing
+        sfm_mult = (min_bhn / alloy_hardness) ** (cexp / 15.0)
+        ipt_mult = (min_bhn / alloy_hardness) ** (cexp / 25.0)
+        
+        # 4. Cap the multipliers so we don't go completely stationary or speed up
+        sfm_mult = max(0.05, min(1.0, sfm_mult))
+        ipt_mult = max(0.20, min(1.0, ipt_mult))
+        
+        return sfm * sfm_mult, ipt * ipt_mult
+
     def generate_advanced_strategies(self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection_inches, tool_type="end mill"):
         """
         Generate advanced machining tips based on material springback, tool sharpness, and minimum chip thickness.

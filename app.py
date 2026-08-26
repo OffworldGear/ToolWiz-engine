@@ -66,6 +66,10 @@ def calculate():
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
         
+        # Alloy-specific hardness adjustment via exponential BHN curve
+        alloy = data.get("alloy", "")
+        target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
+        
         if tool != "Tapping":
             target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
@@ -159,11 +163,9 @@ def calculate_for_fusion():
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
         
-        # Alloy-specific hardness adjustment (e.g. Hardened Tool Steels / CPM MagnaCut @ 62 HRC)
+        # Alloy-specific hardness adjustment via exponential BHN curve
         alloy = data.get("alloy", "")
-        if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy or "64 HRC" in alloy:
-            target_sfm *= 0.55
-            base_ipt *= 0.75
+        target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
             
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         target_sfm *= physics.get_coating_multiplier(coating, family)
@@ -467,6 +469,9 @@ def twin_batch_generate():
                 target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
                 adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)
                 
+                # Hardness modifier via exponential BHN curve
+                target_sfm, adj_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, adj_ipt)
+                
                 if not is_tap:
                     target_sfm, adj_ipt = physics.apply_aggressiveness(target_sfm, adj_ipt, aggressiveness)
                 
@@ -534,10 +539,8 @@ def twin_batch_generate():
                     target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
                     base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout)
                     
-                    # Hardness modifier (e.g. MagnaCut 62 HRC)
-                    if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy:
-                        target_sfm *= 0.55
-                        base_ipt *= 0.75
+                    # Hardness modifier via exponential BHN curve
+                    target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
                         
                     target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
                     target_sfm *= physics.get_coating_multiplier(coating, family)
