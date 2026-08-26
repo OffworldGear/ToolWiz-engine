@@ -373,7 +373,7 @@ def twin_batch_generate():
         tools = library_data["tools"]
         indices_to_update = range(len(tools)) if tool_indices == "all" else tool_indices
         
-        custom_preset_name = payload.get("custom_preset_name", "").strip()
+        custom_preset_name = req_data.get("custom_preset_name", "").strip()
         
         updated_tools_count = 0
         total_presets_injected = 0
@@ -494,7 +494,7 @@ def twin_batch_generate():
                     ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
                     
                     if custom_preset_name:
-                        preset_name = f"{custom_preset_name} - {strat}" if len(strategies) > 1 else custom_preset_name
+                        preset_name = f"{custom_preset_name} - {strat}"
                     else:
                         preset_name = f"{material_label} - {strat}"
                     
