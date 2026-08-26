@@ -379,7 +379,7 @@ def twin_batch_generate():
         total_presets_injected = 0
         
         for idx, raw_t in enumerate(tools):
-            if idx not in indices:
+            if idx not in indices_to_update:
                 continue
                 
             t_dict = json.loads(raw_t) if isinstance(raw_t, str) else raw_t
