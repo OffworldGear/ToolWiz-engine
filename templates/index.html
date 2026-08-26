@@ -369,6 +369,11 @@
                                 <input type="checkbox" id="stratFacing" style="accent-color: var(--accent);"> Facing / Pocketing
                             </label>
                         </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem;">
+                            <label for="customPresetName" style="color: white; font-weight: 500;">Custom Preset Name (Optional):</label>
+                            <input type="text" id="customPresetName" placeholder="e.g. Roughing Ops (Leave blank for auto-generated name)" style="background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); color: white; padding: 0.5rem; border-radius: 4px;">
+                        </div>
                     </div>
 
                     <div class="grid-layout" style="gap: 0.75rem;">
@@ -822,6 +827,9 @@
             const search = document.getElementById('twinSearchInput').value.toLowerCase();
             tbody.innerHTML = '';
             
+            const masterChk = document.getElementById('selectAllTwinCheckbox');
+            if (masterChk) masterChk.checked = false;
+            
             if (activeTwinTools.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No tools found. Click "Export Digital Twin" in Fusion 360 to populate.</td></tr>';
                 return;
@@ -848,7 +856,14 @@
                 const tr = document.createElement('tr');
                 tr.id = `twin_tool_row_${t.index}`;
                 
-                let presetTags = (t.presets || []).map(p => `<span class="preset-tag" title="${p}">${p.length > 22 ? p.substring(0, 20) + '...' : p}</span>`).join(' ');
+                let presetTags = (t.presets || []).map(p => {
+                    const pName = p.name || "Preset";
+                    const shortName = pName.length > 22 ? pName.substring(0, 20) + '...' : pName;
+                    return `<span class="preset-tag" title="${pName}">
+                        ${shortName}
+                        <span style="color: #ff5555; cursor: pointer; margin-left: 6px; font-weight: bold; font-size: 14px;" onclick="deletePreset(${t.index}, '${p.guid}')">&times;</span>
+                    </span>`;
+                }).join(' ');
                 if (!presetTags) presetTags = '<span style="opacity: 0.4; font-size: 0.75rem;">None</span>';
 
                 tr.innerHTML = `
@@ -890,6 +905,26 @@
             });
         }
 
+        async function deletePreset(toolIndex, presetGuid) {
+            if (!confirm('Are you sure you want to delete this preset?')) return;
+            
+            try {
+                const res = await fetch('/api/twin/delete_preset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool_index: toolIndex, preset_guid: presetGuid })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    fetchTwinLibrary(); // Reload the table to reflect deletion
+                } else {
+                    alert('Error deleting preset: ' + data.error);
+                }
+            } catch (err) {
+                alert('Network error deleting preset: ' + err);
+            }
+        }
+
         async function runBatchPresetGeneration() {
             const checked = Array.from(document.querySelectorAll('.twin-tool-chk:checked')).map(c => parseInt(c.value));
             if (checked.length === 0) {
@@ -909,6 +944,8 @@
                 return;
             }
 
+            const customPresetName = document.getElementById('customPresetName') ? document.getElementById('customPresetName').value : '';
+            
             const payload = {
                 tool_indices: checked,
                 family: document.getElementById('twinFamily').value,
@@ -917,7 +954,8 @@
                 aggressiveness: parseFloat(document.getElementById('twinAggressiveness').value),
                 coating: document.getElementById('twinCoating').value,
                 maxRpm: parseFloat(document.getElementById('maxRpm').value) || 16000,
-                maxHp: parseFloat(document.getElementById('maxHp').value) || 10.0
+                maxHp: parseFloat(document.getElementById('maxHp').value) || 10.0,
+                custom_preset_name: customPresetName
             };
 
             const statusBox = document.getElementById('twinStatusBox');

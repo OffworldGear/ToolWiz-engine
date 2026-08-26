@@ -271,7 +271,7 @@ def twin_load():
             t_type = geo.get("type", t_dict.get("type", "end mill"))
             
             presets = t_dict.get("start-values", {}).get("presets", [])
-            preset_names = [p.get("name", "Preset") for p in presets if p.get("name")]
+            preset_list = [{"name": p.get("name", "Preset"), "guid": p.get("guid", "")} for p in presets]
             
             tool_manifest.append({
                 "index": idx,
@@ -282,8 +282,8 @@ def twin_load():
                 "diameter_mm": round(dia_in * 25.4, 2),
                 "flutes": flutes,
                 "flute_length_in": round(flute_len, 4),
-                "presets": preset_names,
-                "preset_count": len(preset_names)
+                "presets": preset_list,
+                "preset_count": len(preset_list)
             })
             
         return jsonify({
@@ -312,6 +312,46 @@ def twin_backups():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/api/twin/delete_preset", methods=["POST"])
+def twin_delete_preset():
+    try:
+        payload = request.json
+        tool_idx = payload.get("tool_index")
+        preset_guid = payload.get("preset_guid")
+        
+        library_data = bm.load_working_library()
+        if not library_data or "tools" not in library_data:
+            return jsonify({"success": False, "error": "No working library found."})
+            
+        tools = library_data["tools"]
+        if tool_idx < 0 or tool_idx >= len(tools):
+            return jsonify({"success": False, "error": "Invalid tool index."})
+            
+        t_dict = tools[tool_idx]
+        if isinstance(t_dict, str):
+            t_dict = json.loads(t_dict)
+            
+        presets = t_dict.get("start-values", {}).get("presets", [])
+        original_count = len(presets)
+        
+        presets = [p for p in presets if p.get("guid") != preset_guid]
+        
+        if len(presets) == original_count:
+            return jsonify({"success": False, "error": "Preset not found."})
+            
+        if "start-values" not in t_dict:
+            t_dict["start-values"] = {}
+        t_dict["start-values"]["presets"] = presets
+        tools[tool_idx] = t_dict
+        
+        library_data["tools"] = tools
+        bm.save_working_library(library_data, library_data.get("library_name", "Modified_Library"))
+        
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/api/twin/batch_generate", methods=["POST"])
 def twin_batch_generate():
     """Batch calculates and injects multi-operation presets into selected tools"""
@@ -333,14 +373,15 @@ def twin_batch_generate():
         tools = library_data["tools"]
         indices_to_update = range(len(tools)) if tool_indices == "all" else tool_indices
         
+        custom_preset_name = payload.get("custom_preset_name", "").strip()
+        
         updated_tools_count = 0
         total_presets_injected = 0
         
-        for idx in indices_to_update:
-            if idx < 0 or idx >= len(tools):
+        for idx, raw_t in enumerate(tools):
+            if idx not in indices:
                 continue
                 
-            raw_t = tools[idx]
             t_dict = json.loads(raw_t) if isinstance(raw_t, str) else raw_t
             
             if t_dict.get("type") == "holder":
@@ -353,10 +394,14 @@ def twin_batch_generate():
                 "dovetail mill", "lollipop mill", "radius mill", "form mill",
                 "engraving chamfer mill", "thread mill"
             ]
+            valid_drilling_types = [
+                "drill", "spot drill", "center drill", "tap", "reamer", "bore", "counterbore", "countersink"
+            ]
             
-            # Skip drills, probes, waterjets, and other non-milling tools
-            # that crash the Fusion schema parser if given milling parameters
-            if tool_type not in valid_milling_types:
+            is_milling = tool_type in valid_milling_types
+            is_drilling = tool_type in valid_drilling_types
+            
+            if not is_milling and not is_drilling:
                 tools[idx] = t_dict
                 continue
 
@@ -364,7 +409,7 @@ def twin_batch_generate():
             tool_unit = t_dict.get("unit", geo.get("unit", ""))
             
             diameter = parse_dim(geo.get("DC", 6.35), tool_unit)
-            flutes = int(geo.get("NOF", 4))
+            flutes = int(geo.get("NOF", 4)) if is_milling else int(geo.get("NOF", 2))
             flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
             shank_dia = parse_dim(geo.get("SF", diameter * 25.4), tool_unit)
             corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
@@ -379,35 +424,81 @@ def twin_batch_generate():
                 
             presets_list = t_dict["start-values"]["presets"]
             
-            for strat in strategies:
-                # 1. Physics lookup
-                target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry)
-                base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry)
-                
-                # Hardness modifier (e.g. MagnaCut 62 HRC)
-                if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy:
-                    target_sfm *= 0.55
-                    base_ipt *= 0.75
-                    
-                target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-                target_sfm *= physics.get_coating_multiplier(coating, family)
-                
-                rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-                rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
-                    diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, 0.125, max_hp, material_family=family
-                )
-                
-                eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
-                adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry)
+            material_label = alloy if alloy else family
+            
+            if is_drilling:
+                rpm = physics.calc_rpm(physics.get_base_sfm(family, "drill"), diameter)
+                adj_ipt = physics.get_base_ipt(family, "drill", diameter)
                 feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
                 actual_sfm = physics.calc_sfm(rpm, diameter)
-                ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
                 
-                # Standard Preset Name
-                material_label = alloy if alloy else family
-                preset_name = f"{material_label} - {strat}"
+                final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - Drilling"
                 
-                # Convert to pure numeric values based on the tool's native unit
+                if tool_unit == "inches":
+                    p_n = float(rpm)
+                    p_vc = float(actual_sfm)
+                    p_vf = float(feedrate)
+                else:
+                    p_n = float(rpm)
+                    p_vc = float(actual_sfm * 0.3048)
+                    p_vf = float(feedrate * 25.4)
+                    
+                preset_dict = {
+                    "guid": str(uuid.uuid4()),
+                    "name": final_preset_name,
+                    "description": final_preset_name,
+                    "material": {
+                        "category": "all",
+                        "query": material_label,
+                        "use-hardness": False
+                    },
+                    "n": int(p_n),
+                    "v_c": p_vc,
+                    "v_f_plunge": p_vf,
+                    "v_f_retract": p_vf,
+                    "use-feed-per-revolution": False,
+                    "tool-coolant": "flood"
+                }
+                
+                existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == final_preset_name), None)
+                if existing_idx is not None:
+                    preset_dict["guid"] = presets_list[existing_idx].get("guid", preset_dict["guid"])
+                    presets_list[existing_idx].update(preset_dict)
+                else:
+                    presets_list.append(preset_dict)
+                total_presets_injected += 1
+                
+            elif is_milling:
+                for strat in strategies:
+                    # 1. Physics lookup
+                    target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry)
+                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry)
+                    
+                    # Hardness modifier (e.g. MagnaCut 62 HRC)
+                    if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy:
+                        target_sfm *= 0.55
+                        base_ipt *= 0.75
+                        
+                    target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
+                    target_sfm *= physics.get_coating_multiplier(coating, family)
+                    
+                    rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
+                    rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
+                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, 0.125, max_hp, material_family=family
+                    )
+                    
+                    eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
+                    adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry)
+                    feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
+                    actual_sfm = physics.calc_sfm(rpm, diameter)
+                    ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+                    
+                    if custom_preset_name:
+                        preset_name = f"{custom_preset_name} - {strat}" if len(strategies) > 1 else custom_preset_name
+                    else:
+                        preset_name = f"{material_label} - {strat}"
+                    
+                    # Convert to pure numeric values based on the tool's native unit
                 if tool_unit == "inches":
                     p_n = float(rpm)
                     p_vc = float(actual_sfm)
