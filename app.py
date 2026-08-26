@@ -389,7 +389,7 @@ def twin_batch_generate():
                 
             tool_type = t_dict.get("type", "end mill").lower()
             valid_milling_types = [
-                "end mill", "ball end mill", "bull nose end mill", 
+                "end mill", "flat end mill", "ball end mill", "bull nose end mill", 
                 "chamfer mill", "face mill", "slot mill", "tapered mill", 
                 "dovetail mill", "lollipop mill", "radius mill", "form mill",
                 "engraving chamfer mill", "thread mill"
