@@ -38,7 +38,7 @@ class GWizardPhysics:
             
         return sfm
         
-    def get_base_ipt(self, material, tool_type, diameter, geometry="Square"):
+    def get_base_ipt(self, material, tool_type, diameter, geometry="Square", runout=0.0002):
         """Lookup chipload (Inch Per Tooth) from DB"""
         diameters = [0.0625, 0.125, 0.1875, 0.25, 0.375, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5]
         ipt = 0.001

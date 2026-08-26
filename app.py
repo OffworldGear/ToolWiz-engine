@@ -56,6 +56,7 @@ def calculate():
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
         max_rpm = float(data.get("maxRpm", 16000))
         max_hp = float(data.get("maxHp", 10.0))
+        runout = float(data.get("runout", 0.0002))
         
         # Determine sizes
         shank_size = float(data.get("shankDiameter", diameter))
@@ -63,7 +64,7 @@ def calculate():
         
         # 1. Lookup Base Parameters
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
-        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry)
+        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
         
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
@@ -130,6 +131,7 @@ def calculate_for_fusion():
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0
         max_rpm = float(data.get("maxRpm", 16000))
         max_hp = float(data.get("maxHp", 10.0))
+        runout = float(data.get("runout", 0.0002))
         
         # Tool Geometry from Fusion JSON payload
         diameter = float(data.get("diameter", 0.25))
@@ -149,7 +151,7 @@ def calculate_for_fusion():
         
         # 1. Lookup Base Parameters
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
-        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry)
+        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
         
         # Alloy-specific hardness adjustment (e.g. Hardened Tool Steels / CPM MagnaCut @ 62 HRC)
         alloy = data.get("alloy", "")
@@ -375,6 +377,7 @@ def twin_batch_generate():
         coating = req_data.get("coating", "AlTiN")
         max_rpm = float(req_data.get("maxRpm", 16000))
         max_hp = float(req_data.get("maxHp", 10.0))
+        runout = float(req_data.get("runout", 0.0002))
         
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:
@@ -456,7 +459,7 @@ def twin_batch_generate():
                 db_tool_type = "Tapping" if is_tap else "Carbide Twist Drill"
                 
                 rpm = physics.calc_rpm(physics.get_base_sfm(family, db_tool_type, diameter=diameter), diameter, max_rpm=max_rpm)
-                adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter)
+                adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)
                 
                 if is_tap:
                     tp = parse_dim(geo.get("TP", 1.0), tool_unit)
@@ -518,7 +521,7 @@ def twin_batch_generate():
                 for strat in strategies:
                     # 1. Physics lookup
                     target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
-                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry)
+                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout)
                     
                     # Hardness modifier (e.g. MagnaCut 62 HRC)
                     if "62 HRC" in alloy or "Hardened" in alloy or "60 HRC" in alloy:
