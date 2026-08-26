@@ -4725,6 +4725,33 @@
             "v_f_plunge": 5,
             "v_f_ramp": 20,
             "v_f_transition": 45
+          },
+          {
+            "guid": "ee663051-1d55-40d0-b8d5-0a1b910b8dcf",
+            "name": "Bronze - Toughmet - Slotting",
+            "description": "Bronze - Toughmet - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 201.06192982974676,
+            "f_z": 0.03584,
+            "f_n": 0.14336,
+            "v_f": 2293.7599999999998,
+            "v_f_leadIn": 2293.7599999999998,
+            "v_f_leadOut": 2293.7599999999998,
+            "v_f_transition": 2293.7599999999998,
+            "v_f_ramp": 1376.2559999999999,
+            "v_f_plunge": 802.8159999999999,
+            "stepdown": 15.853999999999978,
+            "stepover": 3.9999999999999996,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -5730,6 +5757,33 @@
             "v_f_plunge": 3.4520805602988656,
             "v_f_ramp": 10.357004536082474,
             "v_f_transition": 10.356241680896591
+          },
+          {
+            "guid": "25620b91-588b-4f6e-a038-cd80a9ef2612",
+            "name": "Bronze - Toughmet - Slotting",
+            "description": "Bronze - Toughmet - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 8213,
+            "n_ramp": 8213,
+            "v_c": 806.4,
+            "f_z": 0.002819799156288629,
+            "f_n": 0.011279196625154517,
+            "v_f": 92.64645202814746,
+            "v_f_leadIn": 92.64645202814746,
+            "v_f_leadOut": 92.64645202814746,
+            "v_f_transition": 92.64645202814746,
+            "v_f_ramp": 55.58787121688848,
+            "v_f_plunge": 32.42625820985161,
+            "stepdown": 0.04750000000000001,
+            "stepover": 0.375,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -6682,6 +6736,22 @@
             "v_f_ramp": 0,
             "v_f_retract": 106,
             "v_f_transition": 0
+          },
+          {
+            "guid": "0037d5c4-4247-4742-81d3-4d43433a8a13",
+            "name": "Bronze - Toughmet",
+            "description": "Bronze - Toughmet",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 10780,
+            "v_c": 152.40000000000006,
+            "v_f_plunge": 547.6288164542251,
+            "v_f_retract": 547.6288164542251,
+            "use-feed-per-revolution": false,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -6826,6 +6896,33 @@
             "v_f_plunge": 13.123359580052496,
             "v_f_ramp": 13.123359580052496,
             "v_f_transition": 39.37007874015748
+          },
+          {
+            "guid": "498d033e-c2e0-42d5-87c3-c2cc9dbbf1a5",
+            "name": "Bronze - Toughmet - Slotting",
+            "description": "Bronze - Toughmet - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.00112,
+            "f_n": 0.00112,
+            "v_f": 17.919999999999998,
+            "v_f_leadIn": 17.919999999999998,
+            "v_f_leadOut": 17.919999999999998,
+            "v_f_transition": 17.919999999999998,
+            "v_f_ramp": 10.751999999999999,
+            "v_f_plunge": 6.271999999999999,
+            "stepdown": 0.4974999999999993,
+            "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.3599999999999994,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -8490,6 +8587,33 @@
             "v_f_plunge": 3.0891679115067223,
             "v_f_ramp": 7.999999999999997,
             "v_f_transition": 15.999999999999995
+          },
+          {
+            "guid": "166a1a3e-d2ad-4ebf-941c-fea6c88fef78",
+            "name": "Bronze - Toughmet - Slotting",
+            "description": "Bronze - Toughmet - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 16000,
+            "n_ramp": 16000,
+            "v_c": 523.5987755982989,
+            "f_z": 0.0020641873861685592,
+            "f_n": 0.008256749544674237,
+            "v_f": 132.1079927147878,
+            "v_f_leadIn": 132.1079927147878,
+            "v_f_leadOut": 132.1079927147878,
+            "v_f_transition": 132.1079927147878,
+            "v_f_ramp": 79.26479562887268,
+            "v_f_plunge": 46.23779745017573,
+            "stepdown": 0.01,
+            "stepover": 0.125,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 3.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -8930,6 +9054,33 @@
             "v_f_plunge": 1.7999999999999994,
             "v_f_ramp": 7.3,
             "v_f_transition": 7.362
+          },
+          {
+            "guid": "19a61c97-1bef-4436-a03b-e22ce7cf40dc",
+            "name": "Bronze - Toughmet - Slotting",
+            "description": "Bronze - Toughmet - Slotting",
+            "material": {
+              "category": "all",
+              "query": "C72900 - Toughmet 3 Nickel Bronze",
+              "use-hardness": false
+            },
+            "n": 12320,
+            "n_ramp": 12320,
+            "v_c": 806.4,
+            "f_z": 0.00224,
+            "f_n": 0.00896,
+            "v_f": 110.39512446137925,
+            "v_f_leadIn": 110.39512446137925,
+            "v_f_leadOut": 110.39512446137925,
+            "v_f_transition": 110.39512446137925,
+            "v_f_ramp": 66.23707467682755,
+            "v_f_plunge": 38.63829356148273,
+            "stepdown": 0.36000000000000015,
+            "stepover": 0.25,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 2.2399999999999998,
+            "tool-coolant": "flood"
           }
         ]
       },
@@ -8938,5 +9089,5 @@
       "vendor": "SpeTool"
     }
   ],
-  "last_modified": "2026-08-26T11:58:08.117640"
+  "last_modified": "2026-08-26T12:26:40.313507"
 }

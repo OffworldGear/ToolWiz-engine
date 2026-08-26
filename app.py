@@ -499,62 +499,62 @@ def twin_batch_generate():
                         preset_name = f"{material_label} - {strat}"
                     
                     # Convert to pure numeric values based on the tool's native unit
-                if tool_unit == "inches":
-                    p_n = float(rpm)
-                    p_vc = float(actual_sfm)
-                    p_fz = float(adj_ipt)
-                    p_vf = float(feedrate)
-                    p_vf_ramp = float(ramp_feed)
-                    p_vf_plunge = float(plunge_feed)
-                    p_stepdown = float(rec_doc)
-                    p_stepover = float(rec_woc)
-                else:
-                    # tool_unit == "millimeters"
-                    p_n = float(rpm)
-                    p_vc = float(actual_sfm * 0.3048) # SFM to m/min
-                    p_fz = float(adj_ipt * 25.4)
-                    p_vf = float(feedrate * 25.4)
-                    p_vf_ramp = float(ramp_feed * 25.4)
-                    p_vf_plunge = float(plunge_feed * 25.4)
-                    p_stepdown = float(rec_doc * 25.4)
-                    p_stepover = float(rec_woc * 25.4)
-                
-                preset_dict = {
-                    "guid": str(uuid.uuid4()),
-                    "name": preset_name,
-                    "description": preset_name,
-                    "material": {
-                        "category": "all",
-                        "query": material_label,
-                        "use-hardness": False
-                    },
-                    "n": int(p_n),
-                    "n_ramp": int(p_n),
-                    "v_c": p_vc,
-                    "f_z": p_fz,
-                    "f_n": float(p_fz * flutes),
-                    "v_f": p_vf,
-                    "v_f_leadIn": p_vf,
-                    "v_f_leadOut": p_vf,
-                    "v_f_transition": p_vf,
-                    "v_f_ramp": p_vf_ramp,
-                    "v_f_plunge": p_vf_plunge,
-                    "stepdown": p_stepdown,
-                    "stepover": p_stepover,
-                    "use-stepdown": True,
-                    "use-stepover": True,
-                    "ramp-angle": float(ramp_angle),
-                    "tool-coolant": "flood"
-                }
-                
-                # Update in place if duplicate name exists, else append
-                existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == preset_name), None)
-                if existing_idx is not None:
-                    presets_list[existing_idx].update(preset_dict)
-                else:
-                    presets_list.append(preset_dict)
+                    if tool_unit == "inches":
+                        p_n = float(rpm)
+                        p_vc = float(actual_sfm)
+                        p_fz = float(adj_ipt)
+                        p_vf = float(feedrate)
+                        p_vf_ramp = float(ramp_feed)
+                        p_vf_plunge = float(plunge_feed)
+                        p_stepdown = float(rec_doc)
+                        p_stepover = float(rec_woc)
+                    else:
+                        # tool_unit == "millimeters"
+                        p_n = float(rpm)
+                        p_vc = float(actual_sfm * 0.3048) # SFM to m/min
+                        p_fz = float(adj_ipt * 25.4)
+                        p_vf = float(feedrate * 25.4)
+                        p_vf_ramp = float(ramp_feed * 25.4)
+                        p_vf_plunge = float(plunge_feed * 25.4)
+                        p_stepdown = float(rec_doc * 25.4)
+                        p_stepover = float(rec_woc * 25.4)
                     
-                total_presets_injected += 1
+                    preset_dict = {
+                        "guid": str(uuid.uuid4()),
+                        "name": preset_name,
+                        "description": preset_name,
+                        "material": {
+                            "category": "all",
+                            "query": material_label,
+                            "use-hardness": False
+                        },
+                        "n": int(p_n),
+                        "n_ramp": int(p_n),
+                        "v_c": p_vc,
+                        "f_z": p_fz,
+                        "f_n": float(p_fz * flutes),
+                        "v_f": p_vf,
+                        "v_f_leadIn": p_vf,
+                        "v_f_leadOut": p_vf,
+                        "v_f_transition": p_vf,
+                        "v_f_ramp": p_vf_ramp,
+                        "v_f_plunge": p_vf_plunge,
+                        "stepdown": p_stepdown,
+                        "stepover": p_stepover,
+                        "use-stepdown": True,
+                        "use-stepover": True,
+                        "ramp-angle": float(ramp_angle),
+                        "tool-coolant": "flood"
+                    }
+                    
+                    # Update in place if duplicate name exists, else append
+                    existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == preset_name), None)
+                    if existing_idx is not None:
+                        presets_list[existing_idx].update(preset_dict)
+                    else:
+                        presets_list.append(preset_dict)
+                        
+                    total_presets_injected += 1
                 
             tools[idx] = t_dict
             updated_tools_count += 1
