@@ -437,10 +437,12 @@ def twin_batch_generate():
                 if tool_unit == "inches":
                     p_n = float(rpm)
                     p_vc = float(actual_sfm)
+                    p_fz = float(adj_ipt)
                     p_vf = float(feedrate)
                 else:
                     p_n = float(rpm)
                     p_vc = float(actual_sfm * 0.3048)
+                    p_fz = float(adj_ipt * 25.4)
                     p_vf = float(feedrate * 25.4)
                     
                 preset_dict = {
@@ -454,8 +456,15 @@ def twin_batch_generate():
                     },
                     "n": int(p_n),
                     "v_c": p_vc,
+                    "f_z": p_fz,
+                    "f_n": float(p_fz * flutes),
+                    "v_f": p_vf,
+                    "v_f_leadIn": p_vf,
+                    "v_f_leadOut": p_vf,
+                    "v_f_transition": p_vf,
+                    "v_f_ramp": p_vf,
                     "v_f_plunge": p_vf,
-                    "v_f_retract": p_vf,
+                    "v_f_retract": p_vf * 2.0,
                     "use-feed-per-revolution": False,
                     "tool-coolant": "flood"
                 }
