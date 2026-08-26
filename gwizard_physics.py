@@ -262,6 +262,99 @@ class GWizardPhysics:
             
         return angle, ramp_feed, plunge_feed
         
+    def generate_advanced_strategies(self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection_inches, tool_type="end mill"):
+        """
+        Generate advanced machining tips based on material springback, tool sharpness, and minimum chip thickness.
+        """
+        tips = []
+        if rpm <= 0 or flutes <= 0 or diameter <= 0: return tips
+
+        # 1. Material Physics Lookup
+        mat_lower = material_family.lower() if material_family else ""
+        is_work_hardening = "stainless" in mat_lower or "titanium" in mat_lower or "copper alloy" in mat_lower or "nickel" in mat_lower or "cocr" in mat_lower
+        is_highly_elastic = "plastic" in mat_lower or "titanium" in mat_lower or "wood" in mat_lower
+        
+        # Empirical springback factor (baseline elasticity vs cutting pressure)
+        sb_factor = 0.0002
+        if "plastic" in mat_lower: sb_factor = 0.003
+        elif "titanium" in mat_lower: sb_factor = 0.001
+        elif "stainless" in mat_lower or "copper" in mat_lower: sb_factor = 0.0006
+        
+        # 2. Minimum Chip Thickness (MCT) based on edge radius
+        # Uncoated tools are razor sharp. Coated tools have an edge hone that causes rubbing on light cuts.
+        mct = 0.0002  # Default uncoated carbide
+        coating_lower = coating.lower() if coating else ""
+        if "ti" in coating_lower or "al" in coating_lower or "zr" in coating_lower:
+            mct = 0.0005 # PVD/CVD coatings round the cutting edge
+        elif "diamond" in coating_lower or "cvd" in coating_lower:
+            mct = 0.0008
+        if "hss" in tool_type.lower(): mct = 0.0001
+        
+        # 3. True Chip Thickness (TCT) with Radial Chip Thinning
+        ipt = feedrate / (rpm * flutes)
+        # TCT = IPT * sin(arccos(1 - 2*(WOC/D)))
+        if cut_width < diameter / 2.0:
+            import math
+            try:
+                angle = math.acos(1.0 - (2.0 * cut_width / diameter))
+                tct = ipt * math.sin(angle)
+            except:
+                tct = ipt
+        else:
+            tct = ipt
+
+        # 4. Thrust Force and Springback Calculation
+        # F_t = (HP * 33000) / SFM. F_r (Thrust) is approx 30% of F_t.
+        sfm = (diameter * math.pi * rpm) / 12.0
+        mrr = self.calc_mrr(cut_depth, cut_width, feedrate, diameter=diameter)
+        unit_hp = self.machinability[material_family].get("unit_hp", 1.0) if material_family in self.machinability else 1.0
+        estimated_hp = mrr * unit_hp
+        
+        tangential_force = (estimated_hp * 33000) / sfm if sfm > 0 else 0
+        thrust_force = tangential_force * 0.3
+        
+        springback_inches = sb_factor * (thrust_force / 100.0) * (cut_width / diameter)
+        
+        total_error = deflection_inches + springback_inches
+        
+        # 5. Generate Strategies
+        if total_error > 0.0005:
+            tips.append({
+                "title": "Dimensional Compensation",
+                "message": f"Expect the part to cut +{total_error:.4f}\" oversized due to Tool Deflection ({deflection_inches:.4f}\") and Material Springback ({springback_inches:.4f}\"). Apply a Negative Radial Stock-to-Leave in CAM to hit nominal tolerance.",
+                "type": "warning"
+            })
+            
+        if tct < mct:
+            tips.append({
+                "title": "Rubbing & Heat Trap Warning",
+                "message": f"Your True Chip Thickness ({tct:.4f}\") is smaller than the edge radius of your {coating} tool (~{mct:.4f}\"). The tool will plow and rub rather than shear the metal, causing massive heat and premature failure. Increase your feedrate (IPT) or switch to a sharper Uncoated/Polished tool.",
+                "type": "critical"
+            })
+            
+        if total_error > 0.0005 and is_work_hardening:
+            if total_error < mct:
+                tips.append({
+                    "title": "Spring Pass Trap",
+                    "message": f"Do NOT use a 'Spring Pass' to clean up the {total_error:.4f}\" of deflection/springback. In work-hardening alloys like {material_family}, taking a cut smaller than the Minimum Chip Thickness ({mct:.4f}\") will instantly rub and destroy the cutting edge.",
+                    "type": "critical"
+                })
+            else:
+                tips.append({
+                    "title": "Work-Hardening Cleanup",
+                    "message": f"{material_family} is highly prone to work-hardening. Ensure your cleanup pass is at least {mct:.4f}\" thick so the cutting edge can penetrate the hardened skin from the previous pass.",
+                    "type": "info"
+                })
+                
+        if is_highly_elastic and cut_width < diameter * 0.15:
+            tips.append({
+                "title": "Conventional Milling for Finishing",
+                "message": f"Because {material_family} has high elastic recovery, Conventional Milling on your final light finish pass will naturally pull the cutter into the wall, counteracting the springback and giving you a much truer dimension than Climb Milling.",
+                "type": "tip"
+            })
+
+        return tips
+        
     def tool_deflection(self, diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide=True, material_family=None, helix_angle=30.0, neck_length=0.5, taper_angle=0.0, flute_length=1.0, neck_diameter=None):
         """
         Calculate Tool Deflection (inches).

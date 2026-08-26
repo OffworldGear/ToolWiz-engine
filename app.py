@@ -95,6 +95,10 @@ def calculate():
             helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
         )
         
+        tips = physics.generate_advanced_strategies(
+            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection, tool_type=tool
+        )
+        
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
             diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
             helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
@@ -114,7 +118,8 @@ def calculate():
             "plunge_feed": round(plunge_feed, 2),
             "rec_doc": round(rec_doc, 3),
             "rec_woc": round(rec_woc, 3),
-            "rec_limit": round(rec_limit, 6)
+            "rec_limit": round(rec_limit, 6),
+            "tips": tips
         })
         
     except Exception as e:

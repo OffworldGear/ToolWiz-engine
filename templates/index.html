@@ -279,6 +279,11 @@
                             <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
                         </div>
                     </div>
+
+                    <div id="tipsContainer" class="glass-panel" style="display:none; grid-column: span 2; padding: 1.5rem; margin-top: 1rem;">
+                        <h3 style="margin-top:0; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;"><i class="fa-solid fa-lightbulb" style="color:var(--accent)"></i> Advanced Physics & Strategies</h3>
+                        <div id="tipsList" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+                    </div>
                 </section>
             </main>
         </div>
@@ -758,6 +763,24 @@
                         defCard.classList.remove("danger");
                     } else {
                         defCard.classList.remove("danger", "warning");
+                    }
+                    
+                    // Render Tips
+                    const tipsContainer = document.getElementById('tipsContainer');
+                    const tipsList = document.getElementById('tipsList');
+                    if (res.tips && res.tips.length > 0) {
+                        tipsContainer.style.display = 'block';
+                        tipsList.innerHTML = res.tips.map(t => {
+                            let color = t.type === 'critical' ? '#ef4444' : (t.type === 'warning' ? '#f59e0b' : '#3b82f6');
+                            let icon = t.type === 'critical' ? 'fa-triangle-exclamation' : (t.type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle');
+                            return `<div style="padding: 1rem; background: rgba(0,0,0,0.2); border-left: 4px solid ${color}; border-radius: 4px;">
+                                <div style="font-weight:bold; color: ${color}; margin-bottom: 0.25rem;"><i class="fa-solid ${icon}"></i> ${t.title}</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height:1.4;">${t.message}</div>
+                            </div>`;
+                        }).join('');
+                    } else {
+                        tipsContainer.style.display = 'none';
+                        tipsList.innerHTML = '';
                     }
                 }
             } catch (err) {
