@@ -425,7 +425,22 @@ def twin_batch_generate():
             corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
             stickout = flute_len * 1.5
             is_carbide = True
-            geometry = "Square" if corner_rad == 0 else "Radiused"
+            if "slot mill" in tool_type:
+                geometry = "T-Slot"
+            elif "dovetail" in tool_type:
+                geometry = "Dovetail"
+            elif "lollipop" in tool_type:
+                geometry = "Lollipop"
+            elif "thread mill" in tool_type:
+                geometry = "Thread Mill"
+            elif "chamfer mill" in tool_type or "engraving" in tool_type:
+                geometry = "Chamfer"
+            elif "ball end mill" in tool_type or "radius mill" in tool_type:
+                geometry = "Ball Nose"
+            elif "bull nose" in tool_type:
+                geometry = "Bull Nose"
+            else:
+                geometry = "Square" if corner_rad == 0 else "Radiused"
             
             if "start-values" not in t_dict:
                 t_dict["start-values"] = {}
@@ -515,7 +530,7 @@ def twin_batch_generate():
                     
                     rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
                     rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
-                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, 0.125, max_hp, material_family=family, flute_length=flute_len
+                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len
                     )
                     
                     eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)

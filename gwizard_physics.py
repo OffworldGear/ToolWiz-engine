@@ -31,8 +31,9 @@ class GWizardPhysics:
 
         # Micro-Tool Thermal/Chip Evacuation Limit
         if diameter is not None and diameter < 0.125:
-            # Below 1/8", sfm must drop exponentially to prevent the RPM from skyrocketing and melting the tool
-            scale = max(0.2, (diameter / 0.125) ** 1.25)
+            # Below 1/8", sfm drops to prevent melting, but exponent 0.85 allows 
+            # higher precision spindles to run slightly less conservative speeds.
+            scale = max(0.25, (diameter / 0.125) ** 0.85)
             sfm *= scale
             
         return sfm
@@ -45,9 +46,9 @@ class GWizardPhysics:
             if row[0] == material and row[1] == tool_type:
                 if diameter <= diameters[0]:
                     ipt = row[2]
-                    # Micro-tool chipload reduction: Scale linearly (or slightly exponentially) below 1/16"
+                    # Micro-tool chipload reduction: Scale linearly below 1/16" for high precision spindles
                     if diameter < diameters[0]:
-                        scale = (diameter / diameters[0]) ** 1.1
+                        scale = (diameter / diameters[0]) ** 1.0
                         ipt *= scale
                 elif diameter >= diameters[-1]:
                     ipt = row[-1]
