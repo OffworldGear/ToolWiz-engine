@@ -45,6 +45,10 @@ class GWizardPhysics:
             if row[0] == material and row[1] == tool_type:
                 if diameter <= diameters[0]:
                     ipt = row[2]
+                    # Micro-tool chipload reduction: Scale linearly (or slightly exponentially) below 1/16"
+                    if diameter < diameters[0]:
+                        scale = (diameter / diameters[0]) ** 1.1
+                        ipt *= scale
                 elif diameter >= diameters[-1]:
                     ipt = row[-1]
                 else:
