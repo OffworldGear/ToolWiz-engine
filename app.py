@@ -66,7 +66,8 @@ def calculate():
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
         
-        target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
+        if tool != "Tapping":
+            target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
         # Apply Coating Modifier
         target_sfm *= physics.get_coating_multiplier(coating, family)
@@ -463,8 +464,13 @@ def twin_batch_generate():
                 is_tap = "tap" in tool_type
                 db_tool_type = "Tapping" if is_tap else "Carbide Twist Drill"
                 
-                rpm = physics.calc_rpm(physics.get_base_sfm(family, db_tool_type, diameter=diameter), diameter, max_rpm=max_rpm)
+                target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
                 adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)
+                
+                if not is_tap:
+                    target_sfm, adj_ipt = physics.apply_aggressiveness(target_sfm, adj_ipt, aggressiveness)
+                
+                rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
                 
                 if is_tap:
                     tp = parse_dim(geo.get("TP", 1.0), tool_unit)

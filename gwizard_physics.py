@@ -1,6 +1,7 @@
 import math
 import json
 import logging
+import os
 
 class GWizardPhysics:
     def __init__(self, db_path):
@@ -294,7 +295,6 @@ class GWizardPhysics:
         ipt = feedrate / (rpm * flutes)
         # TCT = IPT * sin(arccos(1 - 2*(WOC/D)))
         if cut_width < diameter / 2.0:
-            import math
             try:
                 angle = math.acos(1.0 - (2.0 * cut_width / diameter))
                 tct = ipt * math.sin(angle)
