@@ -271,15 +271,13 @@ class GWizardPhysics:
         if rpm <= 0 or flutes <= 0 or diameter <= 0: return tips
 
         # 1. Material Physics Lookup
-        mat_lower = material_family.lower() if material_family else ""
-        is_work_hardening = "stainless" in mat_lower or "titanium" in mat_lower or "copper alloy" in mat_lower or "nickel" in mat_lower or "cocr" in mat_lower
-        is_highly_elastic = "plastic" in mat_lower or "titanium" in mat_lower or "wood" in mat_lower
+        mat_props = self.machinability.get(material_family, {})
+        is_work_hardening = mat_props.get("work_hardening", False)
+        sb_factor = mat_props.get("springback_factor", 0.0002)
+        youngs_modulus = mat_props.get("youngs_modulus_ksi", 30000)
         
-        # Empirical springback factor (baseline elasticity vs cutting pressure)
-        sb_factor = 0.0002
-        if "plastic" in mat_lower: sb_factor = 0.003
-        elif "titanium" in mat_lower: sb_factor = 0.001
-        elif "stainless" in mat_lower or "copper" in mat_lower: sb_factor = 0.0006
+        mat_lower = material_family.lower() if material_family else ""
+        is_highly_elastic = "plastic" in mat_lower or "titanium" in mat_lower or "wood" in mat_lower
         
         # 2. Minimum Chip Thickness (MCT) based on edge radius
         # Uncoated tools are razor sharp. Coated tools have an edge hone that causes rubbing on light cuts.
