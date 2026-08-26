@@ -427,9 +427,21 @@ def twin_batch_generate():
             material_label = alloy if alloy else family
             
             if is_drilling:
-                rpm = physics.calc_rpm(physics.get_base_sfm(family, "drill"), diameter)
-                adj_ipt = physics.get_base_ipt(family, "drill", diameter)
-                feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
+                is_tap = "tap" in tool_type
+                db_tool_type = "Tapping" if is_tap else "Carbide Twist Drill"
+                
+                rpm = physics.calc_rpm(physics.get_base_sfm(family, db_tool_type), diameter, max_rpm=max_rpm)
+                adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter)
+                
+                if is_tap:
+                    tp = parse_dim(geo.get("TP", 1.0), tool_unit)
+                    # For taps, feed per rev (f_n) MUST exactly equal the thread pitch
+                    feedrate = rpm * tp
+                    # We can set adj_ipt to the pitch, so f_z output makes sense
+                    adj_ipt = tp
+                else:
+                    feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
+                    
                 actual_sfm = physics.calc_sfm(rpm, diameter)
                 
                 final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - Drilling"
