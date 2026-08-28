@@ -137,7 +137,7 @@ class GWizardPhysics:
         rctf = diameter / (2 * math.sqrt((diameter * cut_width) - (cut_width * cut_width)))
         return min(rctf, 5.0) # Cap at 5x to avoid insane feedrates on micro cuts
 
-    def calc_adjusted_chipload(self, base_ipt, cut_depth, cut_width, diameter, effective_diameter, is_micro_tool=False, operation="Roughing", geometry="Square"):
+    def calc_adjusted_chipload(self, base_ipt, cut_depth, cut_width, diameter, effective_diameter, is_micro_tool=False, operation="Roughing", geometry="Square", coating="AlTiN", tool_type="end mill"):
         """Calculate chipload with Radial & Axial Chip Thinning, operation modifiers, and micro-tool guards"""
         adjusted_ipt = base_ipt
         
@@ -180,6 +180,25 @@ class GWizardPhysics:
             min_ipt = diameter * 0.005 # rough heuristic if edge radius unknown
             adjusted_ipt = max(adjusted_ipt, min_ipt)
             
+        
+        # Enforce Minimum Chip Thickness (prevent rubbing, especially on micro tools or light finishing cuts)
+        mct = self.get_minimum_chip_thickness(coating, tool_type)
+        if diameter > 0:
+            if cut_width < diameter / 2.0:
+                import math
+                try:
+                    radial_ratio = cut_width / diameter
+                    thinning_multiplier = math.sqrt(2 * radial_ratio - radial_ratio**2)
+                    if thinning_multiplier > 0:
+                        min_ipt = mct / thinning_multiplier
+                        if adjusted_ipt < min_ipt:
+                            adjusted_ipt = min_ipt
+                except ValueError:
+                    pass
+            else:
+                if adjusted_ipt < mct:
+                    adjusted_ipt = mct
+                    
         return adjusted_ipt
 
     def get_coating_multiplier(self, coating, material_family):
@@ -332,6 +351,29 @@ class GWizardPhysics:
         ipt_mult = max(0.15, 1.0 - (overage * 0.20))
         
         return sfm * sfm_mult, ipt * ipt_mult
+
+
+    def get_minimum_chip_thickness(self, coating, tool_type="end mill"):
+        mct = 0.0002
+        coating_lower = coating.lower() if coating else ""
+        if "ti" in coating_lower or "al" in coating_lower or "zr" in coating_lower:
+            mct = 0.0005
+        elif "diamond" in coating_lower or "cvd" in coating_lower:
+            mct = 0.0008
+        if "hss" in tool_type.lower(): mct = 0.0001
+        return mct
+
+    def get_true_chip_thickness(self, ipt, cut_width, diameter):
+        if diameter <= 0: return ipt
+        if cut_width < diameter / 2.0:
+            import math
+            try:
+                # Approximation of TCT
+                radial_ratio = cut_width / diameter
+                return ipt * math.sqrt(2 * radial_ratio - radial_ratio**2)
+            except ValueError:
+                return ipt
+        return ipt
 
     def generate_advanced_strategies(self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection_inches, tool_type="end mill", stickout=1.5, geometry="Square"):
         """
