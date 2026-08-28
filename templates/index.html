@@ -181,7 +181,7 @@
                             <div class="slider-header">
                                 <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
                             </div>
-                            <input type="text" inputmode="decimal" id="diameter" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="onDiameterChange()">
+                            <input type="text" inputmode="decimal" id="diameter" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
                             <datalist id="diameters_list">
                                 <!-- Populated by JS -->
                             </datalist>
@@ -190,7 +190,6 @@
                         <div class="input-group" id="fluteLengthGroup" style="margin:0;">
                             <div class="slider-header" style="display: flex; justify-content: space-between;">
                                 <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
-                                <button id="fluteLockBtn" onclick="toggleFluteLock()" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0; filter: grayscale(100%); transition: 0.2s;" title="Toggle 3xD Auto-Ratio">🔓</button>
                             </div>
                             <input type="text" inputmode="decimal" id="fluteLength" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
@@ -439,7 +438,7 @@
     <script>
         let fullAlloys = [];
         let isMetric = false;
-        
+        let fluteLengthLocked = false;
         let activeTwinTools = [];
         let activeTwinTypeFilter = 'all';
         
@@ -510,44 +509,16 @@
             }
         }
 
+        function setFluteRatio(ratio) {
+            let d = parseFloat(document.getElementById('diameter').value);
+            if (!isNaN(d) && d > 0) {
+                document.getElementById('fluteLength').value = (d * ratio).toFixed(3);
+                document.getElementById('stickout').value = (d * ratio + (isMetric ? 12.0 : 0.5)).toFixed(3);
+                document.getElementById('stickout_val').value = document.getElementById('stickout').value;
+                calculate();
+            }
+        }
         
-        function onDiameterChange() {
-            if (!fluteLengthLocked) {
-                let d = parseFloat(document.getElementById('diameter').value);
-                if (!isNaN(d) && d > 0) {
-                    document.getElementById('fluteLength').value = (d * 3.0).toFixed(3);
-                }
-            }
-            calculate();
-        }
-
-        function onFluteChange() {
-            if (!fluteLengthLocked) {
-                fluteLengthLocked = true;
-                document.getElementById('fluteLockBtn').innerText = '🔒';
-                document.getElementById('fluteLockBtn').style.filter = 'grayscale(0%)';
-            }
-            calculate();
-        }
-
-        function toggleFluteLock() {
-            fluteLengthLocked = !fluteLengthLocked;
-            const btn = document.getElementById('fluteLockBtn');
-            if (fluteLengthLocked) {
-                btn.innerText = '🔒';
-                btn.style.filter = 'grayscale(0%)';
-            } else {
-                btn.innerText = '🔓';
-                btn.style.filter = 'grayscale(100%)';
-                // instantly auto-calculate back to 3x
-                let d = parseFloat(document.getElementById('diameter').value);
-                if (!isNaN(d) && d > 0) {
-                    document.getElementById('fluteLength').value = (d * 3.0).toFixed(3);
-                    calculate();
-                }
-            }
-        }
-
         function saveState() {
             const state = {
                 family: document.getElementById('family').value,
@@ -563,8 +534,7 @@
                 stickout_val: document.getElementById('stickout_val').value,
                 operation: document.getElementById('operation').value,
                 aggressiveness: document.getElementById('aggressiveness').value,
-                isMetric: isMetric,
-                
+                isMetric: isMetric
             };
             localStorage.setItem('toolwiz_state', JSON.stringify(state));
         }
@@ -594,12 +564,6 @@
                     if(state.stickout_val) document.getElementById('stickout_val').value = state.stickout_val;
                     if(state.operation) document.getElementById('operation').value = state.operation;
                     if(state.aggressiveness) document.getElementById('aggressiveness').value = state.aggressiveness;
-                    
-                     else {
-                            btn.innerText = '🔓';
-                            btn.style.filter = 'grayscale(100%)';
-                        }
-                    }
                     
                     updateGeometryDisplay();
                 } catch(e) {
