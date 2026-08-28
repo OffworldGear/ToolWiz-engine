@@ -497,6 +497,8 @@ class GWizardPhysics:
             target_woc = diameter
         elif "Adaptive" in operation:
             target_woc = diameter * 0.15 # Trochoidal
+        elif operation == "Facing":
+            target_woc = diameter * 0.75 # Facing usually uses large stepovers (70-80%)
         else:
             target_woc = diameter * 0.5 # Standard stepover
             

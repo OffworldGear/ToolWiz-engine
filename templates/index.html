@@ -101,12 +101,13 @@
                             </select>
                         </div>
                         <div class="input-group" style="margin:0;">
-                            <label for="operation">Operation</label>
-                            <select id="operation" onchange="calculate()">
-                                <option value="Adaptive">Adaptive (High Speed/Trochoidal)</option>
+                            <label for="operation">Strategy / Operation</label>
+                            <select id="operation" onchange="handleOpChange()">
                                 <option value="Roughing">Standard Roughing</option>
-                                <option value="Finishing">Finishing</option>
-                                <option value="Slotting">Slotting (Full radial)</option>
+                                <option value="Adaptive Roughing">Adaptive / Trochoidal</option>
+                                <option value="Slotting">Full Slotting</option>
+                                <option value="Facing">Facing</option>
+                                <option value="Finishing">Light Finishing</option>
                             </select>
                         </div>
                     </div>
@@ -177,7 +178,8 @@
 
                     <div class="input-group" id="fluteLengthGroup" style="display: block;">
                         <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="fluteLength" step="any" value="1.000" oninput="calculate()">
+                        <input type="number" id="fluteLength" step="any" list="flute_list" value="1.000" oninput="calculate()">
+                        <datalist id="flute_list"></datalist>
                     </div>
 
                     <div class="input-group combo-group">
@@ -459,6 +461,33 @@
             {v: 25.0, l: "25 mm"}
         ];
 
+        const FLUTE_IMP = [
+            {v: 0.125, l: "1/8\""},
+            {v: 0.25, l: "1/4\""},
+            {v: 0.5, l: "1/2\""},
+            {v: 0.75, l: "3/4\""},
+            {v: 1.0, l: "1\""},
+            {v: 1.25, l: "1-1/4\""},
+            {v: 1.5, l: "1-1/2\""},
+            {v: 2.0, l: "2\""},
+            {v: 2.5, l: "2-1/2\""},
+            {v: 3.0, l: "3\""}
+        ];
+
+        const FLUTE_MET = [
+            {v: 3.0, l: "3 mm"},
+            {v: 6.0, l: "6 mm"},
+            {v: 10.0, l: "10 mm"},
+            {v: 12.0, l: "12 mm"},
+            {v: 16.0, l: "16 mm"},
+            {v: 20.0, l: "20 mm"},
+            {v: 25.0, l: "25 mm"},
+            {v: 30.0, l: "30 mm"},
+            {v: 40.0, l: "40 mm"},
+            {v: 50.0, l: "50 mm"},
+            {v: 75.0, l: "75 mm"}
+        ];
+
         function switchTab(tabName) {
             document.getElementById('tabCalcBtn').classList.toggle('active', tabName === 'calculator');
             document.getElementById('tabTwinBtn').classList.toggle('active', tabName === 'digital-twin');
@@ -601,14 +630,25 @@
         }
         
         function buildDatalist() {
-            const list = document.getElementById('diameters_list');
-            list.innerHTML = '';
-            const arr = isMetric ? SIZES_MET : SIZES_IMP;
-            arr.forEach(s => {
+            const diaList = document.getElementById('diameters_list');
+            diaList.innerHTML = '';
+            const arrDia = isMetric ? SIZES_MET : SIZES_IMP;
+            arrDia.forEach(s => {
                 let opt = document.createElement('option');
                 opt.value = s.v; opt.innerText = s.l;
-                list.appendChild(opt);
+                diaList.appendChild(opt);
             });
+
+            const fluteList = document.getElementById('flute_list');
+            if (fluteList) {
+                fluteList.innerHTML = '';
+                const arrFlute = isMetric ? FLUTE_MET : FLUTE_IMP;
+                arrFlute.forEach(s => {
+                    let opt = document.createElement('option');
+                    opt.value = s.v; opt.innerText = s.l;
+                    fluteList.appendChild(opt);
+                });
+            }
         }
 
         function updateAlloys() {
@@ -642,6 +682,11 @@
         }
 
         let abortController = null;
+
+        async function handleOpChange() {
+            await calculate();
+            applyRecommendations();
+        }
 
         async function calculate() {
             if (abortController) abortController.abort();
