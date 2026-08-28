@@ -178,7 +178,7 @@
 
                     <div class="input-group" id="fluteLengthGroup" style="display: block;">
                         <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
-                        <input type="number" id="fluteLength" step="any" list="flute_list" value="1.000" oninput="calculate()">
+                        <input type="text" inputmode="decimal" id="fluteLength" list="flute_list" autocomplete="off" value="1.000" oninput="calculate()">
                         <datalist id="flute_list"></datalist>
                     </div>
 
@@ -186,7 +186,7 @@
                         <div class="slider-header">
                             <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
                         </div>
-                        <input type="number" id="diameter" step="any" list="diameters_list" value="0.5" oninput="calculate()">
+                        <input type="text" inputmode="decimal" id="diameter" list="diameters_list" autocomplete="off" value="0.5" oninput="calculate()">
                         <datalist id="diameters_list">
                             <!-- Populated by JS -->
                         </datalist>
@@ -499,7 +499,60 @@
             }
         }
 
-        async function init() {
+        
+        function saveState() {
+            const state = {
+                family: document.getElementById('family').value,
+                alloy: document.getElementById('alloy').value,
+                tool: document.getElementById('tool').value,
+                coating: document.getElementById('coating').value,
+                geometry: document.getElementById('geometry').value,
+                diameter: document.getElementById('diameter').value,
+                flutes_val: document.getElementById('flutes_val').value,
+                fluteLength: document.getElementById('fluteLength').value,
+                cutDepth_val: document.getElementById('cutDepth_val').value,
+                cutWidth_val: document.getElementById('cutWidth_val').value,
+                stickout_val: document.getElementById('stickout_val').value,
+                operation: document.getElementById('operation').value,
+                aggressiveness: document.getElementById('aggressiveness').value,
+                isMetric: isMetric
+            };
+            localStorage.setItem('toolwiz_state', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('toolwiz_state');
+            if(saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    if(state.isMetric !== isMetric) {
+                        toggleUnit();
+                    }
+                    if(state.family) document.getElementById('family').value = state.family;
+                    updateAlloys(); // Repopulate alloy list based on loaded family
+                    if(state.alloy) document.getElementById('alloy').value = state.alloy;
+                    if(state.tool) document.getElementById('tool').value = state.tool;
+                    if(state.coating) document.getElementById('coating').value = state.coating;
+                    if(state.geometry) document.getElementById('geometry').value = state.geometry;
+                    if(state.diameter) document.getElementById('diameter').value = state.diameter;
+                    if(state.flutes_val) {
+                        document.getElementById('flutes_val').value = state.flutes_val;
+                        document.getElementById('flutes').value = state.flutes_val;
+                    }
+                    if(state.fluteLength) document.getElementById('fluteLength').value = state.fluteLength;
+                    if(state.cutDepth_val) document.getElementById('cutDepth_val').value = state.cutDepth_val;
+                    if(state.cutWidth_val) document.getElementById('cutWidth_val').value = state.cutWidth_val;
+                    if(state.stickout_val) document.getElementById('stickout_val').value = state.stickout_val;
+                    if(state.operation) document.getElementById('operation').value = state.operation;
+                    if(state.aggressiveness) document.getElementById('aggressiveness').value = state.aggressiveness;
+                    
+                    updateGeometryDisplay();
+                } catch(e) {
+                    console.error("Error loading state", e);
+                }
+            }
+        }
+\n        async function init() {
             const response = await fetch('/api/data');
             const data = await response.json();
             
@@ -529,6 +582,7 @@
             updateAlloys();
             updateTwinAlloys();
             buildDatalist();
+            loadState(); // load saved preferences
             updateGeometryDisplay();
             calculate();
         }
@@ -689,6 +743,7 @@
         }
 
         async function calculate() {
+            try { saveState(); } catch(e) {}
             if (abortController) abortController.abort();
             abortController = new AbortController();
 

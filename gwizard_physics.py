@@ -389,14 +389,14 @@ class GWizardPhysics:
         if total_error > 0.0005:
             tips.append({
                 "title": "Dimensional Compensation",
-                "message": f"Expect the part to cut +{total_error:.4f}\" oversized due to Tool Deflection ({deflection_inches:.4f}\") and Material Springback ({springback_inches:.4f}\"). Apply a Negative Radial Stock-to-Leave in CAM to hit nominal tolerance.",
+                "message": f"Expect the part to cut +{total_error:.4f}\" ({total_error*25.4:.3f} mm) oversized due to Tool Deflection ({deflection_inches:.4f}\" / {deflection_inches*25.4:.3f} mm) and Material Springback ({springback_inches:.4f}\" / {springback_inches*25.4:.3f} mm). Apply a Negative Radial Stock-to-Leave in CAM to hit nominal tolerance.",
                 "type": "warning"
             })
             
         if tct < mct:
             tips.append({
                 "title": "Rubbing & Heat Trap Warning",
-                "message": f"Your True Chip Thickness ({tct:.4f}\") is smaller than the edge radius of your {coating} tool (~{mct:.4f}\"). The tool will plow and rub rather than shear the metal, causing massive heat and premature failure. Increase your feedrate (IPT) or switch to a sharper Uncoated/Polished tool.",
+                "message": f"Your True Chip Thickness ({tct:.4f}\" / {tct*25.4:.3f} mm) is smaller than the edge radius of your {coating} tool (~{mct:.4f}\" / {mct*25.4:.3f} mm). The tool will plow and rub rather than shear the metal, causing massive heat and premature failure. Increase your feedrate (IPT) or switch to a sharper Uncoated/Polished tool.",
                 "type": "critical"
             })
             
@@ -404,13 +404,13 @@ class GWizardPhysics:
             if total_error < mct:
                 tips.append({
                     "title": "Spring Pass Trap",
-                    "message": f"Do NOT use a 'Spring Pass' to clean up the {total_error:.4f}\" of deflection/springback. In work-hardening alloys like {material_family}, taking a cut smaller than the Minimum Chip Thickness ({mct:.4f}\") will instantly rub and destroy the cutting edge.",
+                    "message": f"Do NOT use a 'Spring Pass' to clean up the {total_error:.4f}\" ({total_error*25.4:.3f} mm) of deflection/springback. In work-hardening alloys like {material_family}, taking a cut smaller than the Minimum Chip Thickness ({mct:.4f}\" / {mct*25.4:.3f} mm) will instantly rub and destroy the cutting edge.",
                     "type": "critical"
                 })
             else:
                 tips.append({
                     "title": "Work-Hardening Cleanup",
-                    "message": f"{material_family} is highly prone to work-hardening. Ensure your cleanup pass is at least {mct:.4f}\" thick so the cutting edge can penetrate the hardened skin from the previous pass.",
+                    "message": f"{material_family} is highly prone to work-hardening. Ensure your cleanup pass is at least {mct:.4f}\" ({mct*25.4:.3f} mm) thick so the cutting edge can penetrate the hardened skin from the previous pass.",
                     "type": "info"
                 })
                 
