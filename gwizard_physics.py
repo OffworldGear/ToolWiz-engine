@@ -175,14 +175,8 @@ class GWizardPhysics:
                         scale = 1.0 - (0.05 * (depth_ratio - 3.0))
                     adjusted_ipt *= max(0.1, scale)
             
-        # Micro-tool guard: avoid feeding less than the cutting edge radius (rubbing/ploughing)
-        if is_micro_tool or diameter <= 0.125:
-            min_ipt = diameter * 0.005 # rough heuristic if edge radius unknown
-            adjusted_ipt = max(adjusted_ipt, min_ipt)
-            
-        
-        # Enforce Minimum Chip Thickness (prevent rubbing, especially on micro tools or light finishing cuts)
-        mct = self.get_minimum_chip_thickness(coating, tool_type)
+# Enforce Minimum Chip Thickness (prevent rubbing, especially on micro tools or light finishing cuts)
+        mct = self.get_minimum_chip_thickness(coating, tool_type, diameter)
         if diameter > 0:
             if cut_width < diameter / 2.0:
                 import math
@@ -191,8 +185,7 @@ class GWizardPhysics:
                     thinning_multiplier = math.sqrt(2 * radial_ratio - radial_ratio**2)
                     if thinning_multiplier > 0:
                         min_ipt = mct / thinning_multiplier
-                        if adjusted_ipt < min_ipt:
-                            adjusted_ipt = min_ipt
+                        pass
                 except ValueError:
                     pass
             else:
@@ -353,7 +346,7 @@ class GWizardPhysics:
         return sfm * sfm_mult, ipt * ipt_mult
 
 
-    def get_minimum_chip_thickness(self, coating, tool_type="end mill"):
+    def get_minimum_chip_thickness(self, coating, tool_type="end mill", diameter=0.5):
         mct = 0.0002
         coating_lower = coating.lower() if coating else ""
         if "ti" in coating_lower or "al" in coating_lower or "zr" in coating_lower:
@@ -361,6 +354,11 @@ class GWizardPhysics:
         elif "diamond" in coating_lower or "cvd" in coating_lower:
             mct = 0.0008
         if "hss" in tool_type.lower(): mct = 0.0001
+        
+        # Micro tools have proportionally sharper cutting edges (thinner coatings)
+        if diameter <= 0.125 and diameter > 0:
+            mct = mct * (diameter / 0.125)
+            
         return mct
 
     def get_true_chip_thickness(self, ipt, cut_width, diameter):
