@@ -121,9 +121,9 @@ def calculate():
             "ramp_angle": round(ramp_angle, 1),
             "ramp_feed": round(ramp_feed, 2),
             "plunge_feed": round(plunge_feed, 2),
-            "rec_doc": round(rec_doc, 3),
-            "rec_woc": round(rec_woc, 3),
-            "rec_limit": round(rec_limit, 6),
+            "rec_doc": round(rec_doc, 4),
+            "rec_woc": round(rec_woc, 4),
+            "rec_limit": round(diameter * 0.002, 5), # Return the absolute physical limit for the UI bar
             "tips": tips
         })
         

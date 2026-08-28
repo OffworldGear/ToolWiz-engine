@@ -395,7 +395,14 @@ class GWizardPhysics:
                 "message": f"Because {material_family} has high elastic recovery, Conventional Milling on your final light finish pass will naturally pull the cutter into the wall, counteracting the springback and giving you a much truer dimension than Climb Milling.",
                 "type": "tip"
             })
-
+            
+        if not tips:
+            tips.append({
+                "title": "Optimal Parameters",
+                "message": "Your current dial settings are mathematically safe for this material and geometry. Tool deflection and heat generation are within optimal boundaries.",
+                "type": "tip"
+            })
+            
         return tips
         
     def tool_deflection(self, diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide=True, material_family=None, helix_angle=30.0, neck_length=0.5, taper_angle=0.0, flute_length=1.0, neck_diameter=None):
