@@ -178,7 +178,7 @@
 
                     <div class="input-group" id="fluteLengthGroup" style="display: block;">
                         <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
-                        <input type="text" inputmode="decimal" id="fluteLength" list="flute_list" autocomplete="off" value="1.000" oninput="calculate()">
+                        <input type="text" inputmode="decimal" id="fluteLength" list="flute_list" autocomplete="off" value="1.000" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
                         <datalist id="flute_list"></datalist>
                     </div>
 
@@ -186,7 +186,7 @@
                         <div class="slider-header">
                             <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
                         </div>
-                        <input type="text" inputmode="decimal" id="diameter" list="diameters_list" autocomplete="off" value="0.5" oninput="calculate()">
+                        <input type="text" inputmode="decimal" id="diameter" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
                         <datalist id="diameters_list">
                             <!-- Populated by JS -->
                         </datalist>
