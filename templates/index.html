@@ -63,19 +63,7 @@
                     <div class="grid-layout" style="gap: 1rem; margin-bottom: 0rem">
                         <div class="input-group" style="margin:0;">
                             <label for="tool">Tool Category</label>
-                            <select id="tool" onchange="
-                    if (state.fluteLengthLocked !== undefined) {
-                        fluteLengthLocked = state.fluteLengthLocked;
-                        const btn = document.getElementById('fluteLockBtn');
-                        if (fluteLengthLocked) {
-                            btn.innerText = '??';
-                            btn.style.filter = 'grayscale(0%)';
-                        } else {
-                            btn.innerText = '??';
-                            btn.style.filter = 'grayscale(100%)';
-                        }
-                    }
-\n                    updateGeometryDisplay(); calculate()"></select>
+                            <select id="tool" onchange="updateGeometryDisplay(); calculate()"></select>
                         </div>
                         <div class="input-group" style="margin:0;">
                             <label for="coating">Tool Coating</label>
@@ -94,19 +82,7 @@
                     <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                         <div class="input-group" style="margin:0;">
                             <label for="geometry">Geometry</label>
-                            <select id="geometry" onchange="
-                    if (state.fluteLengthLocked !== undefined) {
-                        fluteLengthLocked = state.fluteLengthLocked;
-                        const btn = document.getElementById('fluteLockBtn');
-                        if (fluteLengthLocked) {
-                            btn.innerText = '??';
-                            btn.style.filter = 'grayscale(0%)';
-                        } else {
-                            btn.innerText = '??';
-                            btn.style.filter = 'grayscale(100%)';
-                        }
-                    }
-\n                    updateGeometryDisplay(); calculate()">
+                            <select id="geometry" onchange="updateGeometryDisplay(); calculate()">
                                 <option value="Square">Square Endmill</option>
                                 <option value="Ball">Ball Endmill</option>
                                 <option value="Radiused">Bullnose / Radiused</option>
@@ -530,7 +506,6 @@
         }
 
         
-        
         function onDiameterChange() {
             if (!fluteLengthLocked) {
                 let d = parseFloat(document.getElementById('diameter').value);
@@ -544,7 +519,7 @@
         function onFluteChange() {
             if (!fluteLengthLocked) {
                 fluteLengthLocked = true;
-                document.getElementById('fluteLockBtn').innerText = '??';
+                document.getElementById('fluteLockBtn').innerText = '🔒';
                 document.getElementById('fluteLockBtn').style.filter = 'grayscale(0%)';
             }
             calculate();
@@ -554,10 +529,10 @@
             fluteLengthLocked = !fluteLengthLocked;
             const btn = document.getElementById('fluteLockBtn');
             if (fluteLengthLocked) {
-                btn.innerText = '??';
+                btn.innerText = '🔒';
                 btn.style.filter = 'grayscale(0%)';
             } else {
-                btn.innerText = '??';
+                btn.innerText = '🔓';
                 btn.style.filter = 'grayscale(100%)';
                 // instantly auto-calculate back to 3x
                 let d = parseFloat(document.getElementById('diameter').value);
@@ -567,7 +542,8 @@
                 }
             }
         }
-\n        function saveState() {
+
+        function saveState() {
             const state = {
                 family: document.getElementById('family').value,
                 alloy: document.getElementById('alloy').value,
@@ -614,19 +590,19 @@
                     if(state.operation) document.getElementById('operation').value = state.operation;
                     if(state.aggressiveness) document.getElementById('aggressiveness').value = state.aggressiveness;
                     
-                    
                     if (state.fluteLengthLocked !== undefined) {
                         fluteLengthLocked = state.fluteLengthLocked;
                         const btn = document.getElementById('fluteLockBtn');
                         if (fluteLengthLocked) {
-                            btn.innerText = '??';
+                            btn.innerText = '🔒';
                             btn.style.filter = 'grayscale(0%)';
                         } else {
-                            btn.innerText = '??';
+                            btn.innerText = '🔓';
                             btn.style.filter = 'grayscale(100%)';
                         }
                     }
-\n                    updateGeometryDisplay();
+                    
+                    updateGeometryDisplay();
                 } catch(e) {
                     console.error("Error loading state", e);
                 }
@@ -664,19 +640,7 @@
             updateTwinAlloys();
             buildDatalist();
             loadState(); // load saved preferences
-            
-                    if (state.fluteLengthLocked !== undefined) {
-                        fluteLengthLocked = state.fluteLengthLocked;
-                        const btn = document.getElementById('fluteLockBtn');
-                        if (fluteLengthLocked) {
-                            btn.innerText = '??';
-                            btn.style.filter = 'grayscale(0%)';
-                        } else {
-                            btn.innerText = '??';
-                            btn.style.filter = 'grayscale(100%)';
-                        }
-                    }
-\n                    updateGeometryDisplay();
+            updateGeometryDisplay();
             calculate();
         }
 
