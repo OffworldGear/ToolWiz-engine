@@ -308,3 +308,20 @@ input[type=number] {
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
 }
 
+
+.param-group {
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 1.25rem 1rem 0.5rem 1rem;
+    margin-bottom: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.param-group legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
