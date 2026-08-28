@@ -308,7 +308,32 @@ class GWizardPhysics:
         
         return sfm * sfm_mult, ipt * ipt_mult
 
-    def generate_advanced_strategies(self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection_inches, tool_type="end mill"):
+    def apply_chatter_penalty(self, sfm, ipt, diameter, stickout, is_drilling=False):
+        """
+        Dynamically scale SFM and IPT based on the Length-to-Diameter (L/D) ratio.
+        End mills act like tuning forks; stickouts > 3xD introduce severe chatter resonance.
+        """
+        if diameter <= 0 or stickout <= 0:
+            return sfm, ipt
+            
+        ld_ratio = stickout / diameter
+        
+        # Drills are constrained in a hole, so they don't chatter radially until extremely deep
+        critical_ld = 8.0 if is_drilling else 3.0
+        
+        if ld_ratio <= critical_ld:
+            return sfm, ipt
+            
+        # Penalty increases linearly the further past the critical L/D we go
+        overage = ld_ratio - critical_ld
+        
+        # Severe penalty: -15% SFM and -20% IPT for every 1x overage
+        sfm_mult = max(0.20, 1.0 - (overage * 0.15))
+        ipt_mult = max(0.15, 1.0 - (overage * 0.20))
+        
+        return sfm * sfm_mult, ipt * ipt_mult
+
+    def generate_advanced_strategies(self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection_inches, tool_type="end mill", stickout=1.5, geometry="Square"):
         """
         Generate advanced machining tips based on material springback, tool sharpness, and minimum chip thickness.
         """
@@ -394,6 +419,33 @@ class GWizardPhysics:
                 "title": "Conventional Milling for Finishing",
                 "message": f"Because {material_family} has high elastic recovery, Conventional Milling on your final light finish pass will naturally pull the cutter into the wall, counteracting the springback and giving you a much truer dimension than Climb Milling.",
                 "type": "tip"
+            })
+            
+        # Resonance & Chatter
+        is_drilling = "drill" in tool_type.lower() or "tap" in tool_type.lower() or "reamer" in tool_type.lower()
+        ld_ratio = stickout / diameter if diameter > 0 else 0
+        critical_ld = 8.0 if is_drilling else 3.0
+        if ld_ratio > critical_ld:
+            tips.append({
+                "title": "Resonance & Chatter Penalty",
+                "message": f"Your tool stickout is {ld_ratio:.1f}x the diameter. Tools over {critical_ld}xD act like tuning forks, inducing severe chatter. A massive penalty has been mathematically applied to the SFM and Feed to prevent self-excited vibration.",
+                "type": "warning"
+            })
+            
+        # Micro Tool Dynamics
+        if diameter < 0.125:
+            tips.append({
+                "title": "Micro-Tool Dynamics",
+                "message": "Tools under 1/8\" (3mm) have disproportionately weak cores and lack chip clearance. A 2x physical force penalty has been applied to the deflection math to prevent snapping the bit.",
+                "type": "warning"
+            })
+            
+        # Form Tool Constraints
+        if geometry in ["T-Slot", "Dovetail", "Keyseat"]:
+            tips.append({
+                "title": "Form Tool Constraints",
+                "message": f"Because {geometry} cutters must take 100% radial engagement (full slotting) by design, they suffer from extreme chip packing and heat generation. Speeds and feeds have been heavily constrained to prevent catastrophic failure.",
+                "type": "warning"
             })
             
         if not tips:

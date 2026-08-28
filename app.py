@@ -70,6 +70,10 @@ def calculate():
         alloy = data.get("alloy", "")
         target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
         
+        # Chatter / Resonance penalty based on stickout length
+        is_drilling = tool in ["Drill", "Tapping", "Reamer"]
+        target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=is_drilling)
+        
         if tool != "Tapping":
             target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
@@ -101,7 +105,7 @@ def calculate():
         )
         
         tips = physics.generate_advanced_strategies(
-            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection, tool_type=tool
+            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection, tool_type=tool, stickout=stickout, geometry=geometry
         )
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
@@ -472,6 +476,9 @@ def twin_batch_generate():
                 # Hardness modifier via exponential BHN curve
                 target_sfm, adj_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, adj_ipt)
                 
+                # Chatter / Resonance penalty
+                target_sfm, adj_ipt = physics.apply_chatter_penalty(target_sfm, adj_ipt, diameter, stickout, is_drilling=True)
+                
                 if not is_tap:
                     target_sfm, adj_ipt = physics.apply_aggressiveness(target_sfm, adj_ipt, aggressiveness)
                 
@@ -542,6 +549,9 @@ def twin_batch_generate():
                     # Hardness modifier via exponential BHN curve
                     target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
                         
+                    # Chatter / Resonance penalty
+                    target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=False)
+                    
                     target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
                     target_sfm *= physics.get_coating_multiplier(coating, family)
                     
