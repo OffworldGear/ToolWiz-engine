@@ -189,8 +189,7 @@ class GWizardPhysics:
                 except ValueError:
                     pass
             else:
-                if adjusted_ipt < mct:
-                    adjusted_ipt = mct
+                pass
                     
         return adjusted_ipt
 
@@ -431,7 +430,7 @@ class GWizardPhysics:
                 "type": "warning"
             })
             
-        if tct < mct:
+        if tct < (mct * 0.95):
             tips.append({
                 "title": "Rubbing & Heat Trap Warning",
                 "message": f"Your True Chip Thickness ({tct:.4f}\" / {tct*25.4:.3f} mm) is smaller than the edge radius of your {coating} tool (~{mct:.4f}\" / {mct*25.4:.3f} mm). The tool will plow and rub rather than shear the metal, causing massive heat and premature failure. Increase your feedrate (IPT) or switch to a sharper Uncoated/Polished tool.",
