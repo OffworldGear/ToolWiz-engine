@@ -273,6 +273,10 @@ class GWizardPhysics:
             angle = 0.0 # Cannot ramp undercutting tools axially safely!
             ramp_feed = 0.0
             
+        if diameter < 0.125 and diameter > 0.0:
+            # Micro-tools cannot handle steep ramping due to fragile cores
+            angle *= (diameter / 0.125)
+            
         return angle, ramp_feed, plunge_feed
         
     def apply_alloy_hardness_scaling(self, material_family, alloy_name, sfm, ipt):
@@ -390,14 +394,8 @@ class GWizardPhysics:
         is_highly_elastic = "plastic" in mat_lower or "titanium" in mat_lower or "wood" in mat_lower or "zirconium" in mat_lower
         
         # 2. Minimum Chip Thickness (MCT) based on edge radius
-        # Uncoated tools are razor sharp. Coated tools have an edge hone that causes rubbing on light cuts.
-        mct = 0.0002  # Default uncoated carbide
-        coating_lower = coating.lower() if coating else ""
-        if "ti" in coating_lower or "al" in coating_lower or "zr" in coating_lower:
-            mct = 0.0005 # PVD/CVD coatings round the cutting edge
-        elif "diamond" in coating_lower or "cvd" in coating_lower:
-            mct = 0.0008
-        if "hss" in tool_type.lower(): mct = 0.0001
+        # Automatically scales down for micro-tools as well
+        mct = self.get_minimum_chip_thickness(coating, tool_type, diameter)
         
         # 3. True Chip Thickness (TCT) with Radial Chip Thinning
         ipt = feedrate / (rpm * flutes)
@@ -599,9 +597,10 @@ class GWizardPhysics:
             return cutter_thickness, min(diameter * 0.35, target_woc), target_deflection
             
         max_doc = min(diameter * 4.0, flute_length) # Limit recommended cuts to 4xD flute lengths or physical flute length
-        best_doc = 0.010
-        current_doc = 0.010
-        step = max(diameter * 0.05, 0.005) # Iteration step
+        min_doc = max(diameter * 0.05, 0.001)
+        best_doc = min_doc
+        current_doc = min_doc
+        step = max(diameter * 0.05, 0.001) # Iteration step
         
         while current_doc <= max_doc:
             # We assume effective_diameter = diameter for generalized standard recommendations

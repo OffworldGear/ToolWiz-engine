@@ -787,6 +787,13 @@
             let p_neck = parseFloat(document.getElementById('neckDiameter')?.value) || p_shank;
             let p_neckLength = parseFloat(document.getElementById('neckLength')?.value) || 0.5;
             
+            // Validate stickout >= flute length
+            if (p_flute > p_stick) {
+                p_stick = p_flute;
+                document.getElementById('stickout_val').value = p_stick.toFixed(isMetric ? 1 : 3);
+                document.getElementById('stickout_range').value = p_stick;
+            }
+            
             if(isMetric) {
                 p_dia /= 25.4; p_depth /= 25.4; p_width /= 25.4; p_stick /= 25.4;
                 p_shank /= 25.4; p_cr /= 25.4; p_thick /= 25.4; p_flute /= 25.4;
