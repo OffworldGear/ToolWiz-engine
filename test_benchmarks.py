@@ -26,7 +26,7 @@ BENCHMARKS = [
     {
         "name": "Valor 0.500 High Perf Endmill - Steel 1018 (Roughing)",
         "inputs": {
-            "family": "Low Carbon Steel (1018)",
+            "family": "Steel - Low Carbon (1020)",
             "tool": "Carbide Endmill",
             "diameter": 0.5,
             "flutes": 4,

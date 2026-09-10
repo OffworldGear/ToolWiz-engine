@@ -161,439 +161,439 @@
             "family": "Aluminum - Cast",
             "alloy": "208",
             "condition": "T4",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "208",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "208",
             "condition": "T7",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "222",
             "condition": "T551",
-            "hardness": "100\u2013130"
+            "hardness": "100-130"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "222",
             "condition": "T65",
-            "hardness": "125\u2013155"
+            "hardness": "125-155"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "242",
             "condition": "T571",
-            "hardness": "90\u2013120"
+            "hardness": "90-120"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "242",
             "condition": "T61",
-            "hardness": "95\u2013125"
+            "hardness": "95-125"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "296",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "308",
             "condition": "As Cast",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "319",
             "condition": "As Cast",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "319",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "332",
             "condition": "T5",
-            "hardness": "90\u2013120"
+            "hardness": "90-120"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "333",
             "condition": "As Cast",
-            "hardness": "65\u2013100"
+            "hardness": "65-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "333",
             "condition": "T5",
-            "hardness": "70\u2013105"
+            "hardness": "70-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "333",
             "condition": "T6",
-            "hardness": "85\u2013115"
+            "hardness": "85-115"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "333",
             "condition": "T7",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "336",
             "condition": "T551",
-            "hardness": "90\u2013120"
+            "hardness": "90-120"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "336",
             "condition": "T65",
-            "hardness": "110\u2013140"
+            "hardness": "110-140"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T51",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T62",
-            "hardness": "90\u2013120"
+            "hardness": "90-120"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T7",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T71",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "C355.0",
             "condition": "T61",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "As Cast",
-            "hardness": "40\u201370"
+            "hardness": "40-70"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T51",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T6",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T7",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T71",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "A356.0",
             "condition": "T61",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "357",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "A357.0",
             "condition": "T61",
-            "hardness": "85\u2013115"
+            "hardness": "85-115"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "359",
             "condition": "T61",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "359",
             "condition": "T62",
-            "hardness": "85\u2013115"
+            "hardness": "85-115"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "443",
             "condition": "As Cast",
-            "hardness": "30\u201360"
+            "hardness": "30-60"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "B443.0",
             "condition": "As Cast",
-            "hardness": "30\u201360"
+            "hardness": "30-60"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "513",
             "condition": "As Cast",
-            "hardness": "45\u201375"
+            "hardness": "45-75"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "535",
             "condition": "As Cast",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "705",
             "condition": "T5",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "707",
             "condition": "T7",
-            "hardness": "80\u2013110"
+            "hardness": "80-110"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "711",
             "condition": "T1",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "713",
             "condition": "T5",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "850",
             "condition": "T5",
-            "hardness": "30\u201360"
+            "hardness": "30-60"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "851",
             "condition": "T5",
-            "hardness": "30\u201360"
+            "hardness": "30-60"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "852",
             "condition": "T5",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "201",
             "condition": "T7",
-            "hardness": "110\u2013140"
+            "hardness": "110-140"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "208",
             "condition": "As Cast",
-            "hardness": "40\u201370"
+            "hardness": "40-70"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "222",
             "condition": "O",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "222",
             "condition": "T61",
-            "hardness": "100\u2013130"
+            "hardness": "100-130"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "242",
             "condition": "O",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "242",
             "condition": "T571",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "242",
             "condition": "T61",
-            "hardness": "90\u2013120"
+            "hardness": "90-120"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "242",
             "condition": "T77",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "295",
             "condition": "T4",
-            "hardness": "45\u201375"
+            "hardness": "45-75"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "295",
             "condition": "T6",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "295",
             "condition": "T62",
-            "hardness": "80\u2013110"
+            "hardness": "80-110"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "295",
             "condition": "T7",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "319",
             "condition": "As Cast",
-            "hardness": "55\u201385"
+            "hardness": "55-85"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "319",
             "condition": "T5",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "319",
             "condition": "T6",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "328",
             "condition": "As Cast",
-            "hardness": "45\u201375"
+            "hardness": "45-75"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "328",
             "condition": "T6",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T51",
-            "hardness": "50\u201380"
+            "hardness": "50-80"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T6",
-            "hardness": "70\u2013105"
+            "hardness": "70-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T7",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "355",
             "condition": "T71",
-            "hardness": "60\u201395"
+            "hardness": "60-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "C355.0",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "As Cast",
-            "hardness": "40\u201370"
+            "hardness": "40-70"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T51",
-            "hardness": "45\u201375"
+            "hardness": "45-75"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T6",
-            "hardness": "55\u201390"
+            "hardness": "55-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T7",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "356",
             "condition": "T71",
-            "hardness": "45\u201375"
+            "hardness": "45-75"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "A356.0",
             "condition": "T6",
-            "hardness": "70\u2013105"
+            "hardness": "70-105"
         },
         {
             "family": "Aluminum - Cast",
@@ -611,137 +611,137 @@
             "family": "Aluminum - Cast",
             "alloy": "443",
             "condition": "As Cast",
-            "hardness": "25\u201355"
+            "hardness": "25-55"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "B443.0",
             "condition": "As Cast",
-            "hardness": "25\u201355"
+            "hardness": "25-55"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "512",
             "condition": "As Cast",
-            "hardness": "35\u201365"
+            "hardness": "35-65"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "514",
             "condition": "As Cast",
-            "hardness": "35\u201365"
+            "hardness": "35-65"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "520",
             "condition": "T4c",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "535",
             "condition": "As Cast",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "705",
             "condition": "As Cast",
-            "hardness": "50\u201380"
+            "hardness": "50-80"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "707",
             "condition": "T5",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "707",
             "condition": "T7",
-            "hardness": "65\u201395"
+            "hardness": "65-95"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "710",
             "condition": "As Cast",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "712",
             "condition": "As Cast",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "713",
             "condition": "As Cast",
-            "hardness": "60\u201390"
+            "hardness": "60-90"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "771",
             "condition": "T5",
-            "hardness": "85\u2013115"
+            "hardness": "85-115"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "771",
             "condition": "T51",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "771",
             "condition": "T52",
-            "hardness": "70\u2013100"
+            "hardness": "70-100"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "771",
             "condition": "T6",
-            "hardness": "75\u2013105"
+            "hardness": "75-105"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "771",
             "condition": "T71",
-            "hardness": "105\u2013135"
+            "hardness": "105-135"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "850",
             "condition": "T5",
-            "hardness": "30\u201360"
+            "hardness": "30-60"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "851",
             "condition": "T5",
-            "hardness": "30\u201360"
+            "hardness": "30-60"
         },
         {
             "family": "Aluminum - Cast",
             "alloy": "852",
             "condition": "T5",
-            "hardness": "45\u201375"
+            "hardness": "45-75"
         },
         {
             "family": "Aluminum - Cast",
-            "alloy": "K100\u2122",
+            "alloy": "K100™",
             "condition": "As Cast",
             "hardness": "65"
         },
         {
             "family": "Aluminum - Cast",
-            "alloy": "K100S\u2122",
+            "alloy": "K100S™",
             "condition": "As Cast",
             "hardness": "70"
         },
         {
             "family": "Aluminum - Cast",
-            "alloy": "MIC 6\u00ae",
+            "alloy": "MIC 6®",
             "condition": "As Cast",
             "hardness": "65"
         },
@@ -2161,25 +2161,25 @@
         },
         {
             "family": "Copper Alloy - Wrought",
-            "alloy": "MoldMax HH\u00ae - Copper Beryllium",
+            "alloy": "MoldMax HH® - Copper Beryllium",
             "condition": "Cast",
             "hardness": "370"
         },
         {
             "family": "Copper Alloy - Wrought",
-            "alloy": "MoldMax LH\u00ae - Copper Beryllium",
+            "alloy": "MoldMax LH® - Copper Beryllium",
             "condition": "Cast",
             "hardness": "285"
         },
         {
             "family": "Copper Alloy - Wrought",
-            "alloy": "MoldMax XL\u00ae - Copper Beryllium",
+            "alloy": "MoldMax XL® - Copper Beryllium",
             "condition": "Cast",
             "hardness": "285"
         },
         {
             "family": "Copper Alloy - Wrought",
-            "alloy": "MoldMax V\u00ae - Copper Beryllium",
+            "alloy": "MoldMax V® - Copper Beryllium",
             "condition": "Cast",
             "hardness": "270"
         },
@@ -2315,7 +2315,7 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N03301 - \u00a0 Duranickel\u00ae alloy 301",
+            "alloy": "N03301 -   Duranickel® alloy 301",
             "condition": "Annealed",
             "hardness": "114"
         },
@@ -2327,25 +2327,25 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N05500 - \u00a0 Monel\u00ae alloy K500",
+            "alloy": "N05500 -   Monel® alloy K500",
             "condition": "Annealed",
             "hardness": "295"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06002 - \u00a0 Inconel\u00ae alloy HX",
+            "alloy": "N06002 -   Inconel® alloy HX",
             "condition": "Annealed",
             "hardness": "171"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06002 - \u00a0 Hastelloy\u00ae X",
+            "alloy": "N06002 -   Hastelloy® X",
             "condition": "Heat Treated and Rapid Cooled (Solution)",
             "hardness": "196"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06022 - Hastelloy\u00ae alloy C22",
+            "alloy": "N06022 - Hastelloy® alloy C22",
             "condition": "Plate, Quenched",
             "hardness": "210"
         },
@@ -2357,7 +2357,7 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06075 - Nimonic\u00ae alloy 75",
+            "alloy": "N06075 - Nimonic® alloy 75",
             "condition": "Annealed",
             "hardness": "162"
         },
@@ -2369,79 +2369,79 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06455 - Hastelloy\u00ae alloy C4",
+            "alloy": "N06455 - Hastelloy® alloy C4",
             "condition": "Annealed",
             "hardness": "320"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06600 - Inconel\u00ae alloy 600",
+            "alloy": "N06600 - Inconel® alloy 600",
             "condition": "Annealed",
             "hardness": "162"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06601 - Inconel\u00ae alloy 601",
+            "alloy": "N06601 - Inconel® alloy 601",
             "condition": "Annealed",
             "hardness": "138"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06625 - Inconel\u00ae alloy 625",
+            "alloy": "N06625 - Inconel® alloy 625",
             "condition": "Annealed",
             "hardness": "190"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06686 - Inconel\u00ae alloy 686",
+            "alloy": "N06686 - Inconel® alloy 686",
             "condition": "Annealed",
             "hardness": "95"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N06686 - Inconel\u00ae Alloy 686",
+            "alloy": "N06686 - Inconel® Alloy 686",
             "condition": "Annealed",
             "hardness": "209"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N07001 - Waspaloy\u00ae",
+            "alloy": "N07001 - Waspaloy®",
             "condition": "Annealed",
             "hardness": "351"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N07080 - Nimonic\u00ae alloy 80A",
+            "alloy": "N07080 - Nimonic® alloy 80A",
             "condition": "Annealed",
             "hardness": "290"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N07090 - Nimonic\u00ae alloy 90",
+            "alloy": "N07090 - Nimonic® alloy 90",
             "condition": "Annealed",
             "hardness": "342"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N07718 - Inconel\u00ae alloy 718",
+            "alloy": "N07718 - Inconel® alloy 718",
             "condition": "Annealed",
             "hardness": "405"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N07725 - Inconel\u00ae alloy 725",
+            "alloy": "N07725 - Inconel® alloy 725",
             "condition": "Annealed",
             "hardness": "340"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N07750 - Inconel\u00ae alloy X750",
+            "alloy": "N07750 - Inconel® alloy X750",
             "condition": "Annealed",
             "hardness": "310"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N08020 - Incoloy\u00ae alloy 020, Alloy 20, DIN 2.4660, CN7M",
+            "alloy": "N08020 - Incoloy® alloy 020, Alloy 20, DIN 2.4660, CN7M",
             "condition": "Annealed",
             "hardness": "171"
         },
@@ -2471,13 +2471,13 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N08800 - Incoloy\u00ae alloy 800",
+            "alloy": "N08800 - Incoloy® alloy 800",
             "condition": "Annealed",
             "hardness": "156"
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N08925/6 - Incoloy\u00ae alloy 25-6MO",
+            "alloy": "N08925/6 - Incoloy® alloy 25-6MO",
             "condition": "Annealed",
             "hardness": "171"
         },
@@ -2489,7 +2489,7 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N09925 - Incoloy\u00ae alloy 925",
+            "alloy": "N09925 - Incoloy® alloy 925",
             "condition": "Annealed",
             "hardness": "304"
         },
@@ -2501,7 +2501,7 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N10665 - Hastelloy\u00ae alloy B2",
+            "alloy": "N10665 - Hastelloy® alloy B2",
             "condition": "Annealed",
             "hardness": "250"
         },
@@ -2537,7 +2537,7 @@
         },
         {
             "family": "High Temp Nickel Alloy",
-            "alloy": "N10276 - Hastelloy\u00ae alloy C276",
+            "alloy": "N10276 - Hastelloy® alloy C276",
             "condition": "Annealed",
             "hardness": "162"
         },
@@ -2765,7 +2765,7 @@
         },
         {
             "family": "Nickel Alloy",
-            "alloy": "N04400 - Monel\u00ae alloy 400",
+            "alloy": "N04400 - Monel® alloy 400",
             "condition": "Annealed",
             "hardness": "133"
         },
@@ -2777,7 +2777,7 @@
         },
         {
             "family": "Nickel Alloy",
-            "alloy": "N06690 - Inconel\u00ae alloy 690",
+            "alloy": "N06690 - Inconel® alloy 690",
             "condition": "Annealed",
             "hardness": "85"
         },
@@ -2789,19 +2789,19 @@
         },
         {
             "family": "Nickel Alloy",
-            "alloy": "N08825 - Incoloy\u00ae alloy 825",
+            "alloy": "N08825 - Incoloy® alloy 825",
             "condition": "Annealed",
             "hardness": "148"
         },
         {
             "family": "Nickel Alloy",
-            "alloy": "Kovar\u00ae, ASTM F15, UNS K94610",
+            "alloy": "Kovar®, ASTM F15, UNS K94610",
             "condition": "Annealed",
             "hardness": "120"
         },
         {
             "family": "Nickel Alloy",
-            "alloy": "Invar\u00ae 36",
+            "alloy": "Invar® 36",
             "condition": "Annealed",
             "hardness": "160"
         },
@@ -3721,13 +3721,13 @@
         },
         {
             "family": "Stainless - 400 Series (420)",
-            "alloy": "CPM\u00ae S35VN\u2122",
+            "alloy": "CPM® S35VN™",
             "condition": "Annealed",
             "hardness": "255"
         },
         {
             "family": "Stainless - 400 Series (420)",
-            "alloy": "CPM\u00ae S35VN\u2122",
+            "alloy": "CPM® S35VN™",
             "condition": "Hardened and Double Tempered",
             "hardness": "654"
         },
@@ -3739,7 +3739,7 @@
         },
         {
             "family": "Stainless - 400 Series (420)",
-            "alloy": "CPM\u00ae S110V\u2122",
+            "alloy": "CPM® S110V™",
             "condition": "Annealed",
             "hardness": "400"
         },
@@ -5287,25 +5287,25 @@
         },
         {
             "family": "Steel - Tool (H13)",
-            "alloy": "Crucible CPM\u00ae 3V",
+            "alloy": "Crucible CPM® 3V",
             "condition": "Annealed",
             "hardness": "271"
         },
         {
             "family": "Steel - Tool (H13)",
-            "alloy": "Crucible CPM\u00ae 3V",
+            "alloy": "Crucible CPM® 3V",
             "condition": "Hardened",
             "hardness": "654"
         },
         {
             "family": "Steel - Tool (H13)",
-            "alloy": "Crucible CPM\u00ae 10V AISI A11",
+            "alloy": "Crucible CPM® 10V AISI A11",
             "condition": "Annealed",
             "hardness": "277"
         },
         {
             "family": "Steel - Tool (H13)",
-            "alloy": "Crucible CPM\u00ae 10V AISI A11",
+            "alloy": "Crucible CPM® 10V AISI A11",
             "condition": "Hardened",
             "hardness": "705"
         },
@@ -5805,14 +5805,14 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "albarco (Cariniana\u00a0spp.)",
+            "alloy": "albarco (Cariniana spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1020"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "alder, Nepalese (Alnus nepalensis\u00a0)",
+            "alloy": "alder, Nepalese (Alnus nepalensis )",
             "condition": "",
             "hardness": "0",
             "janka": "1690"
@@ -5959,7 +5959,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "bubinga (Guibourtia\u00a0spp.)",
+            "alloy": "bubinga (Guibourtia spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "2690"
@@ -6246,14 +6246,14 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "kaneelhart (Licaria\u00a0spp.)",
+            "alloy": "kaneelhart (Licaria spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "2900"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "kapur (Dryobalanops\u00a0spp.)",
+            "alloy": "kapur (Dryobalanops spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1230"
@@ -6281,7 +6281,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "keruing (Dipterocarpus\u00a0spp.)",
+            "alloy": "keruing (Dipterocarpus spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1270"
@@ -6302,7 +6302,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "lignumvitae (Guaiacum\u00a0spp.)",
+            "alloy": "lignumvitae (Guaiacum spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "4500"
@@ -6316,7 +6316,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "macawood (Platymiscium\u00a0spp.)",
+            "alloy": "macawood (Platymiscium spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "3150"
@@ -6344,7 +6344,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "manbarklak (Eschweilera\u00a0spp.)",
+            "alloy": "manbarklak (Eschweilera spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "3480"
@@ -6372,14 +6372,14 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "marishballi (Lincania\u00a0spp.)",
+            "alloy": "marishballi (Lincania spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "3570"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "merbau (Intsia\u00a0spp.)",
+            "alloy": "merbau (Intsia spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1500"
@@ -6393,21 +6393,21 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "mersawa (Anisoptera\u00a0spp.)",
+            "alloy": "mersawa (Anisoptera spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1290"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "mesquite (Prosopis\u00a0spp.)",
+            "alloy": "mesquite (Prosopis spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "2345"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "mora (Mora\u00a0spp.)",
+            "alloy": "mora (Mora spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "2300"
@@ -6442,7 +6442,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "oak, cherrybark (Quercus falcata\u00a0varpagodifolia)",
+            "alloy": "oak, cherrybark (Quercus falcata varpagodifolia)",
             "condition": "",
             "hardness": "0",
             "janka": "1480"
@@ -6610,7 +6610,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "peroba rosa (Aspidosperma\u00a0spp., peroba group)",
+            "alloy": "peroba rosa (Aspidosperma spp., peroba group)",
             "condition": "",
             "hardness": "0",
             "janka": "1730"
@@ -6624,7 +6624,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "pilon (Hyeronima\u00a0spp.)",
+            "alloy": "pilon (Hyeronima spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1700"
@@ -6645,14 +6645,14 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "piquia (Caryocar\u00a0spp.)",
+            "alloy": "piquia (Caryocar spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1720"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "purpleheart (Peltogyne\u00a0spp.)",
+            "alloy": "purpleheart (Peltogyne spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1860"
@@ -6715,14 +6715,14 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "serviceberry (Amelanchier\u00a0spp.)",
+            "alloy": "serviceberry (Amelanchier spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "1800"
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "shorea (Shorea\u00a0spp., baulau group)",
+            "alloy": "shorea (Shorea spp., baulau group)",
             "condition": "",
             "hardness": "0",
             "janka": "1780"
@@ -6813,7 +6813,7 @@
         },
         {
             "family": "Wood: Hardwood",
-            "alloy": "wallaba (Eperua\u00a0spp.)",
+            "alloy": "wallaba (Eperua spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "2040"
@@ -6875,7 +6875,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "anime (Protium\u00a0spp.)",
+            "alloy": "anime (Protium spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "920"
@@ -6931,7 +6931,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "banak (Virola\u00a0spp.)",
+            "alloy": "banak (Virola spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "510"
@@ -7057,7 +7057,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "chalviande (Virola\u00a0spp.)",
+            "alloy": "chalviande (Virola spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "481"
@@ -7106,7 +7106,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "cuangare (Dialyanthera\u00a0spp.)",
+            "alloy": "cuangare (Dialyanthera spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "380"
@@ -7232,7 +7232,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "fir, white (Abies\u00a0concolor)",
+            "alloy": "fir, white (Abies concolor)",
             "condition": "",
             "hardness": "0",
             "janka": "480"
@@ -7288,7 +7288,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "ilomba (Pycnanthus angolensis\u00a0Exell)",
+            "alloy": "ilomba (Pycnanthus angolensis Exell)",
             "condition": "",
             "hardness": "0",
             "janka": "610"
@@ -7372,7 +7372,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "mahogany, African (Khaya\u00a0spp.)",
+            "alloy": "mahogany, African (Khaya spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "830"
@@ -7596,7 +7596,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "pulgande (Dacryodes\u00a0spp.)",
+            "alloy": "pulgande (Dacryodes spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "666"
@@ -7617,7 +7617,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "red cedar, eastern\u00a0 (Juniperus virginiana)",
+            "alloy": "red cedar, eastern  (Juniperus virginiana)",
             "condition": "",
             "hardness": "0",
             "janka": "900"
@@ -7631,7 +7631,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "red cedar, western\u00a0 (Thuja plicata\u00a0)",
+            "alloy": "red cedar, western  (Thuja plicata )",
             "condition": "",
             "hardness": "0",
             "janka": "350"
@@ -7652,7 +7652,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "robe (Tabebul\u00a0spp., roble group)",
+            "alloy": "robe (Tabebul spp., roble group)",
             "condition": "",
             "hardness": "0",
             "janka": "960"
@@ -7666,7 +7666,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "sande (Brosimum\u00a0spp., utile group)",
+            "alloy": "sande (Brosimum spp., utile group)",
             "condition": "",
             "hardness": "0",
             "janka": "900"
@@ -7680,21 +7680,21 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "shorea, dark red meranti (Shorea\u00a0spp., lauan-meranti group)",
+            "alloy": "shorea, dark red meranti (Shorea spp., lauan-meranti group)",
             "condition": "",
             "hardness": "0",
             "janka": "780"
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "shorea, light red meranti (Shorea\u00a0spp., lauan-meranti group)",
+            "alloy": "shorea, light red meranti (Shorea spp., lauan-meranti group)",
             "condition": "",
             "hardness": "0",
             "janka": "460"
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "shorea, yellow meranti (Shorea\u00a0spp., lauan-meranti group)",
+            "alloy": "shorea, yellow meranti (Shorea spp., lauan-meranti group)",
             "condition": "",
             "hardness": "0",
             "janka": "770"
@@ -7729,7 +7729,7 @@
         },
         {
             "family": "Wood: Softwood",
-            "alloy": "Spanish-cedar (Cedrela\u00a0spp.)",
+            "alloy": "Spanish-cedar (Cedrela spp.)",
             "condition": "",
             "hardness": "0",
             "janka": "600"
@@ -7904,7 +7904,8 @@
             "pcdEM": 0.98,
             "youngs_modulus_ksi": 10000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 0.32
         },
         {
             "material": "Aluminum - Wrought (6061)",
@@ -7924,7 +7925,8 @@
             "pcdEM": 0.98,
             "youngs_modulus_ksi": 10000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 0.32
         },
         {
             "material": "Brass",
@@ -7944,7 +7946,8 @@
             "pcdEM": 1.84,
             "youngs_modulus_ksi": 15000,
             "work_hardening": false,
-            "springback_factor": 0.0003
+            "springback_factor": 0.0003,
+            "unit_hp": 1
         },
         {
             "material": "Cast Iron - Ductile",
@@ -7963,7 +7966,8 @@
             "threadMill": 1.5,
             "youngs_modulus_ksi": 20000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.1
         },
         {
             "material": "Cast Iron - Gray",
@@ -7982,7 +7986,8 @@
             "threadMill": 1.1,
             "youngs_modulus_ksi": 20000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 0.6
         },
         {
             "material": "Cobalt Chrome (CoCr ASTM F75)",
@@ -8001,7 +8006,8 @@
             "threadMill": 0.8,
             "youngs_modulus_ksi": 30000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 1.5
         },
         {
             "material": "Composite: Fiberglass/PC Board",
@@ -8021,7 +8027,8 @@
             "pcdEM": 0.34,
             "youngs_modulus_ksi": 400,
             "work_hardening": false,
-            "springback_factor": 0.003
+            "springback_factor": 0.003,
+            "unit_hp": 0.1
         },
         {
             "material": "Copper Alloy - Wrought",
@@ -8041,7 +8048,8 @@
             "pcdEM": 2.32,
             "youngs_modulus_ksi": 17000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 0.64
         },
         {
             "material": "Graphite",
@@ -8061,7 +8069,8 @@
             "pcdEM": 0.84,
             "youngs_modulus_ksi": 1500,
             "work_hardening": false,
-            "springback_factor": 0.001
+            "springback_factor": 0.001,
+            "unit_hp": 0.21
         },
         {
             "material": "High Temp Nickel Alloy",
@@ -8080,7 +8089,8 @@
             "threadMill": 0.76,
             "youngs_modulus_ksi": 30000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 2
         },
         {
             "material": "Magnesium Alloy",
@@ -8100,7 +8110,8 @@
             "pcdEm": 1.1,
             "youngs_modulus_ksi": 6500,
             "work_hardening": false,
-            "springback_factor": 0.0003
+            "springback_factor": 0.0003,
+            "unit_hp": 0.16
         },
         {
             "material": "Nickel Alloy",
@@ -8119,7 +8130,8 @@
             "threadMill": 0.76,
             "youngs_modulus_ksi": 30000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 1.9
         },
         {
             "material": "Plastics: Hard (ABS, Nylon, Foam Bd)",
@@ -8139,7 +8151,8 @@
             "pcdEM": 0.77,
             "youngs_modulus_ksi": 400,
             "work_hardening": false,
-            "springback_factor": 0.003
+            "springback_factor": 0.003,
+            "unit_hp": 0.15
         },
         {
             "material": "Plastics: Soft (Acetal, HDPE, PEEK)",
@@ -8159,7 +8172,8 @@
             "pcdEM": 0.77,
             "youngs_modulus_ksi": 400,
             "work_hardening": false,
-            "springback_factor": 0.003
+            "springback_factor": 0.003,
+            "unit_hp": 0.08
         },
         {
             "material": "Stainless - 300 Series (316)",
@@ -8178,7 +8192,8 @@
             "threadMill": 0.98,
             "youngs_modulus_ksi": 28000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 1.5
         },
         {
             "material": "Stainless - 400 Series (420)",
@@ -8197,7 +8212,8 @@
             "threadMill": 0.98,
             "youngs_modulus_ksi": 28000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 1.5
         },
         {
             "material": "Stainless - PH Series (17-4)",
@@ -8216,7 +8232,8 @@
             "threadMill": 0.98,
             "youngs_modulus_ksi": 28000,
             "work_hardening": true,
-            "springback_factor": 0.0006
+            "springback_factor": 0.0006,
+            "unit_hp": 1.5
         },
         {
             "material": "Steel - Low Carbon (1020)",
@@ -8235,7 +8252,8 @@
             "threadMill": 1.11,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.1
         },
         {
             "material": "Steel - Low Carbon Alloy (8620)",
@@ -8254,7 +8272,8 @@
             "threadMill": 1.11,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.1
         },
         {
             "material": "Steel - Medium Carbon (1045)",
@@ -8273,7 +8292,8 @@
             "threadMill": 0.92,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.5
         },
         {
             "material": "Steel - Medium Carbon Alloy (4130)",
@@ -8292,7 +8312,8 @@
             "threadMill": 0.92,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.8
         },
         {
             "material": "Steel - High Carbon (1090)",
@@ -8311,7 +8332,8 @@
             "threadMill": 0.85,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.5
         },
         {
             "material": "Steel - High Carbon Alloy (52100)",
@@ -8330,7 +8352,8 @@
             "threadMill": 0.78,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 1.8
         },
         {
             "material": "Steel - Tool (H13)",
@@ -8349,7 +8372,8 @@
             "threadMill": 0.77,
             "youngs_modulus_ksi": 30000,
             "work_hardening": false,
-            "springback_factor": 0.0002
+            "springback_factor": 0.0002,
+            "unit_hp": 2.1
         },
         {
             "material": "Titanium Alloy",
@@ -8368,7 +8392,8 @@
             "threadMill": 1.5,
             "youngs_modulus_ksi": 16000,
             "work_hardening": true,
-            "springback_factor": 0.001
+            "springback_factor": 0.001,
+            "unit_hp": 1.1
         },
         {
             "material": "Tungsten",
@@ -8387,7 +8412,8 @@
             "threadMill": 1.1,
             "youngs_modulus_ksi": 58000,
             "work_hardening": false,
-            "springback_factor": 0.0001
+            "springback_factor": 0.0001,
+            "unit_hp": 2.9
         },
         {
             "material": "Wax",
@@ -8406,7 +8432,8 @@
             "threadMill": 0.8,
             "youngs_modulus_ksi": 100,
             "work_hardening": false,
-            "springback_factor": 0.005
+            "springback_factor": 0.005,
+            "unit_hp": 0.15
         },
         {
             "material": "Wood: Hardwood",
@@ -8425,7 +8452,8 @@
             "threadMill": 0.8,
             "youngs_modulus_ksi": 1500,
             "work_hardening": false,
-            "springback_factor": 0.002
+            "springback_factor": 0.002,
+            "unit_hp": 0.15
         },
         {
             "material": "Wood: Softwood",
@@ -8444,7 +8472,8 @@
             "threadMill": 0.8,
             "youngs_modulus_ksi": 1500,
             "work_hardening": false,
-            "springback_factor": 0.002
+            "springback_factor": 0.002,
+            "unit_hp": 0.05
         },
         {
             "material": "Wood: MDF",
@@ -8463,7 +8492,8 @@
             "threadMill": 0.8,
             "youngs_modulus_ksi": 1500,
             "work_hardening": false,
-            "springback_factor": 0.002
+            "springback_factor": 0.002,
+            "unit_hp": 0.08
         },
         {
             "material": "Wood: Plywood",
@@ -8482,7 +8512,8 @@
             "threadMill": 0.8,
             "youngs_modulus_ksi": 1500,
             "work_hardening": false,
-            "springback_factor": 0.002
+            "springback_factor": 0.002,
+            "unit_hp": 0.08
         },
         {
             "material": "Zirconium 702 (Commercially Pure)",
@@ -8501,7 +8532,8 @@
             "threadMill": 1.2,
             "youngs_modulus_ksi": 14400,
             "work_hardening": true,
-            "springback_factor": 0.001
+            "springback_factor": 0.001,
+            "unit_hp": 0.8
         },
         {
             "material": "Zirconium 705 (Alloyed)",
@@ -8520,7 +8552,8 @@
             "threadMill": 1.4,
             "youngs_modulus_ksi": 14400,
             "work_hardening": true,
-            "springback_factor": 0.001
+            "springback_factor": 0.001,
+            "unit_hp": 1.0
         },
         {
             "material": "Black Titanium (55% Ti / 45% Zr)",
@@ -8539,7 +8572,8 @@
             "threadMill": 1.5,
             "youngs_modulus_ksi": 15200,
             "work_hardening": true,
-            "springback_factor": 0.001
+            "springback_factor": 0.001,
+            "unit_hp": 1.15
         }
     ],
     "sfm_data": [
@@ -8664,7 +8698,7 @@
         },
         {
             "material": "Aluminum - Cast",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 725,
             "tsc": 1
         },
@@ -8801,7 +8835,7 @@
         },
         {
             "material": "Aluminum - Wrought (6061)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 725,
             "tsc": 1
         },
@@ -8938,7 +8972,7 @@
         },
         {
             "material": "Brass",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 450,
             "tsc": 1
         },
@@ -9063,7 +9097,7 @@
         },
         {
             "material": "Cast Iron - Ductile",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 80,
             "tsc": 1
         },
@@ -9188,7 +9222,7 @@
         },
         {
             "material": "Cast Iron - Gray",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 78,
             "tsc": 1
         },
@@ -9300,7 +9334,7 @@
         },
         {
             "material": "Cobalt Chrome (CoCr ASTM F75)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 23,
             "tsc": 1
         },
@@ -9420,7 +9454,7 @@
         },
         {
             "material": "Composite: Fiberglass/PC Board",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 242,
             "tsc": 1
         },
@@ -9554,7 +9588,7 @@
         },
         {
             "material": "Copper Alloy - Wrought",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 175,
             "tsc": 1
         },
@@ -9676,7 +9710,7 @@
         },
         {
             "material": "Graphite",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 249,
             "tsc": 1
         },
@@ -9805,7 +9839,7 @@
         },
         {
             "material": "High Temp Nickel Alloy",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 50,
             "tsc": 1
         },
@@ -9927,7 +9961,7 @@
         },
         {
             "material": "Magnesium Alloy",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 600,
             "tsc": 1
         },
@@ -10050,7 +10084,7 @@
         },
         {
             "material": "Nickel Alloy",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 23,
             "tsc": 1
         },
@@ -10172,7 +10206,7 @@
         },
         {
             "material": "Plastics: Hard (ABS, Nylon, Foam Bd)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 438,
             "tsc": 1
         },
@@ -10292,7 +10326,7 @@
         },
         {
             "material": "Plastics: Soft (Acetal, HDPE, PEEK)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 802,
             "tsc": 1
         },
@@ -10415,7 +10449,7 @@
         },
         {
             "material": "Stainless - 300 Series (316)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 55,
             "tsc": 1
         },
@@ -10540,7 +10574,7 @@
         },
         {
             "material": "Stainless - 400 Series (420)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 108,
             "tsc": 1
         },
@@ -10665,7 +10699,7 @@
         },
         {
             "material": "Stainless - PH Series (17-4)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 45,
             "tsc": 1
         },
@@ -10790,7 +10824,7 @@
         },
         {
             "material": "Steel - Low Carbon (1020)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 100,
             "tsc": 1
         },
@@ -10915,7 +10949,7 @@
         },
         {
             "material": "Steel - Low Carbon Alloy (8620)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 80,
             "tsc": 1
         },
@@ -11040,7 +11074,7 @@
         },
         {
             "material": "Steel - Medium Carbon (1045)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 78,
             "tsc": 1
         },
@@ -11165,7 +11199,7 @@
         },
         {
             "material": "Steel - Medium Carbon Alloy (4130)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 65,
             "tsc": 1
         },
@@ -11290,7 +11324,7 @@
         },
         {
             "material": "Steel - High Carbon (1090)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 40,
             "tsc": 1
         },
@@ -11415,7 +11449,7 @@
         },
         {
             "material": "Steel - High Carbon Alloy (52100)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 40,
             "tsc": 1
         },
@@ -11540,7 +11574,7 @@
         },
         {
             "material": "Steel - Tool (H13)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 48,
             "tsc": 1
         },
@@ -11665,7 +11699,7 @@
         },
         {
             "material": "Titanium Alloy",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 35,
             "tsc": 1
         },
@@ -11790,7 +11824,7 @@
         },
         {
             "material": "Tungsten",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 40,
             "tsc": 1
         },
@@ -11902,7 +11936,7 @@
         },
         {
             "material": "Wax",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 1685,
             "tsc": 1
         },
@@ -12012,7 +12046,7 @@
         },
         {
             "material": "Wood: Hardwood",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 802,
             "tsc": 1
         },
@@ -12122,7 +12156,7 @@
         },
         {
             "material": "Wood: MDF",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 802,
             "tsc": 1
         },
@@ -12232,7 +12266,7 @@
         },
         {
             "material": "Wood: Plywood",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 802,
             "tsc": 1
         },
@@ -12342,7 +12376,7 @@
         },
         {
             "material": "Wood: Softwood",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 802,
             "tsc": 1
         },
@@ -12465,7 +12499,7 @@
         },
         {
             "material": "Zirconium 702 (Commercially Pure)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 39,
             "tsc": 1
         },
@@ -12590,7 +12624,7 @@
         },
         {
             "material": "Zirconium 705 (Alloyed)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 29,
             "tsc": 1
         },
@@ -12715,7 +12749,7 @@
         },
         {
             "material": "Black Titanium (55% Ti / 45% Zr)",
-            "tool": "Annular Cutter (Rotabroach\u00ae)",
+            "tool": "Annular Cutter (Rotabroach®)",
             "sfm": 24,
             "tsc": 1
         },
@@ -12733,23 +12767,6 @@
         }
     ],
     "ipt_data": [
-        [
-            "Material",
-            "Tool",
-            0.0625,
-            0.125,
-            0.1875,
-            0.25,
-            0.375,
-            0.5,
-            0.75,
-            1,
-            1.5,
-            2,
-            3,
-            4,
-            5
-        ],
         [
             "Aluminum - Cast",
             "HSS Spot Drill",
@@ -23727,7 +23744,7 @@
             "coating": "no"
         },
         {
-            "label": "Annular Cutter (Rotabroach\u00ae)",
+            "label": "Annular Cutter (Rotabroach®)",
             "lathe": "no",
             "mill": "yes",
             "carbide": "no",
