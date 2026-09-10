@@ -540,11 +540,24 @@ class OptimizationEngine:
             doc = cutter_thickness if cutter_thickness > 0.0 else flute_length
             return doc, rec_woc, target_deflection
 
-        if "drill" in geometry.lower() or geometry == "Parabolic":
-            # For drilling, WOC is always 100% of the tool diameter
+        if "drill" in geometry.lower() or geometry == "Parabolic" or "drill" in str(op_low):
             rec_woc = diameter
-            # Recommended single peck depth before full chip evacuation is required: min(flute_length, 3xD)
             rec_doc = min(flute_length, diameter * 3.0)
+            return rec_doc, rec_woc, target_deflection
+
+        if "reamer" in str(geometry).lower() or "ream" in str(op_low):
+            rec_woc = diameter
+            rec_doc = min(flute_length, diameter * 4.0)
+            return rec_doc, rec_woc, target_deflection
+
+        if geometry in ["Thread Mill"] or "thread" in str(op_low):
+            rec_woc = diameter * 0.10
+            rec_doc = min(flute_length, diameter * 1.5)
+            return rec_doc, rec_woc, target_deflection
+
+        if geometry in ["V-Bit", "Engraving"] or "chamfer" in str(op_low) or "engrav" in str(op_low):
+            rec_woc = diameter * 0.15 if geometry == "V-Bit" else diameter * 0.05
+            rec_doc = diameter * 0.15 if geometry == "V-Bit" else diameter * 0.05
             return rec_doc, rec_woc, target_deflection
 
         max_doc = min(diameter * 4.0, flute_length)
@@ -873,8 +886,8 @@ class GWizardPhysics:
     ) -> float:
         adjusted_ipt = base_ipt
 
-        # If tool is a drill, bypass milling adjustments (RCTF, ACTF, adaptive/finishing multipliers)
-        if "drill" in geometry.lower() or geometry == "Parabolic" or "drill" in str(tool_type).lower():
+        # If tool is a drill or hole tool, bypass milling adjustments (RCTF, ACTF, adaptive/finishing multipliers)
+        if "drill" in geometry.lower() or geometry == "Parabolic" or "drill" in str(tool_type).lower() or "annular" in str(tool_type).lower():
             depth_ratio = cut_depth / diameter if diameter > 0.0 else 0.0
             if depth_ratio > 3.0:
                 if geometry == "Parabolic":
@@ -886,6 +899,9 @@ class GWizardPhysics:
                     else:
                         scale = 1.0 - (0.05 * (depth_ratio - 3.0))
                     adjusted_ipt *= max(0.10, scale)
+            return adjusted_ipt
+
+        if "reamer" in str(tool_type).lower() or "ream" in str(geometry).lower() or "ream" in str(operation).lower():
             return adjusted_ipt
 
         op_low = operation.lower()
@@ -948,7 +964,8 @@ class GWizardPhysics:
         feedrate: float,
         geometry: str = "Square",
         flutes: int = 4,
-        aggressiveness: float = 0.5
+        aggressiveness: float = 0.5,
+        tool_type: str = ""
     ) -> Tuple[float, float, float]:
         family_str = str(family_name).lower()
         if any(m in family_str for m in ["steel", "titanium", "nickel", "iron"]):
@@ -972,17 +989,20 @@ class GWizardPhysics:
         aggr_scalar = 0.70 + (aggressiveness * 0.60)
         angle *= aggr_scalar
 
-        if "Drill" in geometry or geometry == "Parabolic":
+        is_hole = any(h in str(geometry).lower() for h in ["drill", "parabolic", "reamer", "tap", "bore"]) or any(h in str(tool_type).lower() for h in ["drill", "reamer", "tap", "bore", "annular"])
+
+        if is_hole:
             angle = 90.0
             ramp_feed = feedrate
-            plunge_feed = feedrate * (0.50 if geometry == "Spot Drill" else 1.0)
+            is_spot = "spot" in str(geometry).lower() or "spot" in str(tool_type).lower() or "center" in str(tool_type).lower()
+            plunge_feed = feedrate * (0.50 if is_spot else 1.0)
         elif geometry in ["Ball", "Radiused", "Lollipop"]:
             angle += 0.50
         elif geometry in ["T-Slot", "Dovetail", "Keyseat", "Woodruff", "Engraving"]:
             angle = 0.0
             ramp_feed = 0.0
 
-        if 0.0 < diameter < 0.125:
+        if not is_hole and 0.0 < diameter < 0.125:
             angle *= max(0.30, diameter / 0.125)
 
         return angle, ramp_feed, plunge_feed

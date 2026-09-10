@@ -70,11 +70,13 @@ def calculate():
         alloy = data.get("alloy", "")
         target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
         
-        # Chatter / Resonance penalty based on stickout length
-        is_drilling = tool in ["Drill", "Tapping", "Reamer"]
-        target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=is_drilling)
+        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore", "annular"]) or any(d in geometry.lower() for d in ["drill", "parabolic"])
+        is_tapping = "tap" in tool.lower() or "tap" in operation.lower()
+
+        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3xD for milling)
+        target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool)
         
-        if tool != "Tapping":
+        if not is_tapping:
             target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         
         # Apply Coating Modifier
@@ -85,16 +87,20 @@ def calculate():
         # 2. Physics Equations
         rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
         
-        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore"]) or any(d in geometry.lower() for d in ["drill", "parabolic"])
         if is_hole_tool:
             cut_width = diameter
             if any(m in operation.lower() for m in ["rough", "adaptive", "trochoidal", "slot", "face", "finish"]):
-                operation = "Drilling"
+                if "tap" in tool.lower():
+                    operation = "Rigid Tapping"
+                elif "ream" in tool.lower():
+                    operation = "Precision Reaming"
+                else:
+                    operation = "Drilling"
 
-        if tool == "Tapping":
+        if "tap" in tool.lower() or "tap" in operation.lower():
             pitch = float(data.get("pitch", 0.05))
-            feedrate = rpm * pitch
-            adjusted_ipt = 0.0
+            feedrate = round(rpm) * pitch
+            adjusted_ipt = pitch
         else:
             adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool)
             feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
@@ -103,7 +109,7 @@ def calculate():
         
         actual_sfm = physics.calc_sfm(rpm, diameter)
         # 3. Ramping Params
-        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool)
         
         if is_hole_tool:
             deflection = 0.0

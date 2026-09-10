@@ -617,47 +617,123 @@
         function updateGeometryDisplay() {
             const geo = document.getElementById('geometry').value;
             const toolType = document.getElementById('tool').value || "";
-            const isDrill = toolType.includes('Drill') || geo.includes('Drill') || geo === 'Parabolic';
+            
+            const isDrill = toolType.includes('Drill') || geo.includes('Drill') || geo === 'Parabolic' || toolType.includes('Annular');
             const isTap = toolType.includes('Tapping');
-            const isHoleTool = isDrill || isTap || toolType.includes('Reamer') || toolType.includes('Bore');
+            const isReamer = toolType.includes('Reamer');
+            const isThreadMill = toolType.includes('Thread Mill') || geo === 'Thread Mill';
+            const isFormTool = geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
+            const isChamferEngrave = geo === 'V-Bit' || geo === 'Engraving';
+            const is3DContour = geo === 'Ball' || geo === 'Radiused' || geo === 'Lollipop';
+            const isTurning = toolType.includes('Turning') || toolType.includes('Parting') || (toolType.includes('Threading') && !isThreadMill);
+            const isHoleTool = isDrill || isTap || isReamer || toolType.includes('Bore');
             
-            let showShank = geo === 'T-Slot' || geo === 'Lollipop' || geo === 'Dovetail' || geo === 'Keyseat';
+            let showShank = isFormTool || geo === 'Lollipop';
             
+            // Pitch group display for Tapping and Thread Milling
+            const pitchGroup = document.getElementById('pitchGroup');
+            if (pitchGroup) {
+                pitchGroup.style.display = (isTap || isThreadMill) ? 'block' : 'none';
+            }
+
             // Dynamically update Strategy / Operation options based on tool class
             const opSelect = document.getElementById('operation');
             if (opSelect) {
+                let targetFamily = 'milling';
+                let targetOptions = [];
+                let defaultVal = 'Roughing';
+
                 if (isDrill) {
-                    const isAlreadyDrill = Array.from(opSelect.options).some(o => o.value === "Drilling");
-                    if (!isAlreadyDrill) {
-                        const savedOp = opSelect.value;
-                        opSelect.innerHTML = `
-                            <option value="Drilling">Standard Drilling (G81)</option>
-                            <option value="Peck Drilling">Deep Hole / Peck Drilling (G83)</option>
-                            <option value="Spot Drilling">Spot / Center Drilling (G82)</option>
-                        `;
-                        opSelect.value = (savedOp === "Spot Drilling" || savedOp === "Peck Drilling") ? savedOp : "Drilling";
-                    }
+                    targetFamily = 'drill';
+                    targetOptions = [
+                        { value: "Drilling", text: "Standard Drilling (G81)" },
+                        { value: "Peck Drilling", text: "Deep Hole / Peck Drilling (G83)" },
+                        { value: "Spot Drilling", text: "Spot / Center Drilling (G82)" }
+                    ];
+                    defaultVal = "Drilling";
+                } else if (isReamer) {
+                    targetFamily = 'reamer';
+                    targetOptions = [
+                        { value: "Precision Reaming", text: "Precision Reaming (G85)" },
+                        { value: "Through-Hole Reaming", text: "Through-Hole Reaming" },
+                        { value: "Blind-Hole Reaming", text: "Blind-Hole Reaming (G86)" }
+                    ];
+                    defaultVal = "Precision Reaming";
                 } else if (isTap) {
-                    const isAlreadyTap = Array.from(opSelect.options).some(o => o.value === "Rigid Tapping");
-                    if (!isAlreadyTap) {
-                        opSelect.innerHTML = `
-                            <option value="Rigid Tapping">Rigid Tapping (G84)</option>
-                            <option value="Tapping">Floating Tap Holder</option>
-                        `;
-                        opSelect.value = "Rigid Tapping";
-                    }
+                    targetFamily = 'tap';
+                    targetOptions = [
+                        { value: "Rigid Tapping", text: "Rigid Tapping (G84)" },
+                        { value: "Tapping", text: "Floating Tap Holder" }
+                    ];
+                    defaultVal = "Rigid Tapping";
+                } else if (isThreadMill) {
+                    targetFamily = 'threadmill';
+                    targetOptions = [
+                        { value: "Thread Milling - ID", text: "Internal Thread Milling (ID)" },
+                        { value: "Thread Milling - OD", text: "External Thread Milling (OD)" },
+                        { value: "Single-Point Threading", text: "Single-Point Threading" }
+                    ];
+                    defaultVal = "Thread Milling - ID";
+                } else if (isFormTool) {
+                    targetFamily = 'form';
+                    targetOptions = [
+                        { value: "Slotting", text: "Slotting / Keyway Grooving" },
+                        { value: "Undercutting", text: "Undercutting / Side Profiling" },
+                        { value: "Finishing", text: "Light Finishing Pass" }
+                    ];
+                    defaultVal = "Slotting";
+                } else if (isChamferEngrave) {
+                    targetFamily = 'chamfer';
+                    targetOptions = [
+                        { value: "Chamfering", text: "Chamfering / Edge Break" },
+                        { value: "V-Carving", text: "3D V-Carving" },
+                        { value: "Engraving", text: "Fine Text Engraving / Scoring" }
+                    ];
+                    defaultVal = geo === 'Engraving' ? "Engraving" : "Chamfering";
+                } else if (isTurning) {
+                    targetFamily = 'turning';
+                    targetOptions = [
+                        { value: "OD Roughing", text: "OD Roughing (Longitudinal)" },
+                        { value: "OD Finishing", text: "OD Finishing" },
+                        { value: "Facing", text: "Facing (Lathe)" },
+                        { value: "Parting", text: "Parting / Grooving" },
+                        { value: "Boring", text: "Boring (ID)" }
+                    ];
+                    defaultVal = "OD Roughing";
+                } else if (is3DContour) {
+                    targetFamily = 'contour';
+                    targetOptions = [
+                        { value: "Adaptive Roughing", text: "3D Adaptive / Trochoidal" },
+                        { value: "Roughing", text: "Standard 3D Roughing" },
+                        { value: "3D Contouring", text: "3D Scallop / Surface Profiling" },
+                        { value: "Finishing", text: "Light Finishing Pass" },
+                        { value: "Slotting", text: "Channel Slotting" }
+                    ];
+                    defaultVal = "Adaptive Roughing";
                 } else {
-                    const isMilling = Array.from(opSelect.options).some(o => o.value === "Roughing");
-                    if (!isMilling) {
-                        opSelect.innerHTML = `
-                            <option value="Roughing">Standard Roughing</option>
-                            <option value="Adaptive Roughing">Adaptive / Trochoidal</option>
-                            <option value="Slotting">Full Slotting</option>
-                            <option value="Facing">Facing</option>
-                            <option value="Finishing">Light Finishing</option>
-                        `;
-                        opSelect.value = "Roughing";
-                    }
+                    targetFamily = 'milling';
+                    targetOptions = [
+                        { value: "Roughing", text: "Standard Roughing" },
+                        { value: "Adaptive Roughing", text: "Adaptive / Trochoidal" },
+                        { value: "Slotting", text: "Full Slotting" },
+                        { value: "Facing", text: "Facing" },
+                        { value: "Finishing", text: "Light Finishing" }
+                    ];
+                    defaultVal = "Roughing";
+                }
+
+                if (opSelect.dataset.family !== targetFamily) {
+                    opSelect.dataset.family = targetFamily;
+                    const savedOp = opSelect.value;
+                    opSelect.innerHTML = "";
+                    targetOptions.forEach(o => {
+                        let opt = document.createElement("option");
+                        opt.value = o.value;
+                        opt.text = o.text;
+                        opSelect.appendChild(opt);
+                    });
+                    const hasSaved = targetOptions.some(o => o.value === savedOp);
+                    opSelect.value = hasSaved ? savedOp : defaultVal;
                 }
             }
 
@@ -683,6 +759,26 @@
                     if (wVal) wVal.value = diaVal;
                     if (wRange) wRange.value = diaVal;
                 }
+            } else if (isFormTool) {
+                if (depthLabel) depthLabel.innerHTML = 'Axial Kerf / Cutter Thickness (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (widthLabel) widthLabel.innerHTML = 'Radial Stepover / Undercut (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (depthGroup) { depthGroup.style.opacity = '1.0'; depthGroup.style.pointerEvents = 'auto'; }
+                if (widthGroup) { widthGroup.style.opacity = '1.0'; widthGroup.style.pointerEvents = 'auto'; }
+            } else if (isChamferEngrave) {
+                if (depthLabel) depthLabel.innerHTML = 'Engrave Depth / Chamfer Size (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (widthLabel) widthLabel.innerHTML = 'Radial Width of Cut (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (depthGroup) { depthGroup.style.opacity = '1.0'; depthGroup.style.pointerEvents = 'auto'; }
+                if (widthGroup) { widthGroup.style.opacity = '1.0'; widthGroup.style.pointerEvents = 'auto'; }
+            } else if (isThreadMill) {
+                if (depthLabel) depthLabel.innerHTML = 'Thread Length / Axial Reach (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (widthLabel) widthLabel.innerHTML = 'Radial Thread Depth (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (depthGroup) { depthGroup.style.opacity = '1.0'; depthGroup.style.pointerEvents = 'auto'; }
+                if (widthGroup) { widthGroup.style.opacity = '1.0'; widthGroup.style.pointerEvents = 'auto'; }
+            } else if (isTurning) {
+                if (depthLabel) depthLabel.innerHTML = 'Radial Depth of Cut (DOC, <span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (widthLabel) widthLabel.innerHTML = 'Workpiece Diameter (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (depthGroup) { depthGroup.style.opacity = '1.0'; depthGroup.style.pointerEvents = 'auto'; }
+                if (widthGroup) { widthGroup.style.opacity = '1.0'; widthGroup.style.pointerEvents = 'auto'; }
             } else {
                 if (depthLabel) depthLabel.innerHTML = 'Axial Depth of Cut (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
                 if (widthLabel) widthLabel.innerHTML = 'Radial Width of Cut (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
@@ -692,10 +788,10 @@
             
             document.getElementById('cornerRadiusGroup').style.display = (geo === 'Radiused' && !isHoleTool) ? 'block' : 'none';
             document.getElementById('shankGroup').style.display = showShank ? 'block' : 'none';
-            document.getElementById('thicknessGroup').style.display = (geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail') ? 'block' : 'none';
+            document.getElementById('thicknessGroup').style.display = isFormTool ? 'block' : 'none';
             document.getElementById('neckGroup').style.display = showShank ? 'block' : 'none';
             
-            if(geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Lollipop') {
+            if(isFormTool || geo === 'Lollipop') {
                 document.getElementById('fluteLengthGroup').style.display = 'none';
             } else {
                 document.getElementById('fluteLengthGroup').style.display = 'block';
