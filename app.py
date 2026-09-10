@@ -120,7 +120,8 @@ def calculate():
             )
         
         tips = physics.generate_advanced_strategies(
-            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection, tool_type=tool, stickout=stickout, geometry=geometry
+            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
+            tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length, operation=operation
         )
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
@@ -134,7 +135,7 @@ def calculate():
             "success": True,
             "rpm": round(rpm),
             "feedrate": round(feedrate, 2),
-            "mrr": round(mrr, 3),
+            "mrr": round(mrr, 6),
             "deflection": round(deflection, 6),
             "sfm": round(actual_sfm, 1),
             "base_ipt": round(base_ipt, 6),

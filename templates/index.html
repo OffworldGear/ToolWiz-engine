@@ -520,9 +520,13 @@
         function setFluteRatio(ratio) {
             let d = parseFloat(document.getElementById('diameter').value);
             if (!isNaN(d) && d > 0) {
-                document.getElementById('fluteLength').value = (d * ratio).toFixed(3);
-                document.getElementById('stickout').value = (d * ratio + (isMetric ? 12.0 : 0.5)).toFixed(3);
-                document.getElementById('stickout_val').value = document.getElementById('stickout').value;
+                let fl = (d * ratio).toFixed(isMetric ? 3 : 4);
+                document.getElementById('fluteLength').value = fl;
+                let st = Math.max(d * ratio * 1.25, d * ratio + (isMetric ? 2.0 : 0.08)).toFixed(isMetric ? 1 : 3);
+                let stRange = document.getElementById('stickout_range');
+                let stVal = document.getElementById('stickout_val');
+                if (stRange) stRange.value = st;
+                if (stVal) stVal.value = st;
                 calculate();
             }
         }
@@ -810,6 +814,18 @@
                 document.getElementById('cutDepth_val').value = rd;
                 document.getElementById('cutWidth_range').value = rw;
                 document.getElementById('cutWidth_val').value = rw;
+
+                // Also tame stickout if sitting at excessive overhang
+                let flNode = document.getElementById('fluteLength');
+                let flVal = parseFloat(flNode ? flNode.value : 0);
+                let stNode = document.getElementById('stickout_val');
+                let stVal = parseFloat(stNode ? stNode.value : 0);
+                if (flVal > 0 && stVal > (flVal * 1.8)) {
+                    let recStick = Math.max(flVal * 1.25, flVal + (isMetric ? 2.0 : 0.08)).toFixed(isMetric ? 1 : 3);
+                    if (stNode) stNode.value = recStick;
+                    let stRange = document.getElementById('stickout_range');
+                    if (stRange) stRange.value = recStick;
+                }
                 calculate();
             }
         }
@@ -842,6 +858,24 @@
             let crInput = document.getElementById('cornerRadius');
             let crVal = parseFloat(crInput.value);
             crInput.value = isMetric ? (crVal * 25.4).toFixed(2) : (crVal / 25.4).toFixed(3);
+            
+            let flInput = document.getElementById('fluteLength');
+            if (flInput) {
+                let flVal = parseFloat(flInput.value);
+                if (!isNaN(flVal)) flInput.value = isMetric ? (flVal * 25.4).toFixed(3) : (flVal / 25.4).toFixed(3);
+            }
+            
+            let ctInput = document.getElementById('cutterThickness');
+            if (ctInput) {
+                let ctVal = parseFloat(ctInput.value);
+                if (!isNaN(ctVal)) ctInput.value = isMetric ? (ctVal * 25.4).toFixed(3) : (ctVal / 25.4).toFixed(3);
+            }
+
+            let roInput = document.getElementById('runout');
+            if (roInput) {
+                let roVal = parseFloat(roInput.value);
+                if (!isNaN(roVal)) roInput.value = isMetric ? (roVal * 25.4).toFixed(4) : (roVal / 25.4).toFixed(4);
+            }
             
             ["cutDepth", "cutWidth", "stickout"].forEach(prefix => {
                 let range = document.getElementById(prefix + "_range");
@@ -953,10 +987,11 @@
                 document.getElementById('stickout_range').value = p_stick;
             }
             
+            let p_runout = parseFloat(document.getElementById('runout')?.value || 0.0002);
             if(isMetric) {
                 p_dia /= 25.4; p_depth /= 25.4; p_width /= 25.4; p_stick /= 25.4;
                 p_shank /= 25.4; p_cr /= 25.4; p_thick /= 25.4; p_flute /= 25.4;
-                p_neck /= 25.4; p_neckLength /= 25.4;
+                p_neck /= 25.4; p_neckLength /= 25.4; p_runout /= 25.4;
             }
 
             const toolType = document.getElementById('tool').value;
@@ -985,7 +1020,7 @@
                 aggressiveness: parseFloat(document.getElementById('aggressiveness').value),
                 maxRpm: parseFloat(document.getElementById('maxRpm').value),
                 maxHp: parseFloat(document.getElementById('maxHp').value),
-                runout: parseFloat(document.getElementById('runout')?.value || 0.0002),
+                runout: p_runout,
                 diameter: p_dia,
                 flutes: document.getElementById('flutes').value,
                 pitch: parseFloat(document.getElementById('pitch')?.value || 0.05),
@@ -1020,7 +1055,27 @@
                     document.getElementById('feedrate').innerText = out_feed.toFixed(1);
                     
                     let out_mrr = isMetric ? res.mrr * 16.387 : res.mrr;
-                    document.getElementById('mrr').innerText = out_mrr.toFixed(isMetric ? 1 : 3);
+                    let mrrDecimals;
+                    if (out_mrr === 0.0) {
+                        mrrDecimals = isMetric ? 1 : 3;
+                    } else if (out_mrr < 0.001) {
+                        mrrDecimals = 5;
+                    } else if (out_mrr < 0.01) {
+                        mrrDecimals = 4;
+                    } else if (out_mrr < 0.1) {
+                        mrrDecimals = 3;
+                    } else if (out_mrr < 1.0) {
+                        mrrDecimals = 2;
+                    } else {
+                        mrrDecimals = isMetric ? 1 : 2;
+                    }
+                    let mrrStr = out_mrr.toFixed(mrrDecimals);
+                    if (isMetric && out_mrr > 0.0 && out_mrr < 0.1) {
+                        let mm3 = (out_mrr * 1000).toFixed(1);
+                        document.getElementById('mrr').innerHTML = `${mrrStr} <span style="font-size:0.85rem; font-weight:normal; opacity:0.8;">(${mm3} mm³/min)</span>`;
+                    } else {
+                        document.getElementById('mrr').innerText = mrrStr;
+                    }
                     
                     let out_def = isMetric ? res.deflection * 25.4 : res.deflection;
                     document.getElementById('deflection').innerText = out_def.toFixed(isMetric ? 4 : 5);

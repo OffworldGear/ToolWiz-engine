@@ -620,7 +620,9 @@ class AdvisoryEngine:
         deflection_inches: float,
         tool_type: str = "end mill",
         stickout: float = 1.5,
-        geometry: str = "Square"
+        geometry: str = "Square",
+        flute_length: float = 1.0,
+        operation: str = "Roughing"
     ) -> List[Dict[str, str]]:
         tips: List[Dict[str, str]] = []
         if rpm <= 0.0 or flutes <= 0 or diameter <= 0.0:
@@ -634,93 +636,122 @@ class AdvisoryEngine:
         mat_lower = material_family.lower() if material_family else ""
         is_highly_elastic = any(m in mat_lower for m in ["plastic", "titanium", "wood", "zirconium"])
 
+        is_drilling = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "annular", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "parabolic"])
+        ld_ratio = stickout / diameter if diameter > 0.0 else 0.0
+        critical_ld = 8.0 if is_drilling else 3.0
+
         mct = CuttingKinematics.get_minimum_chip_thickness(coating, tool_type, diameter)
-        ipt = feedrate / (rpm * flutes)
+        ipt = feedrate / (rpm * flutes) if (rpm > 0 and flutes > 0) else 0.0
         tct = CuttingKinematics.get_true_chip_thickness(ipt, cut_width, diameter)
 
         # 5% tolerance prevents floating point precision artifacts on threshold cuts
-        if tct < (mct * 0.95):
+        if tct < (mct * 0.95) and tct > 0.0:
+            penalty_note = ""
+            if ld_ratio > critical_ld:
+                penalty_note = f" (drastically reduced by the {ld_ratio:.1f}xD stickout chatter penalty)"
             tips.append({
                 "title": "Rubbing & Heat Trap Warning",
                 "message": (
-                    f"Your True Chip Thickness ({tct:.4f}\" / {tct*25.4:.3f} mm) is smaller than the edge "
+                    f"Your True Chip Thickness ({tct:.4f}\" / {tct*25.4:.3f} mm){penalty_note} is smaller than the edge "
                     f"radius of your {coating} tool (~{mct:.4f}\" / {mct*25.4:.3f} mm). The tool will plow and rub "
                     f"rather than shear the metal, causing rapid heat buildup and premature failure. Increase feedrate (IPT) "
-                    f"or switch to a sharper Uncoated/Polished tool."
+                    f"or shorten tool stickout in the collet."
                 ),
                 "type": "critical"
             })
 
-        _, radial_force, _, _ = CuttingMechanics.calc_cutting_forces(
-            diameter, cut_depth, cut_width, feedrate, rpm, flutes, unit_hp
-        )
-        springback_inches = sb_factor * (radial_force / 100.0) * (cut_width / diameter)
-        total_error = deflection_inches + springback_inches
+        # Deflection / springback warnings apply to lateral milling cuts, not balanced axial hole tools
+        if not is_drilling:
+            _, radial_force, _, _ = CuttingMechanics.calc_cutting_forces(
+                diameter, cut_depth, cut_width, feedrate, rpm, flutes, unit_hp
+            )
+            springback_inches = sb_factor * (radial_force / 100.0) * (cut_width / diameter)
+            total_error = deflection_inches + springback_inches
 
-        if total_error > 0.0005:
+            if total_error > 0.0005:
+                tips.append({
+                    "title": "Dimensional Compensation",
+                    "message": (
+                        f"Expect the part to cut +{total_error:.4f}\" ({total_error*25.4:.3f} mm) oversized due to "
+                        f"Tool Deflection ({deflection_inches:.4f}\" / {deflection_inches*25.4:.3f} mm) and Material Springback "
+                        f"({springback_inches:.4f}\" / {springback_inches*25.4:.3f} mm). Apply a Negative Radial Stock-to-Leave in CAM."
+                    ),
+                    "type": "warning"
+                })
+
+            if total_error > 0.0005 and is_work_hardening:
+                if total_error < mct:
+                    tips.append({
+                        "title": "Spring Pass Trap",
+                        "message": (
+                            f"Do NOT use a 'Spring Pass' to clean up the {total_error:.4f}\" ({total_error*25.4:.3f} mm) "
+                            f"deflection. In work-hardening alloys like {material_family}, taking a cut smaller than the Minimum "
+                            f"Chip Thickness ({mct:.4f}\" / {mct*25.4:.3f} mm) will rub and destroy the cutting edge."
+                        ),
+                        "type": "critical"
+                    })
+                else:
+                    tips.append({
+                        "title": "Work-Hardening Cleanup",
+                        "message": (
+                            f"{material_family} is highly prone to work-hardening. Ensure your cleanup pass is at least "
+                            f"{mct:.4f}\" ({mct*25.4:.3f} mm) thick so the cutting edge penetrates past the hardened skin."
+                        ),
+                        "type": "info"
+                    })
+
+            if is_highly_elastic and cut_width < diameter * 0.15:
+                tips.append({
+                    "title": "Conventional Milling for Finishing",
+                    "message": (
+                        f"Because {material_family} has high elastic recovery, Conventional Milling on your final light pass "
+                        f"naturally pulls the cutter into the wall, counteracting springback and giving truer dimensions."
+                    ),
+                    "type": "tip"
+                })
+
+        # Overhang checks: distinguish severe flute/stickout mismatch vs general L/D ratio
+        if flute_length > 0.0 and stickout > (flute_length * 2.0) and ld_ratio > 8.0:
+            rec_st = max(flute_length * 1.25, flute_length + 0.10)
             tips.append({
-                "title": "Dimensional Compensation",
+                "title": "Excessive Stickout Overhang",
                 "message": (
-                    f"Expect the part to cut +{total_error:.4f}\" ({total_error*25.4:.3f} mm) oversized due to "
-                    f"Tool Deflection ({deflection_inches:.4f}\" / {deflection_inches*25.4:.3f} mm) and Material Springback "
-                    f"({springback_inches:.4f}\" / {springback_inches*25.4:.3f} mm). Apply a Negative Radial Stock-to-Leave in CAM."
+                    f"Tool stickout is {ld_ratio:.1f}xD ({stickout:.3f}\" / {stickout*25.4:.1f} mm), which is "
+                    f"{stickout/flute_length:.1f}x longer than the flutes ({flute_length:.3f}\" / {flute_length*25.4:.1f} mm). "
+                    f"This extreme overhang forces severe speed and feed reductions to avoid chatter. Choking the tool up in the collet "
+                    f"(~{rec_st:.3f}\" / {rec_st*25.4:.1f} mm) will eliminate chatter penalties and dramatically boost performance."
                 ),
                 "type": "warning"
             })
-
-        if total_error > 0.0005 and is_work_hardening:
-            if total_error < mct:
-                tips.append({
-                    "title": "Spring Pass Trap",
-                    "message": (
-                        f"Do NOT use a 'Spring Pass' to clean up the {total_error:.4f}\" ({total_error*25.4:.3f} mm) "
-                        f"deflection. In work-hardening alloys like {material_family}, taking a cut smaller than the Minimum "
-                        f"Chip Thickness ({mct:.4f}\" / {mct*25.4:.3f} mm) will rub and destroy the cutting edge."
-                    ),
-                    "type": "critical"
-                })
-            else:
-                tips.append({
-                    "title": "Work-Hardening Cleanup",
-                    "message": (
-                        f"{material_family} is highly prone to work-hardening. Ensure your cleanup pass is at least "
-                        f"{mct:.4f}\" ({mct*25.4:.3f} mm) thick so the cutting edge penetrates past the hardened skin."
-                    ),
-                    "type": "info"
-                })
-
-        if is_highly_elastic and cut_width < diameter * 0.15:
-            tips.append({
-                "title": "Conventional Milling for Finishing",
-                "message": (
-                    f"Because {material_family} has high elastic recovery, Conventional Milling on your final light pass "
-                    f"naturally pulls the cutter into the wall, counteracting springback and giving truer dimensions."
-                ),
-                "type": "tip"
-            })
-
-        is_drilling = any(d in tool_type.lower() for d in ["drill", "tap", "reamer"])
-        ld_ratio = stickout / diameter if diameter > 0.0 else 0.0
-        critical_ld = 8.0 if is_drilling else 3.0
-        if ld_ratio > critical_ld:
+        elif ld_ratio > critical_ld:
             tips.append({
                 "title": "Resonance & Chatter Penalty",
                 "message": (
-                    f"Tool stickout is {ld_ratio:.1f}x diameter. Tools over {critical_ld}xD act like tuning forks, "
-                    f"inducing self-excited chatter. Feeds and speeds have been scaled down to stabilize the cut."
+                    f"Tool stickout is {ld_ratio:.1f}x diameter. For {'drilling' if is_drilling else 'milling'}, overhangs over {critical_ld:.1f}xD "
+                    f"induce self-excited chatter. Feeds and speeds have been scaled down to stabilize the cut."
                 ),
                 "type": "warning"
             })
 
         if diameter < 0.125:
-            tips.append({
-                "title": "Micro-Tool Dynamics",
-                "message": (
-                    "Tools under 1/8\" (3mm) have fragile core webs and reduced flute gullet volume. "
-                    "Ensure high spindle concentricity (<0.0001\" TIR) and avoid aggressive axial ramping."
-                ),
-                "type": "warning"
-            })
+            if is_drilling:
+                tips.append({
+                    "title": "Micro-Drill Dynamics",
+                    "message": (
+                        "Micro-drills (<1/8\" / 3mm) have fragile web cores and reduced flute gullet volume. "
+                        "Ensure high spindle concentricity (<0.0001\" TIR), avoid heavy axial thrust, and use frequent pecks to prevent drill wandering and breakage."
+                    ),
+                    "type": "warning"
+                })
+            else:
+                tips.append({
+                    "title": "Micro-Tool Dynamics",
+                    "message": (
+                        "Tools under 1/8\" (3mm) have fragile core webs and reduced flute gullet volume. "
+                        "Ensure high spindle concentricity (<0.0001\" TIR) and avoid aggressive axial ramping."
+                    ),
+                    "type": "warning"
+                })
 
         if geometry in ["T-Slot", "Dovetail", "Keyseat", "Woodruff"]:
             tips.append({
@@ -734,15 +765,25 @@ class AdvisoryEngine:
 
         if is_drilling or "drill" in geometry.lower() or geometry == "Parabolic":
             depth_ratio = cut_depth / diameter if diameter > 0.0 else 0.0
+            is_peck_cycle = any(p in str(operation).lower() for p in ["peck", "g83"])
             if depth_ratio > 3.0:
-                tips.append({
-                    "title": "Deep Hole Peck Drilling (G83)",
-                    "message": (
-                        f"Hole depth is {depth_ratio:.1f}x diameter. At depths over 3xD, chips cannot evacuate continuously up the flutes. "
-                        "Use a peck drilling cycle (G83) with chip retraction to prevent drill binding and breakage."
-                    ),
-                    "type": "warning"
-                })
+                if not is_peck_cycle:
+                    tips.append({
+                        "title": "Deep Hole Peck Drilling (G83)",
+                        "message": (
+                            f"Hole depth is {depth_ratio:.1f}x diameter. At depths over 3xD, chips cannot evacuate continuously up the flutes. "
+                            "Switch to a peck drilling cycle (G83) with chip retraction to prevent drill binding and breakage."
+                        ),
+                        "type": "warning"
+                    })
+                else:
+                    tips.append({
+                        "title": "Deep Hole Pecking Parameters",
+                        "message": (
+                            f"Deep hole drilling active ({depth_ratio:.1f}xD). Ensure initial peck step (Q) is 0.8-1.0xD and decreases to 0.5xD at depth with full chip retraction to clear flutes."
+                        ),
+                        "type": "info"
+                    })
 
         if not tips:
             tips.append({
@@ -1104,11 +1145,13 @@ class GWizardPhysics:
         deflection_inches: float,
         tool_type: str = "end mill",
         stickout: float = 1.5,
-        geometry: str = "Square"
+        geometry: str = "Square",
+        flute_length: float = 1.0,
+        operation: str = "Roughing"
     ) -> List[Dict[str, str]]:
         return AdvisoryEngine.generate_tips(
             self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes,
-            coating, deflection_inches, tool_type, stickout, geometry
+            coating, deflection_inches, tool_type, stickout, geometry, flute_length, operation
         )
 
     def tool_deflection(
