@@ -128,6 +128,8 @@ def calculate():
             helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
         )
         
+        ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
+
         return jsonify({
             "success": True,
             "rpm": round(rpm),
@@ -137,6 +139,7 @@ def calculate():
             "sfm": round(actual_sfm, 1),
             "base_ipt": round(base_ipt, 6),
             "adj_ipt": round(adjusted_ipt, 6),
+            "ipr": round(ipr, 6),
             "ramp_angle": round(ramp_angle, 1),
             "ramp_feed": round(ramp_feed, 2),
             "plunge_feed": round(plunge_feed, 2),

@@ -266,7 +266,8 @@
                     <div class="glass-panel result-card primary-card">
                         <h3>Feedrate</h3>
                         <div class="result-val"><span id="feedrate">0.0</span> <span class="feed-lbl">IPM</span></div>
-                        <div class="sub-val">Feed / Tooth: <span id="adj_ipt" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipt-lbl">in/tooth</span> <span style="opacity:0.75; font-size:0.75rem;">(Base: <span id="base_ipt">0.0000</span>)</span></div>
+                        <div class="sub-val"><span id="chipload_title">Chip Load</span>: <span id="adj_ipt" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipt-lbl">in/tooth</span> <span style="opacity:0.75; font-size:0.75rem;">(Base: <span id="base_ipt">0.0000</span>)</span></div>
+                        <div class="sub-val" id="ipr_row" style="margin-top:2px;">Feed / Rev: <span id="feed_ipr" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipr-lbl">in/rev</span></div>
                     </div>
 
                     <div class="glass-panel result-card metric-card">
@@ -284,17 +285,17 @@
                     </div>
                     
                     <div class="glass-panel result-card primary-card vertical-card" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-around;">
-                        <div>
-                            <h3>Ramp Angle</h3>
-                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_angle">0</span>°</div>
+                        <div id="col1_wrap">
+                            <h3 id="ramp_col1_title">Ramp Angle</h3>
+                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_angle">0</span><span id="ramp_col1_unit">°</span></div>
                         </div>
-                        <div>
-                            <h3>Ramp Feed</h3>
-                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
+                        <div id="col2_wrap">
+                            <h3 id="ramp_col2_title">Ramp Feed</h3>
+                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_feed">0</span> <span class="feed-lbl" id="ramp_col2_unit" style="font-size: 1rem">IPM</span></div>
                         </div>
-                        <div>
-                            <h3>Plunge Feed</h3>
-                            <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" style="font-size: 1rem">IPM</span></div>
+                        <div id="col3_wrap">
+                            <h3 id="ramp_col3_title">Plunge Feed</h3>
+                            <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" id="ramp_col3_unit" style="font-size: 1rem">IPM</span></div>
                         </div>
                     </div>
 
@@ -824,6 +825,7 @@
             document.querySelectorAll('.mrr-lbl').forEach(e => e.innerText = isMetric ? "cm³/min" : "in³/min");
             document.querySelectorAll('.sfm-lbl').forEach(e => e.innerText = isMetric ? "SMM" : "SFM");
             document.querySelectorAll('.ipt-lbl').forEach(e => e.innerText = isMetric ? "mm/tooth" : "in/tooth");
+            document.querySelectorAll('.ipr-lbl').forEach(e => e.innerText = isMetric ? "mm/rev" : "in/rev");
             
             let diaInput = document.getElementById('diameter');
             let dVal = parseFloat(diaInput.value);
@@ -958,7 +960,8 @@
             }
 
             const toolType = document.getElementById('tool').value;
-            const isTap = toolType === 'Tapping';
+            const geo = document.getElementById('geometry').value;
+            const isTap = toolType.includes('Tapping');
             const pitchGroup = document.getElementById('pitchGroup');
             if (pitchGroup) {
                 pitchGroup.style.display = isTap ? 'block' : 'none';
@@ -1039,12 +1042,58 @@
                     
                     let out_ipt = isMetric ? res.adj_ipt * 25.4 : res.adj_ipt;
                     let out_bipt = isMetric ? res.base_ipt * 25.4 : res.base_ipt;
+                    let p_flutes_num = parseInt(document.getElementById('flutes')?.value) || 2;
+                    let out_ipr = res.ipr ? (isMetric ? res.ipr * 25.4 : res.ipr) : (out_ipt * p_flutes_num);
+                    
                     document.getElementById('adj_ipt').innerText = out_ipt.toFixed(isMetric ? 4 : 5);
                     document.getElementById('base_ipt').innerText = out_bipt.toFixed(isMetric ? 4 : 5);
-                    
-                    document.getElementById('ramp_angle').innerText = res.ramp_angle;
-                    document.getElementById('ramp_feed').innerText = (isMetric ? res.ramp_feed * 25.4 : res.ramp_feed).toFixed(1);
-                    document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+                    if (document.getElementById('feed_ipr')) {
+                        document.getElementById('feed_ipr').innerText = out_ipr.toFixed(isMetric ? 4 : 5);
+                    }
+
+                    const isHoleToolNow = toolType.includes('Drill') || toolType.includes('Tapping') || toolType.includes('Reamer') || toolType.includes('Bore') || toolType.includes('Annular') || geo.includes('Drill') || geo === 'Parabolic';
+                    const isTapNow = toolType.includes('Tapping') || geo === 'Tapping';
+
+                    const chiploadTitle = document.getElementById('chipload_title');
+                    if (chiploadTitle) {
+                        chiploadTitle.innerText = isHoleToolNow ? (isTapNow ? "Thread Pitch" : "Chip Load / Lip") : "Chip Load";
+                    }
+
+                    const col1Title = document.getElementById('ramp_col1_title');
+                    const col1Unit = document.getElementById('ramp_col1_unit');
+                    const col2Title = document.getElementById('ramp_col2_title');
+                    const col2Unit = document.getElementById('ramp_col2_unit');
+                    const col3Title = document.getElementById('ramp_col3_title');
+
+                    if (isHoleToolNow) {
+                        if (col1Title) col1Title.innerText = isTapNow ? "Thread Pitch" : "Chip Load (IPT)";
+                        if (col1Unit) col1Unit.innerText = isMetric ? " mm" : " in";
+                        document.getElementById('ramp_angle').innerText = out_ipt.toFixed(isMetric ? 4 : 5);
+
+                        if (col2Title) col2Title.innerText = "Feed / Rev (IPR)";
+                        if (col2Unit) {
+                            col2Unit.innerText = isMetric ? " mm/rev" : " in/rev";
+                            col2Unit.className = "ipr-lbl";
+                        }
+                        document.getElementById('ramp_feed').innerText = out_ipr.toFixed(isMetric ? 4 : 5);
+
+                        if (col3Title) col3Title.innerText = isTapNow ? "Tapping Feed" : "Plunge Feed";
+                        document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+                    } else {
+                        if (col1Title) col1Title.innerText = "Ramp Angle";
+                        if (col1Unit) col1Unit.innerText = "°";
+                        document.getElementById('ramp_angle').innerText = res.ramp_angle;
+
+                        if (col2Title) col2Title.innerText = "Ramp Feed";
+                        if (col2Unit) {
+                            col2Unit.innerText = isMetric ? " mm/min" : " IPM";
+                            col2Unit.className = "feed-lbl";
+                        }
+                        document.getElementById('ramp_feed').innerText = (isMetric ? res.ramp_feed * 25.4 : res.ramp_feed).toFixed(1);
+
+                        if (col3Title) col3Title.innerText = "Plunge Feed";
+                        document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+                    }
 
                     const defCard = document.getElementById('deflectionCard');
                     let defRatio = res.deflection / limit_val;

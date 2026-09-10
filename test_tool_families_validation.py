@@ -29,6 +29,9 @@ class TestToolFamiliesValidation(unittest.TestCase):
         self.assertEqual(res['ramp_angle'], 90.0)
         self.assertGreater(res['rpm'], 0)
         self.assertGreater(res['feedrate'], 0)
+        self.assertGreater(res['adj_ipt'], 0)
+        self.assertGreater(res['ipr'], 0)
+        self.assertAlmostEqual(res['ipr'], res['adj_ipt'] * 2, places=4)
 
     def test_reaming_kinematics(self):
         # Reamer: No radial chip thinning multiplication, lateral deflection zero
