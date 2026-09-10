@@ -69,7 +69,7 @@ for b in BENCHMARKS:
     if "T-Slot" in b["name"]:
         geometry = "T-Slot"
         
-    b_sfm = physics.get_base_sfm(family, tool, geometry=geometry)
+    b_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=dia)
     b_ipt = physics.get_base_ipt(family, tool, dia, geometry=geometry)
     
     t_sfm, t_ipt = physics.apply_aggressiveness(b_sfm, b_ipt, aggr)

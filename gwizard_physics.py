@@ -1,4 +1,4 @@
-﻿"""
+"""
 ToolWiz Cutting Physics & Machining Advisory Engine
 ===================================================
 A high-fidelity computational cutting mechanics and tool deflection engine
@@ -755,8 +755,11 @@ class GWizardPhysics:
         if geometry == "Indexable Mill":
             sfm *= 1.25
 
-        if diameter is not None and diameter < 0.125:
-            scale = max(0.25, (diameter / 0.125) ** 0.85)
+        # Small & Micro-Tool thermal dissipation and chip evacuation scaling:
+        # Below 1/4" (0.250"), thermal conduction down the slender carbide shank drops,
+        # increasing chip welding risk in sticky materials like aluminum.
+        if diameter is not None and 0.0 < diameter < 0.250:
+            scale = max(0.20, (diameter / 0.250) ** 0.50)
             sfm *= scale
 
         return sfm
