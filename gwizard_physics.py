@@ -526,8 +526,19 @@ class OptimizationEngine:
         else:
             target_woc = diameter * 0.50
 
-        if geometry in ["T-Slot", "Dovetail", "Keyseat"]:
-            return cutter_thickness, min(diameter * 0.35, target_woc), target_deflection
+        if geometry in ["T-Slot", "Dovetail", "Keyseat", "Woodruff"]:
+            physical_radial_reach = (diameter - neck_diameter) / 2.0 if (neck_diameter is not None and 0.0 < neck_diameter < diameter) else diameter * 0.25
+            mat_fam_low = str(material_family).lower() if material_family else ""
+            is_non_ferrous = any(m in mat_fam_low for m in ["aluminum", "brass", "copper", "magnesium", "plastic", "wood"])
+            
+            # Harvey Tool standard: 0.12xD for non-ferrous, 0.08xD for ferrous/stainless
+            standard_ratio = 0.12 if is_non_ferrous else 0.08
+            rec_woc = min(physical_radial_reach, diameter * standard_ratio)
+            if "finish" in op_low:
+                rec_woc = min(rec_woc, diameter * 0.04)
+
+            doc = cutter_thickness if cutter_thickness > 0.0 else flute_length
+            return doc, rec_woc, target_deflection
 
         max_doc = min(diameter * 4.0, flute_length)
         min_doc = max(diameter * 0.02, 0.0005)
@@ -691,12 +702,12 @@ class AdvisoryEngine:
                 "type": "warning"
             })
 
-        if geometry in ["T-Slot", "Dovetail", "Keyseat"]:
+        if geometry in ["T-Slot", "Dovetail", "Keyseat", "Woodruff"]:
             tips.append({
                 "title": "Form Tool Constraints",
                 "message": (
-                    f"Because {geometry} cutters must take 100% radial engagement by design, chip evacuation is critical. "
-                    "Speeds and chiploads have been constrained to prevent chip packing."
+                    f"Because {geometry} cutters engage the full kerf width axially and have narrow neck clearance, chip evacuation is critical. "
+                    "Speeds and chiploads have been constrained to prevent chip packing and neck deflection."
                 ),
                 "type": "warning"
             })
@@ -746,7 +757,7 @@ class GWizardPhysics:
                 sfm = float(entry["sfm"])
                 break
 
-        if geometry in ["T-Slot", "Thread Mill", "Lollipop", "Drill", "Spot Drill"]:
+        if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop", "Drill", "Spot Drill"]:
             sfm *= 0.50
 
         if geometry == "Rougher":
@@ -791,7 +802,7 @@ class GWizardPhysics:
                             break
                 break
 
-        if geometry in ["T-Slot", "Thread Mill", "Lollipop", "Drill", "Spot Drill", "Parabolic"]:
+        if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop", "Drill", "Spot Drill", "Parabolic"]:
             ipt *= 0.50
 
         if geometry == "Rougher":
