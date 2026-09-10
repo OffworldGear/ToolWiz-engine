@@ -270,6 +270,124 @@ class CuttingKinematics:
 
         return mct
 
+    # Standard drill sizes: (diameter_inches, drill_label)
+    _STANDARD_DRILLS: List[Tuple[float, str]] = [
+        # Number drills (#80 to #1)
+        (0.0135, "#80"), (0.0145, "#79"), (0.0160, "#78"), (0.0180, "#77"), (0.0200, "#76"),
+        (0.0210, "#75"), (0.0225, "#74"), (0.0240, "#73"), (0.0250, "#72"), (0.0260, "#71"),
+        (0.0280, "#70"), (0.0292, "#69"), (0.0310, "#68"), (0.0320, "#67"), (0.0330, "#66"),
+        (0.0350, "#65"), (0.0360, "#64"), (0.0370, "#63"), (0.0380, "#62"), (0.0390, "#61"),
+        (0.0400, "#60"), (0.0410, "#59"), (0.0420, "#58"), (0.0430, "#57"), (0.0465, "#56"),
+        (0.0520, "#55"), (0.0550, "#54"), (0.0595, "#53"), (0.0635, "#52"), (0.0670, "#51"),
+        (0.0700, "#50"), (0.0730, "#49"), (0.0760, "#48"), (0.0785, "#47"), (0.0810, "#46"),
+        (0.0820, "#45"), (0.0860, "#44"), (0.0890, "#43"), (0.0935, "#42"), (0.0960, "#41"),
+        (0.0980, "#40"), (0.0995, "#39"), (0.1015, "#38"), (0.1040, "#37"), (0.1065, "#36"),
+        (0.1100, "#35"), (0.1110, "#34"), (0.1130, "#33"), (0.1160, "#32"), (0.1200, "#31"),
+        (0.1285, "#30"), (0.1360, "#29"), (0.1405, "#28"), (0.1440, "#27"), (0.1470, "#26"),
+        (0.1495, "#25"), (0.1520, "#24"), (0.1540, "#23"), (0.1570, "#22"), (0.1590, "#21"),
+        (0.1610, "#20"), (0.1660, "#19"), (0.1695, "#18"), (0.1730, "#17"), (0.1770, "#16"),
+        (0.1800, "#15"), (0.1820, "#14"), (0.1850, "#13"), (0.1890, "#12"), (0.1910, "#11"),
+        (0.1935, "#10"), (0.1960, "#9"), (0.1990, "#8"), (0.2010, "#7"), (0.2040, "#6"),
+        (0.2055, "#5"), (0.2090, "#4"), (0.2130, "#3"), (0.2210, "#2"), (0.2280, "#1"),
+        # Letter drills (A to Z)
+        (0.2340, "Letter A"), (0.2380, "Letter B"), (0.2420, "Letter C"), (0.2460, "Letter D"), (0.2500, "Letter E"),
+        (0.2570, "Letter F"), (0.2610, "Letter G"), (0.2660, "Letter H"), (0.2720, "Letter I"), (0.2770, "Letter J"),
+        (0.2810, "Letter K"), (0.2900, "Letter L"), (0.2950, "Letter M"), (0.3020, "Letter N"), (0.3160, "Letter O"),
+        (0.3230, "Letter P"), (0.3320, "Letter Q"), (0.3390, "Letter R"), (0.3480, "Letter S"), (0.3580, "Letter T"),
+        (0.3680, "Letter U"), (0.3770, "Letter V"), (0.3860, "Letter W"), (0.3970, "Letter X"), (0.4040, "Letter Y"), (0.4130, "Letter Z")
+    ]
+    # Add Fractional drills (1/64" to 1")
+    for _i in range(1, 65):
+        _gcd = math.gcd(_i, 64)
+        _num = _i // _gcd
+        _den = 64 // _gcd
+        _label = f"{_num}/{_den}\"" if _den > 1 else f"{_num}\""
+        _STANDARD_DRILLS.append((_i / 64.0, _label))
+    # Add Metric drills (0.35mm to 25.0mm in 0.05mm steps)
+    for _m in range(7, 501):
+        _mm = _m * 0.05
+        _STANDARD_DRILLS.append((_mm / 25.4, f"{_mm:.2f} mm".rstrip('0').rstrip('.')))
+    _STANDARD_DRILLS.sort(key=lambda x: x[0])
+
+    @classmethod
+    def calc_tap_drill(
+        cls,
+        major_dia: float,
+        pitch: float,
+        tap_type: str = "form",
+        material_family: str = "Steel",
+        is_metric: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Calculates recommended Tap Drill pilot hole size and resulting thread percentage
+        based on ANSI/ISO cutting and cold-forming tap mechanics.
+        """
+        if major_dia <= 0.0 or pitch <= 0.0:
+            return {
+                "theoretical_in": 0.0, "theoretical_mm": 0.0,
+                "recommended_in": 0.0, "recommended_mm": 0.0,
+                "drill_name": "N/A", "thread_percent": 0.0, "target_percent": 0.0, "is_form": False
+            }
+
+        is_form = tap_type.lower() == "form"
+        is_tough = any(m in material_family.lower() for m in ["stainless", "titanium", "nickel", "high temp", "tool", "die"])
+        
+        # Target thread height engagement:
+        # In tough/work-hardening materials, form taps target 65% (avoiding tap snapping),
+        # while cutting taps target 70-75%.
+        if is_form:
+            target_pct = 65.0 if is_tough else 72.0
+        else:
+            target_pct = 70.0 if is_tough else 75.0
+
+        d_mm = major_dia * 25.4
+        p_mm = pitch * 25.4
+
+        if is_form:
+            # OSG / ANSI Cold Forming Tap: Hole(mm) = MajorDia(mm) - (Thread% * Pitch(mm) / 147.06)
+            theo_hole_mm = d_mm - (target_pct * p_mm / 147.06)
+            theo_hole_in = theo_hole_mm / 25.4
+        else:
+            # Standard 60 deg Cutting Tap: Hole(mm) = MajorDia(mm) - (Thread% * Pitch(mm) * 1.082532 / 100)
+            theo_hole_mm = d_mm - (target_pct * p_mm * 1.082532 / 100.0)
+            theo_hole_in = theo_hole_mm / 25.4
+
+        # Match nearest standard drill
+        best_diff = 1e9
+        best_drill = cls._STANDARD_DRILLS[0]
+        for d_in, name in cls._STANDARD_DRILLS:
+            diff = abs(d_in - theo_hole_in)
+            # Prioritize matching unit system if within 2% margin
+            if is_metric and "mm" in name and diff < best_diff * 1.05:
+                best_diff = diff
+                best_drill = (d_in, name)
+            elif not is_metric and "mm" not in name and diff < best_diff * 1.05:
+                best_diff = diff
+                best_drill = (d_in, name)
+            elif diff < best_diff:
+                best_diff = diff
+                best_drill = (d_in, name)
+
+        rec_hole_in = best_drill[0]
+        rec_hole_mm = rec_hole_in * 25.4
+
+        # Compute resulting actual thread percentage with chosen drill
+        if is_form:
+            actual_pct = ((d_mm - rec_hole_mm) * 147.06) / p_mm if p_mm > 0 else target_pct
+        else:
+            actual_pct = ((d_mm - rec_hole_mm) / (p_mm * 1.082532)) * 100.0 if p_mm > 0 else target_pct
+
+        return {
+            "theoretical_in": theo_hole_in,
+            "theoretical_mm": theo_hole_mm,
+            "recommended_in": rec_hole_in,
+            "recommended_mm": rec_hole_mm,
+            "drill_name": best_drill[1],
+            "thread_percent": round(max(0.0, min(100.0, actual_pct)), 1),
+            "target_percent": target_pct,
+            "is_form": is_form
+        }
+
 
 # =============================================================================
 # 3. CUTTING MECHANICS & FORCES (KIENZLE MODEL & SIZE EFFECT)
@@ -622,7 +740,8 @@ class AdvisoryEngine:
         stickout: float = 1.5,
         geometry: str = "Square",
         flute_length: float = 1.0,
-        operation: str = "Roughing"
+        operation: str = "Roughing",
+        tap_type: str = "form"
     ) -> List[Dict[str, str]]:
         tips: List[Dict[str, str]] = []
         if rpm <= 0.0 or flutes <= 0 or diameter <= 0.0:
@@ -794,6 +913,38 @@ class AdvisoryEngine:
                     "type": "info"
                 })
 
+        is_tap_tool = "tap" in tool_type.lower() or "tap" in str(operation).lower()
+        if is_tap_tool:
+            if str(tap_type).lower() == "form":
+                is_brittle = any(b in material_family.lower() for b in ["cast iron", "graphite"])
+                if is_brittle:
+                    tips.append({
+                        "title": "Material Incompatible with Form Tapping",
+                        "message": (
+                            f"{material_family} lacks sufficient ductility (minimum 8-10% elongation required). "
+                            "Cold-forming in brittle materials will crumble the thread or fracture the tap. Switch to a cutting tap."
+                        ),
+                        "type": "critical"
+                    })
+                else:
+                    tips.append({
+                        "title": "Form Tapping High-Pressure Lubrication",
+                        "message": (
+                            "Cold form tapping relies on continuous plastic metal displacement without producing chips. "
+                            "Use high-lubricity extreme-pressure (EP) tapping fluid or rich soluble coolant (10-12% concentration) "
+                            "to prevent galling and tap seizure in tough materials like stainless steel."
+                        ),
+                        "type": "info"
+                    })
+                    tips.append({
+                        "title": "Form Tap Pilot Hole Warning",
+                        "message": (
+                            "Form taps require significantly larger pilot holes than cutting taps (~65-70% thread target). "
+                            "Never drill a standard cut-tap hole for a form tap, or the displaced metal will jam and snap the tap."
+                        ),
+                        "type": "warning"
+                    })
+
         if not tips:
             tips.append({
                 "title": "Optimal Parameters",
@@ -831,12 +982,33 @@ class GWizardPhysics:
 
         self.specific_alloys: List[Dict[str, Any]] = self.db.get("specific_alloys", [])
 
-    def get_base_sfm(self, material: str, tool_type: str, geometry: str = "Square", diameter: Optional[float] = None) -> float:
-        """Lookup base Surface Speed (SFM) from database with geometry/size modifiers."""
+    def get_base_sfm(
+        self,
+        material: str,
+        tool_type: str,
+        geometry: str = "Square",
+        diameter: Optional[float] = None,
+        tap_type: str = "form",
+        is_carbide: bool = False
+    ) -> float:
+        """Lookup base Surface Speed (SFM) from database with geometry/size/tap modifiers."""
         sfm = 500.0
         for entry in self.sfm_data:
             if entry["material"] == material and entry["tool"] == tool_type:
                 sfm = float(entry["sfm"])
+                if tool_type == "Tapping":
+                    if tap_type == "form":
+                        mult_key = "CarbideForm" if is_carbide else "HSSForm"
+                        mult = float(entry.get(mult_key, 0.0) or 0.0)
+                        if mult <= 0.0:
+                            mult = 2.0  # Modern high-performance form taps (OSG NRT) in tough alloys
+                        sfm *= mult
+                    elif tap_type == "spiral_point":
+                        sfm *= 1.15  # Through-hole gun tap
+                    elif tap_type == "straight_flute":
+                        sfm *= 0.85  # General hand tap
+                    elif tap_type == "spiral_flute":
+                        sfm *= 1.00  # Standard blind-hole cut tap
                 break
 
         if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop"]:
@@ -853,11 +1025,24 @@ class GWizardPhysics:
         # Small & Micro-Tool thermal dissipation and chip evacuation scaling:
         # Below 1/4" (0.250"), thermal conduction down the slender carbide shank drops,
         # increasing chip welding risk in sticky materials like aluminum.
+        # Bypass for Tapping because taps operate at low rotational velocity without chip welding.
         if diameter is not None and 0.0 < diameter < 0.250:
-            scale = max(0.20, (diameter / 0.250) ** 0.50)
-            sfm *= scale
+            if tool_type != "Tapping":
+                scale = max(0.20, (diameter / 0.250) ** 0.50)
+                sfm *= scale
 
         return sfm
+
+    def calc_tap_drill(
+        self,
+        major_dia: float,
+        pitch: float,
+        tap_type: str = "form",
+        material_family: str = "Steel",
+        is_metric: bool = False
+    ) -> Dict[str, Any]:
+        """Delegate tap drill calculations to CuttingKinematics."""
+        return CuttingKinematics.calc_tap_drill(major_dia, pitch, tap_type, material_family, is_metric)
 
     def get_base_ipt(self, material: str, tool_type: str, diameter: float, geometry: str = "Square", runout: float = 0.0002) -> float:
         """Lookup chipload (Inch Per Tooth) from database with interpolation and geometry scaling."""
@@ -1156,11 +1341,13 @@ class GWizardPhysics:
         stickout: float = 1.5,
         geometry: str = "Square",
         flute_length: float = 1.0,
-        operation: str = "Roughing"
+        operation: str = "Roughing",
+        tap_type: str = "form"
     ) -> List[Dict[str, str]]:
         return AdvisoryEngine.generate_tips(
             self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes,
-            coating, deflection_inches, tool_type, stickout, geometry, flute_length, operation
+            coating, deflection_inches, tool_type, stickout, geometry, flute_length, operation,
+            tap_type=tap_type
         )
 
     def tool_deflection(

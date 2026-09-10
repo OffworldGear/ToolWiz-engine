@@ -188,5 +188,62 @@ class TestToolFamiliesValidation(unittest.TestCase):
         ipr_mm = res['ipr'] * 25.4
         self.assertAlmostEqual(ipr_mm, 0.0202, delta=0.005)
 
+    def test_osg_m16_form_tap_and_cut_tap(self):
+        # OSG M1.6x0.35 D3 2.5P NRT TiCN Form Tap vs Cut Tap in 17-4 PH Stainless
+        d_in = 1.6 / 25.4
+        pitch_in = 0.35 / 25.4
+
+        # 1. Form Tap Test
+        res_form = self.client.post('/api/calculate', json={
+            'family': 'Stainless - PH Series (17-4)',
+            'alloy': '17-4 PH H1150-M',
+            'tool': 'Tapping',
+            'diameter': d_in,
+            'pitch': pitch_in,
+            'operation': 'Rigid Tapping',
+            'geometry': 'Tapping',
+            'flutes': 2,
+            'is_carbide': False,
+            'coating': 'TiCN',
+            'tapType': 'form',
+            'isMetric': True,
+            'stickout': 0.5,
+            'aggressiveness': 50.0
+        }).get_json()
+        self.assertTrue(res_form['success'])
+        self.assertIn('tap_drill', res_form)
+        self.assertEqual(res_form['tap_drill']['drill_name'], '1.45 mm')
+        self.assertAlmostEqual(res_form['tap_drill']['thread_percent'], 63.0, delta=2.0)
+        self.assertGreaterEqual(res_form['rpm'], 900)
+        self.assertLessEqual(res_form['rpm'], 1600)
+        expected_form_feed = round(res_form['rpm'] * pitch_in, 2)
+        self.assertEqual(res_form['feedrate'], expected_form_feed)
+
+        # 2. Cut Tap Test
+        res_cut = self.client.post('/api/calculate', json={
+            'family': 'Stainless - PH Series (17-4)',
+            'alloy': '17-4 PH H1150-M',
+            'tool': 'Tapping',
+            'diameter': d_in,
+            'pitch': pitch_in,
+            'operation': 'Rigid Tapping',
+            'geometry': 'Tapping',
+            'flutes': 2,
+            'is_carbide': False,
+            'coating': 'TiCN',
+            'tapType': 'spiral_flute',
+            'isMetric': True,
+            'stickout': 0.5,
+            'aggressiveness': 50.0
+        }).get_json()
+        self.assertTrue(res_cut['success'])
+        self.assertIn('tap_drill', res_cut)
+        # Cut tap should use a much smaller drill (~1.25mm - 1.32mm, #55)
+        self.assertIn(res_cut['tap_drill']['drill_name'], ['#55', '1.25 mm', '1.3 mm', '1.30 mm'])
+        # Cut tap speed is ~half the form tap speed
+        self.assertLess(res_cut['rpm'], res_form['rpm'])
+        self.assertGreaterEqual(res_cut['rpm'], 450)
+        self.assertLessEqual(res_cut['rpm'], 800)
+
 if __name__ == '__main__':
     unittest.main()

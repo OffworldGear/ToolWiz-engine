@@ -57,13 +57,18 @@ def calculate():
         max_rpm = float(data.get("maxRpm", 16000))
         max_hp = float(data.get("maxHp", 10.0))
         runout = float(data.get("runout", 0.0002))
+        tap_type = data.get("tapType", "form")
+        is_metric = bool(data.get("isMetric", False))
         
         # Determine sizes
         shank_size = float(data.get("shankDiameter", diameter))
         neck_diameter = float(data.get("neckDiameter", shank_size))
         
         # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
+        target_sfm = physics.get_base_sfm(
+            family, tool, geometry=geometry, diameter=diameter,
+            tap_type=tap_type, is_carbide=is_carbide
+        )
         base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
         
         # Alloy-specific hardness adjustment via exponential BHN curve
@@ -97,10 +102,18 @@ def calculate():
                 else:
                     operation = "Drilling"
 
+        tap_drill_info = None
         if "tap" in tool.lower() or "tap" in operation.lower():
             pitch = float(data.get("pitch", 0.05))
             feedrate = round(rpm) * pitch
             adjusted_ipt = pitch
+            tap_drill_info = physics.calc_tap_drill(
+                major_dia=diameter,
+                pitch=pitch,
+                tap_type=tap_type,
+                material_family=family,
+                is_metric=is_metric
+            )
         else:
             adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool)
             feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
@@ -121,7 +134,8 @@ def calculate():
         
         tips = physics.generate_advanced_strategies(
             family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
-            tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length, operation=operation
+            tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length,
+            operation=operation, tap_type=tap_type
         )
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
@@ -131,7 +145,7 @@ def calculate():
         
         ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
 
-        return jsonify({
+        resp = {
             "success": True,
             "rpm": round(rpm),
             "feedrate": round(feedrate, 2),
@@ -148,7 +162,11 @@ def calculate():
             "rec_woc": round(rec_woc, 4),
             "rec_limit": round(diameter * 0.002, 5), # Return the absolute physical limit for the UI bar
             "tips": tips
-        })
+        }
+        if tap_drill_info:
+            resp["tap_drill"] = tap_drill_info
+            resp["tap_type"] = tap_type
+        return jsonify(resp)
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
