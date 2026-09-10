@@ -85,12 +85,18 @@ def calculate():
         # 2. Physics Equations
         rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
         
+        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore"]) or any(d in geometry.lower() for d in ["drill", "parabolic"])
+        if is_hole_tool:
+            cut_width = diameter
+            if any(m in operation.lower() for m in ["rough", "adaptive", "trochoidal", "slot", "face", "finish"]):
+                operation = "Drilling"
+
         if tool == "Tapping":
             pitch = float(data.get("pitch", 0.05))
             feedrate = rpm * pitch
             adjusted_ipt = 0.0
         else:
-            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry)
+            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool)
             feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
             
         mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=geometry, diameter=diameter)
@@ -99,10 +105,13 @@ def calculate():
         # 3. Ramping Params
         ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
         
-        deflection = physics.tool_deflection(
-            diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
-        )
+        if is_hole_tool:
+            deflection = 0.0
+        else:
+            deflection = physics.tool_deflection(
+                diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
+                helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
+            )
         
         tips = physics.generate_advanced_strategies(
             family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection, tool_type=tool, stickout=stickout, geometry=geometry

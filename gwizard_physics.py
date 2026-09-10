@@ -540,6 +540,13 @@ class OptimizationEngine:
             doc = cutter_thickness if cutter_thickness > 0.0 else flute_length
             return doc, rec_woc, target_deflection
 
+        if "drill" in geometry.lower() or geometry == "Parabolic":
+            # For drilling, WOC is always 100% of the tool diameter
+            rec_woc = diameter
+            # Recommended single peck depth before full chip evacuation is required: min(flute_length, 3xD)
+            rec_doc = min(flute_length, diameter * 3.0)
+            return rec_doc, rec_woc, target_deflection
+
         max_doc = min(diameter * 4.0, flute_length)
         min_doc = max(diameter * 0.02, 0.0005)
         step = max(diameter * 0.02, 0.0005)
@@ -712,6 +719,18 @@ class AdvisoryEngine:
                 "type": "warning"
             })
 
+        if is_drilling or "drill" in geometry.lower() or geometry == "Parabolic":
+            depth_ratio = cut_depth / diameter if diameter > 0.0 else 0.0
+            if depth_ratio > 3.0:
+                tips.append({
+                    "title": "Deep Hole Peck Drilling (G83)",
+                    "message": (
+                        f"Hole depth is {depth_ratio:.1f}x diameter. At depths over 3xD, chips cannot evacuate continuously up the flutes. "
+                        "Use a peck drilling cycle (G83) with chip retraction to prevent drill binding and breakage."
+                    ),
+                    "type": "warning"
+                })
+
         if not tips:
             tips.append({
                 "title": "Optimal Parameters",
@@ -757,7 +776,9 @@ class GWizardPhysics:
                 sfm = float(entry["sfm"])
                 break
 
-        if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop", "Drill", "Spot Drill"]:
+        if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop"]:
+            sfm *= 0.50
+        elif geometry in ["Drill", "Spot Drill"] and "drill" not in str(tool_type).lower():
             sfm *= 0.50
 
         if geometry == "Rougher":
@@ -802,7 +823,9 @@ class GWizardPhysics:
                             break
                 break
 
-        if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop", "Drill", "Spot Drill", "Parabolic"]:
+        if geometry in ["T-Slot", "Keyseat", "Woodruff", "Thread Mill", "Lollipop"]:
+            ipt *= 0.50
+        elif geometry in ["Drill", "Spot Drill", "Parabolic"] and "drill" not in str(tool_type).lower():
             ipt *= 0.50
 
         if geometry == "Rougher":
@@ -850,6 +873,21 @@ class GWizardPhysics:
     ) -> float:
         adjusted_ipt = base_ipt
 
+        # If tool is a drill, bypass milling adjustments (RCTF, ACTF, adaptive/finishing multipliers)
+        if "drill" in geometry.lower() or geometry == "Parabolic" or "drill" in str(tool_type).lower():
+            depth_ratio = cut_depth / diameter if diameter > 0.0 else 0.0
+            if depth_ratio > 3.0:
+                if geometry == "Parabolic":
+                    if depth_ratio >= 10.0:
+                        adjusted_ipt *= 0.90
+                else:
+                    if depth_ratio >= 7.0:
+                        scale = 0.80 - (0.0875 * (depth_ratio - 7.0))
+                    else:
+                        scale = 1.0 - (0.05 * (depth_ratio - 3.0))
+                    adjusted_ipt *= max(0.10, scale)
+            return adjusted_ipt
+
         op_low = operation.lower()
         if "finish" in op_low:
             adjusted_ipt *= 0.60
@@ -864,19 +902,6 @@ class GWizardPhysics:
 
         if "adaptive" in op_low or "trochoidal" in op_low:
             adjusted_ipt *= 1.30
-
-        if "drill" in geometry.lower() or geometry == "Parabolic":
-            depth_ratio = cut_depth / diameter if diameter > 0.0 else 0.0
-            if depth_ratio > 3.0:
-                if geometry == "Parabolic":
-                    if depth_ratio >= 10.0:
-                        adjusted_ipt *= 0.90
-                else:
-                    if depth_ratio >= 7.0:
-                        scale = 0.80 - (0.0875 * (depth_ratio - 7.0))
-                    else:
-                        scale = 1.0 - (0.05 * (depth_ratio - 3.0))
-                    adjusted_ipt *= max(0.10, scale)
 
         return adjusted_ipt
 

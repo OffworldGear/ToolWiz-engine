@@ -617,17 +617,78 @@
         function updateGeometryDisplay() {
             const geo = document.getElementById('geometry').value;
             const toolType = document.getElementById('tool').value || "";
-            const isHoleTool = toolType.includes('Drill') || toolType.includes('Tapping') || toolType.includes('Reamer') || toolType.includes('Bore') || geo.includes('Drill');
+            const isDrill = toolType.includes('Drill') || geo.includes('Drill') || geo === 'Parabolic';
+            const isTap = toolType.includes('Tapping');
+            const isHoleTool = isDrill || isTap || toolType.includes('Reamer') || toolType.includes('Bore');
             
             let showShank = geo === 'T-Slot' || geo === 'Lollipop' || geo === 'Dovetail' || geo === 'Keyseat';
             
-            // Milling parameters
-            const opacity = isHoleTool ? '0.3' : '1.0';
-            const ptrEvents = isHoleTool ? 'none' : 'auto';
-            document.getElementById('cutDepthGroup').style.opacity = opacity;
-            document.getElementById('cutDepthGroup').style.pointerEvents = ptrEvents;
-            document.getElementById('cutWidthGroup').style.opacity = opacity;
-            document.getElementById('cutWidthGroup').style.pointerEvents = ptrEvents;
+            // Dynamically update Strategy / Operation options based on tool class
+            const opSelect = document.getElementById('operation');
+            if (opSelect) {
+                if (isDrill) {
+                    const isAlreadyDrill = Array.from(opSelect.options).some(o => o.value === "Drilling");
+                    if (!isAlreadyDrill) {
+                        const savedOp = opSelect.value;
+                        opSelect.innerHTML = `
+                            <option value="Drilling">Standard Drilling (G81)</option>
+                            <option value="Peck Drilling">Deep Hole / Peck Drilling (G83)</option>
+                            <option value="Spot Drilling">Spot / Center Drilling (G82)</option>
+                        `;
+                        opSelect.value = (savedOp === "Spot Drilling" || savedOp === "Peck Drilling") ? savedOp : "Drilling";
+                    }
+                } else if (isTap) {
+                    const isAlreadyTap = Array.from(opSelect.options).some(o => o.value === "Rigid Tapping");
+                    if (!isAlreadyTap) {
+                        opSelect.innerHTML = `
+                            <option value="Rigid Tapping">Rigid Tapping (G84)</option>
+                            <option value="Tapping">Floating Tap Holder</option>
+                        `;
+                        opSelect.value = "Rigid Tapping";
+                    }
+                } else {
+                    const isMilling = Array.from(opSelect.options).some(o => o.value === "Roughing");
+                    if (!isMilling) {
+                        opSelect.innerHTML = `
+                            <option value="Roughing">Standard Roughing</option>
+                            <option value="Adaptive Roughing">Adaptive / Trochoidal</option>
+                            <option value="Slotting">Full Slotting</option>
+                            <option value="Facing">Facing</option>
+                            <option value="Finishing">Light Finishing</option>
+                        `;
+                        opSelect.value = "Roughing";
+                    }
+                }
+            }
+
+            // Labels and input locking for hole tools vs milling
+            const depthLabel = document.querySelector('label[for="cutDepth_range"]');
+            const widthLabel = document.querySelector('label[for="cutWidth_range"]');
+            const depthGroup = document.getElementById('cutDepthGroup');
+            const widthGroup = document.getElementById('cutWidthGroup');
+
+            if (isHoleTool) {
+                if (depthLabel) depthLabel.innerHTML = 'Hole Depth / Stepdown (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (widthLabel) widthLabel.innerHTML = 'Hole Diameter (Fixed = Tool Dia, <span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                
+                // Allow setting Hole Depth (cutDepth), but lock Width (WOC) to diameter
+                if (depthGroup) { depthGroup.style.opacity = '1.0'; depthGroup.style.pointerEvents = 'auto'; }
+                if (widthGroup) { widthGroup.style.opacity = '0.4'; widthGroup.style.pointerEvents = 'none'; }
+                
+                // Lock cutWidth value to current diameter
+                const diaVal = document.getElementById('diameter')?.value;
+                if (diaVal) {
+                    const wVal = document.getElementById('cutWidth_val');
+                    const wRange = document.getElementById('cutWidth_range');
+                    if (wVal) wVal.value = diaVal;
+                    if (wRange) wRange.value = diaVal;
+                }
+            } else {
+                if (depthLabel) depthLabel.innerHTML = 'Axial Depth of Cut (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (widthLabel) widthLabel.innerHTML = 'Radial Width of Cut (<span class="unit-lbl">' + (isMetric ? 'mm' : 'in') + '</span>)';
+                if (depthGroup) { depthGroup.style.opacity = '1.0'; depthGroup.style.pointerEvents = 'auto'; }
+                if (widthGroup) { widthGroup.style.opacity = '1.0'; widthGroup.style.pointerEvents = 'auto'; }
+            }
             
             document.getElementById('cornerRadiusGroup').style.display = (geo === 'Radiused' && !isHoleTool) ? 'block' : 'none';
             document.getElementById('shankGroup').style.display = showShank ? 'block' : 'none';
