@@ -487,7 +487,7 @@ def twin_batch_generate():
             
             if is_drilling:
                 is_tap = "tap" in tool_type
-                db_tool_type = "Tapping" if is_tap else "Carbide Twist Drill"
+                db_tool_type = "Tapping" if is_tap else ("HP Carbide Twist Drill" if is_carbide else "Carbide Twist Drill")
                 
                 target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
                 adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)

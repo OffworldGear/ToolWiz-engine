@@ -67,7 +67,7 @@
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="tool">Tool Category</label>
-                                <select id="tool" onchange="updateGeometryDisplay(); calculate()"></select>
+                                <select id="tool" onchange="updateGeometryDisplay('tool'); calculate()"></select>
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="coating">Tool Coating</label>
@@ -86,7 +86,7 @@
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="geometry">Geometry</label>
-                                <select id="geometry" onchange="updateGeometryDisplay(); calculate()">
+                                <select id="geometry" onchange="updateGeometryDisplay('geometry'); calculate()">
                                     <option value="Square">Square Endmill</option>
                                     <option value="Ball">Ball Endmill</option>
                                     <option value="Radiused">Bullnose / Radiused</option>
@@ -619,9 +619,39 @@
             calculate();
         }
 
-        function updateGeometryDisplay() {
-            const geo = document.getElementById('geometry').value;
-            const toolType = document.getElementById('tool').value || "";
+        function updateGeometryDisplay(source) {
+            const geoSelect = document.getElementById('geometry');
+            const toolSelect = document.getElementById('tool');
+            let geo = geoSelect.value;
+            let toolType = toolSelect.value || "";
+
+            // Smart bidirectional synchronization
+            if (source === 'geometry') {
+                if ((geo === 'Drill' || geo === 'Parabolic') && (toolType.includes('Endmill') || toolType === '')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide Twist Drill')) {
+                        toolSelect.value = 'HP Carbide Twist Drill';
+                        toolType = 'HP Carbide Twist Drill';
+                    }
+                } else if (geo === 'Spot Drill' && toolType.includes('Endmill')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'HSS Spot Drill')) {
+                        toolSelect.value = 'HSS Spot Drill';
+                        toolType = 'HSS Spot Drill';
+                    }
+                } else if (geo === 'Thread Mill' && !toolType.includes('Thread Mill')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Thread Mill')) {
+                        toolSelect.value = 'Carbide Thread Mill';
+                        toolType = 'Carbide Thread Mill';
+                    }
+                }
+            } else if (source === 'tool') {
+                if (toolType.includes('Drill') && (geo === 'Square' || geo === 'Rougher' || geo === 'Indexable Mill' || geo === 'Ball' || geo === 'Bull Nose')) {
+                    geoSelect.value = toolType.includes('Spot') ? 'Spot Drill' : 'Drill';
+                    geo = geoSelect.value;
+                } else if (toolType.includes('Thread Mill') && geo !== 'Thread Mill') {
+                    geoSelect.value = 'Thread Mill';
+                    geo = 'Thread Mill';
+                }
+            }
             
             const isDrill = toolType.includes('Drill') || geo.includes('Drill') || geo === 'Parabolic' || toolType.includes('Annular');
             const isTap = toolType.includes('Tapping');

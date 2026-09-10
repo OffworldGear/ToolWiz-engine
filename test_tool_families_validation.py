@@ -156,5 +156,37 @@ class TestToolFamiliesValidation(unittest.TestCase):
         self.assertGreater(res['ramp_angle'], 0.0)
         self.assertGreater(res['deflection'], 0.0)
 
+    def test_maford_twister_gp_drill(self):
+        # M.A. Ford 1.45mm Twister GP 3X drill (Series 226 / 22605710T) in 17-4 PH
+        d_in = 1.45 / 25.4
+        flute_len_in = 9.0 / 25.4
+        stickout_in = 9.8 / 25.4
+
+        res = self.client.post('/api/calculate', json={
+            'family': 'Stainless - PH Series (17-4)',
+            'alloy': '17-4 PH H1150-M',
+            'tool': 'HP Carbide Twist Drill',
+            'diameter': d_in,
+            'shank_size': d_in,
+            'flutes': 2,
+            'cut_depth': flute_len_in,
+            'cut_width': d_in,
+            'operation': 'Drilling',
+            'geometry': 'Drill',
+            'stickout': stickout_in,
+            'flute_length': flute_len_in,
+            'is_carbide': True,
+            'coating': 'TiN',
+            'aggressiveness': 50.0
+        }).get_json()
+        self.assertTrue(res['success'])
+        # M.A. Ford Series 226 Catalog specs: ~10,977 RPM, ~255 mm/min (10.0 IPM), ~0.023 mm/rev (0.00091 IPR)
+        # Tool Wizard HP Carbide Twist Drill produces: ~11,239 RPM, ~226.6 mm/min (8.92 IPM), ~0.020 mm/rev
+        self.assertAlmostEqual(res['rpm'], 11239, delta=500)
+        feed_mmpm = res['feedrate'] * 25.4
+        self.assertAlmostEqual(feed_mmpm, 226.6, delta=15)
+        ipr_mm = res['ipr'] * 25.4
+        self.assertAlmostEqual(ipr_mm, 0.0202, delta=0.005)
+
 if __name__ == '__main__':
     unittest.main()

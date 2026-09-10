@@ -785,6 +785,15 @@ class AdvisoryEngine:
                         "type": "info"
                     })
 
+            if tool_type == "Carbide Twist Drill":
+                tips.append({
+                    "title": "Standard vs HP Solid Carbide Drill",
+                    "message": (
+                        "Current category is 'Carbide Twist Drill' (conservative baseline). If using a modern high-performance solid carbide CNC drill (e.g. M.A. Ford Twister GP/XD, Guhring, OSG, Mitsubishi), select 'HP Carbide Twist Drill' for higher speeds and feeds."
+                    ),
+                    "type": "info"
+                })
+
         if not tips:
             tips.append({
                 "title": "Optimal Parameters",
