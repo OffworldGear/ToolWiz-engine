@@ -2007,6 +2007,20 @@
                     const col3Title = document.getElementById('ramp_col3_title');
 
                     const tapShortcut = document.getElementById('tapCalcShortcutWrap');
+                    const formatFeed = (val) => {
+                        let num = parseFloat(val);
+                        if (isNaN(num) || num <= 0) return "0.0";
+                        if (num < 0.01) return num.toFixed(4);
+                        if (num < 0.1) return num.toFixed(3);
+                        if (num < 1.0) return num.toFixed(2);
+                        return num.toFixed(1);
+                    };
+
+                    let pFeedRaw = res.plunge_feed != null && res.plunge_feed > 0 ? res.plunge_feed : (res.feedrate ? res.feedrate * 0.25 : 0);
+                    let rFeedRaw = res.ramp_feed != null && res.ramp_feed > 0 ? res.ramp_feed : (res.feedrate ? res.feedrate * 0.50 : 0);
+                    let displayPlunge = formatFeed(isMetric ? pFeedRaw * 25.4 : pFeedRaw);
+                    let displayRamp = formatFeed(isMetric ? rFeedRaw * 25.4 : rFeedRaw);
+
                     if (isTapNow) {
                         if (tapShortcut) tapShortcut.style.display = 'block';
                         if (col1Title) col1Title.innerText = "Thread Pitch";
@@ -2025,7 +2039,7 @@
                             col3Unit.innerText = isMetric ? " mm/min" : " IPM";
                             col3Unit.className = "feed-lbl";
                         }
-                        document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+                        document.getElementById('plunge_feed').innerText = displayPlunge;
                     } else if (isHoleToolNow) {
                         if (tapShortcut) tapShortcut.style.display = 'none';
                         if (col1Title) col1Title.innerText = "Chip Load (IPT)";
@@ -2044,7 +2058,7 @@
                             col3Unit.innerText = isMetric ? " mm/min" : " IPM";
                             col3Unit.className = "feed-lbl";
                         }
-                        document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+                        document.getElementById('plunge_feed').innerText = displayPlunge;
                     } else {
                         if (tapShortcut) tapShortcut.style.display = 'none';
                         if (col1Title) col1Title.innerText = "Ramp Angle";
@@ -2056,14 +2070,14 @@
                             col2Unit.innerText = isMetric ? " mm/min" : " IPM";
                             col2Unit.className = "feed-lbl";
                         }
-                        document.getElementById('ramp_feed').innerText = (isMetric ? res.ramp_feed * 25.4 : res.ramp_feed).toFixed(1);
+                        document.getElementById('ramp_feed').innerText = displayRamp;
 
                         if (col3Title) col3Title.innerText = "Plunge Feed";
                         if (col3Unit) {
                             col3Unit.innerText = isMetric ? " mm/min" : " IPM";
                             col3Unit.className = "feed-lbl";
                         }
-                        document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
+                        document.getElementById('plunge_feed').innerText = displayPlunge;
                     }
 
                     const defCard = document.getElementById('deflectionCard');

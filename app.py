@@ -292,7 +292,7 @@ def calculate():
             "ipr": round(ipr, 6),
             "ramp_angle": round(ramp_angle, 1),
             "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": round(plunge_feed, 2),
+            "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
             "rec_doc": round(rec_doc, 4),
             "rec_woc": round(rec_woc, 4),
             "rec_limit": round(diameter * 0.002, 5), # Return the absolute physical limit for the UI bar
@@ -383,7 +383,8 @@ def calculate_for_fusion():
         actual_sfm = physics.calc_sfm(rpm, diameter)
         
         # 3. Ramping Params
-        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+        tool_val = data.get("tool", "")
+        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_val)
         
         return jsonify({
             "success": True,
@@ -395,7 +396,7 @@ def calculate_for_fusion():
             "doc": round(rec_doc, 3),
             "woc": round(rec_woc, 3),
             "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": round(plunge_feed, 2),
+            "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
             "is_spindle_limited": is_spindle_limited,
             "ideal_rpm": round(ideal_rpm)
         })
@@ -869,7 +870,7 @@ def twin_batch_generate():
                     adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry, corner_radius=corner_rad)
                     feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
                     actual_sfm = physics.calc_sfm(rpm, diameter)
-                    ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)
+                    ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_type)
                     
                     if custom_preset_name:
                         preset_name = f"{custom_preset_name} - {strat}"
@@ -883,7 +884,7 @@ def twin_batch_generate():
                         p_fz = float(adj_ipt)
                         p_vf = float(feedrate)
                         p_vf_ramp = float(ramp_feed)
-                        p_vf_plunge = float(plunge_feed)
+                        p_vf_plunge = float(max(plunge_feed, 0.0001)) if feedrate > 0.0 else 0.0
                         p_stepdown = float(rec_doc)
                         p_stepover = float(rec_woc)
                     else:
@@ -893,7 +894,7 @@ def twin_batch_generate():
                         p_fz = float(adj_ipt * 25.4)
                         p_vf = float(feedrate * 25.4)
                         p_vf_ramp = float(ramp_feed * 25.4)
-                        p_vf_plunge = float(plunge_feed * 25.4)
+                        p_vf_plunge = float(max(plunge_feed * 25.4, 0.0025)) if feedrate > 0.0 else 0.0
                         p_stepdown = float(rec_doc * 25.4)
                         p_stepover = float(rec_woc * 25.4)
                     

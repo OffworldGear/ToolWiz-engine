@@ -37,11 +37,17 @@ def mutate_tool_json(original_json_string, new_preset_data):
         "tool-coolant": "flood"
     }
     
-    # Optional ramping fields
-    if "ramp_feed" in new_preset_data:
-        mapped_data["v_f_ramp"] = format_unit(new_preset_data["ramp_feed"], "in/min")
-    if "plunge_feed" in new_preset_data:
-        mapped_data["v_f_plunge"] = format_unit(new_preset_data["plunge_feed"], "in/min")
+    # Plunge and Ramp feedrates (guaranteed non-zero)
+    feed_val = new_preset_data.get("feed", 0)
+    rf = new_preset_data.get("ramp_feed")
+    if rf is None or rf <= 0:
+        rf = feed_val * 0.50 if feed_val > 0 else 10.0
+    pf = new_preset_data.get("plunge_feed")
+    if pf is None or pf <= 0:
+        pf = rf if rf > 0 else (feed_val * 0.25 if feed_val > 0 else 5.0)
+        
+    mapped_data["v_f_ramp"] = format_unit(rf, "in/min")
+    mapped_data["v_f_plunge"] = format_unit(pf, "in/min")
         
     # Check for name collision
     existing_preset = next((p for p in presets if p.get("name") == preset_name), None)

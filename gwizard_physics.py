@@ -1863,9 +1863,18 @@ class GWizardPhysics:
         elif geometry in ["T-Slot", "Dovetail", "Keyseat", "Woodruff", "Engraving"]:
             angle = 0.0
             ramp_feed = 0.0
+            if plunge_feed <= 0.0:
+                plunge_feed = feedrate * 0.25
 
         if not is_hole and 0.0 < diameter < 0.125:
             angle *= max(0.30, diameter / 0.125)
+
+        # Safety floor: whenever feedrate is positive, plunge and ramp feed must never be zero
+        if feedrate > 0.0:
+            if plunge_feed <= 0.0:
+                plunge_feed = ramp_feed if ramp_feed > 0.0 else feedrate * 0.25
+            if ramp_feed <= 0.0 and geometry not in ["T-Slot", "Dovetail", "Keyseat", "Woodruff", "Engraving"]:
+                ramp_feed = feedrate * 0.50
 
         return angle, ramp_feed, plunge_feed
 

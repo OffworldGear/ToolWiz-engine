@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-09-18
 
+### Fixed
+- **Plunge Feed Rate Zero-Value Resolution Across Add-in, Physics Engine, and Web UI**:
+  - **Fusion 360 CAM Parameter Disabling Trap (`isEnabled` fix)**: Resolved the root cause in `ToolWizFusionAddin.py` where Fusion 360 disabled `tool_feedPlunge` in the UI when helical ramping was active (`p.isEnabled == False`), causing `apply_param` to silently bypass writing the plunge feedrate and leaving Fusion's internal default of `0 in/min`. Added `force=True` to `apply_param` for all feedrate parameters (`tool_feedPlunge`, `tool_feedRamp`, `tool_feedEntry`, `tool_feedExit`, `tool_feedTransition`, `tool_spindleSpeedRamp`) so parameters are always written directly to the operation.
+  - **Physics Engine Fallback Floor (`calc_ramping`)**: Guaranteed that whenever cutting feedrate is positive ($> 0$), `plunge_feed` will never evaluate to zero (automatically defaulting to `ramp_feed` if positive, or $0.25\times \text{feedrate}$ as a safe lower bound).
+  - **Digital Twin & Preset Generation (`json_mutator.py` & `app.py`)**: Ensured all generated and mutated tool presets strictly map non-zero `v_f_plunge` and `v_f_ramp` values into tool JSON structures, preventing imported presets from defaulting to `0`.
+  - **Dynamic Web UI Decimal Formatting**: Replaced static `.toFixed(1)` formatting in `templates/index.html` with dynamic decimal scaling (`formatFeed()`), preventing micro-tool plunge feedrates (e.g. $0.0375\text{ IPM}$) from truncating to `"0.0"`.
+
 ### Added
 - **High-Visibility Pulsing 'Auto-Set' Parameter Badges & Smart State Persistence**:
   - **High-Contrast Amber Glow & Breathing Indicator**: Tool parameters currently populated with system or catalog defaults (`Tool Stickout`, `Flute Length`, `Flute Count`, `Helix Angle`, `Corner Radius`, and recommended `Axial Depth` / `Radial Width`) display a prominent, unmistakable amber badge `[⚡ Auto]` with an animated pulsing dot and glowing outline (`@keyframes autoSetGlow`).

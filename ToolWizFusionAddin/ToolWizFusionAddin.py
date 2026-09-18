@@ -118,11 +118,11 @@ def get_op_tool_info(op):
     except Exception as e:
         return None, f"Error extracting tool: {str(e)}", []
 
-def apply_param(op, name, expr_str):
+def apply_param(op, name, expr_str, force=False):
     """Safely updates a single CAMParameter on an Operation"""
     try:
         p = op.parameters.itemByName(name)
-        if p and p.isEnabled:
+        if p and (p.isEnabled or force):
             p.expression = str(expr_str)
             return True
     except:
@@ -403,6 +403,10 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             woc = calc_result.get("woc", 0.05)
             ramp_feed = calc_result.get("ramp_feed", feed * 0.5)
             plunge_feed = calc_result.get("plunge_feed", feed * 0.25)
+            if plunge_feed <= 0:
+                plunge_feed = ramp_feed if ramp_feed > 0 else (feed * 0.25 if feed > 0 else 5.0)
+            if ramp_feed <= 0:
+                ramp_feed = feed * 0.5 if feed > 0 else 10.0
             sfm = calc_result.get("sfm", 300)
             ipt = calc_result.get("ipt", 0.002)
             
@@ -414,15 +418,15 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             applied = []
             if apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm"):
                 applied.append(f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)")
-            apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm")
+            apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
             
             if apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min"):
                 applied.append(f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)")
-            apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min")
-            apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min")
-            apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min")
-            apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min")
-            apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min")
+            apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
             
             if "Adaptive" in strategy:
                 if apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"):
