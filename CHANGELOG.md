@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Depth of cut exceeding safe high-feed threshold ($DOC > 0.05\times D$ for dedicated high feed mills).
     - Depth of cut exceeding 35% of bullnose corner radius ($DOC > 0.35\times R_{corner}$).
   - **Ramping Angle Clamping**: Automatically limits ramping angle to $\le 1.5^\circ$ for high feed cutters to prevent tool heel dragging.
+  - **Industrial Vendor High Feed Benchmarks**: Expanded automated benchmark matrix (`tests/benchmarks/vendor_catalog_data.json` and `tests/test_vendor_strategy_matrix.py`) from 21 to 25 test cases, validating against published catalog data from Helical Solutions (HFM-4 in 4140 Steel and 304 Stainless, and window profiling with tabs) and Harvey Tool (Miniature High Feed series in 6061-T6 Aluminum).
 - **Permanent Machining Advisor & Guidance Panel**:
   - Repositioned Machining Advisor directly beneath Material Removal Rate and Tool Deflection (above Ramp & Plunge Feed).
   - Permanently visible at all times, with dynamic status pills and zero-scroll placement.

@@ -25,11 +25,11 @@ class TestVendorStrategyMatrix(unittest.TestCase):
             cls.benchmark_data = json.load(f)
 
     def test_vendor_strategy_matrix(self):
-        print("\n" + "=" * 105)
+        print("\n" + "=" * 112)
         print("                 INDUSTRIAL VENDOR STRATEGY BENCHMARK EVALUATION")
-        print("=" * 105)
-        print(f"{'Benchmark ID':<35} | {'RPM':<7} | {'SFM':<6} | {'Feed (IPM)':<11} | {'DOC (in)':<9} | {'WOC (in)':<9} | {'Status'}")
-        print("-" * 105)
+        print("=" * 112)
+        print(f"{'Benchmark ID':<42} | {'RPM':<7} | {'SFM':<6} | {'Feed (IPM)':<11} | {'DOC (in)':<9} | {'WOC (in)':<9} | {'Status'}")
+        print("-" * 112)
 
         passed_count = 0
         total_count = len(self.benchmark_data['benchmarks'])
@@ -53,12 +53,13 @@ class TestVendorStrategyMatrix(unittest.TestCase):
             pitch = tc.get('pitch', 0.05)
             target = tc['target']
             max_rpm = tc.get('max_rpm', 80000 if dia <= 0.03125 else 30000)
+            tool_val = tc.get('tool') or tc.get('tool_type') or ('Tapping' if 'tap' in strat.lower() or geo == 'form' else ('End Mill' if 'mill' in geo.lower() or geo in ['Square', 'Ball', 'Radiused'] else geo))
 
             # Post calculation request to Tool Wizard engine
             payload = {
                 'family': fam,
                 'alloy': alloy,
-                'tool': 'Tapping' if 'tap' in strat.lower() or geo == 'form' else ('End Mill' if 'mill' in geo.lower() or geo in ['Square', 'Ball', 'Radiused'] else geo),
+                'tool': tool_val,
                 'coating': coating,
                 'geometry': geo,
                 'operation': strat,
@@ -76,6 +77,10 @@ class TestVendorStrategyMatrix(unittest.TestCase):
                 'maxRpm': max_rpm,
                 'maxHp': 15.0
             }
+            if 'cut_depth' in tc:
+                payload['cutDepth'] = tc['cut_depth']
+            if 'cut_width' in tc:
+                payload['cutWidth'] = tc['cut_width']
 
             res = self.client.post('/api/calculate', json=payload)
             self.assertEqual(res.status_code, 200)
@@ -133,11 +138,11 @@ class TestVendorStrategyMatrix(unittest.TestCase):
                 self.assertAlmostEqual(ipr, target['pitch_lead_inch'], places=4, msg=f"{b_id}: Tapping lead mismatch")
 
             passed_count += 1
-            print(f"{b_id:<35} | {rpm:<7} | {sfm:<6.1f} | {feed:<11.1f} | {doc:<9.4f} | {woc:<9.4f} | PASS")
+            print(f"{b_id:<42} | {rpm:<7} | {sfm:<6.1f} | {feed:<11.1f} | {doc:<9.4f} | {woc:<9.4f} | PASS")
 
-        print("=" * 105)
+        print("=" * 112)
         print(f"                  ALL {passed_count}/{total_count} VENDOR STRATEGY BENCHMARKS PASSED")
-        print("=" * 105 + "\n")
+        print("=" * 112 + "\n")
 
 if __name__ == '__main__':
     unittest.main()
