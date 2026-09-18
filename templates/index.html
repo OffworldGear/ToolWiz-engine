@@ -1882,6 +1882,14 @@
             if (abortController) abortController.abort();
             abortController = new AbortController();
 
+            const toolType = document.getElementById('tool').value;
+            const geo = document.getElementById('geometry').value;
+            const isTap = toolType.includes('Tapping') || ['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geo);
+            const isFormTool = geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
+            const isLollipop = geo === 'Lollipop';
+            const hasRelieved = document.getElementById('hasRelievedNeck')?.checked || false;
+            const hasSteppedShank = isFormTool || isLollipop || hasRelieved;
+
             let p_dia = parseFloat(document.getElementById('diameter').value) || 0.5;
             let p_depth = parseFloat(document.getElementById('cutDepth_val').value) || 0.25;
             let p_width = parseFloat(document.getElementById('cutWidth_val').value) || 0.1;
@@ -1890,7 +1898,7 @@
             let p_cr = parseFloat(document.getElementById('cornerRadius').value) || 0.0;
             let p_thick = parseFloat(document.getElementById('cutterThickness')?.value) || 0.125;
             let p_flute = parseFloat(document.getElementById('fluteLength')?.value) || 1.0;
-            let p_neck = parseFloat(document.getElementById('neckDiameter')?.value) || p_shank;
+            let p_neck = hasSteppedShank ? (parseFloat(document.getElementById('neckDiameter')?.value) || p_shank) : p_dia;
             let p_neckLength = parseFloat(document.getElementById('neckLength')?.value) || 0.5;
             
             // Validate stickout >= flute length
@@ -1909,9 +1917,6 @@
                 p_pitch /= 25.4;
             }
 
-            const toolType = document.getElementById('tool').value;
-            const geo = document.getElementById('geometry').value;
-            const isTap = toolType.includes('Tapping') || ['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geo);
             const pitchGroup = document.getElementById('pitchGroup');
             if (pitchGroup) {
                 pitchGroup.style.display = (isTap || toolType.includes('Thread Mill') || geo === 'Thread Mill') ? 'block' : 'none';
@@ -1925,6 +1930,7 @@
                 geometry: geo,
                 operation: document.getElementById('operation').value,
                 cornerRadius: p_cr,
+                hasRelievedNeck: hasRelieved,
                 shankDiameter: p_shank,
                 neckDiameter: p_neck,
                 neckLength: p_neckLength,

@@ -160,8 +160,13 @@ def calculate():
                 flute_length = cutter_thickness
 
         # Determine sizes
+        has_relieved_neck = bool(data.get("hasRelievedNeck", False))
+        is_form_stepped = is_saw_woodruff or any(s in geometry.lower() for s in ["lollipop", "dovetail"])
         shank_size = float(data.get("shankDiameter", diameter))
-        neck_diameter = float(data.get("neckDiameter", shank_size))
+        if has_relieved_neck or is_form_stepped:
+            neck_diameter = float(data.get("neckDiameter", shank_size))
+        else:
+            neck_diameter = diameter
         
         # 1. Lookup Base Parameters
         target_sfm = physics.get_base_sfm(
@@ -336,7 +341,6 @@ def calculate_for_fusion():
         flute_length = float(data.get("fluteLength", 1.0))
         neck_length = float(data.get("neckLength", 0.5))
         shank_size = float(data.get("shankDiameter", diameter))
-        neck_diameter = float(data.get("neckDiameter", shank_size))
         taper_angle = float(data.get("taperAngle", 0.0))
         helix_angle = float(data.get("helixAngle", 30.0))
         stickout = float(data.get("stickout", 1.5))
@@ -345,6 +349,13 @@ def calculate_for_fusion():
         is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
         if is_saw_woodruff and cutter_thickness > 0.0:
             flute_length = cutter_thickness
+
+        has_relieved_neck = bool(data.get("hasRelievedNeck", False))
+        is_form_stepped = is_saw_woodruff or any(s in geometry.lower() for s in ["lollipop", "dovetail"])
+        if has_relieved_neck or is_form_stepped:
+            neck_diameter = float(data.get("neckDiameter", shank_size))
+        else:
+            neck_diameter = diameter
 
         # 1. Lookup Base Parameters
         target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter, is_carbide=is_carbide)

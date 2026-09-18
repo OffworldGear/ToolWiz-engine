@@ -1131,9 +1131,13 @@ class AdvisoryEngine:
                 })
 
         # Physical clearance and collision diagnostics
-        if neck_diameter > 0.0 and neck_diameter < diameter:
+        if neck_diameter > 0.0 and neck_diameter < (diameter * 0.999):
             max_reach = (diameter - neck_diameter) / 2.0
-            if cut_width > (max_reach * 1.001):
+            is_form_cutter = any(s in str(geometry).lower() for s in ["t-slot", "woodruff", "keyseat", "lollipop", "dovetail"])
+            # Neck can only collide if it's a form cutter cutting radially into a wall (T-Slot, etc.)
+            # OR if the axial cut depth penetrates deeper than the flute length into the neck zone!
+            neck_is_engaged = is_form_cutter or (flute_length > 0.0 and cut_depth > (flute_length * 1.001))
+            if neck_is_engaged and cut_width > (max_reach * 1.001):
                 tips.append({
                     "title": "Neck Clearance Collision",
                     "message": (
