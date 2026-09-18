@@ -1110,11 +1110,19 @@ def ai_models():
             
         result_list = [{"id": "auto", "name": "⚡ Auto-Detect Best (Recommended)"}]
         for m in (models or ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]):
-            label = m
+            clean = m.replace("models/", "").replace("gemini-", "").strip()
+            parts = clean.split("-")
+            words = [p.capitalize() if not (p.replace(".", "").isdigit()) else p for p in parts if p]
+            friendly_name = " ".join(words)
+            if not friendly_name.lower().startswith("gemini"):
+                friendly_name = f"Gemini {friendly_name}"
+
             if "pro" in m.lower():
-                label = f"{m} (Deep CAM Reasoning)"
+                label = f"{friendly_name} (Deep CAM Reasoning)"
             elif "flash" in m.lower():
-                label = f"{m} (Fast)"
+                label = f"{friendly_name} (Fast)"
+            else:
+                label = friendly_name
             result_list.append({"id": m, "name": label})
             
         return jsonify({"success": True, "models": result_list})

@@ -97,6 +97,15 @@ class TestAiMachinist(unittest.TestCase):
         self.assertIn("gemini-2.5-pro", model_ids)
         self.assertIn("gemini-2.5-flash", model_ids)
 
+    def test_get_ai_models_endpoint_formatting(self):
+        """Verify GET /api/ai_models formats friendly, human-readable labels."""
+        resp = self.client.get("/api/ai_models")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        names = {m["id"]: m["name"] for m in data.get("models", [])}
+        self.assertEqual(names.get("gemini-2.5-pro"), "Gemini 2.5 Pro (Deep CAM Reasoning)")
+        self.assertEqual(names.get("gemini-2.5-flash"), "Gemini 2.5 Flash (Fast)")
+
     def test_api_endpoint_with_model_preference(self):
         """Verify POST /api/ai_chat accepts preferred model parameter."""
         payload = {

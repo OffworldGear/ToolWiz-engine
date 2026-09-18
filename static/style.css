@@ -995,12 +995,41 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .ai-model-badge {
     font-size: 0.68rem;
-    padding: 1px 7px;
+    padding: 2px 8px;
     border-radius: 9999px;
     background: rgba(56, 189, 248, 0.15);
     color: #38bdf8;
     border: 1px solid rgba(56, 189, 248, 0.4);
     font-weight: 600;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
+    transition: all 0.2s ease;
+}
+
+.ai-model-badge.pro {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.ai-model-badge.flash {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.ai-model-badge.auto {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.ai-model-badge.offline {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.3);
 }
 
 .ai-telemetry-chip {
