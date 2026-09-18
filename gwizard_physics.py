@@ -1318,6 +1318,51 @@ class AdvisoryEngine:
                     "type": "info"
                 })
 
+        # Geometry Sanity Audits: Stickout Ratio, Aluminum Flute Count, and Collet Grip
+        is_hole_tool = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "tap", "reamer"])
+        if not is_hole_tool and diameter > 0.0:
+            l_d = stickout / diameter
+            has_relieved_neck = neck_diameter > 0.0 and neck_diameter < (diameter * 0.98)
+            if l_d > 4.5 and not has_relieved_neck:
+                tips.append({
+                    "title": "Severe Tool Stickout Warning",
+                    "message": (
+                        f"Tool stickout ({stickout:.3f}\" / {stickout*25.4:.1f} mm) is {l_d:.1f}xD. "
+                        "Bending deflection scales with the cube of length (L³), risking severe chatter, taper, or tool breakage. "
+                        "Choke up in the holder or use a relieved-neck cutter."
+                    ),
+                    "type": "warning"
+                })
+            elif l_d > 3.5 and not has_relieved_neck:
+                tips.append({
+                    "title": "Extended Stickout Notice",
+                    "message": (
+                        f"Tool stickout is extended ({l_d:.1f}xD). Ensure this matches your actual gage stickout in the holder "
+                        "to avoid unpredicted tool deflection."
+                    ),
+                    "type": "info"
+                })
+
+            if flute_length > 0.0 and stickout > 0.0 and flute_length >= (stickout * 0.999):
+                tips.append({
+                    "title": "Collet Gripping on Flutes Warning",
+                    "message": (
+                        f"Flute length ({flute_length:.3f}\" / {flute_length*25.4:.1f} mm) meets or exceeds tool stickout ({stickout:.3f}\" / {stickout*25.4:.1f} mm). "
+                        "Ensure the holder collet is gripping on the solid cylindrical shank, never directly across cutting flutes."
+                    ),
+                    "type": "warning"
+                })
+
+        if "aluminum" in str(material_family).lower() and flutes >= 4 and not is_hf_op and not is_hole_tool:
+            tips.append({
+                "title": "Aluminum Flute Evacuation Warning",
+                "message": (
+                    f"{flutes} flutes selected for aluminum milling. Standard aluminum roughers utilize 2 or 3 flutes to provide "
+                    "large chip gullet volume. 4 flutes can rapidly pack chips and weld unless high-pressure through-spindle coolant or air blast is active."
+                ),
+                "type": "warning"
+            })
+
         if not tips:
             tips.append({
                 "title": "Optimal Parameters",

@@ -64,7 +64,7 @@
                     </fieldset>
 
                     <fieldset class="param-group">
-                        <legend>Tool Properties</legend>
+                        <legend>Tool Properties <span id="autoSetSummaryPill" class="tool-setup-header-status" style="display:none;"></span></legend>
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="tool">Tool Category</label>
@@ -109,8 +109,8 @@
                         </div>
 
                         <div class="input-group" id="cornerRadiusGroup" style="display: none;">
-                            <label for="cornerRadius">Corner Radius (<span class="unit-lbl">in</span>)</label>
-                            <input type="number" id="cornerRadius" class="tool-dialog-input" step="any" value="0.030" oninput="calculate()">
+                            <label for="cornerRadius">Corner Radius (<span class="unit-lbl">in</span>) <span id="badge_cornerRadius" class="auto-set-badge" onclick="confirmAutoSet('cornerRadius')" style="display:none;" title="Currently auto-set. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                            <input type="number" id="cornerRadius" class="tool-dialog-input" step="any" value="0.030" oninput="markManualEdit('cornerRadius'); calculate()">
                         </div>
                         
                         <div class="checkbox-group" id="relievedNeckToggleGroup" style="display: none; margin-bottom: 0.75rem;">
@@ -146,21 +146,21 @@
                         <!-- Tool Diameter & Flute Length -->
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.25rem;">
                             <div class="input-group combo-group" style="margin:0;">
-                                <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
-                                <input type="text" inputmode="decimal" id="diameter" class="tool-dialog-input" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
+                                <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>) <span id="badge_diameter" class="auto-set-badge" onclick="confirmAutoSet('diameter')" style="display:none;" title="Currently auto-set. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="text" inputmode="decimal" id="diameter" class="tool-dialog-input" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="handleDiameterInput()">
                                 <datalist id="diameters_list"></datalist>
                             </div>
                             
                             <div class="input-group" id="fluteLengthGroup" style="margin:0;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                    <label for="fluteLength" style="margin-bottom:0;">Flute Length (<span class="unit-lbl">in</span>)</label>
+                                    <label for="fluteLength" style="margin-bottom:0;">Flute Length (<span class="unit-lbl">in</span>) <span id="badge_fluteLength" class="auto-set-badge" onclick="confirmAutoSet('fluteLength')" style="display:none;" title="Currently auto-set proportional to diameter. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
                                     <div style="display: flex; gap: 0.35rem;">
                                         <button type="button" class="btn-ratio" onclick="setFluteRatio(3)">3&times;D</button>
                                         <button type="button" class="btn-ratio" onclick="setFluteRatio(4)">4&times;D</button>
                                         <button type="button" class="btn-ratio" onclick="setFluteRatio(5)">5&times;D</button>
                                     </div>
                                 </div>
-                                <input type="text" inputmode="decimal" id="fluteLength" class="tool-dialog-input" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
+                                <input type="text" inputmode="decimal" id="fluteLength" class="tool-dialog-input" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="markManualEdit('fluteLength'); calculate()">
                                 <datalist id="flute_list"></datalist>
                             </div>
                         </div>
@@ -168,15 +168,15 @@
                         <!-- Flute Count & Helix Angle -->
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.25rem">
                             <div class="input-group" style="margin:0;">
-                                <label for="flutes_val">Flute Count (Flutes)</label>
-                                <input type="number" id="flutes_val" class="tool-dialog-input" min="1" max="20" step="1" value="4" oninput="document.getElementById('flutes').value = this.value; calculate()">
-                                <input type="range" id="flutes" min="1" max="10" step="1" value="4" style="margin-top: 6px;" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
+                                <label for="flutes_val">Flute Count (Flutes) <span id="badge_flutes" class="auto-set-badge" onclick="confirmAutoSet('flutes')" style="display:none;" title="Currently auto-set based on material & tool. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="flutes_val" class="tool-dialog-input" min="1" max="20" step="1" value="4" oninput="markManualEdit('flutes'); document.getElementById('flutes').value = this.value; calculate()">
+                                <input type="range" id="flutes" min="1" max="10" step="1" value="4" style="margin-top: 6px;" oninput="markManualEdit('flutes'); document.getElementById('flutes_val').value = this.value; calculate()">
                             </div>
                             
                             <div class="input-group" style="margin:0;">
-                                <label for="helix_val">Helix Angle (&deg;)</label>
-                                <input type="number" id="helix_val" class="tool-dialog-input" min="0" max="60" step="1" value="30" oninput="document.getElementById('helixAngle').value = this.value; calculate()">
-                                <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" style="margin-top: 6px;" oninput="document.getElementById('helix_val').value = this.value; calculate()">
+                                <label for="helix_val">Helix Angle (&deg;) <span id="badge_helix" class="auto-set-badge" onclick="confirmAutoSet('helix')" style="display:none;" title="Currently auto-set default helix. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="helix_val" class="tool-dialog-input" min="0" max="60" step="1" value="30" oninput="markManualEdit('helix'); document.getElementById('helixAngle').value = this.value; calculate()">
+                                <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" style="margin-top: 6px;" oninput="markManualEdit('helix'); document.getElementById('helix_val').value = this.value; calculate()">
                             </div>
                         </div>
 
@@ -187,9 +187,9 @@
 
                         <!-- Tool Stickout -->
                         <div class="input-group" style="margin-bottom:0;">
-                            <label for="stickout_val">Tool Stickout (<span class="unit-lbl">in</span>)</label>
-                            <input type="number" id="stickout_val" class="tool-dialog-input" step="0.001" value="1.500" oninput="document.getElementById('stickout_range').value = this.value; calculate()">
-                            <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" style="margin-top: 6px;" oninput="document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                            <label for="stickout_val">Tool Stickout (<span class="unit-lbl">in</span>) <span id="badge_stickout" class="auto-set-badge" onclick="confirmAutoSet('stickout')" style="display:none;" title="Currently auto-set proportional to diameter. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                            <input type="number" id="stickout_val" class="tool-dialog-input" step="0.001" value="1.500" oninput="markManualEdit('stickout'); document.getElementById('stickout_range').value = this.value; calculate()">
+                            <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" style="margin-top: 6px;" oninput="markManualEdit('stickout'); document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
                         </div>
                     </fieldset>
 
@@ -759,7 +759,184 @@
                 let stVal = document.getElementById('stickout_val');
                 if (stRange) stRange.value = st;
                 if (stVal) stVal.value = st;
+                markManualEdit('fluteLength');
+                markManualEdit('stickout');
                 calculate();
+            }
+        }
+
+        /* -------------------------------------------------------------------------
+           Auto-Set Parameter State Tracker & Smart Geometry Audits
+           ------------------------------------------------------------------------- */
+        const autoSetTracker = {
+            diameter: false,
+            fluteLength: true,
+            flutes: true,
+            helix: false,
+            stickout: true,
+            cornerRadius: true
+        };
+
+        function renderAutoSetBadges() {
+            let count = 0;
+            const paramMap = {
+                diameter: 'diameter',
+                fluteLength: 'fluteLength',
+                flutes: 'flutes_val',
+                helix: 'helix_val',
+                stickout: 'stickout_val',
+                cornerRadius: 'cornerRadius'
+            };
+
+            for (const [key, isAuto] of Object.entries(autoSetTracker)) {
+                const badge = document.getElementById(`badge_${key}`);
+                const inputId = paramMap[key];
+                const input = document.getElementById(inputId);
+                
+                // Only count/show cornerRadius badge if cornerRadiusGroup is currently visible
+                if (key === 'cornerRadius') {
+                    const crGroup = document.getElementById('cornerRadiusGroup');
+                    if (!crGroup || crGroup.style.display === 'none') {
+                        if (badge) badge.style.display = 'none';
+                        if (input) input.classList.remove('is-auto-set');
+                        continue;
+                    }
+                }
+
+                if (badge) {
+                    if (isAuto) {
+                        count++;
+                        badge.style.display = 'inline-flex';
+                        badge.classList.remove('confirmed');
+                        badge.innerHTML = '<span class="pulse-dot"></span>Auto';
+                        badge.title = 'Currently auto-set by Tool Wizard. Click to confirm.';
+                        if (input) input.classList.add('is-auto-set');
+                    } else {
+                        badge.style.display = 'none';
+                        if (input) input.classList.remove('is-auto-set');
+                    }
+                }
+            }
+
+            const summaryPill = document.getElementById('autoSetSummaryPill');
+            if (summaryPill) {
+                if (count > 0) {
+                    summaryPill.style.display = 'inline-flex';
+                    summaryPill.innerHTML = `<span>${count} Auto-Set</span> <a onclick="confirmAllAutoSet()" title="Accept all auto-set values as confirmed">Confirm All</a>`;
+                } else {
+                    summaryPill.style.display = 'none';
+                }
+            }
+        }
+
+        function confirmAutoSet(param) {
+            if (autoSetTracker.hasOwnProperty(param)) {
+                autoSetTracker[param] = false;
+                const badge = document.getElementById(`badge_${param}`);
+                const inputId = param === 'stickout' ? 'stickout_val' : (param === 'flutes' ? 'flutes_val' : (param === 'helix' ? 'helix_val' : param));
+                const input = document.getElementById(inputId);
+                if (input) input.classList.remove('is-auto-set');
+
+                if (badge) {
+                    badge.classList.add('confirmed');
+                    badge.innerHTML = '<span class="pulse-dot"></span>✓';
+                    setTimeout(() => {
+                        renderAutoSetBadges();
+                    }, 400);
+                } else {
+                    renderAutoSetBadges();
+                }
+            }
+        }
+
+        function confirmAllAutoSet() {
+            for (const key in autoSetTracker) {
+                autoSetTracker[key] = false;
+                const badge = document.getElementById(`badge_${key}`);
+                if (badge && badge.style.display !== 'none') {
+                    badge.classList.add('confirmed');
+                    badge.innerHTML = '<span class="pulse-dot"></span>✓';
+                }
+            }
+            setTimeout(() => {
+                renderAutoSetBadges();
+            }, 300);
+        }
+
+        function markManualEdit(param) {
+            if (autoSetTracker[param]) {
+                autoSetTracker[param] = false;
+                renderAutoSetBadges();
+            }
+        }
+
+        function handleDiameterInput() {
+            markManualEdit('diameter');
+            let d = parseFloat(document.getElementById('diameter').value);
+            if (!isNaN(d) && d > 0) {
+                checkOutOfSpecGeometry(d);
+            }
+            calculate();
+        }
+
+        function checkOutOfSpecGeometry(newDia) {
+            if (!newDia || isNaN(newDia) || newDia <= 0) return;
+            
+            let diaIn = isMetric ? (newDia / 25.4) : newDia;
+            let stNode = document.getElementById('stickout_val');
+            let flNode = document.getElementById('fluteLength');
+            let stVal = parseFloat(stNode ? stNode.value : 0);
+            let flVal = parseFloat(flNode ? flNode.value : 0);
+            let stIn = isMetric ? (stVal / 25.4) : stVal;
+            let flIn = isMetric ? (flVal / 25.4) : flVal;
+            
+            let adjusted = false;
+
+            // 1. Stickout is wildly out of spec (> 5.5 * dia or < 0.8 * dia)
+            if (stIn > (diaIn * 5.5) || (stIn < (diaIn * 0.8) && stIn > 0)) {
+                let recStick = diaIn * 3.0;
+                let recStickDisp = isMetric ? (recStick * 25.4).toFixed(1) : recStick.toFixed(3);
+                if (stNode) stNode.value = recStickDisp;
+                let stRange = document.getElementById('stickout_range');
+                if (stRange) stRange.value = recStickDisp;
+                autoSetTracker.stickout = true;
+                adjusted = true;
+            }
+
+            // 2. Flute length is wildly out of spec (> 4.5 * dia or < 0.4 * dia)
+            if (flIn > (diaIn * 4.5) || (flIn < (diaIn * 0.4) && flIn > 0)) {
+                let recFlute = diaIn * 2.0;
+                let recFluteDisp = isMetric ? (recFlute * 25.4).toFixed(2) : recFlute.toFixed(3);
+                if (flNode) flNode.value = recFluteDisp;
+                autoSetTracker.fluteLength = true;
+                adjusted = true;
+            }
+
+            // 3. Stickout < Flute Length (physically impossible)
+            let curSt = parseFloat(stNode ? stNode.value : 0);
+            let curFl = parseFloat(flNode ? flNode.value : 0);
+            if (curFl > curSt) {
+                let safeSt = curFl + (isMetric ? 3.0 : 0.125);
+                if (stNode) stNode.value = safeSt.toFixed(isMetric ? 1 : 3);
+                let stRange = document.getElementById('stickout_range');
+                if (stRange) stRange.value = stNode.value;
+                autoSetTracker.stickout = true;
+                adjusted = true;
+            }
+
+            // 4. Aluminum Flute Count Auto-Default
+            const fam = document.getElementById('family')?.value || "";
+            const flutesInput = document.getElementById('flutes_val');
+            const flutesRange = document.getElementById('flutes');
+            if (fam.toLowerCase().includes('aluminum') && autoSetTracker.flutes && flutesInput && flutesInput.value === "4") {
+                flutesInput.value = "3";
+                if (flutesRange) flutesRange.value = "3";
+                autoSetTracker.flutes = true;
+                adjusted = true;
+            }
+
+            if (adjusted) {
+                renderAutoSetBadges();
             }
         }
         
@@ -810,11 +987,18 @@
                     if(state.flutes_val && document.getElementById('flutes_val')) {
                         document.getElementById('flutes_val').value = state.flutes_val;
                         if(document.getElementById('flutes')) document.getElementById('flutes').value = state.flutes_val;
+                        autoSetTracker.flutes = false;
                     }
-                    if(state.fluteLength && document.getElementById('fluteLength')) document.getElementById('fluteLength').value = state.fluteLength;
+                    if(state.fluteLength && document.getElementById('fluteLength')) {
+                        document.getElementById('fluteLength').value = state.fluteLength;
+                        autoSetTracker.fluteLength = false;
+                    }
                     if(state.cutDepth_val && document.getElementById('cutDepth_val')) document.getElementById('cutDepth_val').value = state.cutDepth_val;
                     if(state.cutWidth_val && document.getElementById('cutWidth_val')) document.getElementById('cutWidth_val').value = state.cutWidth_val;
-                    if(state.stickout_val && document.getElementById('stickout_val')) document.getElementById('stickout_val').value = state.stickout_val;
+                    if(state.stickout_val && document.getElementById('stickout_val')) {
+                        document.getElementById('stickout_val').value = state.stickout_val;
+                        autoSetTracker.stickout = false;
+                    }
                     if(state.operation && document.getElementById('operation')) document.getElementById('operation').value = state.operation;
                     if(state.aggressiveness && document.getElementById('aggressiveness')) {
                         document.getElementById('aggressiveness').value = state.aggressiveness;
@@ -931,6 +1115,7 @@
             loadState(); // load saved preferences
             updateGeometryDisplay('tool');
             calculate();
+            renderAutoSetBadges();
             loadThreadStandards();
         }
 
@@ -1244,7 +1429,11 @@
                 showShank = false;
             }
             
-            document.getElementById('cornerRadiusGroup').style.display = ((geo === 'Radiused' || geo === 'High Feed') && !isHoleTool) ? 'block' : 'none';
+            const showCR = ((geo === 'Radiused' || geo === 'High Feed') && !isHoleTool);
+            document.getElementById('cornerRadiusGroup').style.display = showCR ? 'block' : 'none';
+            if (showCR && autoSetTracker.cornerRadius === undefined) {
+                autoSetTracker.cornerRadius = true;
+            }
             document.getElementById('shankGroup').style.display = showShank ? 'block' : 'none';
             document.getElementById('thicknessGroup').style.display = isFormTool ? 'block' : 'none';
             document.getElementById('neckGroup').style.display = showShank ? 'block' : 'none';
@@ -1256,6 +1445,7 @@
             }
 
             drawToolVisualization();
+            renderAutoSetBadges();
         }
         
         let lastRecDoc = 0.0;
@@ -1447,6 +1637,15 @@
                 if(a.alloy.includes("MagnaCut") || a.alloy.includes("6061")) opt.selected = true;
                 alloySelect.appendChild(opt);
             });
+
+            // If switching to Aluminum and flutes is currently auto-set to 4, switch to 3
+            const flInput = document.getElementById('flutes_val');
+            const flRange = document.getElementById('flutes');
+            if (family.toLowerCase().includes('aluminum') && autoSetTracker.flutes && flInput && flInput.value === "4") {
+                flInput.value = "3";
+                if (flRange) flRange.value = "3";
+            }
+            renderAutoSetBadges();
         }
 
         function updateTwinAlloys() {

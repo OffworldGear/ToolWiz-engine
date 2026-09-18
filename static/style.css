@@ -650,3 +650,94 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 2px;
 }
 
+/* Subtle Pulsing 'Auto-Set' Parameter Indicators */
+@keyframes softPulse {
+    0%, 100% {
+        opacity: 0.70;
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1.0;
+        box-shadow: 0 0 6px 2px rgba(56, 189, 248, 0.35);
+        transform: scale(1.03);
+    }
+}
+
+.auto-set-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 9999px;
+    cursor: pointer;
+    animation: softPulse 2.2s infinite ease-in-out;
+    user-select: none;
+    transition: all 0.2s ease;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+}
+
+.auto-set-badge:hover {
+    background: rgba(56, 189, 248, 0.28);
+    border-color: #38bdf8;
+    color: #ffffff;
+}
+
+.pulse-dot {
+    width: 5px;
+    height: 5px;
+    background: #38bdf8;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.auto-set-badge.confirmed {
+    animation: none;
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.auto-set-badge.confirmed .pulse-dot {
+    background: #34d399;
+}
+
+.tool-dialog-input.is-auto-set {
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.tool-setup-header-status {
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-left: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    vertical-align: middle;
+}
+
+.tool-setup-header-status a {
+    color: #38bdf8;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.72rem;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+.tool-setup-header-status a:hover {
+    color: #ffffff;
+}
+

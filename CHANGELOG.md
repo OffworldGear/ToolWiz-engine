@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-09-18
 
 ### Added
+- **Subtle Pulsing 'Auto-Set' Parameter Indicators & Smart Geometry Audits**:
+  - **Gentle Breathing Indicators**: Tool geometry parameters that are currently populated with system/catalog defaults (`Tool Stickout`, `Flute Length`, `Flute Count`, `Helix Angle`, `Corner Radius`) display a soft pulsing cyan pill badge: `<span class="auto-set-badge"><span class="pulse-dot"></span>Auto</span>`.
+  - **One-Click Confirmation & Friction-Free Clearing**:
+    - Clicking an `Auto` badge instantly marks the value confirmed (`✓`) and halts the pulse animation.
+    - Typing or dragging a range slider immediately clears the auto-set badge and marks the field as user-edited.
+    - Added a global `Tool Properties (X Auto-Set) · [Confirm All]` header pill to acknowledge all defaults in a single click.
+  - **Out-of-Spec Smart Scaling (Layer 1 Guardrail)**: Automatically intervenes only when geometry values become wildly out of physical spec upon diameter or tool changes (e.g. stickout $> 5.5\times D$, flute length $> 4.5\times D$, or stickout $<$ flute length), re-normalizing them to safe shop proportions and pulsing the `Auto` badge.
+  - **Machining Advisor Geometry Sanity Audits**: Added active physics rules flagging extended stickout ($> 3.5\times D$), severe stickout ($> 4.5\times D$), 4+ flutes in aluminum roughing, and collet chuck clamping across cutting flutes.
 - **High Feed Milling (HFM) & Window Machining Integration**:
   - **Dynamic UI Gating**: High Feed options (`High Feed Milling` and `High Feed Slotting / Window Profiling`) are strictly gated and visible only when a High Feed capable cutter (`High Feed Mill` or `Bullnose / Radiused`) is selected. Auto-reverts safely if the user switches to a Square End Mill or Drill.
   - **New Tool Variants**: Added `HP Carbide High Feed Endmill`, `Carbide High Feed Endmill`, `HP Carbide Bull Nose Endmill`, and `Carbide Bull Nose Endmill` to the End Mills tool category group.
