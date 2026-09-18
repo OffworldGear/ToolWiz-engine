@@ -9,19 +9,25 @@ import httpx
 
 
 SYSTEM_INSTRUCTION = """You are the ToolWiz AI Machinist & Senior CAM Applications Engineer (Fusion 360, Mastercam, Siemens NX).
-You have deep, first-principles expertise in cutting tool mechanics, metallurgy (work-hardening, austenitic stainless, superalloys, titanium), machine rigidity, cantilever beam deflection, surface finish, chip thinning, entry dynamics, and CAM toolpath strategies.
+You have deep, first-principles expertise in cutting tool mechanics, metallurgy (work-hardening in austenitic stainless like 316 and Nitronic 60, titanium, nickel superalloys), machine tool stiffness, spindle thrust compliance, cantilever beam deflection, surface finish, chip thinning, entry dynamics, and CAM compensation strategies.
 
 You are provided with the live ToolWiz session state (material alloy, cutter geometry, cut depths, speeds, feeds, calculated deflection, and active physics advisor alerts).
 
-When answering:
-1. Directly and thoroughly answer the user's specific question with actionable, shop-floor proven recommendations.
-2. Directly reference the active machining context provided (e.g. active material alloy, cutter diameter, stickout, calculated deflection, and operation).
-3. If asked about CAM parameters (like Stock to Leave, Negative Stock to Leave, Stepover, Ramping Angle, Spring Passes, Lead-in/Lead-out):
-   - Provide concrete, numeric values with units (both Imperial and Metric).
-   - Explain the physical and metallurgical mechanics (e.g. radial tool deflection vs axial spindle compliance vs elastic workpiece springback).
-   - Detail the exact CAM software workflow (e.g., in Fusion 360 2D/3D Contour or Flat Finishing).
-4. Warn the machinist of potential failure modes (e.g. accidental floor gouging, work hardening from rubbing, thermal shock in wet milling, chatter due to stickout) and provide mitigation steps.
-5. Format your output clearly in clean GitHub Flavored Markdown with bold headers, bullet points, and code/parameter callouts.
+CRITICAL MACHINING PRINCIPLES TO APPLY:
+1. Deflection vs. Springback on Flat / Floor Finishing:
+   - On flat floors, lateral/radial cutter deflection (Fradial) is negligible because cutting occurs with the bottom end-teeth (wiper/dish geometry) rather than side flutes.
+   - However, axial cutting force (Fz thrust) pushes vertically into the machine spindle bearings and Z-axis ballscrew.
+   - In high-yield, work-hardening alloys like Nitronic 60, austenitic stainless, or thin-walled pocket floors, cutting edge hone/micro-radii and tool pressure push the material elastically downward. When the tool passes, the material springs back up, leaving the finished floor proud (thick by +0.0005" to +0.0015" / +0.012 to +0.038 mm).
+   - CAM Compensation Solutions:
+     * Standard Best Practice: Run a dedicated semi-finishing pass leaving uniform +0.005" (0.125 mm), followed by a Spring Pass (repeating the flat finish toolpath at nominal 0.0000" stock).
+     * Controlled Negative Axial Stock: If elastic springback persists after a spring pass, applying a small negative axial stock to leave in CAM (-0.0005" to -0.0010" / -0.012 to -0.025 mm) while strictly keeping radial stock at 0.0000" is an established master-machinist technique to bring the floor to nominal tolerance.
+     * Safeguards: Never apply negative radial stock (which gouges adjacent vertical walls), and ensure a semi-finishing pass was run so cutting forces are uniform across the entire floor.
+
+2. Tone and Style:
+   - Provide concrete, nuanced, shop-floor proven advice. Avoid simplistic "never do this" rules; explain the underlying physics, when advanced techniques are used, and the necessary safeguards.
+   - Always quote specific numbers and units (both Imperial and Metric).
+   - Reference the active cutter and material telemetry provided in the prompt.
+   - Format cleanly in GitHub Flavored Markdown with bold headers, bullet points, and code/parameter callouts.
 """
 
 
@@ -218,10 +224,11 @@ def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
         return [], f"Model discovery network error: {str(e)}"
 
 
-def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -> dict:
+def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, preferred_model: str = None) -> dict:
     """
     Sends the user prompt along with live ToolWiz telemetry to Google Gemini.
     Dynamically resolves supported models via ModelService.ListModels.
+    Concatenates all response parts to prevent truncation.
     Falls back gracefully to the built-in offline machining knowledge engine if no key is configured or API errors occur.
     """
     key = (api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
@@ -254,16 +261,29 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -
             "warning": discovery_err
         }
 
-    # If dynamic lookup succeeded, use top discovered models; otherwise use safe candidate fallbacks
-    candidate_models = discovered_models[:5] if discovered_models else [
-        "gemini-2.0-flash", "gemini-2.0-flash-exp", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-pro"
-    ]
+    # If user selected a specific model (e.g. gemini-2.5-pro), prioritize it first
+    pref = (preferred_model or "").strip()
+    candidates = []
+    if pref and pref.lower() != "auto":
+        candidates.append(pref)
 
+    # Add discovered models
+    if discovered_models:
+        for m in discovered_models:
+            if m not in candidates:
+                candidates.append(m)
+    else:
+        for m in ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-pro"]:
+            if m not in candidates:
+                candidates.append(m)
+
+    candidate_models = candidates[:6]
     last_err = discovery_err or "No response"
 
-    # 2. Query Gemini with the best available model candidate
+    # 2. Query Gemini with the candidate models
     for model in candidate_models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        clean_model = model.replace("models/", "").strip()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={key}"
         payload = {
             "system_instruction": {
                 "parts": [{"text": SYSTEM_INSTRUCTION}]
@@ -275,26 +295,30 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -
                 }
             ],
             "generationConfig": {
-                "temperature": 0.4,
-                "maxOutputTokens": 2048,
+                "temperature": 0.35,
+                "maxOutputTokens": 4096,
             }
         }
 
         try:
-            with httpx.Client(timeout=25.0) as client:
+            with httpx.Client(timeout=30.0) as client:
                 resp = client.post(url, json=payload)
                 if resp.status_code == 200:
                     data = resp.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            text = parts[0].get("text", "")
+                    candidates_list = data.get("candidates", [])
+                    if candidates_list:
+                        candidate = candidates_list[0]
+                        content = candidate.get("content", {})
+                        parts = content.get("parts", [])
+                        # Concatenate all text parts to guarantee complete, untruncated answers
+                        text_chunks = [p.get("text", "") for p in parts if "text" in p]
+                        text = "".join(text_chunks).strip()
+                        if text:
                             return {
                                 "success": True,
                                 "reply": text,
                                 "mode": "gemini_live",
-                                "model": model,
+                                "model": clean_model,
                                 "apiKeyConfigured": True
                             }
                 else:
@@ -302,9 +326,9 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -
                         err_msg = resp.json().get("error", {}).get("message", resp.text[:150])
                     except Exception:
                         err_msg = resp.text[:150]
-                    last_err = f"HTTP {resp.status_code} ({model}): {err_msg}"
+                    last_err = f"HTTP {resp.status_code} ({clean_model}): {err_msg}"
         except Exception as e:
-            last_err = f"Network exception ({model}): {str(e)}"
+            last_err = f"Network exception ({clean_model}): {str(e)}"
 
     # If all live attempts failed, fall back cleanly to knowledge engine with diagnostic message
     offline_reply = get_offline_expert_response(prompt, context or {})

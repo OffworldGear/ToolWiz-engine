@@ -86,6 +86,30 @@ class TestAiMachinist(unittest.TestCase):
         data = resp.get_json()
         self.assertFalse(data.get("success"))
 
+    def test_get_ai_models_endpoint(self):
+        """Verify GET /api/ai_models returns available models list."""
+        resp = self.client.get("/api/ai_models")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data.get("success"))
+        model_ids = [m["id"] for m in data.get("models", [])]
+        self.assertIn("auto", model_ids)
+        self.assertIn("gemini-2.5-pro", model_ids)
+        self.assertIn("gemini-2.5-flash", model_ids)
+
+    def test_api_endpoint_with_model_preference(self):
+        """Verify POST /api/ai_chat accepts preferred model parameter."""
+        payload = {
+            "message": "Should I use climb milling for finishing Nitronic 60?",
+            "model": "gemini-2.5-pro",
+            "context": {"material": "Nitronic 60", "diameter": 0.5}
+        }
+        resp = self.client.post("/api/ai_chat", json=payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data.get("success"))
+        self.assertIn("reply", data)
+
 
 if __name__ == "__main__":
     unittest.main()

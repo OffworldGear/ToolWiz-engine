@@ -3,7 +3,7 @@ import math
 import uuid
 from flask import Flask, render_template, request, jsonify
 from gwizard_physics import GWizardPhysics
-from ai_machinist import query_ai_machinist
+from ai_machinist import query_ai_machinist, get_available_gemini_models
 
 app = Flask(__name__)
 
@@ -1082,13 +1082,47 @@ def ai_chat():
             
         context = data.get("context", {})
         api_key = data.get("apiKey", "").strip() or None
+        preferred_model = data.get("model", "").strip() or None
         
-        result = query_ai_machinist(message, context=context, api_key=api_key)
+        result = query_ai_machinist(message, context=context, api_key=api_key, preferred_model=preferred_model)
         return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/ai_models", methods=["GET"])
+def ai_models():
+    """Returns the list of available Gemini models for the configured or provided API key"""
+    try:
+        api_key = request.args.get("apiKey", "").strip() or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
+        if not api_key:
+            return jsonify({
+                "success": True,
+                "models": [
+                    {"id": "auto", "name": "⚡ Auto-Detect Best (Recommended)"},
+                    {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Deep CAM Reasoning)"},
+                    {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Fast)"}
+                ]
+            })
+            
+        models, err = get_available_gemini_models(api_key)
+        if err and "Authentication Error" in err:
+            return jsonify({"success": False, "error": err}), 400
+            
+        result_list = [{"id": "auto", "name": "⚡ Auto-Detect Best (Recommended)"}]
+        for m in (models or ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]):
+            label = m
+            if "pro" in m.lower():
+                label = f"{m} (Deep CAM Reasoning)"
+            elif "flash" in m.lower():
+                label = f"{m} (Fast)"
+            result_list.append({"id": m, "name": label})
+            
+        return jsonify({"success": True, "models": result_list})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     # Run the Flask app on localhost:5000
     app.run(host="127.0.0.1", port=5000, debug=True)
+
 

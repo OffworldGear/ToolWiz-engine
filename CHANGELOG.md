@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-09-18
 
 ### Fixed
+- **AI Chat Response Truncation Resolution (`ai_machinist.py`)**:
+  - Replaced single-part extraction (`parts[0].get("text", "")`) with complete parts stream concatenation (`"".join(p.get("text", "") for p in parts if "text" in p)`), preventing multi-chunk Google Gemini API responses from cutting off mid-sentence.
+  - Increased `maxOutputTokens` from 2048 to 4096 to ensure extensive machining physics analyses, CAM setup recommendations, and code callouts render completely without truncation.
 - **Auto-Set Indicator Manual Selection Integrity & Out-of-Spec Guardrail Alignment**:
   - **Ratio Quick-Set Override Resolution (`setFluteRatio`)**: Resolved an issue in `templates/index.html` where clicking quick-ratio buttons (`3xD`, `4xD`, `5xD`) explicitly set `autoSetTracker.fluteLength = true` and `autoSetTracker.stickout = true`, re-triggering the flashing `[⚡ Auto]` badge despite deliberate user selection. Ratio button clicks are now treated as explicit manual selections (`autoSetTracker = false`), immediately hiding auto-set badges and persisting the choice.
   - **Datalist Selection Event Catch (`onchange`)**: Added `onchange="markManualEdit('fluteLength'); calculate()"` to `<input id="fluteLength">`, ensuring standard flute length picks from `<datalist id="flute_list">` reliably clear the auto-set badge in browsers where datalist selection fires `change` without `input`.
@@ -38,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *"What entry ramping angle and strategy is optimal for this cutter in this alloy?"*
     - *"How can I mitigate chatter with this stickout and flute length?"*
     - *"Should I use climb or conventional milling for finishing this workpiece?"*
+  - **AI Model Selector & Active Model Transparency**:
+    - **Interactive Model Dropdown**: Added model selection dropdowns in both the AI chat drawer header (`#aiDrawerModelSelect`) and the settings modal (`#aiSettingsModelSelect`), allowing instant switching between `⚡ Auto-Detect Best`, `Gemini 2.5 Pro (Deep CAM Reasoning)`, and `Gemini 2.5 Flash (Fast)`.
+    - **Active Model Verification Badge**: Displays the exact model that generated the answer on every response bubble header (`.ai-model-tag`), with distinct styling badges for Pro, Flash, and Offline Knowledge Engine.
+    - **Dynamic Model Discovery (`GET /api/ai_models`)**: Integrates with Google's `ModelService.ListModels` to automatically discover available models authorized on the user's API key and prevent 404 retired model errors.
+    - **Physics-Informed System Prompt & Fallbacks**: Encoded first-principles CAM engineering logic into the system instructions and offline fallback engine for flat floor finishing, workpiece elastic springback vs. lateral deflection, spring passes, and negative axial stock safeguards.
   - **Client API Key Configuration**: Dedicated settings modal (`⚙️`) allowing users to store their Google Gemini API key securely in browser `localStorage` or configure `GEMINI_API_KEY` on the server.
 - **Automatic "Auto-Set Dials" Execution on Tool Diameter Change**:
   - **Automated Dials Calibration**: Automatically executes "Auto-Set Dials" (`applyRecommendations()`) whenever a new tool diameter is set — whether selected from the standard datalist dropdown, typed into the numeric dialog, or transferred from the Thread & Tap calculator.

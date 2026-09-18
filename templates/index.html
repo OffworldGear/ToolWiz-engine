@@ -810,7 +810,12 @@
                 </div>
             </div>
             <div class="ai-header-actions">
-                <button type="button" class="ai-action-btn" onclick="openAiSettingsModal()" title="API Key Settings">⚙️</button>
+                <select id="aiDrawerModelSelect" class="ai-header-model-select" onchange="onAiModelChange(this.value)" title="Select Gemini Reasoning Model">
+                    <option value="auto">⚡ Auto (Recommended)</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep CAM)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
+                </select>
+                <button type="button" class="ai-action-btn" onclick="openAiSettingsModal()" title="API Key & Model Settings">⚙️</button>
                 <button type="button" class="ai-action-btn" onclick="toggleAiChatDrawer()" title="Close Drawer">✕</button>
             </div>
         </div>
@@ -867,12 +872,21 @@
             </div>
             <div class="ai-modal-body">
                 <p style="color:#cbd5e1; font-size:0.85rem; margin-top:0; margin-bottom:1rem;">
-                    ToolWiz AI Machinist connects directly to Google Gemini 2.5 Flash for deep CAM reasoning. You can obtain a free API key at <a href="https://aistudio.google.com/" target="_blank" style="color:#38bdf8; text-decoration:underline;">Google AI Studio</a>.
+                    ToolWiz AI Machinist connects directly to Google Gemini (Pro & Flash) for deep CAM reasoning. You can obtain a free API key at <a href="https://aistudio.google.com/" target="_blank" style="color:#38bdf8; text-decoration:underline;">Google AI Studio</a>.
                 </p>
                 <div class="input-group">
                     <label for="geminiApiKeyInput">Google Gemini API Key</label>
                     <input type="password" id="geminiApiKeyInput" class="tool-dialog-input" placeholder="AIzaSy..." autocomplete="off">
                     <small style="color:#94a3b8; font-size:0.75rem; display:block; margin-top:4px;">Stored safely in your local browser storage (or configure GEMINI_API_KEY in server .env).</small>
+                </div>
+                <div class="input-group" style="margin-top: 1rem;">
+                    <label for="aiSettingsModelSelect">Reasoning Model</label>
+                    <select id="aiSettingsModelSelect" class="tool-dialog-input" onchange="onAiModelChange(this.value)">
+                        <option value="auto">⚡ Auto-Detect Best (Recommended)</option>
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep CAM Reasoning)</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
+                    </select>
+                    <small style="color:#94a3b8; font-size:0.75rem; display:block; margin-top:4px;">Gemini 2.5 Pro provides deep metallurgical & CAM toolpath physics reasoning; Flash is optimized for speed.</small>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
                     <button type="button" class="btn-ratio" onclick="clearApiKey()" style="color:#ef4444; border-color:rgba(239,68,68,0.4);">Clear Key</button>
@@ -1421,6 +1435,7 @@
             calculate();
             renderAutoSetBadges();
             loadThreadStandards();
+            loadAiModelsList();
         }
 
         function updateGeometryDisplay(source) {
@@ -3494,6 +3509,9 @@
             if (aiChatOpen) {
                 drawer.classList.add('open');
                 updateAiTelemetryChip();
+                const savedModel = localStorage.getItem('gemini_model') || 'auto';
+                const drawerSelect = document.getElementById('aiDrawerModelSelect');
+                if (drawerSelect && drawerSelect.value !== savedModel) drawerSelect.value = savedModel;
                 setTimeout(() => {
                     const input = document.getElementById('aiChatInput');
                     if (input) input.focus();
@@ -3646,6 +3664,7 @@
             try {
                 const contextPayload = collectAiContextPayload();
                 const savedApiKey = localStorage.getItem('gemini_api_key') || '';
+                const selectedModel = localStorage.getItem('gemini_model') || 'auto';
 
                 const resp = await fetch('/api/ai_chat', {
                     method: 'POST',
@@ -3653,6 +3672,7 @@
                     body: JSON.stringify({
                         message: message,
                         apiKey: savedApiKey,
+                        model: selectedModel,
                         context: contextPayload
                     })
                 });
@@ -3665,13 +3685,42 @@
                 if (data.success) {
                     const aiMsgDiv = document.createElement('div');
                     aiMsgDiv.className = 'ai-message ai-message-assistant';
-                    const modelLabel = data.model === 'gemini-2.5-flash' ? 'Google Gemini 2.5 Flash' : (data.mode === 'gemini_live' ? 'Gemini AI' : 'ToolWiz Knowledge Engine');
+                    
+                    let modelTagClass = 'ai-model-tag';
+                    let modelName = data.model || '';
+                    let displayModel = 'ToolWiz Knowledge Engine';
+                    if (data.mode === 'gemini_live') {
+                        if (modelName.toLowerCase().includes('pro')) {
+                            displayModel = `Gemini ${modelName.replace('models/', '').replace('gemini-', '')} (Pro)`;
+                            modelTagClass += ' pro';
+                        } else if (modelName.toLowerCase().includes('flash')) {
+                            displayModel = `Gemini ${modelName.replace('models/', '').replace('gemini-', '')} (Flash)`;
+                            modelTagClass += ' flash';
+                        } else {
+                            displayModel = `Gemini ${modelName.replace('models/', '').replace('gemini-', '')}`;
+                        }
+                    } else {
+                        modelTagClass += ' offline';
+                    }
+
+                    // Update header badge to reflect the model that answered
+                    const badge = document.getElementById('aiModelBadge');
+                    if (badge) {
+                        if (data.mode === 'gemini_live' && data.model) {
+                            if (data.model.includes('pro')) badge.innerText = '2.5 Pro';
+                            else if (data.model.includes('flash')) badge.innerText = '2.5 Flash';
+                            else badge.innerText = data.model.replace('gemini-', '').replace('models/', '');
+                        } else {
+                            badge.innerText = 'Offline Engine';
+                        }
+                    }
+
                     aiMsgDiv.innerHTML = `
                         <div class="ai-bubble">
                             <div class="ai-bubble-header">
                                 <span class="ai-avatar">🤖</span> 
                                 <strong>ToolWiz Co-Pilot</strong>
-                                <span style="font-size:0.7rem; color:#64748b; margin-left:auto;">${modelLabel}</span>
+                                <span class="${modelTagClass}">${displayModel}</span>
                             </div>
                             <div class="ai-bubble-body">
                                 ${renderAiMarkdown(data.reply)}
@@ -3708,11 +3757,72 @@
             }
         }
 
+        function onAiModelChange(newModel) {
+            if (!newModel) return;
+            localStorage.setItem('gemini_model', newModel);
+            
+            const drawerSelect = document.getElementById('aiDrawerModelSelect');
+            const settingsSelect = document.getElementById('aiSettingsModelSelect');
+            if (drawerSelect && drawerSelect.value !== newModel) drawerSelect.value = newModel;
+            if (settingsSelect && settingsSelect.value !== newModel) settingsSelect.value = newModel;
+            
+            const badge = document.getElementById('aiModelBadge');
+            if (badge) {
+                if (newModel === 'auto') {
+                    badge.innerText = 'Auto';
+                } else if (newModel.includes('pro')) {
+                    badge.innerText = '2.5 Pro';
+                } else if (newModel.includes('flash')) {
+                    badge.innerText = '2.5 Flash';
+                } else {
+                    badge.innerText = newModel.replace('gemini-', '').replace('models/', '');
+                }
+            }
+        }
+
+        async function loadAiModelsList(apiKey) {
+            try {
+                const key = apiKey !== undefined ? apiKey : (localStorage.getItem('gemini_api_key') || '');
+                const url = key ? `/api/ai_models?apiKey=${encodeURIComponent(key)}` : '/api/ai_models';
+                const resp = await fetch(url);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (data.success && Array.isArray(data.models) && data.models.length > 0) {
+                    const drawerSelect = document.getElementById('aiDrawerModelSelect');
+                    const settingsSelect = document.getElementById('aiSettingsModelSelect');
+                    const savedModel = localStorage.getItem('gemini_model') || 'auto';
+                    
+                    [drawerSelect, settingsSelect].forEach(sel => {
+                        if (!sel) return;
+                        const prevVal = sel.value || savedModel;
+                        sel.innerHTML = '';
+                        data.models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m.id;
+                            opt.innerText = m.name;
+                            sel.appendChild(opt);
+                        });
+                        if (data.models.some(m => m.id === prevVal)) {
+                            sel.value = prevVal;
+                        } else {
+                            sel.value = 'auto';
+                        }
+                    });
+                    onAiModelChange(savedModel);
+                }
+            } catch (err) {
+                console.warn('Failed to load AI models list:', err);
+            }
+        }
+
         function openAiSettingsModal() {
             const modal = document.getElementById('aiSettingsModal');
             const input = document.getElementById('geminiApiKeyInput');
             if (modal) modal.style.display = 'flex';
             if (input) input.value = localStorage.getItem('gemini_api_key') || '';
+            const settingsSelect = document.getElementById('aiSettingsModelSelect');
+            const savedModel = localStorage.getItem('gemini_model') || 'auto';
+            if (settingsSelect) settingsSelect.value = savedModel;
         }
 
         function closeAiSettingsModal() {
@@ -3729,6 +3839,7 @@
                 } else {
                     localStorage.removeItem('gemini_api_key');
                 }
+                loadAiModelsList(key);
             }
             closeAiSettingsModal();
         }
@@ -3737,6 +3848,7 @@
             localStorage.removeItem('gemini_api_key');
             const input = document.getElementById('geminiApiKeyInput');
             if (input) input.value = '';
+            loadAiModelsList('');
             closeAiSettingsModal();
         }
 
