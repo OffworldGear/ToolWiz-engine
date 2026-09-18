@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-09-18
 
 ### Added
+- **High Feed Milling (HFM) & Window Machining Integration**:
+  - **Dynamic UI Gating**: High Feed options (`High Feed Milling` and `High Feed Slotting / Window Profiling`) are strictly gated and visible only when a High Feed capable cutter (`High Feed Mill` or `Bullnose / Radiused`) is selected. Auto-reverts safely if the user switches to a Square End Mill or Drill.
+  - **New Tool Variants**: Added `HP Carbide High Feed Endmill`, `Carbide High Feed Endmill`, `HP Carbide Bull Nose Endmill`, and `Carbide Bull Nose Endmill` to the End Mills tool category group.
+  - **Axial Chip Thinning Factor (ACTF)**: Physics engine computes instantaneous axial chip thinning ($ACTF = \frac{1}{\sin(\kappa_r)}$) for low lead angles ($\sim 12^\circ - 15^\circ$, delivering $3.5\times - 5.0\times$ feed boosts) and circular bullnose radius geometry ($DOC < R_{corner}$).
+  - **Force Decomposition & Deflection**: Incorporates axial load redirection (~85% axial into machine spindle), scaling down lateral tool deflection force ($F_{lateral} \ll F_{radial}$).
+  - **Window Machining / Slotting with Tabs**: First-class support for full slotting ($WOC = 1.0\times D$) at shallow DOC for cutting part profiles; Advisor provides specialized guidance on near-zero lateral force protecting delicate holding tabs, paired with compressed air blast recommendations.
+  - **Red Critical Rule Violation Warnings**: Machining Advisor dynamically inspects cut geometry and flags hard violations in **RED** (`type: "critical"`):
+    - Square End Mill selected with High Feed strategy.
+    - Bullnose tool with undefined/zero corner radius ($R \le 0.001"$).
+    - Depth of cut exceeding safe high-feed threshold ($DOC > 0.05\times D$ for dedicated high feed mills).
+    - Depth of cut exceeding 35% of bullnose corner radius ($DOC > 0.35\times R_{corner}$).
+  - **Ramping Angle Clamping**: Automatically limits ramping angle to $\le 1.5^\circ$ for high feed cutters to prevent tool heel dragging.
 - **Permanent Machining Advisor & Guidance Panel**:
   - Repositioned Machining Advisor directly beneath Material Removal Rate and Tool Deflection (above Ramp & Plunge Feed).
   - Permanently visible at all times, with dynamic status pills and zero-scroll placement.

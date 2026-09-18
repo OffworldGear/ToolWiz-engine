@@ -209,25 +209,48 @@ class CuttingKinematics:
             return 1.0
 
     @staticmethod
-    def axial_chip_thinning_factor(cut_depth: float, diameter: float, geometry: str = "Square", corner_radius: float = 0.0) -> float:
+    def axial_chip_thinning_factor(cut_depth: float, diameter: float, geometry: str = "Square", corner_radius: float = 0.0, operation: str = "Roughing") -> float:
         """
         Calculates Axial Chip Thinning Factor (ACTF) for round/radiused insert geometry
-        where depth of cut (ap) is less than insert radius.
+        and dedicated high-feed cutters where depth of cut (ap) produces chip thinning.
         """
         if cut_depth <= 0.0 or diameter <= 0.0:
             return 1.0
 
-        effective_radius = 0.0
-        if "Ball" in geometry:
-            effective_radius = diameter / 2.0
-        elif ("Radiused" in geometry or "Bull" in geometry) and corner_radius > 0.0:
-            effective_radius = corner_radius
+        op_low = str(operation).lower()
+        geo_low = str(geometry).lower()
+        is_high_feed_mode = "high feed" in op_low or "high feed" in geo_low
 
-        if effective_radius > 0.0 and cut_depth < effective_radius:
-            eff_dia = 2.0 * math.sqrt(max(1e-6, effective_radius**2 - (effective_radius - cut_depth)**2))
-            if eff_dia > 0.0:
-                actf = diameter / eff_dia
+        if is_high_feed_mode:
+            # Bullnose / Radiused endmill in high feed:
+            if ("radiused" in geo_low or "bull" in geo_low) and corner_radius > 0.0:
+                if cut_depth < corner_radius:
+                    ratio = min(0.99, max(0.01, cut_depth / corner_radius))
+                    sin_kr = math.sqrt(max(0.04, 2.0 * ratio - ratio**2))
+                    return min(1.0 / sin_kr, 5.0)
+                else:
+                    return 1.0
+            else:
+                # Dedicated High Feed Mill with ~12-15 degree lead angle (~13.5 deg lead)
+                lead_angle_rad = math.radians(13.5)
+                actf = 1.0 / math.sin(lead_angle_rad)
                 return min(actf, 5.0)
+
+        # Standard Ball Nose milling
+        if "ball" in geo_low:
+            effective_radius = diameter / 2.0
+            if cut_depth < effective_radius:
+                eff_dia = 2.0 * math.sqrt(max(1e-6, effective_radius**2 - (effective_radius - cut_depth)**2))
+                if eff_dia > 0.0:
+                    actf = diameter / eff_dia
+                    return min(actf, 5.0)
+
+        # Standard Bullnose / Radiused milling
+        elif ("radiused" in geo_low or "bull" in geo_low) and corner_radius > 0.0:
+            if cut_depth < corner_radius:
+                ratio = min(0.99, max(0.01, cut_depth / corner_radius))
+                sin_kr = math.sqrt(max(0.04, 2.0 * ratio - ratio**2))
+                return min(1.0 / sin_kr, 5.0)
 
         return 1.0
 
@@ -573,7 +596,10 @@ class CuttingMechanics:
         rpm: float,
         flutes: int,
         unit_hp: float,
-        helix_angle: float = 30.0
+        helix_angle: float = 30.0,
+        operation: str = "Roughing",
+        geometry: str = "Square",
+        corner_radius: float = 0.0
     ) -> Tuple[float, float, float, float]:
         """
         Calculates cutting forces (lbs), torque (in-lbs), and spindle power (HP).
@@ -603,7 +629,19 @@ class CuttingMechanics:
         kr_ratio = 0.35 + 0.25 * max(0.0, 1.0 - 2.0 * radial_immersion)
         radial_force = tangential_force * kr_ratio
 
-        deflection_force = math.sqrt(tangential_force**2 + radial_force**2)
+        op_low = str(operation).lower()
+        is_high_feed = "high feed" in op_low or geometry == "High Feed"
+        if is_high_feed:
+            lead_angle_rad = math.radians(13.0)
+            if ("radiused" in geometry.lower() or "bull" in geometry.lower()) and corner_radius > 0.0:
+                if cut_depth < corner_radius:
+                    ratio = min(0.95, cut_depth / corner_radius)
+                    lead_angle_rad = max(math.radians(10.0), math.acos(1.0 - ratio) / 1.7)
+            sin_lead = math.sin(lead_angle_rad)
+            # In high feed, ~85% of force is axial into spindle; lateral bending force is scaled by sin(lead_angle)
+            deflection_force = math.sqrt(tangential_force**2 + (radial_force * sin_lead)**2) * sin_lead * 1.5
+        else:
+            deflection_force = math.sqrt(tangential_force**2 + radial_force**2)
 
         return tangential_force, radial_force, deflection_force, spindle_hp
 
@@ -757,11 +795,13 @@ class OptimizationEngine:
         neck_length: float = 0.5,
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
-        neck_diameter: Optional[float] = None
+        neck_diameter: Optional[float] = None,
+        corner_radius: float = 0.0
     ) -> Tuple[float, float, float]:
         default_max_deflect = diameter * 0.002
         op_low = operation.lower()
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low
+        is_high_feed = "high feed" in op_low or geometry == "High Feed" or "high feed" in str(geometry).lower()
         mat_fam_low = str(material_family).lower() if material_family else ""
         is_non_ferrous = any(m in mat_fam_low for m in ["aluminum", "brass", "copper", "magnesium", "plastic", "wood"])
         is_superalloy = any(m in mat_fam_low for m in ["titanium", "inconel", "nickel", "cobalt", "waspaloy", "hastelloy"])
@@ -770,6 +810,9 @@ class OptimizationEngine:
         if is_adaptive:
             # High Efficiency Milling (HEM) uses roughing-grade allowable deflection (0.001" - 0.003" based on aggressiveness)
             target_deflection = diameter * 0.006 * (0.35 + aggressiveness * 0.65)
+        elif is_high_feed:
+            # High feed operations direct ~85% force axially into spindle; lateral deflection is minimal
+            target_deflection = default_max_deflect * (0.5 + aggressiveness * 0.8)
         else:
             target_deflection = default_max_deflect * (0.2 + aggressiveness)
 
@@ -777,6 +820,8 @@ class OptimizationEngine:
             target_woc = diameter * 0.05
         elif "slot" in op_low:
             target_woc = diameter
+        elif is_high_feed:
+            target_woc = diameter * 0.65
         elif is_adaptive:
             # High Efficiency Milling (HEM) chip-thinning radial stepover window:
             # Continuous physics scaling across tool diameters (from micro 1/32" up to macro 1/4"+):
@@ -831,6 +876,14 @@ class OptimizationEngine:
             rec_doc = diameter * 0.15 if geometry in ["V-Bit", "Chamfer", "Chamfer Mill"] else diameter * 0.05
             return rec_doc, rec_woc, target_deflection
 
+        if is_high_feed:
+            if ("radiused" in geometry.lower() or "bull" in geometry.lower()) and corner_radius > 0.0:
+                rec_doc = min(corner_radius * 0.20, diameter * 0.035)
+            else:
+                rec_doc = diameter * 0.035
+            rec_doc = max(rec_doc, 0.001)
+            return rec_doc, target_woc, target_deflection
+
         if is_adaptive:
             if is_non_ferrous:
                 macro_doc_mult = 2.0
@@ -872,7 +925,7 @@ class OptimizationEngine:
 
         while current_doc <= max_doc:
             adj_ipt = physics.calc_adjusted_chipload(
-                base_ipt, current_doc, target_woc, diameter, diameter, operation=operation, geometry=geometry
+                base_ipt, current_doc, target_woc, diameter, diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
             )
             feed = physics.calc_feedrate(eval_rpm, flutes, adj_ipt)
 
@@ -880,11 +933,12 @@ class OptimizationEngine:
                 diameter, shank_size, stickout, current_doc, target_woc, feed, eval_rpm, flutes,
                 is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
                 neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
-                neck_diameter=neck_diameter
+                neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
             )
 
             _, _, _, est_hp = CuttingMechanics.calc_cutting_forces(
-                diameter, current_doc, target_woc, feed, eval_rpm, flutes, unit_hp, helix_angle
+                diameter, current_doc, target_woc, feed, eval_rpm, flutes, unit_hp, helix_angle,
+                operation=operation, geometry=geometry, corner_radius=corner_radius
             )
 
             if deflect >= target_deflection or est_hp >= max_hp:
@@ -927,7 +981,8 @@ class AdvisoryEngine:
         operation: str = "Roughing",
         tap_type: str = "form",
         neck_diameter: float = 0.0,
-        alloy: str = ""
+        alloy: str = "",
+        corner_radius: float = 0.0
     ) -> List[Dict[str, str]]:
         tips: List[Dict[str, str]] = []
         if rpm <= 0.0 or flutes <= 0 or diameter <= 0.0:
@@ -1191,6 +1246,78 @@ class AdvisoryEngine:
                         "type": "warning"
                     })
 
+        # High Feed Milling (HFM) validation and advisory
+        is_hf_op = "high feed" in str(operation).lower() or geometry == "High Feed" or "high feed" in str(geometry).lower() or "high feed" in str(tool_type).lower()
+        if is_hf_op:
+            is_bullnose = "radiused" in geometry.lower() or "bull" in geometry.lower() or "bull" in tool_type.lower()
+            is_dedicated_hf = geometry == "High Feed" or "high feed" in tool_type.lower() or "high feed" in geometry.lower()
+
+            if not is_bullnose and not is_dedicated_hf:
+                tips.append({
+                    "title": "High Feed Tool Incompatibility",
+                    "message": (
+                        "High Feed Milling cannot be performed with a Square End Mill. The 90° lead angle creates full uncut chip "
+                        "thickness and massive lateral loads, leading to immediate tool failure at high feedrates. Switch tool geometry "
+                        "to Bullnose / Radiused or a dedicated High Feed End Mill."
+                    ),
+                    "type": "critical"
+                })
+            elif is_bullnose and corner_radius <= 0.001:
+                tips.append({
+                    "title": "High Feed Geometry Violation",
+                    "message": (
+                        "High Feed Milling with a Bullnose tool requires a defined Corner Radius to activate Axial Chip Thinning. "
+                        "With zero corner radius, cutting edges generate 100% radial deflection force, risking tool fracture. "
+                        "Specify your tool's corner radius in the input field."
+                    ),
+                    "type": "critical"
+                })
+
+            if is_dedicated_hf:
+                max_hf_doc = 0.05 * diameter
+                if cut_depth > (max_hf_doc * 1.05):
+                    tips.append({
+                        "title": "High Feed DOC Exceeded",
+                        "message": (
+                            f"Axial Depth of Cut ({cut_depth:.4f}\" / {cut_depth*25.4:.2f} mm) exceeds the maximum high-feed threshold "
+                            f"(0.05xD = {max_hf_doc:.4f}\" / {max_hf_doc*25.4:.2f} mm). Beyond this depth, the cut engages the tool heel "
+                            f"or vertical transition, overloading the spindle and destroying the cutter."
+                        ),
+                        "type": "critical"
+                    })
+            elif is_bullnose and corner_radius > 0.001:
+                max_bn_doc = 0.35 * corner_radius
+                if cut_depth > (max_bn_doc * 1.05):
+                    tips.append({
+                        "title": "Bullnose High-Feed Threshold Exceeded",
+                        "message": (
+                            f"Axial Depth of Cut ({cut_depth:.4f}\" / {cut_depth*25.4:.2f} mm) exceeds 35% of Corner Radius "
+                            f"(0.35xR = {max_bn_doc:.4f}\" / {max_bn_doc*25.4:.2f} mm). At deeper cuts, the effective entering angle climbs "
+                            f"toward 90°, eliminating axial chip thinning and shifting cutting forces from the rigid Z-axis into lateral tool bending."
+                        ),
+                        "type": "critical"
+                    })
+
+            if "slot" in str(operation).lower() or "window" in str(operation).lower():
+                tips.append({
+                    "title": "High Feed Window Machining & Tab Preservation",
+                    "message": (
+                        "High Feed Slotting at shallow DOC directs ~85% of cutting forces downward into the machine table along the rigid Z-axis. "
+                        "This near-zero radial force protects thin holding tabs from lateral bending or snapping during part profiling. "
+                        "Ensure strong compressed air blast is active to blast chips out of the deep slot channel, avoiding re-cutting."
+                    ),
+                    "type": "tip"
+                })
+            else:
+                tips.append({
+                    "title": "High Feed Dynamics",
+                    "message": (
+                        "High Feed Milling leverages axial chip thinning via low lead angles (~12°-15°), allowing chip loads 3x-5x higher than "
+                        "traditional milling. Up to 85% of cutting forces are axial into the spindle, enabling high feedrates with minimal lateral tool deflection."
+                    ),
+                    "type": "info"
+                })
+
         if not tips:
             tips.append({
                 "title": "Optimal Parameters",
@@ -1339,8 +1466,11 @@ class GWizardPhysics:
                 lookup_tool = "HSS Reamer"
             elif "tap" in t_low or tool_type == "Tapping":
                 lookup_tool = "Tapping"
-            elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
-                lookup_tool = "Carbide Endmill" if is_carbide else "HSS Endmill"
+            elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "High Feed", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
+                if "hp" in t_low:
+                    lookup_tool = "HP Carbide Endmill" if is_carbide else "HP HSS Endmill"
+                else:
+                    lookup_tool = "Carbide Endmill" if is_carbide else "HSS Endmill"
 
         for entry in self.sfm_data:
             if entry["material"] == material and entry["tool"] == lookup_tool:
@@ -1434,8 +1564,11 @@ class GWizardPhysics:
                 lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
             elif "tap" in t_low or tool_type == "Tapping":
                 lookup_tool = "Carbide Twist Drill"
-            elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
-                lookup_tool = "Carbide Endmill" if is_carbide else "HSS Endmill"
+            elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "High Feed", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
+                if "hp" in t_low:
+                    lookup_tool = "HP Carbide Endmill" if is_carbide else "HP HSS Endmill"
+                else:
+                    lookup_tool = "Carbide Endmill" if is_carbide else "HSS Endmill"
 
         for row in self.ipt_data:
             if row[0] == material and row[1] == lookup_tool:
@@ -1555,7 +1688,8 @@ class GWizardPhysics:
         operation: str = "Roughing",
         geometry: str = "Square",
         coating: str = "AlTiN",
-        tool_type: str = "end mill"
+        tool_type: str = "end mill",
+        corner_radius: float = 0.0
     ) -> float:
         adjusted_ipt = base_ipt
 
@@ -1588,11 +1722,14 @@ class GWizardPhysics:
         elif "slot" in op_low:
             cut_width = diameter
 
-        adjusted_ipt *= self.radial_chip_thinning_factor(cut_width, diameter)
+        rctf = self.radial_chip_thinning_factor(cut_width, diameter)
+        actf = CuttingKinematics.axial_chip_thinning_factor(cut_depth, diameter, geometry=geometry, corner_radius=corner_radius, operation=operation)
 
-        if 0.001 < effective_diameter < diameter:
-            actf = diameter / effective_diameter
-            adjusted_ipt *= min(actf, 5.0)
+        if actf == 1.0 and 0.001 < effective_diameter < diameter and "ball" in geometry.lower():
+            actf = min(diameter / effective_diameter, 5.0)
+
+        combined_tf = min(rctf * actf, 5.5)
+        adjusted_ipt *= combined_tf
 
         if "adaptive" in op_low or "trochoidal" in op_low:
             adjusted_ipt *= 1.30
@@ -1676,6 +1813,8 @@ class GWizardPhysics:
             plunge_feed = feedrate * (0.50 if is_spot else 1.0)
         elif geometry in ["Ball", "Radiused", "Lollipop"]:
             angle += 0.50
+        elif geometry == "High Feed" or "high feed" in str(geometry).lower() or "high feed" in str(tool_type).lower():
+            angle = min(angle, 1.5)
         elif geometry in ["T-Slot", "Dovetail", "Keyseat", "Woodruff", "Engraving"]:
             angle = 0.0
             ramp_feed = 0.0
@@ -1827,12 +1966,13 @@ class GWizardPhysics:
         operation: str = "Roughing",
         tap_type: str = "form",
         neck_diameter: float = 0.0,
-        alloy: str = ""
+        alloy: str = "",
+        corner_radius: float = 0.0
     ) -> List[Dict[str, str]]:
         return AdvisoryEngine.generate_tips(
             self, material_family, diameter, cut_depth, cut_width, feedrate, rpm, flutes,
             coating, deflection_inches, tool_type, stickout, geometry, flute_length, operation,
-            tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy
+            tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy, corner_radius=corner_radius
         )
 
     def tool_deflection(
@@ -1851,7 +1991,10 @@ class GWizardPhysics:
         neck_length: float = 0.5,
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
-        neck_diameter: Optional[float] = None
+        neck_diameter: Optional[float] = None,
+        operation: str = "Roughing",
+        geometry: str = "Square",
+        corner_radius: float = 0.0
     ) -> float:
         """
         Calculates tool tip deflection (inches) from cutting forces and stepped
@@ -1865,7 +2008,8 @@ class GWizardPhysics:
             unit_hp = self.machinability[material_family].get("unit_hp", 1.0)
 
         _, _, deflection_force, _ = CuttingMechanics.calc_cutting_forces(
-            diameter, cut_depth, cut_width, feedrate, rpm, flutes, unit_hp, helix_angle
+            diameter, cut_depth, cut_width, feedrate, rpm, flutes, unit_hp, helix_angle,
+            operation=operation, geometry=geometry, corner_radius=corner_radius
         )
 
         return BeamDeflectionEngine.calculate_deflection(
@@ -1901,10 +2045,12 @@ class GWizardPhysics:
         neck_length: float = 0.5,
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
-        neck_diameter: Optional[float] = None
+        neck_diameter: Optional[float] = None,
+        corner_radius: float = 0.0
     ) -> Tuple[float, float, float]:
         return OptimizationEngine.recommend_cut_parameters(
             self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide,
             operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family,
-            helix_angle, neck_length, taper_angle, flute_length, neck_diameter
+            helix_angle, neck_length, taper_angle, flute_length, neck_diameter,
+            corner_radius=corner_radius
         )

@@ -27,7 +27,11 @@ TOOL_GROUPS = [
     {
         "group": "End Mills",
         "tools": [
+            "HP Carbide High Feed Endmill",
+            "HP Carbide Bull Nose Endmill",
             "HP Carbide Endmill",
+            "Carbide High Feed Endmill",
+            "Carbide Bull Nose Endmill",
             "Carbide Endmill",
             "Indexable End Or Face Mill",
             "HP HSS Endmill",
@@ -220,7 +224,7 @@ def calculate():
                 is_metric=is_metric
             )
         else:
-            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool)
+            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool, corner_radius=corner_radius)
             feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
             
         mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=geometry, diameter=diameter)
@@ -237,7 +241,8 @@ def calculate():
         else:
             deflection = physics.tool_deflection(
                 diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
-                helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
+                helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
+                operation=operation, geometry=geometry, corner_radius=corner_radius
             )
             springback, total_error, wear_comp = physics.calc_springback_and_deflection(
                 family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=alloy
@@ -246,7 +251,8 @@ def calculate():
         tips = physics.generate_advanced_strategies(
             family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
             tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length,
-            operation=operation, tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy
+            operation=operation, tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy,
+            corner_radius=corner_radius
         )
         
         if is_spindle_limited:
@@ -264,7 +270,8 @@ def calculate():
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
             diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
+            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
+            corner_radius=corner_radius
         )
         
         ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
@@ -358,7 +365,8 @@ def calculate_for_fusion():
         # Using recommended DOC and WOC for the final feedrate
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
             diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
+            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
+            corner_radius=corner_radius
         )
         
         # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
@@ -370,7 +378,7 @@ def calculate_for_fusion():
         ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
         is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
         
-        adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry)
+        adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius)
         feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
         actual_sfm = physics.calc_sfm(rpm, diameter)
         
@@ -853,11 +861,12 @@ def twin_batch_generate():
                     
                     rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
                     rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
-                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len
+                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len,
+                        corner_radius=corner_rad
                     )
                     
                     eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
-                    adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry)
+                    adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry, corner_radius=corner_rad)
                     feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
                     actual_sfm = physics.calc_sfm(rpm, diameter)
                     ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness)

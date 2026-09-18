@@ -91,6 +91,7 @@
                                     <option value="Square">Square Endmill</option>
                                     <option value="Ball">Ball Endmill</option>
                                     <option value="Radiused">Bullnose / Radiused</option>
+                                    <option value="High Feed">High Feed Mill</option>
                                     <option value="Rougher">Rougher (Corncob)</option>
                                     <option value="Indexable Mill">Indexable Mill</option>
                                     <option value="Lollipop">Lollipop</option>
@@ -853,6 +854,7 @@
                 { value: "Square", text: "Square Endmill" },
                 { value: "Ball", text: "Ball Endmill" },
                 { value: "Radiused", text: "Bullnose / Radiused" },
+                { value: "High Feed", text: "High Feed Mill" },
                 { value: "Rougher", text: "Rougher (Corncob)" },
                 { value: "Indexable Mill", text: "Indexable Mill" },
                 { value: "Lollipop", text: "Lollipop" },
@@ -968,6 +970,22 @@
                         toolSelect.value = 'HSS Reamer';
                         toolType = 'HSS Reamer';
                     }
+                } else if (geoVal === 'High Feed' && !toolType.includes('High Feed')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide High Feed Endmill')) {
+                        toolSelect.value = 'HP Carbide High Feed Endmill';
+                        toolType = 'HP Carbide High Feed Endmill';
+                    } else if (Array.from(toolSelect.options).some(o => o.value === 'Carbide High Feed Endmill')) {
+                        toolSelect.value = 'Carbide High Feed Endmill';
+                        toolType = 'Carbide High Feed Endmill';
+                    }
+                } else if (geoVal === 'Radiused' && !toolType.includes('Bull Nose')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide Bull Nose Endmill')) {
+                        toolSelect.value = 'HP Carbide Bull Nose Endmill';
+                        toolType = 'HP Carbide Bull Nose Endmill';
+                    } else if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Bull Nose Endmill')) {
+                        toolSelect.value = 'Carbide Bull Nose Endmill';
+                        toolType = 'Carbide Bull Nose Endmill';
+                    }
                 }
             }
 
@@ -997,7 +1015,13 @@
                     } else if (targetGroup === 'tap') {
                         geoSelect.value = 'form';
                     } else if (targetGroup === 'milling') {
-                        geoSelect.value = 'Square';
+                        if (toolType.includes('High Feed')) {
+                            geoSelect.value = 'High Feed';
+                        } else if (toolType.includes('Bull Nose')) {
+                            geoSelect.value = 'Radiused';
+                        } else {
+                            geoSelect.value = 'Square';
+                        }
                     } else if (targetGroup === 'reamer') {
                         geoSelect.value = 'Reamer';
                     } else if (targetGroup === 'threadmill') {
@@ -1013,6 +1037,12 @@
                     } else if (!toolType.includes('Spot') && geoSelect.value === 'Spot Drill') {
                         geoSelect.value = 'Drill';
                     }
+                } else if (targetGroup === 'milling') {
+                    if (toolType.includes('High Feed') && geoSelect.value !== 'High Feed') {
+                        geoSelect.value = 'High Feed';
+                    } else if (toolType.includes('Bull Nose') && geoSelect.value !== 'Radiused') {
+                        geoSelect.value = 'Radiused';
+                    }
                 }
             }
 
@@ -1024,6 +1054,7 @@
             const isFormTool = targetGroup === 'saw' || geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
             const isChamferEngrave = geo === 'V-Bit' || geo === 'Engraving';
             const is3DContour = geo === 'Ball' || geo === 'Radiused' || geo === 'Lollipop';
+            const isHighFeedCapable = (geo === 'High Feed' || geo === 'Radiused' || toolType.toLowerCase().includes('high feed') || toolType.toLowerCase().includes('bull nose'));
             const isTurning = targetGroup === 'turning' || toolType.includes('Turning') || toolType.includes('Parting') || (toolType.includes('Threading') && !isThreadMill) || geo === 'Turning';
             const isHoleTool = isDrill || isTap || isReamer || toolType.includes('Bore');
             
@@ -1108,7 +1139,13 @@
                         { value: "Finishing", text: "Light Finishing Pass" },
                         { value: "Slotting", text: "Channel Slotting" }
                     ];
-                    defaultVal = "Adaptive Roughing";
+                    if (isHighFeedCapable) {
+                        targetOptions.splice(3, 0,
+                            { value: "High Feed Milling", text: "High Feed Milling (Axial Chip Thinning)" },
+                            { value: "High Feed Slotting / Window Profiling", text: "High Feed Slotting / Window Profiling (Tabs)" }
+                        );
+                    }
+                    defaultVal = (isHighFeedCapable && geo === 'High Feed') ? "High Feed Milling" : "Adaptive Roughing";
                 } else {
                     targetFamily = 'milling';
                     targetOptions = [
@@ -1118,10 +1155,18 @@
                         { value: "Facing", text: "Facing" },
                         { value: "Finishing", text: "Light Finishing" }
                     ];
-                    defaultVal = "Roughing";
+                    if (isHighFeedCapable) {
+                        targetOptions.splice(3, 0,
+                            { value: "High Feed Milling", text: "High Feed Milling (Axial Chip Thinning)" },
+                            { value: "High Feed Slotting / Window Profiling", text: "High Feed Slotting / Window Profiling (Tabs)" }
+                        );
+                    }
+                    defaultVal = (isHighFeedCapable && geo === 'High Feed') ? "High Feed Milling" : "Roughing";
                 }
 
-                if (opSelect.dataset.family !== targetFamily) {
+                const targetKey = targetFamily + (isHighFeedCapable ? '_hf' : '');
+                if (opSelect.dataset.targetKey !== targetKey) {
+                    opSelect.dataset.targetKey = targetKey;
                     opSelect.dataset.family = targetFamily;
                     const savedOp = opSelect.value;
                     opSelect.innerHTML = "";
@@ -1199,7 +1244,7 @@
                 showShank = false;
             }
             
-            document.getElementById('cornerRadiusGroup').style.display = (geo === 'Radiused' && !isHoleTool) ? 'block' : 'none';
+            document.getElementById('cornerRadiusGroup').style.display = ((geo === 'Radiused' || geo === 'High Feed') && !isHoleTool) ? 'block' : 'none';
             document.getElementById('shankGroup').style.display = showShank ? 'block' : 'none';
             document.getElementById('thicknessGroup').style.display = isFormTool ? 'block' : 'none';
             document.getElementById('neckGroup').style.display = showShank ? 'block' : 'none';
@@ -1791,7 +1836,7 @@
             const isReamer = toolType.includes('Reamer') || geo === 'Reamer';
             const isChamfer = geo === 'V-Bit' || geo === 'Engraving';
             const isBall = geo === 'Ball';
-            const isRadiused = geo === 'Radiused';
+            const isRadiused = geo === 'Radiused' || geo === 'High Feed';
             const isDovetail = geo === 'Dovetail';
             const hasSteppedShank = isFormTool || isLollipop || hasRelieved;
 
