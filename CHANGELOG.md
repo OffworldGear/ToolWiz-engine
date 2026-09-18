@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-09-18
 
 ### Fixed
+- **Tool Deflection Alert Alignment & Auto-Set Physics Safety (`gwizard_physics.py`, `app.py`, & `templates/index.html`)**:
+  - **Dynamic Operation-Aware Deflection Limits**: Resolved a critical issue where `app.py` hardcoded the safe deflection limit to a mirror-finish tolerance (`diameter * 0.002` = $0.00013"$) regardless of whether the operation was roughing, slotting, or adaptive. Replaced with `calc_deflection_limit(diameter, operation, aggressiveness, is_carbide)` incorporating G-Wizard roughing allowances and a micro-tool compliance floor ($0.00035"$) to prevent false deflection danger alerts on sub-100 microinch cuts.
+  - **Auto-Set Safe Cut Guarantee (`recommend_cut_parameters`)**: Ensured `recommend_cut_parameters` never recommends cuts that exceed allowable deflection. If minimum axial DOC at full radial immersion exceeds the deflection limit (e.g. in tough alloys like Nitronic 60 or high stickout), the optimizer automatically steps down radial engagement (WOC) until deflection is strictly within the safe threshold.
+  - **Tool Category & Carbide Checkbox Synchronization (`templates/index.html`)**: Automatically synchronized the `Tool is Solid Carbide (Stiffer)` checkbox with the selected Tool Category (checking it for "Carbide" / "HP Carbide" tools and unchecking for "HSS"), preventing accidental HSS modulus (30 Mpsi) from tripling calculated deflection on carbide tooling.
+  - **Dedicated Unit Test**: Added `test_auto_set_dials_deflection_safety` in `tests/test_auto_set_advisory.py` verifying that micro-tools in tough alloys with extended stickout never exceed safe deflection limits when using Auto-Set.
 - **AI Chat Response Truncation Resolution (`ai_machinist.py`)**:
   - Replaced single-part extraction (`parts[0].get("text", "")`) with complete parts stream concatenation (`"".join(p.get("text", "") for p in parts if "text" in p)`), preventing multi-chunk Google Gemini API responses from cutting off mid-sentence.
   - Increased `maxOutputTokens` from 2048 to 4096 to ensure extensive machining physics analyses, CAM setup recommendations, and code callouts render completely without truncation.

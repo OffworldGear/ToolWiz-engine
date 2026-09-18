@@ -117,6 +117,40 @@ class TestAutoSetAdvisory(unittest.TestCase):
         tslot_crash = [t for t in tips_tslot_crash if "Neck Clearance Collision" in t.get("title", "")]
         self.assertEqual(len(tslot_crash), 1, "Form cutter exceeding radial neck reach must trigger collision alert")
 
+    def test_auto_set_dials_deflection_safety(self):
+        """Verify Auto-Set Dials cut parameters never exceed safe deflection limit for micro-tools."""
+        dia = 0.0625
+        stickout = 0.268
+        flutes = 4
+        flute_length = 0.1875
+        corner_radius = 0.030
+        family = "Stainless - 300 Series (316)"
+        op = "Standard 3D Roughing"
+
+        rec_doc, rec_woc, rec_lim = self.physics.recommend_cut_parameters(
+            dia, dia, stickout, flutes, 13795, 0.00076, True, op, 0.5,
+            'Bullnose / Radiused', max_hp=10.0, material_family=family,
+            flute_length=flute_length, corner_radius=corner_radius
+        )
+
+        # Calculate actual deflection at recommended cut
+        adj_ipt = self.physics.calc_adjusted_chipload(
+            0.00076, rec_doc, rec_woc, dia, dia, operation=op, geometry='Bullnose / Radiused', corner_radius=corner_radius
+        )
+        feed = self.physics.calc_feedrate(13795, flutes, adj_ipt)
+        deflect = self.physics.tool_deflection(
+            dia, dia, stickout, rec_doc, rec_woc, feed, 13795, flutes,
+            is_carbide=True, material_family=family, flute_length=flute_length,
+            operation=op, geometry='Bullnose / Radiused', corner_radius=corner_radius
+        )
+
+        self.assertGreater(rec_doc, 0.0, "Recommended DOC must be positive")
+        self.assertGreater(rec_woc, 0.0, "Recommended WOC must be positive")
+        self.assertLessEqual(
+            deflect, rec_lim,
+            f"Deflection {deflect:.6f}\" must not exceed recommended safe limit {rec_lim:.6f}\""
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

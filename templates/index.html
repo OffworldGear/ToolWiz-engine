@@ -1551,6 +1551,14 @@
                         geoSelect.value = 'Radiused';
                     }
                 }
+                const carbideCb = document.getElementById('isCarbide');
+                if (carbideCb) {
+                    if (toolType.includes('Carbide')) {
+                        carbideCb.checked = true;
+                    } else if (toolType.includes('HSS')) {
+                        carbideCb.checked = false;
+                    }
+                }
             }
 
             let geo = geoSelect.value;

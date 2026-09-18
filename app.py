@@ -301,7 +301,7 @@ def calculate():
             "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
             "rec_doc": round(rec_doc, 4),
             "rec_woc": round(rec_woc, 4),
-            "rec_limit": round(diameter * 0.002, 5), # Return the absolute physical limit for the UI bar
+            "rec_limit": round(rec_limit, 5),
             "max_radial_reach": round(max_radial_reach, 5),
             "neck_diameter": round(neck_diameter, 5),
             "shank_diameter": round(shank_size, 5),

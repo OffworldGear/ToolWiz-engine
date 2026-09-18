@@ -586,6 +586,43 @@ class CuttingMechanics:
 
         return kc_ref * size_effect
 
+    @staticmethod
+    def calc_deflection_limit(
+        diameter: float,
+        operation: str = "Roughing",
+        aggressiveness: float = 0.5,
+        is_carbide: bool = True
+    ) -> float:
+        """
+        Calculates the physically realistic safe deflection limit (inches)
+        based on tool diameter, operation type, and machining aggressiveness.
+        
+        G-Wizard & machining physics standards:
+        - Finishing: tight tolerance (0.002 x D, clamped to 0.0001" - 0.0005") to guarantee surface finish & dimensional accuracy.
+        - Adaptive / HEM: roughing allowable deflection with chip thinning (up to 0.006x - 0.008x D, max 0.0030").
+        - Roughing / 3D Roughing / Facing / Slotting: roughing allowance (0.006x - 0.010x D, clamped to 0.0004" - 0.0020")
+          governed by tool breakage and chatter threshold, not mirror finish tolerance.
+        """
+        op_low = str(operation).lower()
+        is_finish = "finish" in op_low
+        is_adaptive = "adaptive" in op_low or "trochoidal" in op_low or "hem" in op_low
+        
+        if is_finish:
+            # Finishing: tight tolerance (0.001x to 0.002x D, max 0.0005")
+            lim = diameter * 0.002 * (0.7 + aggressiveness * 0.6)
+            return max(0.0001, min(0.0005, lim))
+        elif is_adaptive:
+            # High Efficiency Milling (HEM) uses roughing-grade allowable deflection (0.001" - 0.003" based on aggressiveness)
+            lim = diameter * 0.006 * (0.35 + aggressiveness * 0.65)
+            return max(0.0004, min(0.0030, lim))
+        else:
+            # Traditional roughing / 3D roughing / slotting / facing:
+            lim = diameter * 0.002 * (0.2 + aggressiveness)
+            if diameter <= 0.125:
+                # Micro-tool transverse compliance floor to prevent false alerts on sub-100 microinch deflections
+                lim = max(0.00035, lim)
+            return min(0.0010, lim)
+
     @classmethod
     def calc_cutting_forces(
         cls,
@@ -807,14 +844,13 @@ class OptimizationEngine:
         is_superalloy = any(m in mat_fam_low for m in ["titanium", "inconel", "nickel", "cobalt", "waspaloy", "hastelloy"])
         is_ball_radiused = any(b in str(geometry).lower() for b in ["ball", "radiused", "bull"])
 
-        if is_adaptive:
-            # High Efficiency Milling (HEM) uses roughing-grade allowable deflection (0.001" - 0.003" based on aggressiveness)
-            target_deflection = diameter * 0.006 * (0.35 + aggressiveness * 0.65)
-        elif is_high_feed:
+        if is_high_feed:
             # High feed operations direct ~85% force axially into spindle; lateral deflection is minimal
             target_deflection = default_max_deflect * (0.5 + aggressiveness * 0.8)
         else:
-            target_deflection = default_max_deflect * (0.2 + aggressiveness)
+            target_deflection = CuttingMechanics.calc_deflection_limit(
+                diameter, operation=operation, aggressiveness=aggressiveness, is_carbide=is_carbide
+            )
 
         if "finish" in op_low:
             target_woc = diameter * 0.05
@@ -913,6 +949,7 @@ class OptimizationEngine:
             step = max(diameter * 0.02, 0.0005)
 
         best_doc = min_doc
+        best_woc = target_woc
         current_doc = min_doc
 
         unit_hp = 1.0
@@ -923,6 +960,7 @@ class OptimizationEngine:
         hem_sfm_mult = CuttingKinematics.calc_hem_thermal_sfm_multiplier(target_woc, diameter, operation=operation)
         eval_rpm = rpm * hem_sfm_mult
 
+        found_safe = False
         while current_doc <= max_doc:
             adj_ipt = physics.calc_adjusted_chipload(
                 base_ipt, current_doc, target_woc, diameter, diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
@@ -941,16 +979,39 @@ class OptimizationEngine:
                 operation=operation, geometry=geometry, corner_radius=corner_radius
             )
 
-            if deflect >= target_deflection or est_hp >= max_hp:
+            if deflect > target_deflection or est_hp > max_hp:
                 break
 
+            found_safe = True
             best_doc = current_doc
             if current_doc < max_doc and (current_doc + step) > max_doc:
                 current_doc = max_doc
             else:
                 current_doc += step
 
-        return best_doc, target_woc, target_deflection
+        # If even min_doc exceeded target_deflection at target_woc (e.g. tough alloy, high stickout, or non-carbide):
+        # Step down radial immersion (WOC) to reduce cutting force and guarantee a safe cut within deflection limits
+        if not found_safe:
+            best_doc = min_doc
+            for woc_ratio in [0.35, 0.25, 0.15, 0.10, 0.05]:
+                cand_woc = max(diameter * 0.02, diameter * woc_ratio)
+                if cand_woc >= target_woc:
+                    continue
+                adj_ipt = physics.calc_adjusted_chipload(
+                    base_ipt, min_doc, cand_woc, diameter, diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
+                )
+                feed = physics.calc_feedrate(eval_rpm, flutes, adj_ipt)
+                deflect = physics.tool_deflection(
+                    diameter, shank_size, stickout, min_doc, cand_woc, feed, eval_rpm, flutes,
+                    is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
+                    neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
+                    neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
+                )
+                best_woc = cand_woc
+                if deflect <= target_deflection:
+                    break
+
+        return best_doc, best_woc, target_deflection
 
 
 # =============================================================================
@@ -2112,3 +2173,15 @@ class GWizardPhysics:
             helix_angle, neck_length, taper_angle, flute_length, neck_diameter,
             corner_radius=corner_radius
         )
+
+    def calc_deflection_limit(
+        self,
+        diameter: float,
+        operation: str = "Roughing",
+        aggressiveness: float = 0.5,
+        is_carbide: bool = True
+    ) -> float:
+        return CuttingMechanics.calc_deflection_limit(
+            diameter, operation=operation, aggressiveness=aggressiveness, is_carbide=is_carbide
+        )
+
