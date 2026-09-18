@@ -8,12 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-09-18
 
 ### Added
-- **Subtle Pulsing 'Auto-Set' Parameter Indicators & Smart Geometry Audits**:
-  - **Gentle Breathing Indicators**: Tool geometry parameters that are currently populated with system/catalog defaults (`Tool Stickout`, `Flute Length`, `Flute Count`, `Helix Angle`, `Corner Radius`) display a soft pulsing cyan pill badge: `<span class="auto-set-badge"><span class="pulse-dot"></span>Auto</span>`.
-  - **One-Click Confirmation & Friction-Free Clearing**:
-    - Clicking an `Auto` badge instantly marks the value confirmed (`✓`) and halts the pulse animation.
-    - Typing or dragging a range slider immediately clears the auto-set badge and marks the field as user-edited.
-    - Added a global `Tool Properties (X Auto-Set) · [Confirm All]` header pill to acknowledge all defaults in a single click.
+- **High-Visibility Pulsing 'Auto-Set' Parameter Badges & Smart State Persistence**:
+  - **High-Contrast Amber Glow & Breathing Indicator**: Tool parameters currently populated with system or catalog defaults (`Tool Stickout`, `Flute Length`, `Flute Count`, `Helix Angle`, `Corner Radius`, and recommended `Axial Depth` / `Radial Width`) display a prominent, unmistakable amber badge `[⚡ Auto]` with an animated pulsing dot and glowing outline (`@keyframes autoSetGlow`).
+  - **"Auto-Set Dials" Integration**: Clicking the prominent "⚡ Auto-Set Dials" (`applyRecommendations()`) button dynamically flags `Axial Depth of Cut` and `Radial Width of Cut` with pulsing amber `[⚡ Auto]` badges, giving instantaneous visual confirmation that the cut dials were set by physics recommendations.
+  - **Click-to-Confirm & One-Click "Confirm All"**:
+    - Clicking any `[⚡ Auto]` badge turns it emerald green with a checkmark `✓` before smoothly dismissing.
+    - Added header status pill `[⚡ X Auto-Set] · [Confirm All]` to acknowledge all defaults simultaneously.
+    - Directly typing or dragging a dial slider immediately clears the auto-set badge via `markManualEdit()` and records the parameter as user-edited.
+  - **State Persistence Bug Fix (`localStorage`)**: Resolved an issue where returning users' saved `localStorage` states inadvertently cleared all auto-set flags on page reload. State tracking now explicitly distinguishes between `userEdited` parameters and system defaults so auto-set indicators remain reliably visible until confirmed or modified.
+  - **CSS Cache-Busting & Embedded Fallback Styles**: Added `?v=3.1` query versioning to `/static/style.css` and embedded key `@keyframes autoSetGlow` rules directly in `<head>` to guarantee instant rendering across cached browser sessions.
   - **Out-of-Spec Smart Scaling (Layer 1 Guardrail)**: Automatically intervenes only when geometry values become wildly out of physical spec upon diameter or tool changes (e.g. stickout $> 5.5\times D$, flute length $> 4.5\times D$, or stickout $<$ flute length), re-normalizing them to safe shop proportions and pulsing the `Auto` badge.
   - **Machining Advisor Geometry Sanity Audits**: Added active physics rules flagging extended stickout ($> 3.5\times D$), severe stickout ($> 4.5\times D$), 4+ flutes in aluminum roughing, and collet chuck clamping across cutting flutes.
 - **High Feed Milling (HFM) & Window Machining Integration**:
