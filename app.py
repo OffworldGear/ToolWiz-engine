@@ -3,6 +3,7 @@ import math
 import uuid
 from flask import Flask, render_template, request, jsonify
 from gwizard_physics import GWizardPhysics
+from ai_machinist import query_ai_machinist
 
 app = Flask(__name__)
 
@@ -1069,6 +1070,23 @@ def twin_download():
         )
     except Exception as e:
         return str(e), 500
+
+@app.route("/api/ai_chat", methods=["POST"])
+def ai_chat():
+    """Handles conversational AI Machinist inquiries with live ToolWiz telemetry"""
+    try:
+        data = request.get_json() or {}
+        message = data.get("message", "").strip()
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+            
+        context = data.get("context", {})
+        api_key = data.get("apiKey", "").strip() or None
+        
+        result = query_ai_machinist(message, context=context, api_key=api_key)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     # Run the Flask app on localhost:5000

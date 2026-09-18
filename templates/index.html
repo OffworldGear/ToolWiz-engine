@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToolWiz - Speeds & Feeds & Digital Twin</title>
-    <link rel="stylesheet" href="/static/style.css?v=3.2">
+    <link rel="stylesheet" href="/static/style.css?v=3.3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Embedded guaranteed auto-set indicator styles & animations */
@@ -119,10 +119,15 @@
             <h1>ToolWiz CAM & Physics Engine</h1>
             <p>Dynamic Optimization Calculator & Fusion Hub Digital Twin</p>
             
-            <nav class="nav-tabs" style="margin-top: 1rem;">
-                <button class="nav-tab active" id="tabCalcBtn" onclick="switchTab('calculator')">⚡ Speeds & Feeds Calculator</button>
-                <button class="nav-tab" id="tabThreadBtn" onclick="switchTab('threading')">🧵 Thread & Tap Calculator</button>
-                <button class="nav-tab" id="tabTwinBtn" onclick="switchTab('digital-twin')">📦 Digital Twin Library Manager</button>
+            <nav class="nav-tabs" style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="nav-tab active" id="tabCalcBtn" onclick="switchTab('calculator')">⚡ Speeds & Feeds Calculator</button>
+                    <button class="nav-tab" id="tabThreadBtn" onclick="switchTab('threading')">🧵 Thread & Tap Calculator</button>
+                    <button class="nav-tab" id="tabTwinBtn" onclick="switchTab('digital-twin')">📦 Digital Twin Library Manager</button>
+                </div>
+                <button type="button" class="btn-ai-launcher" onclick="toggleAiChatDrawer()" title="Open ToolWiz AI Machinist Assistant">
+                    <span class="ai-sparkle">✨</span> 💬 AI Machinist <span class="ai-chip-status">Co-Pilot</span>
+                </button>
             </nav>
         </header>
 
@@ -261,7 +266,7 @@
                                         <button type="button" class="btn-ratio" onclick="setFluteRatio(5)">5&times;D</button>
                                     </div>
                                 </div>
-                                <input type="text" inputmode="decimal" id="fluteLength" class="tool-dialog-input" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="markManualEdit('fluteLength'); calculate()">
+                                <input type="text" inputmode="decimal" id="fluteLength" class="tool-dialog-input" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="markManualEdit('fluteLength'); calculate()" onchange="markManualEdit('fluteLength'); calculate()">
                                 <datalist id="flute_list"></datalist>
                             </div>
                         </div>
@@ -462,6 +467,15 @@
                                 <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Continuous monitoring of springback, work-hardening, tool wear compensation, and deflection envelopes.</div>
                             </div>
                         </div>
+                    </div>
+                    <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(124,58,237,0.18)); border: 1px solid rgba(124,58,237,0.35); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                        <div>
+                            <div style="font-weight: 700; color: #e9d5ff; font-size: 0.86rem; display: flex; align-items: center; gap: 5px;">
+                                <span>🤖</span> ToolWiz AI Machinist
+                            </div>
+                            <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">Ask strategic CAM & metallurgy questions with live telemetry.</div>
+                        </div>
+                        <button type="button" onclick="toggleAiChatDrawer()" class="btn-ratio" style="background: rgba(124,58,237,0.4); border-color: rgba(168,85,247,0.5); color: #fff; font-size: 0.76rem; padding: 4px 10px; font-weight: 600; white-space: nowrap;">Consult AI &rarr;</button>
                     </div>
                 </aside>
             </main>
@@ -776,6 +790,98 @@
         </div>
     </div>
 
+    <!-- Floating AI Machinist Launcher Button -->
+    <button type="button" class="floating-ai-btn" id="floatingAiBtn" onclick="toggleAiChatDrawer()" title="Ask ToolWiz AI Machinist">
+        <span class="ai-sparkle">✨</span> 💬 AI Machinist
+    </button>
+
+    <!-- AI MACHINIST DRAWER -->
+    <div id="aiChatDrawer" class="ai-chat-drawer">
+        <div class="ai-chat-header">
+            <div class="ai-header-info">
+                <div class="ai-title-row">
+                    <span style="font-size: 1.2rem;">🤖</span>
+                    <span class="ai-title">ToolWiz AI Machinist</span>
+                    <span id="aiModelBadge" class="ai-model-badge">Co-Pilot</span>
+                </div>
+                <div class="ai-telemetry-chip" id="aiTelemetryChip" title="Active tool & cut context sent with inquiries">
+                    <span class="pulse-dot-green"></span>
+                    <span id="aiContextSummaryText">Syncing Telemetry...</span>
+                </div>
+            </div>
+            <div class="ai-header-actions">
+                <button type="button" class="ai-action-btn" onclick="openAiSettingsModal()" title="API Key Settings">⚙️</button>
+                <button type="button" class="ai-action-btn" onclick="toggleAiChatDrawer()" title="Close Drawer">✕</button>
+            </div>
+        </div>
+
+        <!-- Live Telemetry Toggle Card -->
+        <div class="ai-context-banner">
+            <label class="ai-context-toggle">
+                <input type="checkbox" id="aiIncludeContext" checked>
+                <span>Auto-inject live Speeds, Feeds, Deflection & Advisor notes</span>
+            </label>
+        </div>
+
+        <!-- Messages Container -->
+        <div class="ai-chat-messages" id="aiChatMessages">
+            <!-- Initial Welcome & Chips -->
+            <div class="ai-message ai-message-assistant">
+                <div class="ai-bubble">
+                    <div class="ai-bubble-header">
+                        <span style="font-size:1rem;">🤖</span>
+                        <strong>ToolWiz Applications Engineer</strong>
+                    </div>
+                    <div class="ai-bubble-body">
+                        <p>Hello! I'm your AI machining co-pilot. I analyze your real-time cutter geometry, materials, deflection, and physics parameters to answer strategy, tooling, and CAM programming questions.</p>
+                        <p style="margin-top: 0.65rem; font-weight: 600; color: #94a3b8; font-size: 0.8rem;">Frequently asked:</p>
+                        <div class="ai-suggestion-chips">
+                            <button type="button" class="ai-chip" onclick="askAiQuestion('Should I do negative stock to leave on the flats during finishing since deflection is low but springback may occur?')">🎯 Negative stock on flats / floor finishing?</button>
+                            <button type="button" class="ai-chip" onclick="askAiQuestion('What entry ramping angle and strategy is optimal for this cutter in this alloy?')">📐 Optimal entry ramping angle?</button>
+                            <button type="button" class="ai-chip" onclick="askAiQuestion('How can I mitigate chatter with this stickout and flute length?')">🛡️ Prevent chatter & harmonics?</button>
+                            <button type="button" class="ai-chip" onclick="askAiQuestion('Should I use climb or conventional milling for finishing this workpiece?')">🔄 Climb vs Conventional finishing?</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Box -->
+        <div class="ai-chat-input-area">
+            <form id="aiChatForm" onsubmit="handleAiChatSubmit(event)" style="display:flex; width: 100%; gap: 0.5rem; align-items: flex-end; margin:0;">
+                <textarea id="aiChatInput" class="ai-textarea" rows="2" placeholder="Ask about CAM strategies, stock to leave, chatter, deflection..." onkeydown="handleAiChatKeyDown(event)"></textarea>
+                <button type="submit" id="aiSendBtn" class="btn-ai-send" title="Send Question">
+                    <span>Send</span>
+                    <span class="ai-send-icon">➤</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- API KEY SETTINGS MODAL -->
+    <div id="aiSettingsModal" class="ai-modal-backdrop" style="display:none;" onclick="if(event.target===this) closeAiSettingsModal()">
+        <div class="ai-modal-card">
+            <div class="ai-modal-header">
+                <h3>⚙️ AI Machinist Configuration</h3>
+                <button type="button" class="ai-action-btn" onclick="closeAiSettingsModal()">✕</button>
+            </div>
+            <div class="ai-modal-body">
+                <p style="color:#cbd5e1; font-size:0.85rem; margin-top:0; margin-bottom:1rem;">
+                    ToolWiz AI Machinist connects directly to Google Gemini 2.5 Flash for deep CAM reasoning. You can obtain a free API key at <a href="https://aistudio.google.com/" target="_blank" style="color:#38bdf8; text-decoration:underline;">Google AI Studio</a>.
+                </p>
+                <div class="input-group">
+                    <label for="geminiApiKeyInput">Google Gemini API Key</label>
+                    <input type="password" id="geminiApiKeyInput" class="tool-dialog-input" placeholder="AIzaSy..." autocomplete="off">
+                    <small style="color:#94a3b8; font-size:0.75rem; display:block; margin-top:4px;">Stored safely in your local browser storage (or configure GEMINI_API_KEY in server .env).</small>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+                    <button type="button" class="btn-ratio" onclick="clearApiKey()" style="color:#ef4444; border-color:rgba(239,68,68,0.4);">Clear Key</button>
+                    <button type="button" class="btn-ratio" onclick="saveApiKey()" style="background:var(--accent); color:white; border:none; padding:0.4rem 1rem;">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let fullAlloys = [];
         let isMetric = false;
@@ -868,8 +974,9 @@
                 let stVal = document.getElementById('stickout_val');
                 if (stRange) stRange.value = st;
                 if (stVal) stVal.value = st;
-                autoSetTracker.fluteLength = true;
-                autoSetTracker.stickout = true;
+                autoSetTracker.fluteLength = false;
+                autoSetTracker.stickout = false;
+                saveState();
                 calculate();
                 renderAutoSetBadges();
             }
@@ -1063,8 +1170,10 @@
             
             let adjusted = false;
 
-            // 1. Stickout is wildly out of spec (> 5.5 * dia or < 0.8 * dia)
-            if (stIn > (diaIn * 5.5) || (stIn < (diaIn * 0.8) && stIn > 0)) {
+            // 1. Stickout is wildly out of spec
+            const isStickAuto = autoSetTracker.stickout;
+            const isStickWildlyOut = isStickAuto ? (stIn > (diaIn * 6.5) || (stIn < (diaIn * 0.8) && stIn > 0)) : (stIn > (diaIn * 12.0) || (stIn < (diaIn * 0.4) && stIn > 0));
+            if (isStickWildlyOut) {
                 let recStick = diaIn * 3.0;
                 let recStickDisp = isMetric ? (recStick * 25.4).toFixed(1) : recStick.toFixed(3);
                 if (stNode) stNode.value = recStickDisp;
@@ -1074,8 +1183,11 @@
                 adjusted = true;
             }
 
-            // 2. Flute length is wildly out of spec (> 4.5 * dia or < 0.4 * dia)
-            if (flIn > (diaIn * 4.5) || (flIn < (diaIn * 0.4) && flIn > 0)) {
+            // 2. Flute length is wildly out of spec
+            // If user manually set flute length, do NOT overwrite unless completely impossible (> 12 * dia)
+            const isFluteAuto = autoSetTracker.fluteLength;
+            const isFluteWildlyOut = isFluteAuto ? (flIn > (diaIn * 6.5) || (flIn < (diaIn * 0.4) && flIn > 0)) : (flIn > (diaIn * 12.0) || (flIn < (diaIn * 0.1) && flIn > 0));
+            if (isFluteWildlyOut) {
                 let recFlute = diaIn * 2.0;
                 let recFluteDisp = isMetric ? (recFlute * 25.4).toFixed(2) : recFlute.toFixed(3);
                 if (flNode) flNode.value = recFluteDisp;
@@ -1091,7 +1203,6 @@
                 if (stNode) stNode.value = safeSt.toFixed(isMetric ? 1 : 3);
                 let stRange = document.getElementById('stickout_range');
                 if (stRange) stRange.value = stNode.value;
-                autoSetTracker.stickout = true;
                 adjusted = true;
             }
 
@@ -1674,7 +1785,7 @@
                 let flVal = parseFloat(flNode ? flNode.value : 0);
                 let stNode = document.getElementById('stickout_val');
                 let stVal = parseFloat(stNode ? stNode.value : 0);
-                if (flVal > 0 && stVal > (flVal * 1.8)) {
+                if (autoSetTracker.stickout && flVal > 0 && stVal > (flVal * 1.8)) {
                     let recStick = Math.max(flVal * 1.25, flVal + (isMetric ? 2.0 : 0.08)).toFixed(isMetric ? 1 : 3);
                     if (stNode) stNode.value = recStick;
                     let stRange = document.getElementById('stickout_range');
@@ -2207,6 +2318,7 @@
                     }
 
                     drawToolVisualization(res);
+                    try { updateAiTelemetryChip(); } catch(e) {}
                 }
             } catch (err) {
                 if (err.name !== 'AbortError') console.error(err);
@@ -3367,6 +3479,265 @@
                 setTapStyle(activeTapIsForm);
                 calculateThread();
             }
+        }
+
+        /* -------------------------------------------------------------------------
+           ToolWiz AI Machinist Chat Drawer & Real-Time Context Injection
+           ------------------------------------------------------------------------- */
+        let aiChatOpen = false;
+        let aiChatLoading = false;
+
+        function toggleAiChatDrawer() {
+            const drawer = document.getElementById('aiChatDrawer');
+            if (!drawer) return;
+            aiChatOpen = !aiChatOpen;
+            if (aiChatOpen) {
+                drawer.classList.add('open');
+                updateAiTelemetryChip();
+                setTimeout(() => {
+                    const input = document.getElementById('aiChatInput');
+                    if (input) input.focus();
+                }, 350);
+            } else {
+                drawer.classList.remove('open');
+            }
+        }
+
+        function updateAiTelemetryChip() {
+            const chip = document.getElementById('aiContextSummaryText');
+            if (!chip) return;
+            const mat = document.getElementById('alloy')?.value || document.getElementById('family')?.value || 'Standard Alloy';
+            const dia = document.getElementById('diameter')?.value || '0.5';
+            const unit = isMetric ? 'mm' : '"';
+            const op = document.getElementById('operation')?.value || 'Roughing';
+            chip.innerText = `${mat} · ${dia}${unit} · ${op}`;
+        }
+
+        function collectAiContextPayload() {
+            const includeContext = document.getElementById('aiIncludeContext')?.checked ?? true;
+            if (!includeContext) return {};
+
+            let dia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
+            let doc = parseFloat(document.getElementById('cutDepth_val')?.value) || 0.25;
+            let woc = parseFloat(document.getElementById('cutWidth_val')?.value) || 0.10;
+            let stick = parseFloat(document.getElementById('stickout_val')?.value) || 1.5;
+            let fluteL = parseFloat(document.getElementById('fluteLength')?.value) || 1.0;
+
+            if (isMetric) {
+                dia /= 25.4;
+                doc /= 25.4;
+                woc /= 25.4;
+                stick /= 25.4;
+                fluteL /= 25.4;
+            }
+
+            const activeTips = [];
+            const tipElements = document.querySelectorAll('#tipsList .tip-card strong');
+            tipElements.forEach(el => {
+                if (el.innerText) activeTips.push(el.innerText);
+            });
+
+            return {
+                material: document.getElementById('alloy')?.value || '',
+                materialFamily: document.getElementById('family')?.value || '',
+                tool: document.getElementById('tool')?.value || '',
+                geometry: document.getElementById('geometry')?.value || '',
+                coating: document.getElementById('coating')?.value || '',
+                isCarbide: document.getElementById('isCarbide')?.checked ?? true,
+                diameter: parseFloat(dia.toFixed(4)),
+                flutes: parseInt(document.getElementById('flutes_val')?.value || 4),
+                fluteLength: parseFloat(fluteL.toFixed(4)),
+                stickout: parseFloat(stick.toFixed(4)),
+                operation: document.getElementById('operation')?.value || 'Roughing',
+                cutDepth: parseFloat(doc.toFixed(4)),
+                cutWidth: parseFloat(woc.toFixed(4)),
+                rpm: parseInt(document.getElementById('rpm')?.innerText) || 0,
+                feedrate: parseFloat(document.getElementById('feedrate')?.innerText) || 0,
+                sfm: parseFloat(document.getElementById('sfm_val')?.innerText) || 0,
+                ipt: parseFloat(document.getElementById('ipt_val')?.innerText) || 0,
+                plungeFeed: parseFloat(document.getElementById('plunge_feed')?.innerText) || 0,
+                rampFeed: parseFloat(document.getElementById('ramp_feed')?.innerText) || 0,
+                rampAngle: parseFloat(document.getElementById('ramp_angle')?.innerText) || 0,
+                deflection: document.getElementById('deflection')?.innerText || '0.0000',
+                spindleLoadPct: parseFloat(document.getElementById('spindle_load')?.innerText) || 0,
+                mrr: parseFloat(document.getElementById('mrr')?.innerText) || 0,
+                tips: activeTips
+            };
+        }
+
+        function renderAiMarkdown(text) {
+            if (!text) return '';
+            let escaped = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            escaped = escaped.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            escaped = escaped.replace(/^## (.*$)/gim, '<h3>$1</h3>');
+            escaped = escaped.replace(/^# (.*$)/gim, '<h3>$1</h3>');
+
+            escaped = escaped.replace(/&gt; \[!NOTE\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(56,189,248,0.1); border-left:3px solid #38bdf8; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:0.82rem; color:#bae6fd;">$1</div>');
+            escaped = escaped.replace(/&gt; \[!WARNING\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(239,68,68,0.1); border-left:3px solid #ef4444; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:0.82rem; color:#fca5a5;">$1</div>');
+            escaped = escaped.replace(/&gt; \[!TIP\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(16,185,129,0.1); border-left:3px solid #10b981; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:0.82rem; color:#a7f3d0;">$1</div>');
+
+            escaped = escaped.replace(/```([\s\S]*?)```/gim, '<pre><code>$1</code></pre>');
+            escaped = escaped.replace(/`([^`]+)`/gim, '<code>$1</code>');
+            escaped = escaped.replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>');
+            escaped = escaped.replace(/\*([^*]+)\*/gim, '<em>$1</em>');
+
+            escaped = escaped.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
+            escaped = escaped.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
+            escaped = escaped.replace(/<\/ul>\s*<ul>/gim, '');
+
+            escaped = escaped.replace(/^---$/gim, '<hr>');
+            escaped = escaped.replace(/\n\n+/g, '<br><br>');
+
+            return escaped;
+        }
+
+        async function askAiQuestion(questionText) {
+            const input = document.getElementById('aiChatInput');
+            if (input) input.value = questionText;
+            handleAiChatSubmit();
+        }
+
+        function handleAiChatKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAiChatSubmit();
+            }
+        }
+
+        async function handleAiChatSubmit(e) {
+            if (e) e.preventDefault();
+            if (aiChatLoading) return;
+
+            const input = document.getElementById('aiChatInput');
+            if (!input) return;
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+
+            const messagesContainer = document.getElementById('aiChatMessages');
+            
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'ai-message ai-message-user';
+            userMsgDiv.innerHTML = `<div class="ai-bubble"><div class="ai-bubble-body"><p>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p></div></div>`;
+            messagesContainer.appendChild(userMsgDiv);
+
+            const typingMsgDiv = document.createElement('div');
+            typingMsgDiv.className = 'ai-message ai-message-assistant';
+            typingMsgDiv.id = 'aiTypingIndicator';
+            typingMsgDiv.innerHTML = `
+                <div class="ai-bubble">
+                    <div class="ai-bubble-header"><span class="ai-avatar">🤖</span> <strong>ToolWiz Co-Pilot Thinking...</strong></div>
+                    <div class="ai-bubble-body">
+                        <div class="ai-typing-indicator"><span></span><span></span><span></span></div>
+                    </div>
+                </div>`;
+            messagesContainer.appendChild(typingMsgDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            aiChatLoading = true;
+            const sendBtn = document.getElementById('aiSendBtn');
+            if (sendBtn) sendBtn.disabled = true;
+
+            try {
+                const contextPayload = collectAiContextPayload();
+                const savedApiKey = localStorage.getItem('gemini_api_key') || '';
+
+                const resp = await fetch('/api/ai_chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        apiKey: savedApiKey,
+                        context: contextPayload
+                    })
+                });
+
+                const data = await resp.json();
+                
+                const typingEl = document.getElementById('aiTypingIndicator');
+                if (typingEl) typingEl.remove();
+
+                if (data.success) {
+                    const aiMsgDiv = document.createElement('div');
+                    aiMsgDiv.className = 'ai-message ai-message-assistant';
+                    const modelLabel = data.model === 'gemini-2.5-flash' ? 'Google Gemini 2.5 Flash' : (data.mode === 'gemini_live' ? 'Gemini AI' : 'ToolWiz Knowledge Engine');
+                    aiMsgDiv.innerHTML = `
+                        <div class="ai-bubble">
+                            <div class="ai-bubble-header">
+                                <span class="ai-avatar">🤖</span> 
+                                <strong>ToolWiz Co-Pilot</strong>
+                                <span style="font-size:0.7rem; color:#64748b; margin-left:auto;">${modelLabel}</span>
+                            </div>
+                            <div class="ai-bubble-body">
+                                ${renderAiMarkdown(data.reply)}
+                            </div>
+                        </div>`;
+                    messagesContainer.appendChild(aiMsgDiv);
+                } else {
+                    const errDiv = document.createElement('div');
+                    errDiv.className = 'ai-message ai-message-assistant';
+                    errDiv.innerHTML = `
+                        <div class="ai-bubble" style="border-color: rgba(239, 68, 68, 0.4);">
+                            <div class="ai-bubble-header" style="color:#ef4444;"><span class="ai-avatar">⚠️</span> <strong>Inquiry Failed</strong></div>
+                            <div class="ai-bubble-body"><p style="color:#fca5a5;">${data.error || 'Unknown error occurred.'}</p></div>
+                        </div>`;
+                    messagesContainer.appendChild(errDiv);
+                }
+            } catch (err) {
+                const typingEl = document.getElementById('aiTypingIndicator');
+                if (typingEl) typingEl.remove();
+
+                const errDiv = document.createElement('div');
+                errDiv.className = 'ai-message ai-message-assistant';
+                errDiv.innerHTML = `
+                    <div class="ai-bubble" style="border-color: rgba(239, 68, 68, 0.4);">
+                        <div class="ai-bubble-header" style="color:#ef4444;"><span class="ai-avatar">⚠️</span> <strong>Network Error</strong></div>
+                        <div class="ai-bubble-body"><p style="color:#fca5a5;">${err.message || 'Unable to communicate with backend.'}</p></div>
+                    </div>`;
+                messagesContainer.appendChild(errDiv);
+            } finally {
+                aiChatLoading = false;
+                if (sendBtn) sendBtn.disabled = false;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                input.focus();
+            }
+        }
+
+        function openAiSettingsModal() {
+            const modal = document.getElementById('aiSettingsModal');
+            const input = document.getElementById('geminiApiKeyInput');
+            if (modal) modal.style.display = 'flex';
+            if (input) input.value = localStorage.getItem('gemini_api_key') || '';
+        }
+
+        function closeAiSettingsModal() {
+            const modal = document.getElementById('aiSettingsModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('geminiApiKeyInput');
+            if (input) {
+                const key = input.value.trim();
+                if (key) {
+                    localStorage.setItem('gemini_api_key', key);
+                } else {
+                    localStorage.removeItem('gemini_api_key');
+                }
+            }
+            closeAiSettingsModal();
+        }
+
+        function clearApiKey() {
+            localStorage.removeItem('gemini_api_key');
+            const input = document.getElementById('geminiApiKeyInput');
+            if (input) input.value = '';
+            closeAiSettingsModal();
         }
 
         init();

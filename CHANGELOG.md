@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-09-18
 
 ### Fixed
+- **Auto-Set Indicator Manual Selection Integrity & Out-of-Spec Guardrail Alignment**:
+  - **Ratio Quick-Set Override Resolution (`setFluteRatio`)**: Resolved an issue in `templates/index.html` where clicking quick-ratio buttons (`3xD`, `4xD`, `5xD`) explicitly set `autoSetTracker.fluteLength = true` and `autoSetTracker.stickout = true`, re-triggering the flashing `[⚡ Auto]` badge despite deliberate user selection. Ratio button clicks are now treated as explicit manual selections (`autoSetTracker = false`), immediately hiding auto-set badges and persisting the choice.
+  - **Datalist Selection Event Catch (`onchange`)**: Added `onchange="markManualEdit('fluteLength'); calculate()"` to `<input id="fluteLength">`, ensuring standard flute length picks from `<datalist id="flute_list">` reliably clear the auto-set badge in browsers where datalist selection fires `change` without `input`.
+  - **Out-of-Spec Safety Guardrail Protection (`checkOutOfSpecGeometry`)**: Gated flute length and stickout re-normalization so that user-edited parameters are preserved. Re-normalization now only acts when parameters are in auto-set state or exceed extreme mechanical thresholds ($> 12\times D$), allowing standard long-flute cutters ($5\times D$, $6\times D$) without unwanted resets.
+  - **Excessive Stickout Auto-Taming Protection (`applyRecommendations`)**: Restricted stickout auto-taming to only trigger when stickout is currently auto-set, preventing manual stickout overrides from being overwritten when running "Auto-Set Dials".
+  - **Formal Testing Protocol (TP-01 to TP-10)**: Created dedicated test suite in `tests/test_auto_set_indicators.py` verifying state tracker transitions, ratio buttons, datalists, and out-of-spec bounds.
 - **Neck Clearance Collision Alert Precision & Flute Depth Gating**:
   - **Eliminated Hidden DOM Neck Diameter Defaults**: Fixed an issue in `templates/index.html` where standard end mills without relieved necks transmitted a hidden default `<input id="neckDiameter">` value ($0.125"$) to `/api/calculate`. When using tools like $3.2\text{ mm}$ ($0.12598"$), this created an artificial $0.0006"$ ($0.0125\text{ mm}$) neck step that falsely triggered collision alerts for standard cuts.
   - **Physical Axial Engagement Gating (`gwizard_physics.py`)**: Gated the Neck Clearance Collision rule so that neck clearance checks are strictly applied to dedicated form cutters (e.g. T-Slot, Woodruff, Keyseat, Lollipop, Dovetail) or when axial cut depth physically plunges deeper than the cutter's flute length (`cut_depth > flute_length * 1.001`). When cutting within the flutes, the tool neck remains in free air above the workpiece wall and cannot collide.
@@ -20,6 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Dynamic Web UI Decimal Formatting**: Replaced static `.toFixed(1)` formatting in `templates/index.html` with dynamic decimal scaling (`formatFeed()`), preventing micro-tool plunge feedrates (e.g. $0.0375\text{ IPM}$) from truncating to `"0.0"`.
 
 ### Added
+- **ToolWiz AI Machinist Live Co-Pilot & Context-Aware Chat Assistant**:
+  - **Live Telemetry Injection**: Automatically bundles active ToolWiz parameters (material alloy, machinability rating, cutter diameter, flute length, stickout, operation, DOC, WOC, RPM, SFM, feedrate, IPT, calculated deflection, spindle load, and physics advisor alerts) into every AI prompt.
+  - **Dual Intelligence Modes (Google Gemini 2.5 Flash + Offline Knowledge Engine)**: Integrates directly with Google Gemini 2.5 Flash via `httpx` for deep, conversational CAM and machining reasoning. Includes an offline expert machining knowledge engine that answers critical CAM strategy questions (negative stock to leave, floor push-off, springback, chatter mitigation) even when no API key is set.
+  - **Ergonomic Slide-Out Drawer & Launcher Buttons**:
+    - Header launcher button `[✨ 💬 AI Machinist (Co-Pilot)]` in the main navigation bar.
+    - Floating launcher pill at bottom-right of viewport for zero-scroll 1-click access across all views.
+    - Inline consultation card in Column 3 (`#tipsContainer`) linking directly to AI advice.
+  - **Interactive Quick-Action Suggestion Chips**: One-click prompt chips addressing common complex machining inquiries:
+    - *"Should I do negative stock to leave on flats during finishing since deflection is low but springback may occur?"*
+    - *"What entry ramping angle and strategy is optimal for this cutter in this alloy?"*
+    - *"How can I mitigate chatter with this stickout and flute length?"*
+    - *"Should I use climb or conventional milling for finishing this workpiece?"*
+  - **Client API Key Configuration**: Dedicated settings modal (`⚙️`) allowing users to store their Google Gemini API key securely in browser `localStorage` or configure `GEMINI_API_KEY` on the server.
 - **Automatic "Auto-Set Dials" Execution on Tool Diameter Change**:
   - **Automated Dials Calibration**: Automatically executes "Auto-Set Dials" (`applyRecommendations()`) whenever a new tool diameter is set — whether selected from the standard datalist dropdown, typed into the numeric dialog, or transferred from the Thread & Tap calculator.
   - **Dynamic Depth Alignment**: Immediately aligns Axial Depth of Cut (DOC) and Radial Width of Cut (WOC) sliders and numeric inputs to the optimal physics recommendations calculated for the new tool geometry, lighting up the glowing amber `[⚡ Auto]` badges.
