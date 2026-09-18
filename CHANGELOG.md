@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Dynamic Web UI Decimal Formatting**: Replaced static `.toFixed(1)` formatting in `templates/index.html` with dynamic decimal scaling (`formatFeed()`), preventing micro-tool plunge feedrates (e.g. $0.0375\text{ IPM}$) from truncating to `"0.0"`.
 
 ### Added
+- **3-Column Ergonomic UI Overhaul & Dedicated Machining Advisor Column**:
+  - **Relocated Advisor to 3rd Column**: Moved the Machining Advisor & Guidance panel (`#tipsContainer`) out of the center column into a dedicated **3rd Column** on the right side of the dashboard, resolving vertical crowding across the entire Speeds & Feeds view.
+  - **Sticky Viewport Tracking**: Configured the 3rd column with sticky viewport anchoring (`position: sticky; top: 1rem; max-height: calc(100vh - 2.5rem); overflow-y: auto;`) and custom dark scrollbars so live physics guidance and critical alerts stay locked in view as parameters are tuned.
+  - **Promoted Entry Dynamics (Ramp & Plunge Feeds)**: Grouped Ramp Angle, Ramp Feed, and Plunge Feed directly below Spindle Speed and Cutting Feedrate in Column 2, putting all primary CNC machine motion values front and center without requiring scrolling past advisory notes.
+  - **Expanded Viewport Width**: Increased `.container` max-width to `1720px` (`width: 96%`) to utilize widescreen 1080p and 1440p monitors, preventing horizontal overflow while eliminating >500px of dead margin space.
+  - **Responsive Breakpoint Hierarchy**: Seamlessly degrades from 3 columns on desktop ($\ge 1280\text{px}$) to 2 columns on tablets/laptops ($900\text{px} - 1279\text{px}$) and 1 column on mobile devices ($< 900\text{px}$).
+  - **Inline Target Cut & Auto-Set Dials**: Added an inline Target Cut indicator and 1-click `"⚡ Auto-Set Dials"` button directly above the Axial Depth of Cut slider in Column 1 for zero-scroll cut depth optimization.
+  - **Interactive Advisory Linking**: Clicking `"Details →"` on the Wear Compensation badge in Column 2 smoothly scrolls and triggers a glowing pulse animation (`@keyframes tipHighlightGlow`) on the corresponding Wear Compensation card in Column 3.
+  - **CSS Cache Busted (`?v=3.2`)**: Version query bumped to ensure browsers immediately fetch the new 3-column layout.
 - **High-Visibility Pulsing 'Auto-Set' Parameter Badges & Smart State Persistence**:
   - **High-Contrast Amber Glow & Breathing Indicator**: Tool parameters currently populated with system or catalog defaults (`Tool Stickout`, `Flute Length`, `Flute Count`, `Helix Angle`, `Corner Radius`, and recommended `Axial Depth` / `Radial Width`) display a prominent, unmistakable amber badge `[⚡ Auto]` with an animated pulsing dot and glowing outline (`@keyframes autoSetGlow`).
   - **"Auto-Set Dials" Integration**: Clicking the prominent "⚡ Auto-Set Dials" (`applyRecommendations()`) button dynamically flags `Axial Depth of Cut` and `Radial Width of Cut` with pulsing amber `[⚡ Auto]` badges, giving instantaneous visual confirmation that the cut dials were set by physics recommendations.

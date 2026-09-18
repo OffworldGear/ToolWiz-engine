@@ -54,7 +54,8 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1720px;
+    width: 96%;
     margin: 0 auto;
     padding: 1rem;
 }
@@ -183,17 +184,86 @@ input[type=range]::-webkit-slider-runnable-track {
 .checkbox-group label { margin: 0; cursor: pointer; font-size: 0.85rem;}
 .checkbox-group input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;}
 
-.results-panel { display: grid; grid-template-columns: 1fr; gap: 1rem;}
-@media (min-width: 1300px) {
-    .results-panel { grid-template-columns: 1fr 1fr; }
-    .primary-card { grid-column: span 2; }
+.results-panel { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 1rem;
+    align-content: start;
+}
+
+/* --- Speeds & Feeds 3-Column Ergonomic Layout --- */
+.calculator-3col-layout {
+    display: grid;
+    grid-template-columns: minmax(330px, 1.05fr) minmax(380px, 1.25fr) minmax(320px, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.advisor-panel {
+    display: flex !important;
+    flex-direction: column;
+    padding: 1.25rem;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2.5rem);
+    overflow-y: auto;
+}
+
+.advisor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 0.6rem;
+}
+
+.advisor-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+}
+
+.advisor-tips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Custom subtle scrollbar for Advisor panel */
+.advisor-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.advisor-panel::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 4px;
+}
+.advisor-panel::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.25);
+    border-radius: 4px;
+}
+.advisor-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.45);
+}
+
+@keyframes tipHighlightGlow {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+    50% { transform: scale(1.02); box-shadow: 0 0 15px 3px rgba(56, 189, 248, 0.6); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+
+.tip-highlight-pulse {
+    animation: tipHighlightGlow 1.2s ease-in-out;
 }
 
 .result-card { text-align: center; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; padding: 1rem; }
 .result-card h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;}
 .result-val { font-size: 2.25rem; font-weight: 700; margin-bottom: 0.25rem; }
 .unit { font-size: 1rem; color: var(--text-secondary);font-weight: 400;}
-.sub-val { font-size: 0.8rem; color: var(--text-secondary); font-family: monospace;}
+.sub-val { font-size: 0.78rem; color: var(--text-secondary); font-family: monospace; line-height: 1.35;}
 
 .result-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -227,8 +297,38 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 .toggle-knob.metric-active { transform: translateX(110px); background: #8b5cf6; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
 
+@media (max-width: 1279px) {
+    .calculator-3col-layout {
+        grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.2fr);
+    }
+    .calculator-3col-layout .advisor-panel {
+        grid-column: span 2;
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+    }
+}
+
 @media (max-width: 900px) {
     .grid-layout { grid-template-columns: 1fr; }
+    .calculator-3col-layout {
+        grid-template-columns: 1fr;
+    }
+    .calculator-3col-layout .advisor-panel {
+        grid-column: span 1;
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+    }
+}
+
+@media (max-width: 600px) {
+    .results-panel {
+        grid-template-columns: 1fr;
+    }
+    .results-panel > * {
+        grid-column: span 1 !important;
+    }
 }
 
 /* --- Digital Twin Navigation Tabs --- */
