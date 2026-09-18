@@ -151,12 +151,80 @@ For your inquiry: *"{(prompt[:120] + '...') if len(prompt) > 120 else prompt}"*
 > **API Key Setup**: To converse interactively with full conversational intelligence powered by Google Gemini, enter your `GEMINI_API_KEY` in the AI Machinist settings or set it in your environment variables. Free API keys are available from [Google AI Studio](https://aistudio.google.com/)."""
 
 
+# Cache available models in memory per API key to prevent redundant network lookups
+_MODEL_CACHE = {}
+
+
+def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
+    """
+    Queries Google Gemini ModelService.ListModels to discover active models supporting generateContent.
+    Returns (models_list, error_message).
+    """
+    if api_key in _MODEL_CACHE:
+        return _MODEL_CACHE[api_key], None
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(url)
+            if resp.status_code == 200:
+                data = resp.json()
+                models_data = data.get("models", [])
+                
+                valid_models = []
+                for m in models_data:
+                    name = m.get("name", "")  # e.g. "models/gemini-2.0-flash"
+                    methods = m.get("supportedGenerationMethods", [])
+                    if "generateContent" in methods:
+                        clean_name = name.replace("models/", "").strip()
+                        valid_models.append(clean_name)
+
+                if valid_models:
+                    # Sort to prioritize fast flash models, then pro models, preferring newest versions
+                    def model_priority(m):
+                        score = 0
+                        m_low = m.lower()
+                        if "flash" in m_low:
+                            score += 100
+                        elif "pro" in m_low:
+                            score += 50
+                        
+                        # Newer generation priorities
+                        if "3" in m_low: score += 40
+                        elif "2.5" in m_low: score += 30
+                        elif "2.0" in m_low or "2-" in m_low: score += 20
+                        elif "1.5" in m_low: score += 10
+                        
+                        # Prefer non-experimental / non-preview
+                        if "preview" in m_low or "exp" in m_low:
+                            score -= 5
+                        return score
+
+                    valid_models.sort(key=model_priority, reverse=True)
+                    _MODEL_CACHE[api_key] = valid_models
+                    return valid_models, None
+                else:
+                    return [], "No models with generateContent capability found for this API key."
+            elif resp.status_code in (400, 403):
+                try:
+                    err_data = resp.json().get("error", {})
+                    err_msg = err_data.get("message", f"HTTP {resp.status_code}")
+                except Exception:
+                    err_msg = f"HTTP {resp.status_code}"
+                return [], f"API Key Authentication Error: {err_msg}"
+            else:
+                return [], f"Model discovery HTTP {resp.status_code}: {resp.text[:200]}"
+    except Exception as e:
+        return [], f"Model discovery network error: {str(e)}"
+
+
 def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -> dict:
     """
     Sends the user prompt along with live ToolWiz telemetry to Google Gemini.
-    Falls back gracefully to the built-in offline machining knowledge engine if no key is configured.
+    Dynamically resolves supported models via ModelService.ListModels.
+    Falls back gracefully to the built-in offline machining knowledge engine if no key is configured or API errors occur.
     """
-    key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    key = (api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     context_str = format_context_for_prompt(context or {})
 
     if not key:
@@ -171,11 +239,30 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -
 
     full_prompt = f"{context_str}\n\n### Machinist Question:\n{prompt}"
 
-    # Try Gemini 2.5 Flash, fallback to Gemini 1.5 Flash
-    models = ["gemini-2.5-flash", "gemini-1.5-flash"]
-    last_err = None
+    # 1. Dynamically discover models supported by this specific API key
+    discovered_models, discovery_err = get_available_gemini_models(key)
+    
+    # If the key was rejected by Google as invalid (400/403), warn immediately
+    if discovery_err and "Authentication Error" in discovery_err:
+        offline_reply = get_offline_expert_response(prompt, context or {})
+        return {
+            "success": True,
+            "reply": f"{offline_reply}\n\n> [!WARNING]\n> **Google API Key Error**: {discovery_err}. Please verify your API key in the settings (⚙️).",
+            "mode": "fallback_offline",
+            "model": "toolwiz-machining-expert",
+            "apiKeyConfigured": True,
+            "warning": discovery_err
+        }
 
-    for model in models:
+    # If dynamic lookup succeeded, use top discovered models; otherwise use safe candidate fallbacks
+    candidate_models = discovered_models[:5] if discovered_models else [
+        "gemini-2.0-flash", "gemini-2.0-flash-exp", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-pro"
+    ]
+
+    last_err = discovery_err or "No response"
+
+    # 2. Query Gemini with the best available model candidate
+    for model in candidate_models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
         payload = {
             "system_instruction": {
@@ -211,17 +298,22 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None) -
                                 "apiKeyConfigured": True
                             }
                 else:
-                    last_err = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                    try:
+                        err_msg = resp.json().get("error", {}).get("message", resp.text[:150])
+                    except Exception:
+                        err_msg = resp.text[:150]
+                    last_err = f"HTTP {resp.status_code} ({model}): {err_msg}"
         except Exception as e:
-            last_err = str(e)
+            last_err = f"Network exception ({model}): {str(e)}"
 
-    # If network/API error occurred with provided key, fall back cleanly
+    # If all live attempts failed, fall back cleanly to knowledge engine with diagnostic message
     offline_reply = get_offline_expert_response(prompt, context or {})
     return {
         "success": True,
-        "reply": f"{offline_reply}\n\n*(Note: Gemini live API returned: {last_err}. Displaying knowledge engine response.)*",
+        "reply": f"{offline_reply}\n\n> [!NOTE]\n> *Gemini Live API status: {last_err}. Displaying ToolWiz physics knowledge engine response.*",
         "mode": "fallback_offline",
         "model": "toolwiz-machining-expert",
         "apiKeyConfigured": True,
         "warning": last_err
     }
+
