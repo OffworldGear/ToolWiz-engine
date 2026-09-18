@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Dynamic Web UI Decimal Formatting**: Replaced static `.toFixed(1)` formatting in `templates/index.html` with dynamic decimal scaling (`formatFeed()`), preventing micro-tool plunge feedrates (e.g. $0.0375\text{ IPM}$) from truncating to `"0.0"`.
 
 ### Added
+- **Automatic "Auto-Set Dials" Execution on Tool Diameter Change**:
+  - **Automated Dials Calibration**: Automatically executes "Auto-Set Dials" (`applyRecommendations()`) whenever a new tool diameter is set — whether selected from the standard datalist dropdown, typed into the numeric dialog, or transferred from the Thread & Tap calculator.
+  - **Dynamic Depth Alignment**: Immediately aligns Axial Depth of Cut (DOC) and Radial Width of Cut (WOC) sliders and numeric inputs to the optimal physics recommendations calculated for the new tool geometry, lighting up the glowing amber `[⚡ Auto]` badges.
+  - **Unit-Toggle Immunity**: Normalizes physical diameter in inches (`lastHandledDiaInches`) to prevent false auto-set triggers during pure unit switches between Imperial and Metric.
 - **3-Column Ergonomic UI Overhaul & Dedicated Machining Advisor Column**:
   - **Relocated Advisor to 3rd Column**: Moved the Machining Advisor & Guidance panel (`#tipsContainer`) out of the center column into a dedicated **3rd Column** on the right side of the dashboard, resolving vertical crowding across the entire Speeds & Feeds view.
   - **Sticky Viewport Tracking**: Configured the 3rd column with sticky viewport anchoring (`position: sticky; top: 1rem; max-height: calc(100vh - 2.5rem); overflow-y: auto;`) and custom dark scrollbars so live physics guidance and critical alerts stay locked in view as parameters are tuned.

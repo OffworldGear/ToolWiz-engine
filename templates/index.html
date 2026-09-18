@@ -248,7 +248,7 @@
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.25rem;">
                             <div class="input-group combo-group" style="margin:0;">
                                 <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>) <span id="badge_diameter" class="auto-set-badge" onclick="confirmAutoSet('diameter')" style="display:none;" title="Currently auto-set. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                                <input type="text" inputmode="decimal" id="diameter" class="tool-dialog-input" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="handleDiameterInput()">
+                                <input type="text" inputmode="decimal" id="diameter" class="tool-dialog-input" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old; handleDiameterChange();" oninput="handleDiameterInput()" onchange="handleDiameterChange()">
                                 <datalist id="diameters_list"></datalist>
                             </div>
                             
@@ -1020,13 +1020,34 @@
             }
         }
 
+        let lastHandledDiaInches = 0.5;
+        let autoSetDialsOnNextCalc = false;
+
         function handleDiameterInput() {
             markManualEdit('diameter');
             let d = parseFloat(document.getElementById('diameter').value);
             if (!isNaN(d) && d > 0) {
-                checkOutOfSpecGeometry(d);
+                let diaIn = isMetric ? (d / 25.4) : d;
+                if (Math.abs(diaIn - lastHandledDiaInches) > 0.0005) {
+                    lastHandledDiaInches = diaIn;
+                    autoSetDialsOnNextCalc = true;
+                    checkOutOfSpecGeometry(d);
+                }
             }
             calculate();
+        }
+
+        function handleDiameterChange() {
+            let d = parseFloat(document.getElementById('diameter').value);
+            if (!isNaN(d) && d > 0) {
+                let diaIn = isMetric ? (d / 25.4) : d;
+                if (Math.abs(diaIn - lastHandledDiaInches) > 0.0005) {
+                    lastHandledDiaInches = diaIn;
+                    autoSetDialsOnNextCalc = true;
+                    checkOutOfSpecGeometry(d);
+                    calculate();
+                }
+            }
         }
 
         function checkOutOfSpecGeometry(newDia) {
@@ -1284,6 +1305,8 @@
             updateGeometryDisplay('tool');
             loadState(); // load saved preferences
             updateGeometryDisplay('tool');
+            let initDia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
+            lastHandledDiaInches = isMetric ? (initDia / 25.4) : initDia;
             calculate();
             renderAutoSetBadges();
             loadThreadStandards();
@@ -1945,6 +1968,12 @@
                     document.getElementById('recOutput').textContent = recFormatted;
                     const subRecEl = document.getElementById('subRecOutput');
                     if (subRecEl) subRecEl.textContent = recFormatted + (isMetric ? " mm" : " in");
+                    
+                    if (autoSetDialsOnNextCalc) {
+                        autoSetDialsOnNextCalc = false;
+                        applyRecommendations();
+                        return;
+                    }
                     
                     animateValue("rpm", parseInt(document.getElementById("rpm").innerText), res.rpm, 300);
                     
@@ -3286,6 +3315,8 @@
             const diaNode = document.getElementById('diameter');
             if (diaNode) {
                 diaNode.value = isMetric ? (majorIn * 25.4).toFixed(3) : majorIn.toFixed(4);
+                lastHandledDiaInches = majorIn;
+                autoSetDialsOnNextCalc = true;
             }
 
             const pitchNode = document.getElementById('pitch');
