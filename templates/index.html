@@ -20,6 +20,7 @@
             
             <nav class="nav-tabs" style="margin-top: 1rem;">
                 <button class="nav-tab active" id="tabCalcBtn" onclick="switchTab('calculator')">⚡ Speeds & Feeds Calculator</button>
+                <button class="nav-tab" id="tabThreadBtn" onclick="switchTab('threading')">🧵 Thread & Tap Calculator</button>
                 <button class="nav-tab" id="tabTwinBtn" onclick="switchTab('digital-twin')">📦 Digital Twin Library Manager</button>
             </nav>
         </header>
@@ -90,18 +91,14 @@
                                     <option value="Square">Square Endmill</option>
                                     <option value="Ball">Ball Endmill</option>
                                     <option value="Radiused">Bullnose / Radiused</option>
-                                    <option value="Drill">Standard Twist Drill</option>
-                                    <option value="Spot Drill">Spot Drill (90/120 Degree)</option>
-                                    <option value="Parabolic">Parabolic Deep Drill</option>
                                     <option value="Rougher">Rougher (Corncob)</option>
                                     <option value="Indexable Mill">Indexable Mill</option>
-                                    <option value="T-Slot">T-Slot / Woodruff</option>
-                                    <option value="Dovetail">Dovetail Cutter</option>
-                                    <option value="Keyseat">Keyseat Cutter</option>
                                     <option value="Lollipop">Lollipop</option>
                                     <option value="V-Bit">V-Bit / Chamfer</option>
                                     <option value="Engraving">Engraving Tool</option>
-                                    <option value="Thread Mill">Thread Mill</option>
+                                    <option value="T-Slot">T-Slot / Woodruff</option>
+                                    <option value="Keyseat">Keyseat Cutter</option>
+                                    <option value="Dovetail">Dovetail Cutter</option>
                                 </select>
                             </div>
                             <div class="checkbox-group" style="margin:0; align-self:center;">
@@ -112,98 +109,86 @@
 
                         <div class="input-group" id="cornerRadiusGroup" style="display: none;">
                             <label for="cornerRadius">Corner Radius (<span class="unit-lbl">in</span>)</label>
-                            <input type="number" id="cornerRadius" step="any" value="0.030" oninput="calculate()">
+                            <input type="number" id="cornerRadius" class="tool-dialog-input" step="any" value="0.030" oninput="calculate()">
+                        </div>
+                        
+                        <div class="checkbox-group" id="relievedNeckToggleGroup" style="display: none; margin-bottom: 0.75rem;">
+                            <input type="checkbox" id="hasRelievedNeck" onchange="toggleRelievedNeck(); calculate()">
+                            <label for="hasRelievedNeck" style="display:inline-block; cursor:pointer;">Relieved Neck / Stepped Shank (Long Reach)</label>
                         </div>
                         
                         <div class="input-group combo-group" id="shankGroup" style="display: none;">
-                            <div class="slider-header">
-                                <label for="shankDiameter">Shank Diameter (<span class="unit-lbl">in</span>)</label>
-                            </div>
-                            <input type="number" id="shankDiameter" step="any" list="diameters_list" value="0.25" oninput="calculate()">
+                            <label for="shankDiameter">Shank Diameter (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="shankDiameter" class="tool-dialog-input" step="any" list="diameters_list" value="0.25" oninput="calculate()">
                         </div>
 
                         <div class="grid-layout" id="neckGroup" style="display: none; gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="neckDiameter">Neck Diameter (<span class="unit-lbl">in</span>)</label>
-                                <input type="number" id="neckDiameter" step="any" value="0.125" oninput="calculate()">
+                                <input type="number" id="neckDiameter" class="tool-dialog-input" step="any" value="0.125" oninput="calculate()">
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="neckLength">Neck Length (<span class="unit-lbl">in</span>)</label>
-                                <input type="number" id="neckLength" step="any" value="0.5" oninput="calculate()">
+                                <input type="number" id="neckLength" class="tool-dialog-input" step="any" value="0.5" oninput="calculate()">
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="taperAngle">Taper Angle (&deg;)</label>
-                                <input type="number" id="taperAngle" step="any" value="0.0" oninput="calculate()">
+                                <input type="number" id="taperAngle" class="tool-dialog-input" step="any" value="0.0" oninput="calculate()">
                             </div>
                         </div>
 
                         <div class="input-group" id="thicknessGroup" style="display: none;">
                             <label for="cutterThickness">Cutter Thickness (<span class="unit-lbl">in</span>)</label>
-                            <input type="number" id="cutterThickness" step="any" value="0.125" oninput="calculate()">
+                            <input type="number" id="cutterThickness" class="tool-dialog-input" step="any" value="0.125" oninput="calculate()">
                         </div>
 
-                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem;">
+                        <!-- Tool Diameter & Flute Length -->
+                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.25rem;">
                             <div class="input-group combo-group" style="margin:0;">
-                                <div class="slider-header">
-                                    <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
-                                </div>
-                                <input type="text" inputmode="decimal" id="diameter" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
+                                <label for="diameter">Tool Diameter (<span class="unit-lbl">in</span>)</label>
+                                <input type="text" inputmode="decimal" id="diameter" class="tool-dialog-input" list="diameters_list" autocomplete="off" value="0.5" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
                                 <datalist id="diameters_list"></datalist>
                             </div>
                             
                             <div class="input-group" id="fluteLengthGroup" style="margin:0;">
-                                <div class="slider-header" style="display: flex; justify-content: space-between;">
-                                    <label for="fluteLength">Flute Length (<span class="unit-lbl">in</span>)</label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <label for="fluteLength" style="margin-bottom:0;">Flute Length (<span class="unit-lbl">in</span>)</label>
+                                    <div style="display: flex; gap: 0.35rem;">
+                                        <button type="button" class="btn-ratio" onclick="setFluteRatio(3)">3&times;D</button>
+                                        <button type="button" class="btn-ratio" onclick="setFluteRatio(4)">4&times;D</button>
+                                        <button type="button" class="btn-ratio" onclick="setFluteRatio(5)">5&times;D</button>
+                                    </div>
                                 </div>
-                                <input type="text" inputmode="decimal" id="fluteLength" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
-                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <button type="button" onclick="setFluteRatio(3)" style="flex:1; padding: 2px; font-size: 0.8rem; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">3xD</button>
-                                    <button type="button" onclick="setFluteRatio(4)" style="flex:1; padding: 2px; font-size: 0.8rem; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">4xD</button>
-                                    <button type="button" onclick="setFluteRatio(5)" style="flex:1; padding: 2px; font-size: 0.8rem; background: #333; color: white; border: 1px solid #555; border-radius: 3px; cursor: pointer;">5xD</button>
-                                </div>
+                                <input type="text" inputmode="decimal" id="fluteLength" class="tool-dialog-input" list="flute_list" autocomplete="off" value="1.500" onfocus="this.dataset.old=this.value; this.value='';" onblur="if(this.value=='') this.value=this.dataset.old;" oninput="calculate()">
                                 <datalist id="flute_list"></datalist>
                             </div>
                         </div>
 
-                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
-                            <div class="slider-group" style="margin:0;">
-                                <div class="slider-header">
-                                    <label for="flutes">Flutes</label>
-                                    <input type="number" id="flutes_val" value="4" class="inline-num" oninput="document.getElementById('flutes').value = this.value; calculate()">
-                                </div>
-                                <input type="range" id="flutes" min="1" max="10" step="1" value="4" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
+                        <!-- Flute Count & Helix Angle -->
+                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.25rem">
+                            <div class="input-group" style="margin:0;">
+                                <label for="flutes_val">Flute Count (Flutes)</label>
+                                <input type="number" id="flutes_val" class="tool-dialog-input" min="1" max="20" step="1" value="4" oninput="document.getElementById('flutes').value = this.value; calculate()">
+                                <input type="range" id="flutes" min="1" max="10" step="1" value="4" style="margin-top: 6px;" oninput="document.getElementById('flutes_val').value = this.value; calculate()">
                             </div>
                             
-                            <div class="slider-group" style="margin:0;">
-                                <div class="slider-header">
-                                    <label for="helixAngle">Helix Angle (&deg;)</label>
-                                    <input type="number" id="helix_val" value="30" class="inline-num" oninput="document.getElementById('helixAngle').value = this.value; calculate()">
-                                </div>
-                                <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" oninput="document.getElementById('helix_val').value = this.value; calculate()">
+                            <div class="input-group" style="margin:0;">
+                                <label for="helix_val">Helix Angle (&deg;)</label>
+                                <input type="number" id="helix_val" class="tool-dialog-input" min="0" max="60" step="1" value="30" oninput="document.getElementById('helixAngle').value = this.value; calculate()">
+                                <input type="range" id="helixAngle" min="0" max="60" step="1" value="30" style="margin-top: 6px;" oninput="document.getElementById('helix_val').value = this.value; calculate()">
                             </div>
                         </div>
 
-                        <div class="input-group" id="pitchGroup" style="display: none;">
+                        <div class="input-group" id="pitchGroup" style="display: none; margin-bottom: 1.25rem;">
                             <label for="pitch">Thread Pitch (<span class="unit-lbl">in</span>)</label>
-                            <input type="number" id="pitch" value="0.05" min="0.001" step="any" onchange="calculate()">
+                            <input type="number" id="pitch" class="tool-dialog-input" value="0.05" min="0.001" step="any" onchange="calculate()">
                         </div>
 
-                        <div class="input-group" id="tapTypeGroup" style="display: none; margin-bottom: 1.5rem;">
-                            <label for="tapType">Tap Style</label>
-                            <select id="tapType" onchange="calculate()">
-                                <option value="form" selected>Cold Form / Roll Tap (Chipless - High Strength)</option>
-                                <option value="spiral_flute">Spiral Flute Cut Tap (Blind Holes)</option>
-                                <option value="spiral_point">Spiral Point / Gun Tap (Through Holes)</option>
-                                <option value="straight_flute">Straight Flute / Hand Cut Tap</option>
-                            </select>
-                        </div>
-
-                        <div class="slider-group" style="margin-bottom:0;">
-                            <div class="slider-header">
-                                <label for="stickout_range">Stickout (<span class="unit-lbl">in</span>)</label>
-                                <input type="number" id="stickout_val" step="0.001" value="1.500" class="inline-num" oninput="document.getElementById('stickout_range').value = this.value; calculate()">
-                            </div>
-                            <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" oninput="document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                        <!-- Tool Stickout -->
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label for="stickout_val">Tool Stickout (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="stickout_val" class="tool-dialog-input" step="0.001" value="1.500" oninput="document.getElementById('stickout_range').value = this.value; calculate()">
+                            <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" style="margin-top: 6px;" oninput="document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
                         </div>
                     </fieldset>
 
@@ -212,15 +197,15 @@
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="maxRpm">Max RPM</label>
-                                <input type="number" id="maxRpm" value="16000" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                                <input type="number" id="maxRpm" class="tool-dialog-input" value="16000" oninput="calculate()">
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="maxHp">Max HP</label>
-                                <input type="number" id="maxHp" value="10.0" step="0.5" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                                <input type="number" id="maxHp" class="tool-dialog-input" value="10.0" step="0.5" oninput="calculate()">
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="runout">Runout (<span class="unit-lbl">in</span>)</label>
-                                <input type="number" id="runout" value="0.0002" step="0.0001" oninput="calculate()" style="width:100%; border:1px solid var(--panel-border); border-radius:6px; padding:0.5rem; background:rgba(0,0,0,0.2); color:white;">
+                                <input type="number" id="runout" class="tool-dialog-input" value="0.0002" step="0.0001" oninput="calculate()">
                             </div>
                         </div>
 
@@ -280,6 +265,31 @@
                         <div class="sub-val" id="ipr_row" style="margin-top:2px;">Feed / Rev: <span id="feed_ipr" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipr-lbl">in/rev</span></div>
                     </div>
 
+                    <!-- TOOL & CUT GEOMETRY VISUALIZATION -->
+                    <div class="glass-panel tool-viz-card" id="toolVizCard">
+                        <div class="tool-viz-header">
+                            <h3><span style="color:var(--accent);">📐</span> Tool & Cut Geometry</h3>
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <div id="clearanceBadge" class="clearance-badge badge-safe">
+                                    <span id="badgeIcon">✓</span> <span id="vizReachLabel">Max Reach:</span> <span id="vizReachVal">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-svg-container">
+                            <svg id="toolSvg" viewBox="0 0 520 280" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+
+                        <div id="collisionAlert" class="collision-alert-banner"></div>
+
+                        <div class="tool-viz-legend">
+                            <span class="legend-item"><span class="legend-color" style="background:#60a5fa;"></span> Tool Body & Shank</span>
+                            <span class="legend-item"><span class="legend-color" style="background:#38bdf8;"></span> Flutes / Cutting Head</span>
+                            <span class="legend-item"><span class="legend-color" style="background:#f59e0b;"></span> Workpiece Cut (DOC &times; WOC)</span>
+                            <span class="legend-item"><span class="legend-color" style="background:#64748b;"></span> Collet / Holder</span>
+                        </div>
+                    </div>
+
                     <div class="glass-panel result-card metric-card">
                         <h3>Material Removal Rate</h3>
                         <div class="result-val"><span id="mrr">0.00</span> <span class="mrr-lbl">in³/min</span></div>
@@ -292,8 +302,37 @@
                             <span id="deflection_um_wrap" style="display:none; font-size:0.9rem; opacity:0.85; margin-left:4px;">(<span id="deflection_um">0.0</span> µm)</span>
                         </div>
                         <div class="sub-val" id="deflectionWarning">Safe Limit: < <span id="defLimit">0.0010</span> <span class="unit-lbl">in</span></div>
+                        <div id="wearCompBadge" style="display:none; margin-top: 8px; padding: 6px 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 6px; text-align: left;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; font-size: 0.85rem;">
+                                <span><i class="fa-solid fa-sliders"></i> Wear Comp: <span id="wearCompVal">-0.0000 in</span></span>
+                                <a href="#tipsContainer" onclick="document.getElementById('tipsContainer').scrollIntoView({behavior:'smooth'});" style="color:var(--accent); font-size:0.75rem; text-decoration:none; font-weight:600;">Details &rarr;</a>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 3px; display: flex; justify-content: space-between;">
+                                <span>Springback: <span id="springbackVal" style="color:#e2e8f0; font-weight:600;">0.0000 in</span></span>
+                                <span>Wall Error: <span id="totalErrorVal" style="color:#f59e0b; font-weight:600;">+0.0000 in</span></span>
+                            </div>
+                        </div>
                     </div>
                     
+                    <!-- MACHINING ADVISOR & GUIDANCE (Permanently visible) -->
+                    <div id="tipsContainer" class="glass-panel" style="display: block; grid-column: span 2; padding: 1.25rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; border-bottom:1px solid var(--panel-border); padding-bottom:0.5rem;">
+                            <h3 style="margin:0; font-size:1.05rem; display:flex; align-items:center; gap:0.5rem; font-weight:700;">
+                                <i class="fa-solid fa-compass-drafting" style="color:var(--accent)"></i> Machining Advisor & Guidance
+                            </h3>
+                            <span id="advisorBadge" class="advisor-badge badge-active">Advisor Active</span>
+                        </div>
+                        <div id="tipsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+                            <div style="padding: 0.85rem 1rem; background: rgba(56, 189, 248, 0.08); border-left: 4px solid var(--accent); border-radius: 6px; display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fa-solid fa-circle-info" style="color: var(--accent); font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600; color: #38bdf8; font-size: 0.9rem;">Machining Advisor Active</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Continuous monitoring of springback, work-hardening, tool wear compensation, and deflection envelopes.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="glass-panel result-card primary-card vertical-card" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-around;">
                         <div id="col1_wrap">
                             <h3 id="ramp_col1_title">Ramp Angle</h3>
@@ -309,9 +348,183 @@
                         </div>
                     </div>
 
-                    <div id="tipsContainer" class="glass-panel" style="display:none; grid-column: span 2; padding: 1.5rem; margin-top: 1rem;">
-                        <h3 style="margin-top:0; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;"><i class="fa-solid fa-lightbulb" style="color:var(--accent)"></i> Advanced Physics & Strategies</h3>
-                        <div id="tipsList" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+                    <div id="tapCalcShortcutWrap" class="glass-panel" style="display:none; grid-column: span 2; padding: 0.75rem 1rem; text-align: center; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);">
+                        <button type="button" onclick="openCurrentInThreadCalc()" class="btn-thread-shortcut">
+                            🧵 Open in Thread & Tap Calculator for Complete Drill Sizing Grid & Blind Hole Clearance ➔
+                        </button>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- VIEW 3: THREAD & TAP CALCULATOR -->
+        <div id="threadingView" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <div class="glass-panel" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem;">
+                    <div>
+                        <span style="color: var(--accent); font-weight: 600; font-size: 0.9rem;">Active Thread:</span>
+                        <span id="activeThreadTitle" style="font-size: 1.15rem; font-weight: 700; margin-left: 0.5rem; color: #38bdf8;">M1.6-0.35 (ISO Coarse) - 6H Internal</span>
+                    </div>
+                    <button type="button" onclick="sendThreadToSpeedsFeeds()" style="background: var(--accent); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">⚡ Send Tap to Speeds & Feeds</button>
+                </div>
+            </div>
+
+            <main class="grid-layout" style="grid-template-columns: 360px 1fr; gap: 1.25rem;">
+                <!-- LEFT COLUMN: THREAD SELECTION & BLIND HOLE CLEARANCE -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <!-- THREAD SELECTION PANEL -->
+                    <section class="glass-panel inputs-panel">
+                        <h2>Thread Selection</h2>
+                        
+                        <div class="input-group">
+                            <label for="thFamily">Thread Standard / Family</label>
+                            <select id="thFamily" onchange="onThreadFamilyChange()"></select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="thSize">Thread Size</label>
+                            <select id="thSize" onchange="calculateThread()"></select>
+                        </div>
+
+                        <div class="grid-layout" style="gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="input-group" style="margin: 0;">
+                                <label for="thClass">Thread Class</label>
+                                <select id="thClass" onchange="calculateThread()"></select>
+                            </div>
+                            <div class="input-group" style="margin: 0;">
+                                <label>Thread Type</label>
+                                <div class="segmented-control">
+                                    <button type="button" class="segmented-btn active" id="btnTypeInternal" onclick="setThreadType('Internal')">Internal</button>
+                                    <button type="button" class="segmented-btn" id="btnTypeExternal" onclick="setThreadType('External')">External</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="checkbox-group" style="margin-top: 0.5rem; margin-bottom: 0.75rem;">
+                            <input type="checkbox" id="thIsCustom" onchange="toggleCustomThread()">
+                            <label for="thIsCustom">Custom Thread Sizing</label>
+                        </div>
+
+                        <div id="customThreadInputs" style="display: none; background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="input-group">
+                                <label for="customMajorDia">Custom Major Dia (<span class="unit-lbl">in</span>)</label>
+                                <input type="number" id="customMajorDia" step="any" value="0.25" oninput="calculateThread()">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label for="customPitchVal">Custom Pitch (<span class="unit-lbl">in</span> or mm)</label>
+                                <input type="number" id="customPitchVal" step="any" value="0.05" oninput="calculateThread()">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- THREAD GEOMETRY SPECIFICATIONS -->
+                    <section class="glass-panel">
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.05rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem;">
+                            📐 Thread Dimensions
+                        </h3>
+                        <table class="thread-spec-table">
+                            <tbody>
+                                <tr>
+                                    <td class="spec-key">Pitch / Lead:</td>
+                                    <td class="spec-val" id="specPitch">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="spec-key">Threads Per Inch (TPI):</td>
+                                    <td class="spec-val" id="specTpi">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="spec-key">Thread Angle:</td>
+                                    <td class="spec-val" id="specAngle">60°</td>
+                                </tr>
+                                <tr>
+                                    <td class="spec-key">Major Dia (Max / Min):</td>
+                                    <td class="spec-val" id="specMajor">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="spec-key">Pitch Dia (Max / Min):</td>
+                                    <td class="spec-val" id="specPitchDia">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="spec-key">Minor Dia (Max / Min):</td>
+                                    <td class="spec-val" id="specMinor">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+
+                    <!-- BLIND HOLE DEPTH CLEARANCE (G-Wizard replica) -->
+                    <section class="glass-panel">
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.05rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem;">
+                            🕳️ Blind Hole Clearance
+                        </h3>
+                        <div class="input-group">
+                            <label for="blindLeadStyle">Tap Chamfer Lead Style</label>
+                            <select id="blindLeadStyle" onchange="calculateThread()">
+                                <option value="form" selected>Cold Form Tap (2.5 threads lead)</option>
+                                <option value="bottoming">Bottoming Tap (1.5 threads lead)</option>
+                                <option value="plug">Plug Tap (4.0 threads lead)</option>
+                                <option value="taper">Taper Tap (8.5 threads lead)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="blindThreadDepth">Usable Thread Depth (<span class="unit-lbl">in</span>)</label>
+                            <input type="number" id="blindThreadDepth" step="any" value="0.25" oninput="calculateThread()">
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 0.6rem 0.8rem; margin-top: 0.5rem; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="color: var(--text-secondary);">Tip & Lead Clearance:</span>
+                                <span id="blindClearanceVal" style="font-family: monospace; font-weight: 600; color: #38bdf8;">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">Min Total Drill Depth:</span>
+                                <span id="blindTotalDepthVal" style="font-family: monospace; font-weight: 700; color: #34d399;">--</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- RIGHT COLUMN: TAPPING DRILL GRID (G-Wizard threadPctGrid) -->
+                <section class="glass-panel" style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                        <h3 style="margin: 0; font-size: 1.15rem;">Tapping Drill DataGrid</h3>
+                        
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Tap Style:</span>
+                            <div class="segmented-control" style="width: 260px;">
+                                <button type="button" class="segmented-btn active" id="btnStyleForm" onclick="setTapStyle(true)">Cold Form Tap</button>
+                                <button type="button" class="segmented-btn" id="btnStyleCut" onclick="setTapStyle(false)">Cutting Tap</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="threadNoticeBanner" class="notice-banner">
+                        <!-- Populated dynamically based on Form vs Cut Tap -->
+                    </div>
+
+                    <div class="twin-filter-bar" style="margin-bottom: 0.75rem;">
+                        <input type="text" id="drillSearchInput" placeholder="🔍 Search drill size or name (e.g. 1.45 mm, #55)..." oninput="filterThreadDrills()" style="flex: 1; padding: 0.4rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white; font-size: 0.85rem;">
+                        <div class="checkbox-group" style="margin: 0; white-space: nowrap;">
+                            <input type="checkbox" id="filterRecommendedOnly" onchange="filterThreadDrills()">
+                            <label for="filterRecommendedOnly">Recommended Sweet Spot Only</label>
+                        </div>
+                    </div>
+
+                    <div class="twin-table-container" style="flex: 1; max-height: 600px;">
+                        <table class="twin-table" id="threadDrillTable">
+                            <thead>
+                                <tr>
+                                    <th>Standard Drill</th>
+                                    <th>Diameter (in)</th>
+                                    <th>Diameter (mm)</th>
+                                    <th>% Thread</th>
+                                    <th>Fit & Engagement Note</th>
+                                    <th style="text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="threadDrillTbody">
+                                <tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading thread drill data...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </section>
             </main>
@@ -518,12 +731,20 @@
 
         function switchTab(tabName) {
             document.getElementById('tabCalcBtn').classList.toggle('active', tabName === 'calculator');
+            document.getElementById('tabThreadBtn').classList.toggle('active', tabName === 'threading');
             document.getElementById('tabTwinBtn').classList.toggle('active', tabName === 'digital-twin');
             document.getElementById('calculatorView').style.display = tabName === 'calculator' ? 'block' : 'none';
+            document.getElementById('threadingView').style.display = tabName === 'threading' ? 'block' : 'none';
             document.getElementById('digitalTwinView').style.display = tabName === 'digital-twin' ? 'block' : 'none';
             
             if (tabName === 'digital-twin') {
                 loadDigitalTwin();
+            } else if (tabName === 'threading') {
+                if (!threadStandardsLoaded) {
+                    loadThreadStandards();
+                } else {
+                    calculateThread();
+                }
             }
         }
 
@@ -542,23 +763,29 @@
         }
         
         function saveState() {
-            const state = {
-                family: document.getElementById('family').value,
-                alloy: document.getElementById('alloy').value,
-                tool: document.getElementById('tool').value,
-                coating: document.getElementById('coating').value,
-                geometry: document.getElementById('geometry').value,
-                diameter: document.getElementById('diameter').value,
-                flutes_val: document.getElementById('flutes_val').value,
-                fluteLength: document.getElementById('fluteLength').value,
-                cutDepth_val: document.getElementById('cutDepth_val').value,
-                cutWidth_val: document.getElementById('cutWidth_val').value,
-                stickout_val: document.getElementById('stickout_val').value,
-                operation: document.getElementById('operation').value,
-                aggressiveness: document.getElementById('aggressiveness').value,
-                isMetric: isMetric
-            };
-            localStorage.setItem('toolwiz_state', JSON.stringify(state));
+            try {
+                const state = {
+                    family: document.getElementById('family')?.value || "",
+                    alloy: document.getElementById('alloy')?.value || "",
+                    tool: document.getElementById('tool')?.value || "",
+                    coating: document.getElementById('coating')?.value || "",
+                    geometry: document.getElementById('geometry')?.value || "",
+                    diameter: document.getElementById('diameter')?.value || "",
+                    pitch: document.getElementById('pitch')?.value || "",
+                    flutes_val: document.getElementById('flutes_val')?.value || "4",
+                    fluteLength: document.getElementById('fluteLength')?.value || "1.0",
+                    cutDepth_val: document.getElementById('cutDepth_val')?.value || "0.25",
+                    cutWidth_val: document.getElementById('cutWidth_val')?.value || "0.1",
+                    stickout_val: document.getElementById('stickout_val')?.value || "1.5",
+                    operation: document.getElementById('operation')?.value || "Roughing",
+                    aggressiveness: document.getElementById('aggressiveness')?.value || "50",
+                    isCarbide: document.getElementById('isCarbide')?.checked ?? true,
+                    isMetric: isMetric
+                };
+                localStorage.setItem('toolwiz_state', JSON.stringify(state));
+            } catch (e) {
+                console.error("Error saving state", e);
+            }
         }
 
         function loadState() {
@@ -566,26 +793,33 @@
             if(saved) {
                 try {
                     const state = JSON.parse(saved);
-                    if(state.isMetric !== isMetric) {
+                    if(state.isMetric !== undefined && state.isMetric !== isMetric) {
                         toggleUnit();
                     }
-                    if(state.family) document.getElementById('family').value = state.family;
+                    if(state.family && document.getElementById('family')) document.getElementById('family').value = state.family;
                     updateAlloys(); // Repopulate alloy list based on loaded family
-                    if(state.alloy) document.getElementById('alloy').value = state.alloy;
-                    if(state.tool) document.getElementById('tool').value = state.tool;
-                    if(state.coating) document.getElementById('coating').value = state.coating;
-                    if(state.geometry) document.getElementById('geometry').value = state.geometry;
-                    if(state.diameter) document.getElementById('diameter').value = state.diameter;
-                    if(state.flutes_val) {
+                    if(state.alloy && document.getElementById('alloy')) document.getElementById('alloy').value = state.alloy;
+                    if(state.tool && document.getElementById('tool')) document.getElementById('tool').value = state.tool;
+                    updateGeometryDisplay('tool');
+                    if(state.coating && document.getElementById('coating')) document.getElementById('coating').value = state.coating;
+                    if(state.geometry && document.getElementById('geometry')) document.getElementById('geometry').value = state.geometry;
+                    if(state.diameter && document.getElementById('diameter')) document.getElementById('diameter').value = state.diameter;
+                    if(state.pitch && document.getElementById('pitch')) document.getElementById('pitch').value = state.pitch;
+                    if(state.isCarbide !== undefined && document.getElementById('isCarbide')) document.getElementById('isCarbide').checked = state.isCarbide;
+                    if(state.flutes_val && document.getElementById('flutes_val')) {
                         document.getElementById('flutes_val').value = state.flutes_val;
-                        document.getElementById('flutes').value = state.flutes_val;
+                        if(document.getElementById('flutes')) document.getElementById('flutes').value = state.flutes_val;
                     }
-                    if(state.fluteLength) document.getElementById('fluteLength').value = state.fluteLength;
-                    if(state.cutDepth_val) document.getElementById('cutDepth_val').value = state.cutDepth_val;
-                    if(state.cutWidth_val) document.getElementById('cutWidth_val').value = state.cutWidth_val;
-                    if(state.stickout_val) document.getElementById('stickout_val').value = state.stickout_val;
-                    if(state.operation) document.getElementById('operation').value = state.operation;
-                    if(state.aggressiveness) document.getElementById('aggressiveness').value = state.aggressiveness;
+                    if(state.fluteLength && document.getElementById('fluteLength')) document.getElementById('fluteLength').value = state.fluteLength;
+                    if(state.cutDepth_val && document.getElementById('cutDepth_val')) document.getElementById('cutDepth_val').value = state.cutDepth_val;
+                    if(state.cutWidth_val && document.getElementById('cutWidth_val')) document.getElementById('cutWidth_val').value = state.cutWidth_val;
+                    if(state.stickout_val && document.getElementById('stickout_val')) document.getElementById('stickout_val').value = state.stickout_val;
+                    if(state.operation && document.getElementById('operation')) document.getElementById('operation').value = state.operation;
+                    if(state.aggressiveness && document.getElementById('aggressiveness')) {
+                        document.getElementById('aggressiveness').value = state.aggressiveness;
+                        const aggrVol = document.getElementById('aggrVol');
+                        if (aggrVol) aggrVol.innerText = state.aggressiveness + '%';
+                    }
                     
                     updateGeometryDisplay();
                 } catch(e) {
@@ -594,6 +828,58 @@
             }
         }
         
+        const GEOMETRY_OPTIONS_BY_TOOL = {
+            tap: [
+                { value: "form", text: "Cold Form / Roll Tap (Chipless)" },
+                { value: "spiral_flute", text: "Spiral Flute Cut Tap (Blind Hole)" },
+                { value: "spiral_point", text: "Spiral Point / Gun Tap (Through Hole)" },
+                { value: "straight_flute", text: "Straight Flute / Hand Cut Tap" }
+            ],
+            drill: [
+                { value: "Drill", text: "Standard Twist Drill" },
+                { value: "Spot Drill", text: "Spot Drill (90/120 Degree)" },
+                { value: "Parabolic", text: "Parabolic Deep Drill" }
+            ],
+            reamer: [
+                { value: "Reamer", text: "Precision Reamer" }
+            ],
+            threadmill: [
+                { value: "Thread Mill", text: "Thread Mill" }
+            ],
+            turning: [
+                { value: "Turning", text: "Turning Insert / Tool" }
+            ],
+            milling: [
+                { value: "Square", text: "Square Endmill" },
+                { value: "Ball", text: "Ball Endmill" },
+                { value: "Radiused", text: "Bullnose / Radiused" },
+                { value: "Rougher", text: "Rougher (Corncob)" },
+                { value: "Indexable Mill", text: "Indexable Mill" },
+                { value: "Lollipop", text: "Lollipop" },
+                { value: "V-Bit", text: "V-Bit / Chamfer" },
+                { value: "Engraving", text: "Engraving Tool" },
+                { value: "T-Slot", text: "T-Slot / Woodruff" },
+                { value: "Keyseat", text: "Keyseat Cutter" },
+                { value: "Dovetail", text: "Dovetail Cutter" }
+            ],
+            saw: [
+                { value: "T-Slot", text: "T-Slot / Woodruff" },
+                { value: "Keyseat", text: "Keyseat Cutter" },
+                { value: "Dovetail", text: "Dovetail Cutter" }
+            ]
+        };
+
+        function getToolCategoryGroup(toolType) {
+            const t = (toolType || "").toLowerCase();
+            if (t.includes("tap")) return "tap";
+            if (t.includes("drill") || t.includes("annular") || t.includes("spade")) return "drill";
+            if (t.includes("reamer")) return "reamer";
+            if (t.includes("thread mill")) return "threadmill";
+            if (t.includes("turning")) return "turning";
+            if (t.includes("saw") || t.includes("woodruff")) return "saw";
+            return "milling";
+        }
+
         async function init() {
             const response = await fetch('/api/data');
             const data = await response.json();
@@ -613,64 +899,132 @@
 
             const toolSelect = document.getElementById('tool');
             toolSelect.innerHTML = '';
-            data.tools.forEach(t => {
-                let opt = document.createElement('option');
-                opt.value = t; opt.innerText = t;
-                if(t.includes("Carbide Endmill")) opt.selected = true;
-                toolSelect.appendChild(opt);
-            });
+            if (data.tool_groups && data.tool_groups.length > 0) {
+                data.tool_groups.forEach(g => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = g.group;
+                    g.tools.forEach(t => {
+                        let opt = document.createElement('option');
+                        opt.value = t;
+                        opt.innerText = t;
+                        if (t === "Carbide Endmill") opt.selected = true;
+                        optgroup.appendChild(opt);
+                    });
+                    toolSelect.appendChild(optgroup);
+                });
+            } else {
+                data.tools.forEach(t => {
+                    let opt = document.createElement('option');
+                    opt.value = t; opt.innerText = t;
+                    if(t.includes("Carbide Endmill")) opt.selected = true;
+                    toolSelect.appendChild(opt);
+                });
+            }
 
             fullAlloys = data.alloys;
             updateAlloys();
             updateTwinAlloys();
             buildDatalist();
+            updateGeometryDisplay('tool');
             loadState(); // load saved preferences
-            updateGeometryDisplay();
+            updateGeometryDisplay('tool');
             calculate();
+            loadThreadStandards();
         }
 
         function updateGeometryDisplay(source) {
             const geoSelect = document.getElementById('geometry');
             const toolSelect = document.getElementById('tool');
-            let geo = geoSelect.value;
             let toolType = toolSelect.value || "";
 
             // Smart bidirectional synchronization
             if (source === 'geometry') {
-                if ((geo === 'Drill' || geo === 'Parabolic') && (toolType.includes('Endmill') || toolType === '')) {
+                let geoVal = geoSelect.value;
+                if ((geoVal === 'Drill' || geoVal === 'Parabolic') && (toolType.includes('Endmill') || toolType.includes('Spot') || toolType === '')) {
                     if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide Twist Drill')) {
                         toolSelect.value = 'HP Carbide Twist Drill';
                         toolType = 'HP Carbide Twist Drill';
+                    } else if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Twist Drill')) {
+                        toolSelect.value = 'Carbide Twist Drill';
+                        toolType = 'Carbide Twist Drill';
                     }
-                } else if (geo === 'Spot Drill' && toolType.includes('Endmill')) {
+                } else if (geoVal === 'Spot Drill' && !toolType.includes('Spot')) {
                     if (Array.from(toolSelect.options).some(o => o.value === 'HSS Spot Drill')) {
                         toolSelect.value = 'HSS Spot Drill';
                         toolType = 'HSS Spot Drill';
                     }
-                } else if (geo === 'Thread Mill' && !toolType.includes('Thread Mill')) {
+                } else if (geoVal === 'Thread Mill' && !toolType.includes('Thread Mill')) {
                     if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Thread Mill')) {
                         toolSelect.value = 'Carbide Thread Mill';
                         toolType = 'Carbide Thread Mill';
                     }
-                }
-            } else if (source === 'tool') {
-                if (toolType.includes('Drill') && (geo === 'Square' || geo === 'Rougher' || geo === 'Indexable Mill' || geo === 'Ball' || geo === 'Bull Nose')) {
-                    geoSelect.value = toolType.includes('Spot') ? 'Spot Drill' : 'Drill';
-                    geo = geoSelect.value;
-                } else if (toolType.includes('Thread Mill') && geo !== 'Thread Mill') {
-                    geoSelect.value = 'Thread Mill';
-                    geo = 'Thread Mill';
+                } else if (['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geoVal) && !toolType.includes('Tapping')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'Tapping')) {
+                        toolSelect.value = 'Tapping';
+                        toolType = 'Tapping';
+                    }
+                } else if (geoVal === 'Reamer' && !toolType.includes('Reamer')) {
+                    if (Array.from(toolSelect.options).some(o => o.value === 'HSS Reamer')) {
+                        toolSelect.value = 'HSS Reamer';
+                        toolType = 'HSS Reamer';
+                    }
                 }
             }
-            
-            const isDrill = toolType.includes('Drill') || geo.includes('Drill') || geo === 'Parabolic' || toolType.includes('Annular');
-            const isTap = toolType.includes('Tapping');
-            const isReamer = toolType.includes('Reamer');
-            const isThreadMill = toolType.includes('Thread Mill') || geo === 'Thread Mill';
-            const isFormTool = geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
+
+            // Determine target tool category group and dynamically populate Geometry dropdown
+            const targetGroup = getToolCategoryGroup(toolType);
+            const currentGroup = geoSelect.dataset.toolGroup;
+            let currentGeo = geoSelect.value;
+
+            if (currentGroup !== targetGroup) {
+                geoSelect.dataset.toolGroup = targetGroup;
+                const options = GEOMETRY_OPTIONS_BY_TOOL[targetGroup] || GEOMETRY_OPTIONS_BY_TOOL.milling;
+                geoSelect.innerHTML = "";
+                options.forEach(opt => {
+                    let o = document.createElement("option");
+                    o.value = opt.value;
+                    o.text = opt.text;
+                    geoSelect.appendChild(o);
+                });
+
+                // Retain geometry if it exists in the new options list, else select intuitive group default
+                const hasExisting = options.some(opt => opt.value === currentGeo);
+                if (hasExisting) {
+                    geoSelect.value = currentGeo;
+                } else {
+                    if (targetGroup === 'drill') {
+                        geoSelect.value = toolType.includes('Spot') ? 'Spot Drill' : 'Drill';
+                    } else if (targetGroup === 'tap') {
+                        geoSelect.value = 'form';
+                    } else if (targetGroup === 'milling') {
+                        geoSelect.value = 'Square';
+                    } else if (targetGroup === 'reamer') {
+                        geoSelect.value = 'Reamer';
+                    } else if (targetGroup === 'threadmill') {
+                        geoSelect.value = 'Thread Mill';
+                    } else if (targetGroup === 'turning') {
+                        geoSelect.value = 'Turning';
+                    }
+                }
+            } else if (source === 'tool') {
+                if (targetGroup === 'drill') {
+                    if (toolType.includes('Spot') && geoSelect.value !== 'Spot Drill') {
+                        geoSelect.value = 'Spot Drill';
+                    } else if (!toolType.includes('Spot') && geoSelect.value === 'Spot Drill') {
+                        geoSelect.value = 'Drill';
+                    }
+                }
+            }
+
+            let geo = geoSelect.value;
+            const isDrill = targetGroup === 'drill' || toolType.includes('Drill') || ['Drill', 'Spot Drill', 'Parabolic'].includes(geo) || toolType.includes('Annular') || toolType.includes('Spade');
+            const isTap = targetGroup === 'tap' || toolType.includes('Tapping') || ['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geo);
+            const isReamer = targetGroup === 'reamer' || toolType.includes('Reamer') || geo === 'Reamer';
+            const isThreadMill = targetGroup === 'threadmill' || toolType.includes('Thread Mill') || geo === 'Thread Mill';
+            const isFormTool = targetGroup === 'saw' || geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
             const isChamferEngrave = geo === 'V-Bit' || geo === 'Engraving';
             const is3DContour = geo === 'Ball' || geo === 'Radiused' || geo === 'Lollipop';
-            const isTurning = toolType.includes('Turning') || toolType.includes('Parting') || (toolType.includes('Threading') && !isThreadMill);
+            const isTurning = targetGroup === 'turning' || toolType.includes('Turning') || toolType.includes('Parting') || (toolType.includes('Threading') && !isThreadMill) || geo === 'Turning';
             const isHoleTool = isDrill || isTap || isReamer || toolType.includes('Bore');
             
             let showShank = isFormTool || geo === 'Lollipop';
@@ -679,10 +1033,6 @@
             const pitchGroup = document.getElementById('pitchGroup');
             if (pitchGroup) {
                 pitchGroup.style.display = (isTap || isThreadMill) ? 'block' : 'none';
-            }
-            const tapTypeGroup = document.getElementById('tapTypeGroup');
-            if (tapTypeGroup) {
-                tapTypeGroup.style.display = isTap ? 'block' : 'none';
             }
 
             // Dynamically update Strategy / Operation options based on tool class
@@ -835,6 +1185,20 @@
                 if (widthGroup) { widthGroup.style.opacity = '1.0'; widthGroup.style.pointerEvents = 'auto'; }
             }
             
+            const hasRelievedCheckbox = document.getElementById('hasRelievedNeck');
+            const relievedGroup = document.getElementById('relievedNeckToggleGroup');
+            
+            if (isFormTool || geo === 'Lollipop') {
+                showShank = true;
+                if (relievedGroup) relievedGroup.style.display = 'none';
+            } else if (!isHoleTool && !isTurning) {
+                if (relievedGroup) relievedGroup.style.display = 'block';
+                showShank = hasRelievedCheckbox ? hasRelievedCheckbox.checked : false;
+            } else {
+                if (relievedGroup) relievedGroup.style.display = 'none';
+                showShank = false;
+            }
+            
             document.getElementById('cornerRadiusGroup').style.display = (geo === 'Radiused' && !isHoleTool) ? 'block' : 'none';
             document.getElementById('shankGroup').style.display = showShank ? 'block' : 'none';
             document.getElementById('thicknessGroup').style.display = isFormTool ? 'block' : 'none';
@@ -845,6 +1209,8 @@
             } else {
                 document.getElementById('fluteLengthGroup').style.display = 'block';
             }
+
+            drawToolVisualization();
         }
         
         let lastRecDoc = 0.0;
@@ -854,6 +1220,16 @@
             if (lastRecDoc > 0) {
                 let rd = (isMetric ? lastRecDoc * 25.4 : lastRecDoc).toFixed(isMetric ? 3 : 4);
                 let rw = (isMetric ? lastRecWoc * 25.4 : lastRecWoc).toFixed(isMetric ? 3 : 4);
+
+                const depthRange = document.getElementById('cutDepth_range');
+                const widthRange = document.getElementById('cutWidth_range');
+                if (depthRange && parseFloat(rd) > parseFloat(depthRange.max)) {
+                    depthRange.max = (parseFloat(rd) * 1.25).toFixed(1);
+                }
+                if (widthRange && parseFloat(rw) > parseFloat(widthRange.max)) {
+                    widthRange.max = (parseFloat(rw) * 1.25).toFixed(1);
+                }
+
                 document.getElementById('cutDepth_range').value = rd;
                 document.getElementById('cutDepth_val').value = rd;
                 document.getElementById('cutWidth_range').value = rw;
@@ -894,6 +1270,12 @@
             let shankInput = document.getElementById('shankDiameter');
             let sVal = parseFloat(shankInput.value);
             shankInput.value = isMetric ? (sVal * 25.4).toFixed(1) : (sVal / 25.4).toFixed(3);
+            
+            let neckInput = document.getElementById('neckDiameter');
+            if (neckInput) {
+                let nVal = parseFloat(neckInput.value);
+                if (!isNaN(nVal)) neckInput.value = isMetric ? (nVal * 25.4).toFixed(2) : (nVal / 25.4).toFixed(3);
+            }
             
             let nlInput = document.getElementById('neckLength');
             let nlVal = parseFloat(nlInput.value);
@@ -953,8 +1335,36 @@
                 }
             });
             
+            let thDepth = document.getElementById('blindThreadDepth');
+            if (thDepth) {
+                let tdVal = parseFloat(thDepth.value);
+                if (!isNaN(tdVal) && tdVal > 0) {
+                    thDepth.value = isMetric ? (tdVal * 25.4).toFixed(1) : (tdVal / 25.4).toFixed(3);
+                }
+            }
+
+            let custMajor = document.getElementById('customMajorDia');
+            if (custMajor) {
+                let cmVal = parseFloat(custMajor.value);
+                if (!isNaN(cmVal) && cmVal > 0) {
+                    custMajor.value = isMetric ? (cmVal * 25.4).toFixed(2) : (cmVal / 25.4).toFixed(4);
+                }
+            }
+
+            let custPitch = document.getElementById('customPitchVal');
+            if (custPitch) {
+                let cpVal = parseFloat(custPitch.value);
+                if (!isNaN(cpVal) && cpVal > 0) {
+                    custPitch.value = isMetric ? (cpVal * 25.4).toFixed(3) : (cpVal / 25.4).toFixed(4);
+                }
+            }
+            
             buildDatalist();
             calculate();
+            if (threadStandardsLoaded) {
+                calculateThread();
+            }
+            drawToolVisualization();
         }
         
         function buildDatalist() {
@@ -1018,6 +1428,7 @@
 
         async function calculate() {
             try { saveState(); } catch(e) {}
+            drawToolVisualization();
             if (abortController) abortController.abort();
             abortController = new AbortController();
 
@@ -1050,14 +1461,10 @@
 
             const toolType = document.getElementById('tool').value;
             const geo = document.getElementById('geometry').value;
-            const isTap = toolType.includes('Tapping');
+            const isTap = toolType.includes('Tapping') || ['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geo);
             const pitchGroup = document.getElementById('pitchGroup');
             if (pitchGroup) {
-                pitchGroup.style.display = isTap ? 'block' : 'none';
-            }
-            const tapTypeGroup = document.getElementById('tapTypeGroup');
-            if (tapTypeGroup) {
-                tapTypeGroup.style.display = isTap ? 'block' : 'none';
+                pitchGroup.style.display = (isTap || toolType.includes('Thread Mill') || geo === 'Thread Mill') ? 'block' : 'none';
             }
 
             const payload = {
@@ -1065,7 +1472,7 @@
                 alloy: document.getElementById('alloy').value,
                 tool: toolType,
                 coating: document.getElementById('coating').value,
-                geometry: document.getElementById('geometry').value,
+                geometry: geo,
                 operation: document.getElementById('operation').value,
                 cornerRadius: p_cr,
                 shankDiameter: p_shank,
@@ -1082,7 +1489,7 @@
                 diameter: p_dia,
                 flutes: document.getElementById('flutes').value,
                 pitch: p_pitch,
-                tapType: document.getElementById('tapType')?.value || "form",
+                tapType: isTap ? geo : (document.getElementById('tapType')?.value || "form"),
                 isMetric: isMetric,
                 cutDepth: p_depth,
                 cutWidth: p_width,
@@ -1166,8 +1573,8 @@
                         document.getElementById('feed_ipr').innerText = out_ipr.toFixed(isMetric ? 4 : 5);
                     }
 
-                    const isHoleToolNow = toolType.includes('Drill') || toolType.includes('Tapping') || toolType.includes('Reamer') || toolType.includes('Bore') || toolType.includes('Annular') || geo.includes('Drill') || geo === 'Parabolic';
-                    const isTapNow = toolType.includes('Tapping') || geo === 'Tapping';
+                    const isTapNow = toolType.includes('Tapping') || ['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geo) || geo === 'Tapping';
+                    const isHoleToolNow = isTapNow || toolType.includes('Drill') || toolType.includes('Reamer') || toolType.includes('Bore') || toolType.includes('Annular') || ['Drill', 'Spot Drill', 'Parabolic', 'Reamer'].includes(geo);
 
                     const chiploadTitle = document.getElementById('chipload_title');
                     if (chiploadTitle) {
@@ -1180,20 +1587,28 @@
                     const col2Unit = document.getElementById('ramp_col2_unit');
                     const col3Title = document.getElementById('ramp_col3_title');
 
-                    if (isTapNow && res.tap_drill) {
+                    const tapShortcut = document.getElementById('tapCalcShortcutWrap');
+                    if (isTapNow) {
+                        if (tapShortcut) tapShortcut.style.display = 'block';
                         if (col1Title) col1Title.innerText = "Thread Pitch";
                         if (col1Unit) col1Unit.innerText = isMetric ? " mm" : " in";
                         document.getElementById('ramp_angle').innerText = out_ipt.toFixed(isMetric ? 3 : 4);
 
-                        if (col2Title) col2Title.innerText = res.tap_drill.is_form ? "Form Tap Drill" : "Cut Tap Drill";
-                        if (col2Unit) col2Unit.innerText = "";
-                        const recDiaStr = isMetric ? (res.tap_drill.recommended_mm.toFixed(3) + " mm") : (res.tap_drill.recommended_in.toFixed(4) + " in");
-                        document.getElementById('ramp_feed').innerHTML = `${res.tap_drill.drill_name} <span style="font-size:0.8rem; font-weight:normal; opacity:0.8;">(${recDiaStr})</span>`;
+                        if (col2Title) col2Title.innerText = "Feed / Rev (IPR)";
+                        if (col2Unit) {
+                            col2Unit.innerText = isMetric ? " mm/rev" : " in/rev";
+                            col2Unit.className = "ipr-lbl";
+                        }
+                        document.getElementById('ramp_feed').innerText = out_ipr.toFixed(isMetric ? 4 : 5);
 
-                        if (col3Title) col3Title.innerText = "Thread Engagement";
-                        const targetStr = res.tap_drill.target_percent ? ` (~${res.tap_drill.target_percent}%)` : "";
-                        document.getElementById('plunge_feed').innerHTML = `${res.tap_drill.thread_percent.toFixed(1)}% <span style="font-size:0.8rem; font-weight:normal; opacity:0.8;">${targetStr}</span>`;
+                        if (col3Title) col3Title.innerText = "Synchronous Plunge";
+                        if (col3Unit) {
+                            col3Unit.innerText = isMetric ? " mm/min" : " IPM";
+                            col3Unit.className = "feed-lbl";
+                        }
+                        document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
                     } else if (isHoleToolNow) {
+                        if (tapShortcut) tapShortcut.style.display = 'none';
                         if (col1Title) col1Title.innerText = "Chip Load (IPT)";
                         if (col1Unit) col1Unit.innerText = isMetric ? " mm" : " in";
                         document.getElementById('ramp_angle').innerText = out_ipt.toFixed(isMetric ? 4 : 5);
@@ -1206,8 +1621,13 @@
                         document.getElementById('ramp_feed').innerText = out_ipr.toFixed(isMetric ? 4 : 5);
 
                         if (col3Title) col3Title.innerText = "Plunge Feed";
+                        if (col3Unit) {
+                            col3Unit.innerText = isMetric ? " mm/min" : " IPM";
+                            col3Unit.className = "feed-lbl";
+                        }
                         document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
                     } else {
+                        if (tapShortcut) tapShortcut.style.display = 'none';
                         if (col1Title) col1Title.innerText = "Ramp Angle";
                         if (col1Unit) col1Unit.innerText = "°";
                         document.getElementById('ramp_angle').innerText = res.ramp_angle;
@@ -1220,6 +1640,10 @@
                         document.getElementById('ramp_feed').innerText = (isMetric ? res.ramp_feed * 25.4 : res.ramp_feed).toFixed(1);
 
                         if (col3Title) col3Title.innerText = "Plunge Feed";
+                        if (col3Unit) {
+                            col3Unit.innerText = isMetric ? " mm/min" : " IPM";
+                            col3Unit.className = "feed-lbl";
+                        }
                         document.getElementById('plunge_feed').innerText = (isMetric ? res.plunge_feed * 25.4 : res.plunge_feed).toFixed(1);
                     }
 
@@ -1235,23 +1659,72 @@
                         defCard.classList.remove("danger", "warning");
                     }
                     
-                    // Render Tips
+                    const wearCompBadge = document.getElementById('wearCompBadge');
+                    if (wearCompBadge) {
+                        if (res.total_error && res.total_error >= 0.0002) {
+                            wearCompBadge.style.display = 'block';
+                            const u = isMetric ? ' mm' : ' in';
+                            const wcVal = isMetric ? (res.wear_comp * 25.4).toFixed(3) : res.wear_comp.toFixed(4);
+                            const sbVal = isMetric ? (res.springback * 25.4).toFixed(3) : res.springback.toFixed(4);
+                            const teVal = isMetric ? (res.total_error * 25.4).toFixed(3) : res.total_error.toFixed(4);
+                            document.getElementById('wearCompVal').innerText = `${wcVal}${u}`;
+                            document.getElementById('springbackVal').innerText = `${sbVal}${u}`;
+                            document.getElementById('totalErrorVal').innerText = `+${teVal}${u}`;
+                        } else {
+                            wearCompBadge.style.display = 'none';
+                        }
+                    }
+                    
+                    // Render Tips & Machining Advisor
                     const tipsContainer = document.getElementById('tipsContainer');
                     const tipsList = document.getElementById('tipsList');
+                    const advisorBadge = document.getElementById('advisorBadge');
+                    if (tipsContainer) tipsContainer.style.display = 'block';
+
                     if (res.tips && res.tips.length > 0) {
-                        tipsContainer.style.display = 'block';
+                        if (advisorBadge) {
+                            advisorBadge.innerText = `${res.tips.length} Note${res.tips.length > 1 ? 's' : ''} Active`;
+                            advisorBadge.className = 'advisor-badge badge-active';
+                        }
                         tipsList.innerHTML = res.tips.map(t => {
-                            let color = t.type === 'critical' ? '#ef4444' : (t.type === 'warning' ? '#f59e0b' : '#3b82f6');
-                            let icon = t.type === 'critical' ? 'fa-triangle-exclamation' : (t.type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle');
-                            return `<div style="padding: 1rem; background: rgba(0,0,0,0.2); border-left: 4px solid ${color}; border-radius: 4px;">
-                                <div style="font-weight:bold; color: ${color}; margin-bottom: 0.25rem;"><i class="fa-solid ${icon}"></i> ${t.title}</div>
-                                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height:1.4;">${t.message}</div>
+                            let color = t.type === 'critical' ? '#ef4444' : (t.type === 'warning' ? '#f59e0b' : '#38bdf8');
+                            let icon = t.type === 'critical' ? 'fa-triangle-exclamation' : (t.type === 'warning' ? 'fa-circle-exclamation' : 'fa-circle-info');
+                            if (t.title && t.title.includes('Wear Compensation')) {
+                                icon = 'fa-sliders';
+                                color = '#38bdf8';
+                            } else if (t.title && t.title.includes('Work-Hardening')) {
+                                icon = 'fa-fire-flame-curved';
+                                color = '#f59e0b';
+                            } else if (t.title && t.title.includes('Spindle RPM')) {
+                                icon = 'fa-gauge-high';
+                                color = '#38bdf8';
+                            } else if (t.title && (t.title.includes('Collision') || t.title.includes('Clearance'))) {
+                                icon = 'fa-triangle-exclamation';
+                                color = '#ef4444';
+                            }
+                            return `<div style="padding: 0.85rem 1rem; background: rgba(0,0,0,0.25); border-left: 4px solid ${color}; border-radius: 6px;">
+                                <div style="font-weight:700; color: ${color}; margin-bottom: 0.25rem; font-size: 0.95rem; display:flex; align-items:center; gap: 0.5rem;">
+                                    <i class="fa-solid ${icon}"></i> ${t.title}
+                                </div>
+                                <div style="font-size: 0.85rem; color: #cbd5e1; line-height:1.45;">${t.message}</div>
                             </div>`;
                         }).join('');
                     } else {
-                        tipsContainer.style.display = 'none';
-                        tipsList.innerHTML = '';
+                        if (advisorBadge) {
+                            advisorBadge.innerText = 'Optimized';
+                            advisorBadge.className = 'advisor-badge badge-active';
+                        }
+                        tipsList.innerHTML = `
+                            <div style="padding: 0.85rem 1rem; background: rgba(34, 197, 94, 0.08); border-left: 4px solid #22c55e; border-radius: 6px; display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fa-solid fa-circle-check" style="color: #22c55e; font-size: 1.25rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600; color: #4ade80; font-size: 0.9rem;">Cutting Parameters Fully Optimized</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Speeds, chip loads, and deflection are operating safely within the optimal envelope.</div>
+                                </div>
+                            </div>`;
                     }
+
+                    drawToolVisualization(res);
                 }
             } catch (err) {
                 if (err.name !== 'AbortError') console.error(err);
@@ -1273,6 +1746,476 @@
                 }
                 obj.innerHTML = current;
             }, stepTime);
+        }
+
+        function toggleRelievedNeck() {
+            const chk = document.getElementById('hasRelievedNeck');
+            const show = chk && chk.checked;
+            const shankGroup = document.getElementById('shankGroup');
+            const neckGroup = document.getElementById('neckGroup');
+            if (shankGroup) shankGroup.style.display = show ? 'block' : 'none';
+            if (neckGroup) neckGroup.style.display = show ? 'block' : 'none';
+            drawToolVisualization();
+        }
+
+        let lastCalcResult = null;
+
+        function drawToolVisualization(resData) {
+            if (resData) lastCalcResult = resData;
+            const res = resData || lastCalcResult;
+
+            const svg = document.getElementById('toolSvg');
+            if (!svg) return;
+
+            // Unit conversions & DOM inputs
+            const diaVal = parseFloat(document.getElementById('diameter')?.value) || 0.25;
+            let shankVal = parseFloat(document.getElementById('shankDiameter')?.value) || diaVal;
+            let neckVal = parseFloat(document.getElementById('neckDiameter')?.value) || shankVal;
+            const neckLenVal = parseFloat(document.getElementById('neckLength')?.value) || (diaVal * 2.0);
+            const taperAngVal = parseFloat(document.getElementById('taperAngle')?.value) || 0.0;
+            const crVal = parseFloat(document.getElementById('cornerRadius')?.value) || 0.0;
+            const thickVal = parseFloat(document.getElementById('cutterThickness')?.value) || (diaVal * 0.125);
+            const fluteLVal = parseFloat(document.getElementById('fluteLength')?.value) || (diaVal * 1.5);
+            const stickVal = parseFloat(document.getElementById('stickout_val')?.value) || (diaVal * 2.5);
+            const depthVal = parseFloat(document.getElementById('cutDepth_val')?.value) || 0.1;
+            const widthVal = parseFloat(document.getElementById('cutWidth_val')?.value) || 0.1;
+
+            const geo = document.getElementById('geometry')?.value || 'Square';
+            const toolType = document.getElementById('tool')?.value || 'Carbide Endmill';
+            const hasRelieved = document.getElementById('hasRelievedNeck')?.checked || false;
+
+            const isFormTool = geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
+            const isLollipop = geo === 'Lollipop';
+            const isDrill = toolType.includes('Drill') || ['Drill', 'Spot Drill', 'Parabolic'].includes(geo) || toolType.includes('Annular') || toolType.includes('Spade');
+            const isTap = toolType.includes('Tapping') || ['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geo);
+            const isReamer = toolType.includes('Reamer') || geo === 'Reamer';
+            const isChamfer = geo === 'V-Bit' || geo === 'Engraving';
+            const isBall = geo === 'Ball';
+            const isRadiused = geo === 'Radiused';
+            const isDovetail = geo === 'Dovetail';
+            const hasSteppedShank = isFormTool || isLollipop || hasRelieved;
+
+            const unit = isMetric ? 'mm' : 'in';
+
+            // Effective diameters
+            let effNeckDia = hasSteppedShank ? Math.min(neckVal, diaVal) : diaVal;
+            let effShankDia = hasSteppedShank ? shankVal : diaVal;
+            if (isFormTool && effNeckDia >= diaVal) {
+                effNeckDia = diaVal * 0.5;
+            }
+
+            // Radial Reach calculation
+            let maxReach = diaVal;
+            if (res && res.max_radial_reach !== undefined && res.max_radial_reach > 0) {
+                maxReach = isMetric ? (res.max_radial_reach * 25.4) : res.max_radial_reach;
+            } else if (hasSteppedShank && effNeckDia < diaVal) {
+                maxReach = (diaVal - effNeckDia) / 2.0;
+            }
+
+            // Collision checks
+            const isNeckCollision = hasSteppedShank && (effNeckDia < diaVal) && (widthVal > (maxReach * 1.001));
+            const isColletCollision = stickVal > 0 && (depthVal > (stickVal * 1.001));
+
+            // Update UI Clearance Badge & Alert Banner
+            const badge = document.getElementById('clearanceBadge');
+            const reachValSpan = document.getElementById('vizReachVal');
+            const reachLabelSpan = document.getElementById('vizReachLabel');
+            const alertBanner = document.getElementById('collisionAlert');
+
+            if (badge) {
+                badge.className = 'clearance-badge ' + (isNeckCollision || isColletCollision ? 'badge-danger' : (hasSteppedShank && widthVal > maxReach * 0.85 ? 'badge-warn' : 'badge-safe'));
+                const icon = isNeckCollision || isColletCollision ? '⚠️' : (hasSteppedShank && widthVal > maxReach * 0.85 ? '⚡' : '✓');
+                const badgeIcon = document.getElementById('badgeIcon');
+                if (badgeIcon) badgeIcon.innerText = icon;
+
+                if (isNeckCollision) {
+                    if (reachLabelSpan) reachLabelSpan.innerText = 'COLLISION:';
+                    if (reachValSpan) reachValSpan.innerText = `Overreach +${(widthVal - maxReach).toFixed(isMetric ? 3 : 4)} ${unit}`;
+                } else if (isColletCollision) {
+                    if (reachLabelSpan) reachLabelSpan.innerText = 'COLLISION:';
+                    if (reachValSpan) reachValSpan.innerText = `Holder Strike +${(depthVal - stickVal).toFixed(isMetric ? 2 : 3)} ${unit}`;
+                } else if (hasSteppedShank) {
+                    if (reachLabelSpan) reachLabelSpan.innerText = 'Max Reach:';
+                    if (reachValSpan) reachValSpan.innerText = `${maxReach.toFixed(isMetric ? 2 : 3)} ${unit}`;
+                } else {
+                    if (reachLabelSpan) reachLabelSpan.innerText = 'Stickout:';
+                    if (reachValSpan) reachValSpan.innerText = `${stickVal.toFixed(isMetric ? 1 : 2)} ${unit}`;
+                }
+            }
+
+            if (alertBanner) {
+                if (isNeckCollision) {
+                    alertBanner.innerHTML = `⚠️ <strong>Neck Clearance Collision:</strong> Programmed Radial WOC (<strong>${widthVal.toFixed(isMetric ? 3 : 4)} ${unit}</strong>) exceeds maximum radial reach (<strong>${maxReach.toFixed(isMetric ? 3 : 4)} ${unit}</strong> = (${diaVal.toFixed(isMetric ? 2 : 3)} - ${effNeckDia.toFixed(isMetric ? 2 : 3)}) / 2). The tool neck will collide into the workpiece wall!`;
+                    alertBanner.className = 'collision-alert-banner active';
+                } else if (isColletCollision) {
+                    alertBanner.innerHTML = `⚠️ <strong>Tool Holder Collision:</strong> Programmed Cut Depth (<strong>${depthVal.toFixed(isMetric ? 3 : 4)} ${unit}</strong>) exceeds tool stickout (<strong>${stickVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>). The collet chuck will crash into the workpiece!`;
+                    alertBanner.className = 'collision-alert-banner active';
+                } else {
+                    alertBanner.innerHTML = '';
+                    alertBanner.className = 'collision-alert-banner';
+                }
+            }
+
+            // Proportional Geometry Coordinates
+            const cx = 240;
+            const yCollet = 38;
+            const yTip = 245;
+            const H_stick = yTip - yCollet; // 207 px
+
+            const maxToolD = Math.max(diaVal, effShankDia, effNeckDia, 0.0001);
+            const wScale = 52.0 / maxToolD;
+
+            const rd_px = Math.max(Math.min(diaVal * wScale, 56), 8);
+            const rs_px = hasSteppedShank ? Math.max(Math.min(effShankDia * wScale, 68), 10) : rd_px;
+            let rn_px = hasSteppedShank ? Math.max(Math.min(effNeckDia * wScale, rd_px - 2), 4) : rd_px;
+            if (isFormTool && rn_px >= rd_px) {
+                rn_px = Math.max(rd_px - 6, 4);
+            }
+
+            const hScale = H_stick / Math.max(stickVal, 0.0001);
+
+            let yFluteTop, yNeckBot, yNeckTop, yTaperTop;
+
+            if (isFormTool) {
+                let hHead = Math.max(Math.min(thickVal * hScale, 45), 14);
+                let hNeck = Math.max(Math.min(neckLenVal * hScale, 110), 22);
+                let hTaper = 14;
+                if (hHead + hNeck + hTaper > H_stick - 20) {
+                    const ratio = (H_stick - 20) / (hHead + hNeck + hTaper);
+                    hHead *= ratio;
+                    hNeck *= ratio;
+                    hTaper *= ratio;
+                }
+                yNeckBot = yTip - hHead;
+                yFluteTop = yNeckBot;
+                yNeckTop = yNeckBot - hNeck;
+                yTaperTop = yNeckTop - hTaper;
+            } else if (hasSteppedShank) {
+                let hFlute = Math.max(Math.min(fluteLVal * hScale, 80), 22);
+                let hNeck = Math.max(Math.min(neckLenVal * hScale, 100), 22);
+                let hTaper = 14;
+                if (hFlute + hNeck + hTaper > H_stick - 20) {
+                    const ratio = (H_stick - 20) / (hFlute + hNeck + hTaper);
+                    hFlute *= ratio;
+                    hNeck *= ratio;
+                    hTaper *= ratio;
+                }
+                yFluteTop = yTip - hFlute;
+                yNeckBot = yFluteTop;
+                yNeckTop = yNeckBot - hNeck;
+                yTaperTop = yNeckTop - hTaper;
+            } else {
+                let hFlute = Math.max(Math.min(fluteLVal * hScale, 150), 25);
+                if (hFlute > H_stick - 15) hFlute = H_stick - 15;
+                yFluteTop = yTip - hFlute;
+                yNeckBot = yFluteTop;
+                yNeckTop = yFluteTop;
+                yTaperTop = yFluteTop;
+            }
+
+            // Workpiece engagement dimensions
+            let hDocPx = Math.max(Math.min(depthVal * hScale, H_stick + 30), 4);
+            let wWocPx = Math.max(Math.min(widthVal * wScale, 115), 4);
+
+            // Assemble SVG
+            let svgContent = `
+                <defs>
+                    <linearGradient id="colletGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#334155"/>
+                        <stop offset="30%" stop-color="#64748b"/>
+                        <stop offset="70%" stop-color="#475569"/>
+                        <stop offset="100%" stop-color="#1e293b"/>
+                    </linearGradient>
+                    <linearGradient id="shankGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#475569"/>
+                        <stop offset="25%" stop-color="#94a3b8"/>
+                        <stop offset="60%" stop-color="#64748b"/>
+                        <stop offset="100%" stop-color="#334155"/>
+                    </linearGradient>
+                    <linearGradient id="neckGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        ${isNeckCollision ? `
+                            <stop offset="0%" stop-color="#ef4444"/>
+                            <stop offset="35%" stop-color="#f87171"/>
+                            <stop offset="70%" stop-color="#dc2626"/>
+                            <stop offset="100%" stop-color="#991b1b"/>
+                        ` : `
+                            <stop offset="0%" stop-color="#1d4ed8"/>
+                            <stop offset="30%" stop-color="#60a5fa"/>
+                            <stop offset="65%" stop-color="#3b82f6"/>
+                            <stop offset="100%" stop-color="#1e40af"/>
+                        `}
+                    </linearGradient>
+                    <linearGradient id="fluteGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#0369a1"/>
+                        <stop offset="30%" stop-color="#38bdf8"/>
+                        <stop offset="65%" stop-color="#0284c7"/>
+                        <stop offset="100%" stop-color="#075985"/>
+                    </linearGradient>
+                    <pattern id="cutHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                        <line x1="0" y1="0" x2="0" y2="8" stroke="${isNeckCollision ? '#ef4444' : '#f59e0b'}" stroke-width="2"/>
+                    </pattern>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#94a3b8"/>
+                    </marker>
+                    <marker id="arrowAmber" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isNeckCollision ? '#ef4444' : '#f59e0b'}"/>
+                    </marker>
+                    <marker id="arrowGreen" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981"/>
+                    </marker>
+                    <filter id="collisionGlow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                </defs>
+
+                <!-- Background Reference Centerline -->
+                <line x1="${cx}" y1="8" x2="${cx}" y2="260" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1" stroke-dasharray="6,4"/>
+            `;
+
+            // Collet Chuck / Tool Holder
+            const colletNoseW = Math.max(rs_px + 14, 32);
+            svgContent += `
+                <!-- Collet Chuck Tool Holder -->
+                <g class="collet-holder" ${isColletCollision ? 'filter="url(#collisionGlow)"' : ''}>
+                    <rect x="175" y="8" width="130" height="14" rx="2" fill="url(#colletGrad)" stroke="${isColletCollision ? '#ef4444' : '#475569'}" stroke-width="${isColletCollision ? 2 : 1}"/>
+                    <line x1="205" y1="8" x2="205" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                    <line x1="240" y1="8" x2="240" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                    <line x1="275" y1="8" x2="275" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                    <polygon points="182,22 298,22 ${cx + colletNoseW},${yCollet} ${cx - colletNoseW},${yCollet}" fill="url(#colletGrad)" stroke="${isColletCollision ? '#ef4444' : '#475569'}" stroke-width="${isColletCollision ? 2 : 1}"/>
+                    <line x1="${cx - colletNoseW}" y1="${yCollet}" x2="${cx + colletNoseW}" y2="${yCollet}" stroke="${isColletCollision ? '#ef4444' : '#38bdf8'}" stroke-width="2"/>
+                    <text x="${cx}" y="20" fill="#94a3b8" font-size="8.5" font-family="sans-serif" font-weight="600" text-anchor="middle">COLLET / HOLDER</text>
+                </g>
+            `;
+
+            // Tool Shank
+            svgContent += `
+                <!-- Tool Shank -->
+                <g class="tool-shank">
+                    <rect x="${cx - rs_px}" y="${yCollet}" width="${rs_px * 2}" height="${yTaperTop - yCollet}" fill="url(#shankGrad)" stroke="#334155" stroke-width="1"/>
+                    <line x1="${cx - rs_px * 0.3}" y1="${yCollet}" x2="${cx - rs_px * 0.3}" y2="${yTaperTop}" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+                </g>
+            `;
+
+            // Taper Transition Shoulder & Relieved Neck
+            if (hasSteppedShank) {
+                svgContent += `
+                    <!-- Taper Transition Shoulder -->
+                    <polygon points="${cx - rs_px},${yTaperTop} ${cx + rs_px},${yTaperTop} ${cx + rn_px},${yNeckTop} ${cx - rn_px},${yNeckTop}" fill="url(#neckGrad)" stroke="#1e40af" stroke-width="1"/>
+                    
+                    <!-- Relieved Neck -->
+                    <g class="tool-neck" ${isNeckCollision ? 'filter="url(#collisionGlow)"' : ''}>
+                        <rect x="${cx - rn_px}" y="${yNeckTop}" width="${rn_px * 2}" height="${yNeckBot - yNeckTop}" fill="url(#neckGrad)" stroke="${isNeckCollision ? '#ef4444' : '#1e40af'}" stroke-width="${isNeckCollision ? 2.5 : 1}"/>
+                        <line x1="${cx - rn_px * 0.3}" y1="${yNeckTop}" x2="${cx - rn_px * 0.3}" y2="${yNeckBot}" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                    </g>
+                `;
+            }
+
+            // Cutting Head / Flutes
+            svgContent += `<g class="cutting-head">`;
+
+            if (isFormTool) {
+                // T-Slot / Keyseat / Woodruff
+                const hHead = yTip - yNeckBot;
+                svgContent += `
+                    <rect x="${cx - rd_px}" y="${yNeckBot}" width="${rd_px * 2}" height="${hHead}" rx="2" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                    <line x1="${cx - rd_px * 0.4}" y1="${yNeckBot}" x2="${cx - rd_px * 0.4}" y2="${yTip}" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                    <!-- Periphery cutting teeth flutes -->
+                    <line x1="${cx - rd_px + 3}" y1="${yNeckBot + 2}" x2="${cx - rd_px + 3}" y2="${yTip - 2}" stroke="#075985" stroke-width="1.5"/>
+                    <line x1="${cx + rd_px - 3}" y1="${yNeckBot + 2}" x2="${cx + rd_px - 3}" y2="${yTip - 2}" stroke="#075985" stroke-width="1.5"/>
+                    <!-- Recessed neck step lines -->
+                    <line x1="${cx - rd_px}" y1="${yNeckBot}" x2="${cx - rn_px}" y2="${yNeckBot}" stroke="#0284c7" stroke-width="2"/>
+                    <line x1="${cx + rn_px}" y1="${yNeckBot}" x2="${cx + rd_px}" y2="${yNeckBot}" stroke="#0284c7" stroke-width="2"/>
+                `;
+            } else if (isLollipop) {
+                const rSphere = rd_px;
+                const cySphere = yTip - rSphere;
+                svgContent += `
+                    <circle cx="${cx}" cy="${cySphere}" r="${rSphere}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                    <path d="M ${cx - rSphere * 0.7} ${cySphere - rSphere * 0.7} A ${rSphere} ${rSphere} 0 0 0 ${cx + rSphere * 0.7} ${cySphere + rSphere * 0.7}" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                `;
+            } else if (isDovetail) {
+                const hHead = yTip - yNeckBot;
+                const rTop = Math.max(rd_px - 14, rn_px);
+                svgContent += `
+                    <polygon points="${cx - rTop},${yNeckBot} ${cx + rTop},${yNeckBot} ${cx + rd_px},${yTip} ${cx - rd_px},${yTip}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                `;
+            } else if (isBall) {
+                const rNose = rd_px;
+                const yNose = yTip - rNose;
+                svgContent += `
+                    <rect x="${cx - rd_px}" y="${yFluteTop}" width="${rd_px * 2}" height="${Math.max(yNose - yFluteTop, 0)}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1"/>
+                    <path d="M ${cx - rd_px} ${yNose} A ${rNose} ${rNose} 0 0 0 ${cx + rd_px} ${yNose} Z" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1"/>
+                    <path d="M ${cx - rd_px + 2} ${yFluteTop + 4} Q ${cx} ${yNose} ${cx + rd_px - 2} ${yNose + rNose * 0.5}" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                `;
+            } else if (isRadiused) {
+                const cr_px = Math.min(Math.max(crVal * wScale, 3), rd_px * 0.45);
+                svgContent += `
+                    <path d="M ${cx - rd_px} ${yFluteTop} L ${cx + rd_px} ${yFluteTop} L ${cx + rd_px} ${yTip - cr_px} A ${cr_px} ${cr_px} 0 0 1 ${cx + rd_px - cr_px} ${yTip} L ${cx - rd_px + cr_px} ${yTip} A ${cr_px} ${cr_px} 0 0 1 ${cx - rd_px} ${yTip - cr_px} Z" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                    <path d="M ${cx - rd_px + 4} ${yFluteTop + 5} Q ${cx} ${yFluteTop + (yTip - yFluteTop) * 0.5} ${cx + rd_px - 4} ${yTip - cr_px}" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                `;
+            } else if (isChamfer) {
+                const tipW = 3;
+                const coneH = Math.min(rd_px * 1.2, yTip - yFluteTop);
+                const yConeTop = yTip - coneH;
+                svgContent += `
+                    <rect x="${cx - rd_px}" y="${yFluteTop}" width="${rd_px * 2}" height="${Math.max(yConeTop - yFluteTop, 0)}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1"/>
+                    <polygon points="${cx - rd_px},${yConeTop} ${cx + rd_px},${yConeTop} ${cx + tipW},${yTip} ${cx - tipW},${yTip}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                `;
+            } else if (isDrill) {
+                const ptH = Math.min(rd_px * 0.38, 16);
+                const yPtBase = yTip - ptH;
+                svgContent += `
+                    <rect x="${cx - rd_px}" y="${yFluteTop}" width="${rd_px * 2}" height="${Math.max(yPtBase - yFluteTop, 0)}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1"/>
+                    <polygon points="${cx - rd_px},${yPtBase} ${cx + rd_px},${yPtBase} ${cx},${yTip}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                    <!-- Twist Drill Spiral Flutes -->
+                    <path d="M ${cx - rd_px} ${yFluteTop + 6} Q ${cx} ${yFluteTop + 20} ${cx + rd_px} ${yFluteTop + 34}" fill="none" stroke="#075985" stroke-width="2"/>
+                    <path d="M ${cx - rd_px} ${yFluteTop + 28} Q ${cx} ${yFluteTop + 42} ${cx + rd_px} ${yFluteTop + 56}" fill="none" stroke="#075985" stroke-width="2"/>
+                    <line x1="${cx - 3}" y1="${yTip - 2}" x2="${cx + 3}" y2="${yTip - 2}" stroke="#fff" stroke-width="1.5"/>
+                `;
+            } else if (isTap) {
+                const thPitchPx = 8;
+                let thPaths = '';
+                for (let ty = yFluteTop + 6; ty < yTip - 6; ty += thPitchPx) {
+                    thPaths += `<line x1="${cx - rd_px - 2}" y1="${ty}" x2="${cx - rd_px + 2}" y2="${ty}" stroke="#38bdf8" stroke-width="2"/>
+                                <line x1="${cx + rd_px - 2}" y1="${ty}" x2="${cx + rd_px + 2}" y2="${ty}" stroke="#38bdf8" stroke-width="2"/>`;
+                }
+                svgContent += `
+                    <rect x="${cx - rd_px}" y="${yFluteTop}" width="${rd_px * 2}" height="${yTip - yFluteTop - 6}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1"/>
+                    <polygon points="${cx - rd_px},${yTip - 6} ${cx + rd_px},${yTip - 6} ${cx + rd_px * 0.4},${yTip} ${cx - rd_px * 0.4},${yTip}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1"/>
+                    ${thPaths}
+                `;
+            } else {
+                // Standard Square Endmill
+                svgContent += `
+                    <rect x="${cx - rd_px}" y="${yFluteTop}" width="${rd_px * 2}" height="${yTip - yFluteTop}" fill="url(#fluteGrad)" stroke="#0369a1" stroke-width="1.5"/>
+                    <line x1="${cx - rd_px * 0.3}" y1="${yFluteTop}" x2="${cx - rd_px * 0.3}" y2="${yTip}" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                    <!-- Endmill Flute Spirals -->
+                    <path d="M ${cx - rd_px + 2} ${yFluteTop + 10} Q ${cx} ${yFluteTop + 24} ${cx + rd_px - 2} ${yFluteTop + 38}" fill="none" stroke="#075985" stroke-width="2"/>
+                    <path d="M ${cx - rd_px + 2} ${yFluteTop + 34} Q ${cx} ${yFluteTop + 48} ${cx + rd_px - 2} ${yFluteTop + 62}" fill="none" stroke="#075985" stroke-width="2"/>
+                `;
+            }
+
+            svgContent += `</g>`;
+
+            // Workpiece Engagement Overlay (Axial DOC & Radial WOC)
+            svgContent += `<g class="workpiece-engagement">`;
+
+            if (isDrill || isTap) {
+                // Hole engagement
+                const holeH = Math.min(hDocPx, yTip - yCollet);
+                svgContent += `
+                    <rect x="135" y="${yTip - holeH}" width="${(cx - rd_px) - 135}" height="${holeH + 8}" fill="url(#cutHatch)" stroke="#f59e0b" stroke-width="1" opacity="0.8"/>
+                    <rect x="${cx + rd_px}" y="${yTip - holeH}" width="${345 - (cx + rd_px)}" height="${holeH + 8}" fill="url(#cutHatch)" stroke="#f59e0b" stroke-width="1" opacity="0.8"/>
+                    <text x="${cx}" y="${yTip - holeH - 6}" fill="#f59e0b" font-size="8.5" font-weight="bold" font-family="sans-serif" text-anchor="middle">HOLE ENGAGEMENT (Full ⌀)</text>
+                `;
+            } else if (isFormTool) {
+                // T-Slot / Keyseat engagement
+                const slotX = (cx + rd_px) - wWocPx;
+                const slotY = yNeckBot;
+                const slotH = yTip - yNeckBot;
+                svgContent += `
+                    <!-- Workpiece Stock Wall -->
+                    <rect x="${slotX}" y="${slotY - 14}" width="105" height="${slotH + 28}" fill="rgba(30, 41, 59, 0.6)" stroke="#475569" stroke-width="1" rx="3"/>
+                    <!-- Engaged Cut Slot (Kerf x Stepover) -->
+                    <rect x="${slotX}" y="${slotY}" width="${wWocPx}" height="${slotH}" fill="url(#cutHatch)" stroke="${isNeckCollision ? '#ef4444' : '#f59e0b'}" stroke-width="${isNeckCollision ? 2 : 1.5}"/>
+                    <line x1="${cx + rd_px}" y1="${slotY}" x2="${cx + rd_px}" y2="${yTip}" stroke="${isNeckCollision ? '#ef4444' : '#f59e0b'}" stroke-dasharray="3,2"/>
+                `;
+
+                // If collision, render red collision flash marker right at the neck interference point!
+                if (isNeckCollision) {
+                    svgContent += `
+                        <g class="collision-flash" filter="url(#collisionGlow)">
+                            <circle cx="${cx + rn_px}" cy="${yNeckBot}" r="9" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+                            <text x="${cx + rn_px}" y="${yNeckBot + 3.5}" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">!</text>
+                            <text x="${cx + rn_px + 14}" y="${yNeckBot - 4}" fill="#f87171" font-size="9" font-weight="bold" font-family="sans-serif">NECK COLLISION</text>
+                        </g>
+                    `;
+                }
+            } else {
+                // Peripheral / Slot Milling engagement
+                const cutX = (cx + rd_px) - wWocPx;
+                const cutY = yTip - Math.min(hDocPx, H_stick + 15);
+                const cutH = Math.min(hDocPx, H_stick + 15);
+                svgContent += `
+                    <!-- Workpiece Stock Block -->
+                    <rect x="${cutX}" y="${cutY}" width="95" height="${cutH + 10}" fill="rgba(30, 41, 59, 0.6)" stroke="#475569" stroke-width="1" rx="2"/>
+                    <!-- Cut engagement -->
+                    <rect x="${cutX}" y="${cutY}" width="${wWocPx}" height="${cutH}" fill="url(#cutHatch)" stroke="${isNeckCollision ? '#ef4444' : '#f59e0b'}" stroke-width="1.5"/>
+                `;
+            }
+
+            svgContent += `</g>`;
+
+            // Dimension Lines & Engineering Annotations
+            svgContent += `<g class="dimension-annotations" font-family="monospace" font-size="9">`;
+
+            // 1. Stickout (L) on left (x = 55)
+            svgContent += `
+                <line x1="55" y1="${yCollet}" x2="55" y2="${yTip}" stroke="#94a3b8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                <line x1="48" y1="${yCollet}" x2="65" y2="${yCollet}" stroke="#64748b" stroke-width="1"/>
+                <line x1="48" y1="${yTip}" x2="65" y2="${yTip}" stroke="#64748b" stroke-width="1"/>
+                <text x="50" y="${yCollet + H_stick * 0.5}" fill="#94a3b8" text-anchor="end" dominant-baseline="middle" font-weight="600">L:${stickVal.toFixed(isMetric ? 1 : 2)}</text>
+            `;
+
+            // 2. Flute / Kerf length on left (x = 95)
+            if (isFormTool) {
+                svgContent += `
+                    <line x1="95" y1="${yNeckBot}" x2="95" y2="${yTip}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                    <line x1="88" y1="${yNeckBot}" x2="102" y2="${yNeckBot}" stroke="#0284c7" stroke-width="1"/>
+                    <line x1="88" y1="${yTip}" x2="102" y2="${yTip}" stroke="#0284c7" stroke-width="1"/>
+                    <text x="90" y="${yNeckBot + (yTip - yNeckBot) * 0.5}" fill="#38bdf8" text-anchor="end" dominant-baseline="middle" font-weight="600">t:${thickVal.toFixed(isMetric ? 2 : 3)}</text>
+                `;
+            } else {
+                svgContent += `
+                    <line x1="95" y1="${yFluteTop}" x2="95" y2="${yTip}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                    <line x1="88" y1="${yFluteTop}" x2="102" y2="${yFluteTop}" stroke="#0284c7" stroke-width="1"/>
+                    <line x1="88" y1="${yTip}" x2="102" y2="${yTip}" stroke="#0284c7" stroke-width="1"/>
+                    <text x="90" y="${yFluteTop + (yTip - yFluteTop) * 0.5}" fill="#38bdf8" text-anchor="end" dominant-baseline="middle" font-weight="600">Lf:${fluteLVal.toFixed(isMetric ? 2 : 3)}</text>
+                `;
+            }
+
+            // 3. Cutter Diameter (D) below tip (y = 265)
+            svgContent += `
+                <line x1="${cx - rd_px}" y1="262" x2="${cx + rd_px}" y2="262" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                <line x1="${cx - rd_px}" y1="250" x2="${cx - rd_px}" y2="268" stroke="#0284c7" stroke-width="1"/>
+                <line x1="${cx + rd_px}" y1="250" x2="${cx + rd_px}" y2="268" stroke="#0284c7" stroke-width="1"/>
+                <text x="${cx}" y="274" fill="#38bdf8" text-anchor="middle" font-weight="bold">⌀ ${diaVal.toFixed(isMetric ? 2 : 3)} ${unit}</text>
+            `;
+
+            // 4. Stepped Shank & Neck callouts
+            if (hasSteppedShank) {
+                // Neck Diameter callout
+                const yNeckMid = yNeckTop + (yNeckBot - yNeckTop) * 0.5;
+                svgContent += `
+                    <line x1="${cx - rn_px}" y1="${yNeckMid}" x2="${cx + rn_px}" y2="${yNeckMid}" stroke="${isNeckCollision ? '#ef4444' : '#60a5fa'}" stroke-width="1" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+                    <text x="${cx}" y="${yNeckMid - 4}" fill="${isNeckCollision ? '#fca5a5' : '#60a5fa'}" text-anchor="middle" font-size="8">dn:${effNeckDia.toFixed(isMetric ? 2 : 3)}</text>
+                `;
+
+                // Radial Reach Callout (neck to outer tool edge)
+                const yReachCall = isFormTool ? yNeckBot - 8 : yFluteTop - 8;
+                svgContent += `
+                    <line x1="${cx + rn_px}" y1="${yReachCall}" x2="${cx + rd_px}" y2="${yReachCall}" stroke="${isNeckCollision ? '#ef4444' : '#10b981'}" stroke-width="1.5" marker-start="url(#arrow${isNeckCollision ? 'Amber' : 'Green'})" marker-end="url(#arrow${isNeckCollision ? 'Amber' : 'Green'})"/>
+                    <text x="${cx + (rn_px + rd_px) * 0.5}" y="${yReachCall - 4}" fill="${isNeckCollision ? '#ef4444' : '#34d399'}" font-size="8.5" font-weight="bold" text-anchor="middle">Reach:${maxReach.toFixed(isMetric ? 2 : 3)}</text>
+                `;
+            }
+
+            // 5. Engagement parameters summary card on right (x = 385)
+            svgContent += `
+                <g class="engagement-summary" transform="translate(375, 48)">
+                    <rect x="0" y="0" width="135" height="66" rx="4" fill="rgba(15, 23, 42, 0.8)" stroke="${isNeckCollision ? '#ef4444' : '#475569'}" stroke-width="1"/>
+                    <text x="8" y="15" fill="#94a3b8" font-size="8" font-family="sans-serif" font-weight="bold">ENGAGEMENT PARAMS</text>
+                    <text x="8" y="32" fill="#f59e0b" font-size="9" font-family="monospace">DOC (ap): ${depthVal.toFixed(isMetric ? 3 : 4)} ${unit}</text>
+                    <text x="8" y="47" fill="${isNeckCollision ? '#ef4444' : '#f59e0b'}" font-size="9" font-family="monospace">WOC (ae): ${widthVal.toFixed(isMetric ? 3 : 4)} ${unit}</text>
+                    <text x="8" y="60" fill="${hasSteppedShank ? (isNeckCollision ? '#ef4444' : '#34d399') : '#94a3b8'}" font-size="8" font-family="monospace">
+                        ${hasSteppedShank ? (isNeckCollision ? 'STATUS: OVERREACH!' : 'STATUS: CLEAR') : 'STATUS: STANDARD'}
+                    </text>
+                </g>
+            `;
+
+            svgContent += `</g>`;
+
+            svg.innerHTML = svgContent;
         }
 
         /* --- DIGITAL TWIN MANAGER FUNCTIONS --- */
@@ -1576,6 +2519,354 @@
             } catch (e) {
                 alert('Network error during upload');
                 dropZone.querySelector('h3').innerHTML = '📤 Drag & Drop Fusion Tool Library Here';
+            }
+        }
+
+        /* --- THREAD & TAP CALCULATOR FUNCTIONS (G-Wizard Replica) --- */
+        let threadStandardsData = null;
+        let threadStandardsLoaded = false;
+        let currentThreadData = null;
+        let activeTapIsForm = true;
+        let activeThreadType = 'Internal';
+
+        async function loadThreadStandards() {
+            try {
+                const res = await fetch('/api/threads/standards');
+                const data = await res.json();
+                if (data.success) {
+                    threadStandardsData = data;
+                    threadStandardsLoaded = true;
+
+                    const famSelect = document.getElementById('thFamily');
+                    if (famSelect) {
+                        famSelect.innerHTML = '';
+                        data.families.forEach(f => {
+                            let opt = document.createElement('option');
+                            opt.value = f;
+                            opt.innerText = f;
+                            if (isMetric && f === 'ISO Coarse') opt.selected = true;
+                            else if (!isMetric && f === 'UNC') opt.selected = true;
+                            famSelect.appendChild(opt);
+                        });
+
+                        onThreadFamilyChange();
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load thread standards:", e);
+            }
+        }
+
+        function onThreadFamilyChange() {
+            if (!threadStandardsData) return;
+            const famSelect = document.getElementById('thFamily');
+            const fam = famSelect ? famSelect.value : 'ISO Coarse';
+            const sizeSelect = document.getElementById('thSize');
+            const classSelect = document.getElementById('thClass');
+
+            if (sizeSelect) {
+                sizeSelect.innerHTML = '';
+                const sizes = threadStandardsData.sizes_by_family[fam] || [];
+                sizes.forEach(s => {
+                    let opt = document.createElement('option');
+                    opt.value = s;
+                    opt.innerText = s;
+                    if (s === 'M1.6-0.35' || s === '1/4-20') opt.selected = true;
+                    sizeSelect.appendChild(opt);
+                });
+            }
+
+            if (classSelect) {
+                classSelect.innerHTML = '';
+                const classes = threadStandardsData.classes_by_family[fam] || [];
+                classes.forEach(c => {
+                    let opt = document.createElement('option');
+                    opt.value = c;
+                    opt.innerText = c;
+                    if (c === '6H' || c === '2B') opt.selected = true;
+                    classSelect.appendChild(opt);
+                });
+            }
+
+            calculateThread();
+        }
+
+        function setTapStyle(isForm) {
+            activeTapIsForm = isForm;
+            const btnForm = document.getElementById('btnStyleForm');
+            const btnCut = document.getElementById('btnStyleCut');
+            if (btnForm) btnForm.classList.toggle('active', isForm);
+            if (btnCut) btnCut.classList.toggle('active', !isForm);
+            
+            const leadSelect = document.getElementById('blindLeadStyle');
+            if (leadSelect) {
+                leadSelect.value = isForm ? 'form' : 'plug';
+            }
+
+            calculateThread();
+        }
+
+        function setThreadType(type) {
+            activeThreadType = type;
+            const btnInt = document.getElementById('btnTypeInternal');
+            const btnExt = document.getElementById('btnTypeExternal');
+            if (btnInt) btnInt.classList.toggle('active', type === 'Internal');
+            if (btnExt) btnExt.classList.toggle('active', type === 'External');
+            calculateThread();
+        }
+
+        function toggleCustomThread() {
+            const isCustom = document.getElementById('thIsCustom')?.checked || false;
+            const customInputs = document.getElementById('customThreadInputs');
+            if (customInputs) customInputs.style.display = isCustom ? 'block' : 'none';
+            const fam = document.getElementById('thFamily');
+            const sz = document.getElementById('thSize');
+            const cl = document.getElementById('thClass');
+            if (fam) fam.disabled = isCustom;
+            if (sz) sz.disabled = isCustom;
+            if (cl) cl.disabled = isCustom;
+            calculateThread();
+        }
+
+        async function calculateThread() {
+            const isCustom = document.getElementById('thIsCustom')?.checked || false;
+            const payload = {
+                family: document.getElementById('thFamily')?.value || 'ISO Coarse',
+                size: document.getElementById('thSize')?.value || 'M1.6-0.35',
+                class: document.getElementById('thClass')?.value || '6H',
+                type: activeThreadType,
+                isForm: activeTapIsForm,
+                isMetric: isMetric,
+                leadStyle: document.getElementById('blindLeadStyle')?.value || (activeTapIsForm ? 'form' : 'plug'),
+                threadDepth: parseFloat(document.getElementById('blindThreadDepth')?.value) || (isMetric ? 5.0 : 0.25),
+                materialFamily: document.getElementById('family')?.value || '',
+                customMajor: parseFloat(document.getElementById('customMajorDia')?.value) || (isMetric ? 6.0 : 0.25),
+                customPitch: parseFloat(document.getElementById('customPitchVal')?.value) || (isMetric ? 1.0 : 0.05)
+            };
+
+            try {
+                const res = await fetch('/api/threads/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentThreadData = data;
+                    renderThreadResults(data);
+                } else {
+                    console.error("Thread calculation error:", data.error);
+                }
+            } catch (e) {
+                console.error("Network error calculating thread:", e);
+            }
+        }
+
+        function renderThreadResults(data) {
+            const th = data.thread;
+            const bh = data.blind_hole;
+
+            // Active Title
+            const titleNode = document.getElementById('activeThreadTitle');
+            if (titleNode) {
+                titleNode.innerText = th.name;
+            }
+
+            // Specs
+            const specPitch = document.getElementById('specPitch');
+            if (specPitch) {
+                specPitch.innerText = isMetric 
+                    ? `${th.pitch_mm.toFixed(3)} mm (${th.pitch_in.toFixed(4)}")`
+                    : `${th.pitch_in.toFixed(4)}" (${th.pitch_mm.toFixed(3)} mm)`;
+            }
+            const specTpi = document.getElementById('specTpi');
+            if (specTpi) specTpi.innerText = `${th.tpi} TPI`;
+            
+            const specAngle = document.getElementById('specAngle');
+            if (specAngle) specAngle.innerText = `${th.thread_angle}°`;
+
+            const specMajor = document.getElementById('specMajor');
+            if (specMajor) {
+                specMajor.innerText = isMetric
+                    ? `${th.major_max_mm.toFixed(3)} / ${th.major_min_mm.toFixed(3)} mm`
+                    : `${th.major_max_in.toFixed(4)}" / ${th.major_min_in.toFixed(4)}"`;
+            }
+
+            const specPitchDia = document.getElementById('specPitchDia');
+            if (specPitchDia) {
+                specPitchDia.innerText = isMetric
+                    ? `${th.pitch_dia_max_mm.toFixed(3)} / ${th.pitch_dia_min_mm.toFixed(3)} mm`
+                    : `${th.pitch_dia_max_in.toFixed(4)}" / ${th.pitch_dia_min_in.toFixed(4)}"`;
+            }
+
+            const specMinor = document.getElementById('specMinor');
+            if (specMinor) {
+                specMinor.innerText = isMetric
+                    ? `${th.minor_max_mm.toFixed(3)} / ${th.minor_min_mm.toFixed(3)} mm`
+                    : `${th.minor_max_in.toFixed(4)}" / ${th.minor_min_in.toFixed(4)}"`;
+            }
+
+            // Blind hole clearance
+            const blindClr = document.getElementById('blindClearanceVal');
+            if (blindClr) {
+                blindClr.innerText = isMetric
+                    ? `+${bh.clearance_mm.toFixed(3)} mm (${bh.lead_threads} threads + 1mm)`
+                    : `+${bh.clearance_in.toFixed(4)}" (${bh.lead_threads} threads + 0.04")`;
+            }
+            const blindTotal = document.getElementById('blindTotalDepthVal');
+            if (blindTotal) {
+                blindTotal.innerText = isMetric
+                    ? `${bh.total_depth_mm.toFixed(3)} mm`
+                    : `${bh.total_depth_in.toFixed(4)}"`;
+            }
+
+            // Notice Banner
+            const banner = document.getElementById('threadNoticeBanner');
+            if (banner) {
+                if (activeTapIsForm) {
+                    banner.innerHTML = `<strong>🔘 Cold Forming / Roll Tap Mechanics:</strong> Material is displaced into thread crests without cutting chips. Recommended sweet spot is <strong>60% – 72% thread engagement</strong> (e.g. <strong>1.45 mm</strong> drill for M1.6 = <strong>63.0%</strong>). In tough alloys (17-4 SS, 300-series stainless, titanium, nickel alloys), 60%–65% engagement drastically reduces forming torque and prevents tap breakage while achieving >95% full thread tensile pull-out strength.`;
+                } else {
+                    banner.innerHTML = `<strong>⚪ Cutting Tap Mechanics:</strong> Flute cutting edges shear chips. Recommended sweet spot is <strong>68% – 78% thread engagement</strong> (e.g. #55 / 1.25 mm for M1.6). Clearance holes provide -6% (Close) and -12% (Free) through-hole clearance.`;
+                }
+            }
+
+            filterThreadDrills();
+        }
+
+        function filterThreadDrills() {
+            if (!currentThreadData || !currentThreadData.drills) return;
+
+            const tbody = document.getElementById('threadDrillTbody');
+            if (!tbody) return;
+
+            const search = (document.getElementById('drillSearchInput')?.value || '').toLowerCase().trim();
+            const recOnly = document.getElementById('filterRecommendedOnly')?.checked || false;
+
+            tbody.innerHTML = '';
+            let rows = currentThreadData.drills;
+
+            if (recOnly) {
+                rows = rows.filter(d => d.is_target);
+            }
+
+            if (search) {
+                rows = rows.filter(d => 
+                    d.name.toLowerCase().includes(search) ||
+                    d.diameter_in.toString().includes(search) ||
+                    d.diameter_mm.toString().includes(search) ||
+                    d.note.toLowerCase().includes(search)
+                );
+            }
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No matching drills found. Try unchecking 'Recommended Sweet Spot Only' or clearing your search.</td></tr>`;
+                return;
+            }
+
+            rows.forEach(d => {
+                const tr = document.createElement('tr');
+                if (d.is_target) {
+                    tr.style.background = 'rgba(16, 185, 129, 0.09)';
+                }
+
+                let badgeClass = 'badge-loose';
+                if (d.pct_thread < 0) badgeClass = 'badge-clearance';
+                else if (d.is_target) badgeClass = 'badge-target';
+                else if (d.pct_thread > (activeTapIsForm ? 75 : 80)) badgeClass = 'badge-tight';
+
+                tr.innerHTML = `
+                    <td style="font-weight: 700; color: ${d.is_target ? '#34d399' : 'var(--text-primary)'};">
+                        ${d.is_target ? '★ ' : ''}${d.name}
+                    </td>
+                    <td style="font-family: monospace;">${d.diameter_in.toFixed(4)}"</td>
+                    <td style="font-family: monospace;">${d.diameter_mm.toFixed(3)} mm</td>
+                    <td><span class="thread-pct-badge ${badgeClass}">${d.pct_thread.toFixed(1)}%</span></td>
+                    <td style="font-size: 0.82rem; color: ${d.is_target ? '#a7f3d0' : 'var(--text-secondary)'};">${d.note}</td>
+                    <td style="text-align: right;">
+                        <button type="button" class="btn-send-drill" onclick="sendSpecificDrillToSpeedsFeeds('${d.name}', ${d.diameter_in}, ${d.diameter_mm})" title="Apply tap & thread parameters to Speeds & Feeds calculator">
+                            ⚡ Send Tap
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function sendThreadToSpeedsFeeds() {
+            if (!currentThreadData || !currentThreadData.thread) return;
+            applyThreadToSpeedsFeeds(currentThreadData.thread.major_max_in, currentThreadData.thread.pitch_in);
+        }
+
+        function sendSpecificDrillToSpeedsFeeds(drillName, drillDiaIn, drillDiaMm) {
+            if (!currentThreadData || !currentThreadData.thread) return;
+            applyThreadToSpeedsFeeds(currentThreadData.thread.major_max_in, currentThreadData.thread.pitch_in, drillName);
+        }
+
+        function applyThreadToSpeedsFeeds(majorIn, pitchIn, drillName = '') {
+            // Set tool category to Tapping
+            const toolSelect = document.getElementById('tool');
+            if (toolSelect) {
+                let hasTapping = Array.from(toolSelect.options).some(o => o.value === 'Tapping');
+                if (hasTapping) {
+                    toolSelect.value = 'Tapping';
+                }
+                updateGeometryDisplay('tool');
+            }
+
+            // Set geometry to tap style
+            const geoSelect = document.getElementById('geometry');
+            if (geoSelect) {
+                geoSelect.value = activeTapIsForm ? 'form' : 'spiral_flute';
+                updateGeometryDisplay('geometry');
+            }
+
+            // Set Diameter & Pitch
+            const diaNode = document.getElementById('diameter');
+            if (diaNode) {
+                diaNode.value = isMetric ? (majorIn * 25.4).toFixed(3) : majorIn.toFixed(4);
+            }
+
+            const pitchNode = document.getElementById('pitch');
+            if (pitchNode) {
+                pitchNode.value = isMetric ? (pitchIn * 25.4).toFixed(3) : pitchIn.toFixed(4);
+            }
+
+            // Set flutes for tap
+            const flutesVal = document.getElementById('flutes_val');
+            const flutesRange = document.getElementById('flutes');
+            if (flutesVal && flutesRange) {
+                flutesVal.value = activeTapIsForm ? 4 : 3;
+                flutesRange.value = activeTapIsForm ? 4 : 3;
+            }
+
+            // Switch to Speeds & Feeds calculator tab
+            switchTab('calculator');
+            calculate();
+        }
+
+        function openCurrentInThreadCalc() {
+            let curDia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
+            let curPitch = parseFloat(document.getElementById('pitch')?.value) || 0.05;
+            let diaIn = isMetric ? (curDia / 25.4) : curDia;
+            let pitchIn = isMetric ? (curPitch / 25.4) : curPitch;
+            let diaMm = diaIn * 25.4;
+
+            const geoVal = document.getElementById('geometry')?.value || '';
+            if (geoVal === 'form') activeTapIsForm = true;
+            else if (['spiral_flute', 'spiral_point', 'straight_flute'].includes(geoVal)) activeTapIsForm = false;
+
+            switchTab('threading');
+
+            if (threadStandardsData) {
+                const famSelect = document.getElementById('thFamily');
+                const sizeSelect = document.getElementById('thSize');
+                
+                if (Math.abs(diaMm - 1.6) < 0.2) {
+                    if (famSelect) { famSelect.value = 'ISO Coarse'; onThreadFamilyChange(); }
+                    if (sizeSelect) sizeSelect.value = 'M1.6-0.35';
+                }
+                setTapStyle(activeTapIsForm);
+                calculateThread();
             }
         }
 

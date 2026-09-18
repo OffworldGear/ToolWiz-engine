@@ -1,4 +1,5 @@
 import os
+import math
 import uuid
 from flask import Flask, render_template, request, jsonify
 from gwizard_physics import GWizardPhysics
@@ -13,21 +14,88 @@ physics = GWizardPhysics(db_path)
 def index():
     return render_template("index.html")
 
+@app.after_request
+def add_header(response):
+    """Prevent browser from caching API responses and dynamic templates"""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+# Tool categories grouped by type, ordered HP -> Carbide -> HSS
+TOOL_GROUPS = [
+    {
+        "group": "End Mills",
+        "tools": [
+            "HP Carbide Endmill",
+            "Carbide Endmill",
+            "Indexable End Or Face Mill",
+            "HP HSS Endmill",
+            "HSS Endmill",
+        ]
+    },
+    {
+        "group": "Drills & Holemaking",
+        "tools": [
+            "HP Carbide Twist Drill",
+            "Carbide Twist Drill",
+            "Indexable Drill",
+            "Cobalt Twist Drill",
+            "Gun Drill",
+            "HP HSS Twist Drill",
+            "HSS Twist Drill",
+            "HSS Spade Drill",
+            "HSS Spot Drill",
+        ]
+    },
+    {
+        "group": "Reamers",
+        "tools": [
+            "Carbide Reamer",
+            "HSS Reamer",
+        ]
+    },
+    {
+        "group": "Threading & Tapping",
+        "tools": [
+            "Carbide Thread Mill",
+            "Tapping",
+        ]
+    },
+    {
+        "group": "Saws & Woodruff Cutters",
+        "tools": [
+            "Carbide Saws & Woodruff Cutters",
+            "HSS Saws & Woodruff Cutters",
+        ]
+    },
+    {
+        "group": "Turning / Lathe",
+        "tools": [
+            "Turning: Carbide",
+            "Turning: Carbide HSS",
+            "Turning: HSS",
+        ]
+    }
+]
+
 @app.route("/api/data", methods=["GET"])
 def get_data():
     """Return the data needed to populate the UI dropdowns"""
     families = list(physics.machinability.keys())
     families.sort()
     
-    # Extract unique tools from ipt_data mapping where possible
-    tools = sorted(list(set(item[1] for item in physics.ipt_data if len(item) > 1)))
-    if "Tapping" not in tools:
-        tools.append("Tapping")
-        tools.sort()
+    # Flatten tools preserving the exact grouped order (HP -> Carbide -> HSS)
+    ordered_tools = []
+    for g in TOOL_GROUPS:
+        for t in g["tools"]:
+            if t not in ordered_tools:
+                ordered_tools.append(t)
         
     return jsonify({
         "families": families,
-        "tools": tools,
+        "tools": ordered_tools,
+        "tool_groups": TOOL_GROUPS,
         "alloys": physics.specific_alloys
     })
 
@@ -47,6 +115,12 @@ def calculate():
         geometry = data.get("geometry", "Square")
         operation = data.get("operation", "Roughing")
         coating = data.get("coating", "Uncoated")
+        
+        # Normalize legacy baked-in coating tool names so coatings are not double-multiplied
+        if "tialn" in tool.lower() or "altin" in tool.lower():
+            tool = "Carbide Endmill"
+            if coating == "Uncoated" or not coating:
+                coating = "AlTiN"
         corner_radius = float(data.get("cornerRadius", 0.0))
         cutter_thickness = float(data.get("cutterThickness", 0.125))
         flute_length = float(data.get("fluteLength", 1.0))
@@ -57,9 +131,30 @@ def calculate():
         max_rpm = float(data.get("maxRpm", 16000))
         max_hp = float(data.get("maxHp", 10.0))
         runout = float(data.get("runout", 0.0002))
-        tap_type = data.get("tapType", "form")
+        tap_type = data.get("tapType", "")
         is_metric = bool(data.get("isMetric", False))
+
+        # Contextual resolution: extract tap style directly from geometry when tapping
+        geo_lower = geometry.lower()
+        if "form" in geo_lower or "roll" in geo_lower:
+            tap_type = "form"
+        elif "spiral_point" in geo_lower or "gun" in geo_lower:
+            tap_type = "spiral_point"
+        elif "straight" in geo_lower or "hand" in geo_lower:
+            tap_type = "straight_flute"
+        elif "spiral_flute" in geo_lower or ("spiral" in geo_lower and "point" not in geo_lower):
+            tap_type = "spiral_flute"
+        elif not tap_type:
+            tap_type = "form"
         
+        # Identify saw/woodruff tools
+        is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
+        if is_saw_woodruff:
+            if "t-slot" not in geometry.lower() and "keyseat" not in geometry.lower() and "woodruff" not in geometry.lower():
+                geometry = "T-Slot"
+            if cutter_thickness > 0.0:
+                flute_length = cutter_thickness
+
         # Determine sizes
         shank_size = float(data.get("shankDiameter", diameter))
         neck_diameter = float(data.get("neckDiameter", shank_size))
@@ -69,20 +164,28 @@ def calculate():
             family, tool, geometry=geometry, diameter=diameter,
             tap_type=tap_type, is_carbide=is_carbide
         )
-        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
+        base_ipt = physics.get_base_ipt(
+            family, tool, diameter, geometry=geometry, runout=runout,
+            cut_depth=cut_depth, cut_width=cut_width, flutes=flutes, is_carbide=is_carbide
+        )
         
         # Alloy-specific hardness adjustment via exponential BHN curve
         alloy = data.get("alloy", "")
         target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
         
-        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore", "annular"]) or any(d in geometry.lower() for d in ["drill", "parabolic"])
-        is_tapping = "tap" in tool.lower() or "tap" in operation.lower()
+        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore", "annular"]) or any(d in geometry.lower() for d in ["drill", "parabolic", "tap", "form", "spiral_flute", "spiral_point", "straight_flute", "reamer"])
+        is_tapping = "tap" in tool.lower() or "tap" in operation.lower() or "form" in geo_lower or "spiral_flute" in geo_lower or "spiral_point" in geo_lower or "straight_flute" in geo_lower
 
-        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3xD for milling)
-        target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool)
+        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3xD for milling; bypassed for saws/woodruff)
+        target_sfm, base_ipt = physics.apply_chatter_penalty(
+            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff
+        )
         
         if not is_tapping:
             target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
+            # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
+            hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(cut_width, diameter, operation=operation)
+            target_sfm *= hem_sfm_mult
         
         # Apply Coating Modifier
         target_sfm *= physics.get_coating_multiplier(coating, family)
@@ -90,6 +193,8 @@ def calculate():
         effective_diameter = physics.calc_effective_diameter(diameter, cut_depth, geometry, corner_radius)
         
         # 2. Physics Equations
+        ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
+        is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
         rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
         
         if is_hole_tool:
@@ -126,17 +231,36 @@ def calculate():
         
         if is_hole_tool:
             deflection = 0.0
+            springback = 0.0
+            total_error = 0.0
+            wear_comp = 0.0
         else:
             deflection = physics.tool_deflection(
                 diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
                 helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
             )
+            springback, total_error, wear_comp = physics.calc_springback_and_deflection(
+                family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=alloy
+            )
         
         tips = physics.generate_advanced_strategies(
             family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
             tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length,
-            operation=operation, tap_type=tap_type
+            operation=operation, tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy
         )
+        
+        if is_spindle_limited:
+            feed_val = feedrate if not is_metric else feedrate * 25.4
+            feed_unit = "IPM" if not is_metric else "mm/min"
+            tips.append({
+                "title": "Spindle RPM Limited",
+                "message": (
+                    f"Your machine's spindle speed cap ({max_rpm:,.0f} RPM) limits surface speed to {actual_sfm:.1f} SFM "
+                    f"(ideal: {target_sfm:.0f} SFM at {ideal_rpm:,.0f} RPM). Tool Wizard has synchronized your feedrate "
+                    f"to {feed_val:.1f} {feed_unit} to maintain optimal chipload ({adjusted_ipt:.5f}\" IPT) and prevent tool rubbing."
+                ),
+                "type": "info"
+            })
         
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
             diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
@@ -144,6 +268,7 @@ def calculate():
         )
         
         ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
+        max_radial_reach = (diameter - neck_diameter) / 2.0 if (neck_diameter > 0.0 and neck_diameter < diameter) else diameter
 
         resp = {
             "success": True,
@@ -151,6 +276,9 @@ def calculate():
             "feedrate": round(feedrate, 2),
             "mrr": round(mrr, 6),
             "deflection": round(deflection, 6),
+            "springback": round(springback, 6),
+            "total_error": round(total_error, 6),
+            "wear_comp": round(wear_comp, 6),
             "sfm": round(actual_sfm, 1),
             "base_ipt": round(base_ipt, 6),
             "adj_ipt": round(adjusted_ipt, 6),
@@ -161,6 +289,13 @@ def calculate():
             "rec_doc": round(rec_doc, 4),
             "rec_woc": round(rec_woc, 4),
             "rec_limit": round(diameter * 0.002, 5), # Return the absolute physical limit for the UI bar
+            "max_radial_reach": round(max_radial_reach, 5),
+            "neck_diameter": round(neck_diameter, 5),
+            "shank_diameter": round(shank_size, 5),
+            "flute_length": round(flute_length, 5),
+            "is_spindle_limited": is_spindle_limited,
+            "ideal_rpm": round(ideal_rpm),
+            "target_sfm": round(target_sfm, 1),
             "tips": tips
         }
         if tap_drill_info:
@@ -200,9 +335,16 @@ def calculate_for_fusion():
         stickout = float(data.get("stickout", 1.5))
         is_carbide = True  # Assuming Fusion tool implies carbide if not specified
         
+        is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
+        if is_saw_woodruff and cutter_thickness > 0.0:
+            flute_length = cutter_thickness
+
         # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter)
-        base_ipt = physics.get_base_ipt(family, tool, diameter, geometry=geometry, runout=runout)
+        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter, is_carbide=is_carbide)
+        base_ipt = physics.get_base_ipt(
+            family, tool, diameter, geometry=geometry, runout=runout,
+            cut_depth=cutter_thickness, cut_width=diameter * 0.25, flutes=flutes, is_carbide=is_carbide
+        )
         
         # Alloy-specific hardness adjustment via exponential BHN curve
         alloy = data.get("alloy", "")
@@ -219,7 +361,15 @@ def calculate_for_fusion():
             helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter
         )
         
+        # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
+        hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(rec_woc, diameter, operation=operation)
+        target_sfm *= hem_sfm_mult
+        rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
+        
         effective_diameter = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_radius)
+        ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
+        is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
+        
         adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry)
         feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
         actual_sfm = physics.calc_sfm(rpm, diameter)
@@ -237,9 +387,117 @@ def calculate_for_fusion():
             "doc": round(rec_doc, 3),
             "woc": round(rec_woc, 3),
             "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": round(plunge_feed, 2)
+            "plunge_feed": round(plunge_feed, 2),
+            "is_spindle_limited": is_spindle_limited,
+            "ideal_rpm": round(ideal_rpm)
         })
         
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/threads/standards", methods=["GET"])
+def get_thread_standards():
+    """Return available thread families, sizes, and classes from the database."""
+    try:
+        data = physics.get_thread_standards()
+        return jsonify({"success": True, **data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/threads/calculate", methods=["POST"])
+def calculate_thread():
+    """Calculate thread specifications, G-Wizard tapping drill table, and blind hole clearance."""
+    try:
+        data = request.json or {}
+        family = data.get("family", "ISO Coarse")
+        size = data.get("size", "M1.6-0.35")
+        th_class = data.get("class", "6H")
+        th_type = data.get("type", "Internal")
+        is_form = bool(data.get("isForm", False))
+        is_metric = bool(data.get("isMetric", False))
+        lead_style = data.get("leadStyle", "form" if is_form else "plug")
+        thread_depth = float(data.get("threadDepth", 0.0))
+        material_family = data.get("materialFamily", "")
+
+        # Look up thread definition from database
+        entry = physics.lookup_thread(family, size, th_class, th_type)
+
+        if entry:
+            pitch_in = entry.get("pitch_in", 0.05)
+            max_major_in = entry.get("max_major_in", 0.25)
+            min_major_in = entry.get("min_major_in", max_major_in)
+            max_pitch_in = entry.get("max_pitch_in", max_major_in - 0.6495 * pitch_in)
+            min_pitch_in = entry.get("min_pitch_in", max_pitch_in)
+            max_minor_in = entry.get("max_minor_in", max_major_in - 1.0825 * pitch_in)
+            min_minor_in = entry.get("min_minor_in", max_minor_in)
+        else:
+            # Custom thread handling
+            custom_major = float(data.get("customMajor", 0.25))
+            custom_pitch = float(data.get("customPitch", 0.05))
+            if is_metric:
+                custom_major /= 25.4
+                custom_pitch /= 25.4
+            pitch_in = custom_pitch
+            max_major_in = custom_major
+            min_major_in = custom_major
+            max_pitch_in = custom_major - 0.649519 * pitch_in
+            min_pitch_in = max_pitch_in
+            max_minor_in = custom_major - 1.082532 * pitch_in
+            min_minor_in = max_minor_in
+
+        # Units conversion for thread depth if supplied in metric
+        depth_in = (thread_depth / 25.4) if (is_metric and thread_depth > 0) else thread_depth
+
+        # Calculate drill table using G-Wizard formula
+        drills = physics.calc_thread_drill_table(
+            major_dia=max_major_in,
+            pitch=pitch_in,
+            is_form=is_form,
+            is_metric=is_metric,
+            material_family=material_family
+        )
+
+        # Calculate blind hole clearance using G-Wizard formula
+        blind_hole = physics.calc_blind_hole_clearance(
+            pitch=pitch_in,
+            lead_style=lead_style,
+            thread_depth=depth_in,
+            is_metric=is_metric
+        )
+
+        pitch_mm = pitch_in * 25.4
+        tpi = (1.0 / pitch_in) if pitch_in > 0 else 0.0
+
+        thread_spec = {
+            "name": f"{size} ({family}) - {th_class} {th_type}",
+            "family": family,
+            "size": size,
+            "class": th_class,
+            "type": th_type,
+            "pitch_in": round(pitch_in, 5),
+            "pitch_mm": round(pitch_mm, 4),
+            "tpi": round(tpi, 2),
+            "thread_angle": 60.0 if "BS" not in family and "Whitworth" not in family else 55.0,
+            "major_max_in": round(max_major_in, 4),
+            "major_min_in": round(min_major_in, 4),
+            "major_max_mm": round(max_major_in * 25.4, 3),
+            "major_min_mm": round(min_major_in * 25.4, 3),
+            "pitch_dia_max_in": round(max_pitch_in, 4),
+            "pitch_dia_min_in": round(min_pitch_in, 4),
+            "pitch_dia_max_mm": round(max_pitch_in * 25.4, 3),
+            "pitch_dia_min_mm": round(min_pitch_in * 25.4, 3),
+            "minor_max_in": round(max_minor_in, 4),
+            "minor_min_in": round(min_minor_in, 4),
+            "minor_max_mm": round(max_minor_in * 25.4, 3),
+            "minor_min_mm": round(min_minor_in * 25.4, 3),
+        }
+
+        return jsonify({
+            "success": True,
+            "thread": thread_spec,
+            "blind_hole": blind_hole,
+            "drills": drills
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -578,16 +836,17 @@ def twin_batch_generate():
                 total_presets_injected += 1
                 
             elif is_milling:
+                is_saw = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool_type.lower() for s in ["woodruff", "saw"])
                 for strat in strategies:
                     # 1. Physics lookup
                     target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
-                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout)
+                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout, flutes=flutes, is_carbide=is_carbide)
                     
                     # Hardness modifier via exponential BHN curve
                     target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
                         
                     # Chatter / Resonance penalty
-                    target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=False)
+                    target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=False, is_saw_woodruff=is_saw)
                     
                     target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
                     target_sfm *= physics.get_coating_multiplier(coating, family)

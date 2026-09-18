@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.class
+*.log
+.DS_Store
+scratch/
+backups/*.json
+!backups/Main_Milling_Hub_Library_20260819_144433_v3.json
+!backups/Main_Milling_Hub_Library_20260819_144433_v4.json
+!backups/TestHubLib_20260819_144258_v1.json
+update_*.py
+new_layout*.py
+strip*.py
+t13_*.json
+t13_dump.txt
+t1_dump.json

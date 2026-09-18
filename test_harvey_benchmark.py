@@ -31,7 +31,7 @@ HARVEY_TEST_CASES = [
     {
         "case": "2. Harvey #22393 (1/4 in Keyseat, 6FL) in 4140 Alloy Steel",
         "tool_number": "22393",
-        "material_family": "Steel - Medium Carbon Alloy (4140)",
+        "material_family": "Steel - Medium Carbon Alloy (4130)",
         "alloy": "4140 (Annealed)",
         "geometry": "Keyseat",
         "flutes": 6,
@@ -77,7 +77,7 @@ HARVEY_TEST_CASES = [
     {
         "case": "4. Harvey #71130 (3/8 in Keyseat, 6FL) in 4140 Alloy Steel",
         "tool_number": "71130",
-        "material_family": "Steel - Medium Carbon Alloy (4140)",
+        "material_family": "Steel - Medium Carbon Alloy (4130)",
         "alloy": "4140 (Annealed)",
         "geometry": "Keyseat",
         "flutes": 6,
@@ -100,7 +100,7 @@ HARVEY_TEST_CASES = [
     {
         "case": "5. Harvey #71560 (1/2 in Keyseat, 6FL) in 316 Stainless Steel",
         "tool_number": "71560",
-        "material_family": "Stainless - Austenitic (316)",
+        "material_family": "Stainless - 300 Series (316)",
         "alloy": "316 (Annealed)",
         "geometry": "Keyseat",
         "flutes": 6,
@@ -142,10 +142,10 @@ for tc in HARVEY_TEST_CASES:
     
     # 1. Base Speeds & Feeds
     base_sfm = physics.get_base_sfm(fam, "Carbide Endmill", geometry=geom, diameter=dia)
-    base_ipt = physics.get_base_ipt(fam, "Carbide Endmill", dia, geometry=geom)
+    base_ipt = physics.get_base_ipt(fam, "Carbide Endmill", dia, geometry=geom, flutes=flutes, cut_depth=flute_len, cut_width=h["rdoc"])
     
     sfm_hard, ipt_hard = physics.apply_alloy_hardness_scaling(fam, alloy, base_sfm, base_ipt)
-    sfm_chat, ipt_chat = physics.apply_chatter_penalty(sfm_hard, ipt_hard, dia, stickout, is_drilling=False)
+    sfm_chat, ipt_chat = physics.apply_chatter_penalty(sfm_hard, ipt_hard, dia, stickout, is_drilling=False, is_saw_woodruff=True)
     calc_sfm, calc_ipt = physics.apply_aggressiveness(sfm_chat, ipt_chat, 0.50)
     c_mult = physics.get_coating_multiplier(coating, fam)
     calc_sfm *= c_mult
@@ -178,9 +178,9 @@ for tc in HARVEY_TEST_CASES:
         flute_length=flute_len, neck_diameter=shank_dia
     )
     
-    # True chip thickness and rubbing check
+    # True chip thickness and rubbing check (for slotting form tools, chip thickness is the programmed face chipload)
     mct = physics.get_minimum_chip_thickness(coating, "end mill", dia)
-    tct = physics.get_true_chip_thickness(adj_ipt, rec_woc, dia)
+    tct = adj_ipt if geom in ["Keyseat", "T-Slot", "Woodruff"] else physics.get_true_chip_thickness(adj_ipt, rec_woc, dia)
     rubbing = tct < mct
     
     # Ramping check
