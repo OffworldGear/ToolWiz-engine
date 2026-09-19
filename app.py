@@ -186,9 +186,9 @@ def calculate():
         is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore", "annular"]) or any(d in geometry.lower() for d in ["drill", "parabolic", "tap", "form", "spiral_flute", "spiral_point", "straight_flute", "reamer"])
         is_tapping = "tap" in tool.lower() or "tap" in operation.lower() or "form" in geo_lower or "spiral_flute" in geo_lower or "spiral_point" in geo_lower or "straight_flute" in geo_lower
 
-        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3xD for milling; bypassed for saws/woodruff)
+        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3.5xD for milling; bypassed for saws/woodruff)
         target_sfm, base_ipt = physics.apply_chatter_penalty(
-            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff
+            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff, flute_length=flute_length
         )
         
         if not is_tapping:

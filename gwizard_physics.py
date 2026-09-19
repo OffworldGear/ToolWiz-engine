@@ -1063,7 +1063,8 @@ class AdvisoryEngine:
         is_drilling = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "annular", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "parabolic"])
         is_saw = geometry in ["T-Slot", "Keyseat", "Woodruff"] or "saw" in str(tool_type).lower() or "woodruff" in str(tool_type).lower()
         ld_ratio = stickout / diameter if diameter > 0.0 else 0.0
-        critical_ld = 8.0 if is_drilling else 3.0
+        fl_ratio = (flute_length / diameter) if (diameter > 0.0 and flute_length > 0.0) else 0.0
+        critical_ld = 8.0 if is_drilling else max(3.5, fl_ratio * 1.15)
 
         mct = CuttingKinematics.get_minimum_chip_thickness(coating, tool_type, diameter)
         ipt = feedrate / (rpm * flutes) if (rpm > 0 and flutes > 0) else 0.0
@@ -2004,7 +2005,8 @@ class GWizardPhysics:
         diameter: float,
         stickout: float,
         is_drilling: bool = False,
-        is_saw_woodruff: bool = False
+        is_saw_woodruff: bool = False,
+        flute_length: float = 0.0
     ) -> Tuple[float, float]:
         """Scales SFM and IPT based on Length-to-Diameter (L/D) ratio."""
         if is_saw_woodruff:
@@ -2015,7 +2017,8 @@ class GWizardPhysics:
             return sfm, ipt
 
         ld_ratio = stickout / diameter
-        critical_ld = 8.0 if is_drilling else 3.0
+        fl_ratio = (flute_length / diameter) if (diameter > 0.0 and flute_length > 0.0) else 0.0
+        critical_ld = 8.0 if is_drilling else max(3.5, fl_ratio * 1.15)
 
         if ld_ratio <= critical_ld:
             return sfm, ipt
