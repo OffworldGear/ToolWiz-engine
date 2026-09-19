@@ -2058,6 +2058,8 @@ class GWizardPhysics:
         sb_factor = mat_props.get("springback_factor", 0.0002)
         if "nitronic 60" in str(alloy).lower():
             sb_factor = max(sb_factor, 0.0006)
+        elif "black titanium" in str(alloy).lower():
+            sb_factor = max(sb_factor, 0.0010)
         unit_hp = mat_props.get("unit_hp", 1.0)
 
         _, radial_force, _, _ = CuttingMechanics.calc_cutting_forces(

@@ -154,6 +154,11 @@
       "name": "Wood: Softwood",
       "iso": "",
       "color": 0
+    },
+    {
+      "name": "Black Titanium 5545",
+      "iso": "S1.3",
+      "color": 15564081
     }
   ],
   "_801570913FabricationsList": [
@@ -14207,6 +14212,36 @@
       "alloy": "Wood: Plywood",
       "condition": "",
       "hardness": "0"
+    },
+    {
+      "family": "Black Titanium 5545",
+      "alloy": "Black Titanium 5545",
+      "condition": "~55% Zr / ~45% Ti (33.7 HRC)",
+      "hardness": "33.7 HRC",
+      "tensile_strength_mpa": 1012,
+      "yield_strength_mpa": 777,
+      "elongation_pct": 13.5,
+      "density_g_cm3": 5.5
+    },
+    {
+      "family": "Titanium Alloy",
+      "alloy": "Black Titanium 5545",
+      "condition": "~55% Zr / ~45% Ti (33.7 HRC)",
+      "hardness": "33.7 HRC",
+      "tensile_strength_mpa": 1012,
+      "yield_strength_mpa": 777,
+      "elongation_pct": 13.5,
+      "density_g_cm3": 5.5
+    },
+    {
+      "family": "Black Titanium (55% Ti / 45% Zr)",
+      "alloy": "Black Titanium 5545",
+      "condition": "~55% Zr / ~45% Ti (33.7 HRC)",
+      "hardness": "33.7 HRC",
+      "tensile_strength_mpa": 1012,
+      "yield_strength_mpa": 777,
+      "elongation_pct": 13.5,
+      "density_g_cm3": 5.5
     }
   ]
 }
