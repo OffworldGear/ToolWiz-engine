@@ -141,49 +141,75 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
             eventArgs = adsk.core.CommandEventArgs.cast(args)
             inputs = eventArgs.command.commandInputs
             lib_select = inputs.itemById('libSelect')
-            if not lib_select or not lib_select.selectedItem:
-                ui.messageBox('Please select a library to export.')
+            if not lib_select:
+                ui.messageBox('Please select library items to export.')
                 return
                 
-            selected_name = lib_select.selectedItem.name
-            lib_info = discovered_libraries_map.get(selected_name)
-            if not lib_info:
-                ui.messageBox('Selected library could not be resolved.')
+            selected_items = [item.name for item in lib_select.listItems if item.isSelected]
+            if not selected_items:
+                ui.messageBox('Please check at least one library to export.')
                 return
-                
-            tools_json_list = []
-            
-            if lib_info["type"] == "document":
-                camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
-                seen_tools = set()
-                if camObj:
-                    for setup in camObj.setups:
-                        for op in setup.allOperations:
-                            if hasattr(op, 'tool') and op.tool:
-                                t_json = op.tool.toJson()
-                                t_dict = json.loads(t_json)
-                                t_desc = t_dict.get("description", "")
-                                t_num = t_dict.get("postProcess", {}).get("number", 0)
-                                key = f"{t_num}_{t_desc}"
-                                if key not in seen_tools:
-                                    seen_tools.add(key)
-                                    tools_json_list.append(t_dict)
+
+            merge_input = inputs.itemById('mergeIntoMaster')
+            dedup_input = inputs.itemById('autoDeduplicate')
+            merge_into_master = merge_input.value if merge_input else True
+            auto_dedup = dedup_input.value if dedup_input else True
+
+            libraries_payload = []
+            total_extracted_tools = 0
+
+            for selected_name in selected_items:
+                lib_info = discovered_libraries_map.get(selected_name)
+                if not lib_info:
+                    continue
+                    
+                tools_json_list = []
+                if lib_info["type"] == "document":
+                    camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+                    seen_tools = set()
+                    if camObj:
+                        for setup in camObj.setups:
+                            for op in setup.allOperations:
+                                if hasattr(op, 'tool') and op.tool:
+                                    t_json = op.tool.toJson()
+                                    t_dict = json.loads(t_json)
+                                    t_desc = t_dict.get("description", "")
+                                    t_num = t_dict.get("postProcess", {}).get("number", 0)
+                                    key = f"{t_num}_{t_desc}"
+                                    if key not in seen_tools:
+                                        seen_tools.add(key)
+                                        tools_json_list.append(t_dict)
+                else:
+                    lib_obj = lib_info.get("obj")
+                    if lib_obj:
+                        for i in range(lib_obj.count):
+                            t = lib_obj.item(i)
+                            tools_json_list.append(json.loads(t.toJson()))
+
+                if tools_json_list:
+                    total_extracted_tools += len(tools_json_list)
+                    libraries_payload.append({
+                        "library_name": selected_name,
+                        "tools": tools_json_list
+                    })
+
+            if not libraries_payload:
+                ui.messageBox("No tools found in the selected libraries to export.")
+                return
+
+            if len(libraries_payload) > 1 or merge_into_master:
+                payload = {
+                    "libraries": libraries_payload,
+                    "master_library_name": "Master_Shop_Tool_Crib",
+                    "deduplicate": auto_dedup
+                }
             else:
-                lib_obj = lib_info.get("obj")
-                if lib_obj:
-                    for i in range(lib_obj.count):
-                        t = lib_obj.item(i)
-                        tools_json_list.append(json.loads(t.toJson()))
-                        
-            if not tools_json_list:
-                ui.messageBox(f"No tools found in '{selected_name}' to export.")
-                return
-                
-            payload = {
-                "library_name": selected_name,
-                "tools": tools_json_list
-            }
-            
+                payload = {
+                    "library_name": libraries_payload[0]["library_name"],
+                    "tools": libraries_payload[0]["tools"],
+                    "deduplicate": auto_dedup
+                }
+
             # Post to ToolWiz server
             req = urllib.request.Request("http://127.0.0.1:5000/api/twin/export_receive")
             req.add_header('Content-Type', 'application/json; charset=utf-8')
@@ -193,17 +219,27 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
             res_data = json.loads(response.read().decode('utf-8'))
             
             if res_data.get("success"):
+                lib_display_name = res_data.get("library_name", "Master_Shop_Tool_Crib")
+                final_count = res_data.get("tool_count", total_extracted_tools)
                 backup_name = res_data.get("backup", {}).get("filename", "")
+                
+                dedup_info = ""
+                summary = res_data.get("summary") or res_data.get("report") or {}
+                if summary.get("duplicates_removed", 0) > 0:
+                    dedup_info = f"Duplicates Removed & Merged: {summary.get('duplicates_removed')}\n"
+
                 msg = (
-                    f"Digital Twin Exported Successfully!\n"
+                    f"Tool Libraries Exported Successfully!\n"
                     f"====================================\n"
-                    f"Library: {selected_name}\n"
-                    f"Tools Exported: {len(tools_json_list)}\n"
+                    f"Target Library: {lib_display_name}\n"
+                    f"Libraries Processed: {len(libraries_payload)}\n"
+                    f"Total Unique Tools: {final_count}\n"
+                    f"{dedup_info}"
                     f"Backup Snapshot: {backup_name}\n\n"
                     f"Next Steps:\n"
                     f"1. Open http://127.0.0.1:5000 in your browser.\n"
-                    f"2. Switch to the 'Digital Twin Library Manager' tab.\n"
-                    f"3. Select tools and batch-generate speeds & feeds for any material!\n"
+                    f"2. Switch to 'Digital Twin Library Manager'.\n"
+                    f"3. Select material & tweak aggressiveness per tool or material.\n"
                     f"4. Click 'Import Digital Twin' in Fusion when done."
                 )
                 ui.messageBox(msg, 'ToolWiz Digital Twin Export')
@@ -262,11 +298,14 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
             # 3. Active Document Tools (Always accessible)
             discovered_libraries_map["Active Document: All Tools in Use"] = {"type": "document", "obj": None}
             
-            lib_select = inputs.addDropDownCommandInput('libSelect', 'Select Library to Clone', adsk.core.DropDownStyles.TextListDropDownStyle)
+            lib_select = inputs.addDropDownCommandInput('libSelect', 'Select Libraries to Export', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
             for i, name in enumerate(discovered_libraries_map.keys()):
                 lib_select.listItems.add(name, i == 0)
+
+            inputs.addBoolValueCommandInput('mergeIntoMaster', 'Merge into Master Tool Crib', True, '', True)
+            inputs.addBoolValueCommandInput('autoDeduplicate', 'Deduplicate Identical Cutters', True, '', True)
                 
-            info = inputs.addTextBoxCommandInput('info', '', 'This will export your library to the ToolWiz Digital Twin workspace and create a timestamped backup in your project.', 3, True)
+            info = inputs.addTextBoxCommandInput('info', '', 'Select one or more libraries above. ToolWiz will consolidate your cutters, combine unique cutting presets, and eliminate redundant duplicates.', 3, True)
             info.isFullWidth = True
             
         except Exception as e:

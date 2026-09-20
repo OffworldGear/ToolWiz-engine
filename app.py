@@ -1,7 +1,9 @@
 import os
+import io
+import json
 import math
 import uuid
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from gwizard_physics import GWizardPhysics
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 
@@ -522,57 +524,89 @@ def calculate_thread():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+import zipfile
+import io
+import uuid
 from backup_manager import BackupManager
 from ToolWizFusionAddin.json_mutator import format_unit
+from tool_merger import (
+    parse_dimension_in,
+    compute_tool_signature,
+    deduplicate_tools,
+    merge_multiple_libraries,
+    clean_tool_presets
+)
 
 bm = BackupManager()
 
 def parse_dim(val, tool_unit=""):
     """Helper to parse tool dimensions from JSON to inches"""
-    if val is None: return 0.25
-    if isinstance(val, (int, float)):
-        u = str(tool_unit).strip().lower()
-        if u in ["inches", "in", "inch"]: return float(val)
-        elif u in ["millimeters", "mm", "millimeter"]: return float(val) / 25.4
-        else: return float(val) / 25.4 if float(val) > 1.5 else float(val)
-    if isinstance(val, str):
-        v = val.strip().lower()
-        if "in" in v:
-            v = v.replace("in", "").strip()
-            if "/" in v:
-                n, d = v.split("/")
-                return float(n)/float(d)
-            return float(v)
-        elif "mm" in v:
-            v = v.replace("mm", "").strip()
-            return float(v) / 25.4
-        else:
-            try:
-                f = float(v)
-                u = str(tool_unit).strip().lower()
-                if u in ["inches", "in", "inch"]: return f
-                elif u in ["millimeters", "mm", "millimeter"]: return f / 25.4
-                return f / 25.4 if f > 1.5 else f
-            except:
-                return 0.25
-    return 0.25
+    return parse_dimension_in(val, tool_unit)
 
 @app.route("/api/twin/export_receive", methods=["POST"])
 def twin_export_receive():
-    """Receives exported tool library JSON from Fusion 360 Add-in"""
+    """Receives exported tool library (or multiple libraries) JSON from Fusion 360 Add-in"""
     try:
         data = request.json
         if not data:
             return jsonify({"success": False, "error": "No JSON payload received"}), 400
             
-        lib_name = data.get("library_name", "Fusion_Hub_Library")
-        backup_info = bm.save_working_library(data, lib_name)
+        libraries_list = data.get("libraries")
+        auto_dedup = bool(data.get("deduplicate", True))
         
+        if libraries_list and isinstance(libraries_list, list):
+            lib_name = data.get("master_library_name", "Master_Shop_Tool_Crib")
+            merged_data, summary = merge_multiple_libraries(libraries_list, master_library_name=lib_name, deduplicate=auto_dedup)
+            backup_info = bm.save_working_library(merged_data, lib_name)
+            return jsonify({
+                "success": True,
+                "library_name": lib_name,
+                "tool_count": len(merged_data.get("tools", [])),
+                "duplicates_merged": summary.get("duplicates_removed", summary.get("deduplication", {}).get("duplicates_removed", 0)),
+                "summary": summary,
+                "backup": backup_info
+            })
+        else:
+            lib_name = data.get("library_name", "Fusion_Hub_Library")
+            raw_tools = data.get("tools", [])
+            report = {"duplicates_removed": 0}
+            if auto_dedup and raw_tools:
+                cleaned_tools, report = deduplicate_tools(raw_tools, preserve_presets=True)
+                data["tools"] = cleaned_tools
+                
+            backup_info = bm.save_working_library(data, lib_name)
+            return jsonify({
+                "success": True,
+                "library_name": lib_name,
+                "tool_count": len(data.get("tools", [])),
+                "report": report,
+                "backup": backup_info
+            })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/deduplicate", methods=["POST"])
+def twin_deduplicate():
+    """Deduplicates tools in the active working library and creates a backup snapshot"""
+    try:
+        data = bm.load_working_library()
+        if not data or "tools" not in data:
+            return jsonify({"success": False, "error": "No working library loaded to deduplicate."}), 400
+
         tools = data.get("tools", [])
+        initial_count = len(tools)
+        deduped_tools, report = deduplicate_tools(tools, preserve_presets=True)
+
+        data["tools"] = deduped_tools
+        lib_name = data.get("library_name", "Master_Shop_Tool_Crib")
+        backup_info = bm.save_working_library(data, f"{lib_name}_deduped")
+
         return jsonify({
             "success": True,
             "library_name": lib_name,
-            "tool_count": len(tools),
+            "initial_tool_count": initial_count,
+            "tool_count": len(deduped_tools),
+            "report": report,
             "backup": backup_info
         })
     except Exception as e:
@@ -580,13 +614,14 @@ def twin_export_receive():
 
 @app.route("/api/twin/load", methods=["GET"])
 def twin_load():
-    """Returns active Digital Twin working library tools and backup history"""
+    """Returns active Digital Twin working library tools, per-tool aggressiveness, presets, and backup history"""
     try:
         data = bm.load_working_library()
         backups = bm.list_backups()
         
         if not data:
             return jsonify({
+                "success": True,
                 "has_library": False,
                 "library_name": "No Library Loaded",
                 "tools": [],
@@ -597,8 +632,9 @@ def twin_load():
         raw_tools = data.get("tools", [])
         
         tool_manifest = []
+        total_presets_count = 0
+
         for idx, t in enumerate(raw_tools):
-            # t can be dict or JSON string
             t_dict = json.loads(t) if isinstance(t, str) else t
             geo = t_dict.get("geometry", {})
             tool_unit = t_dict.get("unit", geo.get("unit", ""))
@@ -606,12 +642,48 @@ def twin_load():
             dia_in = parse_dim(geo.get("DC", 6.35), tool_unit)
             flutes = int(geo.get("NOF", 4))
             flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            t_num = t_dict.get("post-process", {}).get("number", 0)
+            shank_dia = parse_dim(geo.get("SF", dia_in), tool_unit)
+            corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
+            stickout = parse_dim(t_dict.get("stickout", flute_len * 1.5), tool_unit)
+            
+            t_num = t_dict.get("postProcess", {}).get("number", t_dict.get("post-process", {}).get("number", 0))
             desc = t_dict.get("description", f"{dia_in:.3f}in Tool")
             t_type = geo.get("type", t_dict.get("type", "end mill"))
+            custom_aggr = t_dict.get("custom_aggressiveness", None)
             
             presets = t_dict.get("start-values", {}).get("presets", [])
-            preset_list = [{"name": p.get("name", "Preset"), "guid": p.get("guid", "")} for p in presets]
+            preset_list = []
+            materials_seen = set()
+
+            for p in presets:
+                p_name = p.get("name", "Preset")
+                p_guid = p.get("guid", "")
+                p_mat = ""
+                if isinstance(p.get("material"), dict):
+                    p_mat = p["material"].get("query", "")
+                if p_mat:
+                    materials_seen.add(p_mat)
+                elif " - " in p_name:
+                    materials_seen.add(p_name.split(" - ")[0].strip())
+
+                preset_list.append({
+                    "name": p_name,
+                    "guid": p_guid,
+                    "material_query": p_mat,
+                    "rpm": p.get("n", 0),
+                    "feed": p.get("v_f", 0),
+                    "sfm": p.get("v_c", 0),
+                    "ipt": p.get("f_z", 0),
+                    "stepdown": p.get("stepdown", 0),
+                    "stepover": p.get("stepover", 0),
+                    "ramp_feed": p.get("v_f_ramp", 0),
+                    "plunge_feed": p.get("v_f_plunge", 0),
+                    "coolant": p.get("tool-coolant", "flood"),
+                    "description": p.get("description", "")
+                })
+
+            total_presets_count += len(preset_list)
+            signature = compute_tool_signature(t_dict)
             
             tool_manifest.append({
                 "index": idx,
@@ -622,15 +694,23 @@ def twin_load():
                 "diameter_mm": round(dia_in * 25.4, 2),
                 "flutes": flutes,
                 "flute_length_in": round(flute_len, 4),
+                "shank_diameter_in": round(shank_dia, 4),
+                "corner_radius_in": round(corner_rad, 4),
+                "stickout_in": round(stickout, 4),
+                "custom_aggressiveness": custom_aggr,
+                "signature": signature,
                 "presets": preset_list,
-                "preset_count": len(preset_list)
+                "preset_count": len(preset_list),
+                "materials": sorted(list(materials_seen))
             })
             
         return jsonify({
+            "success": True,
             "has_library": True,
             "library_name": lib_name,
             "last_modified": data.get("last_modified", ""),
             "tool_count": len(tool_manifest),
+            "total_presets_count": total_presets_count,
             "tools": tool_manifest,
             "backups": backups
         })
@@ -649,6 +729,85 @@ def twin_backups():
             return jsonify({"success": True, "restored": filename})
         else:
             return jsonify({"backups": bm.list_backups()})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/update_tool", methods=["POST"])
+def twin_update_tool():
+    """Updates a single tool's metadata, custom aggressiveness override, or dimensions"""
+    try:
+        payload = request.json
+        tool_idx = payload.get("tool_index")
+        if tool_idx is None:
+            return jsonify({"success": False, "error": "tool_index is required."}), 400
+
+        library_data = bm.load_working_library()
+        if not library_data or "tools" not in library_data:
+            return jsonify({"success": False, "error": "No working library loaded."}), 400
+
+        tools = library_data["tools"]
+        if tool_idx < 0 or tool_idx >= len(tools):
+            return jsonify({"success": False, "error": "Invalid tool index."}), 400
+
+        t_dict = tools[tool_idx]
+        if isinstance(t_dict, str):
+            t_dict = json.loads(t_dict)
+
+        if "number" in payload:
+            num = int(payload["number"])
+            if "postProcess" not in t_dict:
+                t_dict["postProcess"] = {}
+            t_dict["postProcess"]["number"] = num
+            if "post-process" in t_dict:
+                t_dict["post-process"]["number"] = num
+
+        if "description" in payload:
+            t_dict["description"] = str(payload["description"]).strip()
+
+        if "custom_aggressiveness" in payload:
+            val = payload["custom_aggressiveness"]
+            if val is None or val == "" or str(val).lower() == "default":
+                t_dict.pop("custom_aggressiveness", None)
+            else:
+                t_dict["custom_aggressiveness"] = float(val)
+
+        if "stickout" in payload and payload["stickout"] is not None:
+            t_dict["stickout"] = float(payload["stickout"])
+
+        tools[tool_idx] = t_dict
+        library_data["tools"] = tools
+        bm.save_working_library(library_data, library_data.get("library_name", "Modified_Library"))
+
+        return jsonify({"success": True, "tool_index": tool_idx})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/twin/delete_tool", methods=["POST"])
+def twin_delete_tool():
+    """Safely deletes a tool from the working library and creates a backup snapshot"""
+    try:
+        payload = request.json
+        tool_idx = payload.get("tool_index")
+        if tool_idx is None:
+            return jsonify({"success": False, "error": "tool_index is required."}), 400
+
+        library_data = bm.load_working_library()
+        if not library_data or "tools" not in library_data:
+            return jsonify({"success": False, "error": "No working library loaded."}), 400
+
+        tools = library_data["tools"]
+        if tool_idx < 0 or tool_idx >= len(tools):
+            return jsonify({"success": False, "error": "Invalid tool index."}), 400
+
+        deleted_tool = tools.pop(tool_idx)
+        library_data["tools"] = tools
+        backup_info = bm.save_working_library(library_data, library_data.get("library_name", "Modified_Library"))
+
+        return jsonify({
+            "success": True,
+            "remaining_tools": len(tools),
+            "backup": backup_info
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -694,14 +853,25 @@ def twin_delete_preset():
 
 @app.route("/api/twin/batch_generate", methods=["POST"])
 def twin_batch_generate():
-    """Batch calculates and injects multi-operation presets into selected tools"""
+    """
+    Batch calculates and injects multi-operation presets into selected tools.
+    Supports per-tool aggressiveness overrides, clean replacement of prior presets,
+    and automatic springback & wear compensation calculations.
+    """
     try:
         req_data = request.json
-        tool_indices = req_data.get("tool_indices", []) # list of integer indices
+        tool_indices = req_data.get("tool_indices", []) # list of integer indices or "all"
         family = req_data.get("family", "Steel - Tool (H13)")
         alloy = req_data.get("alloy", "CPM MagnaCut (Hardened ~62 HRC)")
         strategies = req_data.get("strategies", ["Adaptive Roughing", "Roughing", "Finishing", "Slotting"])
-        aggressiveness = float(req_data.get("aggressiveness", 50.0)) / 100.0
+        
+        base_aggressiveness = float(req_data.get("aggressiveness", req_data.get("base_aggressiveness", 50.0)))
+        use_tool_overrides = bool(req_data.get("use_tool_overrides", True))
+        tool_aggr_map = req_data.get("tool_aggressiveness_map", {}) # {tool_index_str: aggr_val}
+        
+        clean_existing_for_material = bool(req_data.get("clean_existing_for_material", True))
+        clean_all_non_toolwiz = bool(req_data.get("clean_all_non_toolwiz", False))
+        
         coating = req_data.get("coating", "AlTiN")
         max_rpm = float(req_data.get("maxRpm", 16000))
         max_hp = float(req_data.get("maxHp", 10.0))
@@ -712,18 +882,20 @@ def twin_batch_generate():
             return jsonify({"success": False, "error": "No working library found to modify."}), 400
             
         tools = library_data["tools"]
-        indices_to_update = range(len(tools)) if tool_indices == "all" else tool_indices
+        indices_to_update = list(range(len(tools))) if tool_indices == "all" else [int(i) for i in tool_indices]
         
         custom_preset_name = req_data.get("custom_preset_name", "").strip()
+        material_label = alloy if alloy else family
         
         updated_tools_count = 0
         total_presets_injected = 0
         
-        for idx, raw_t in enumerate(tools):
-            if idx not in indices_to_update:
+        for idx in indices_to_update:
+            if idx < 0 or idx >= len(tools):
                 continue
                 
-            t_dict = json.loads(raw_t) if isinstance(raw_t, str) else raw_t
+            raw_t = tools[idx]
+            t_dict = json.loads(raw_t) if isinstance(raw_t, str) else dict(raw_t)
             
             if t_dict.get("type") == "holder":
                 continue
@@ -739,49 +911,71 @@ def twin_batch_generate():
                 "drill", "spot drill", "center drill", "tap", "tap right hand", "tap left hand", "reamer", "bore", "counterbore", "countersink"
             ]
             
-            is_milling = tool_type in valid_milling_types
-            is_drilling = tool_type in valid_drilling_types
+            is_milling = any(m in tool_type for m in ["mill", "end mill", "face", "slot", "fly", "router"])
+            is_drilling = any(d in tool_type for d in ["drill", "tap", "reamer", "bore", "sink"])
             
             if not is_milling and not is_drilling:
-                tools[idx] = t_dict
-                continue
-
+                is_milling = True  # Default to milling physics
+                
             geo = t_dict.get("geometry", {})
             tool_unit = t_dict.get("unit", geo.get("unit", ""))
             
             diameter = parse_dim(geo.get("DC", 6.35), tool_unit)
             flutes = int(geo.get("NOF", 4)) if is_milling else int(geo.get("NOF", 2))
             flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            shank_dia = parse_dim(geo.get("SF", diameter * 25.4), tool_unit)
+            shank_dia = parse_dim(geo.get("SF", diameter), tool_unit)
             corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
-            stickout = flute_len * 1.5
+            stickout = parse_dim(t_dict.get("stickout", flute_len * 1.5), tool_unit)
             is_carbide = True
-            if "slot mill" in tool_type:
+
+            # Determine tool aggressiveness:
+            # 1. Check if an explicit override was passed in tool_aggr_map
+            str_idx = str(idx)
+            if str_idx in tool_aggr_map:
+                override_val = tool_aggr_map[str_idx]
+                if override_val is not None and str(override_val).lower() != "default":
+                    t_dict["custom_aggressiveness"] = float(override_val)
+                else:
+                    t_dict.pop("custom_aggressiveness", None)
+
+            # 2. Resolve effective aggressiveness
+            if use_tool_overrides and t_dict.get("custom_aggressiveness") is not None:
+                effective_aggr_val = float(t_dict["custom_aggressiveness"])
+            else:
+                effective_aggr_val = float(base_aggressiveness)
+
+            aggressiveness = effective_aggr_val / 100.0 if effective_aggr_val > 1.0 else effective_aggr_val
+
+            # Geometry classification
+            if "slot" in tool_type or "woodruff" in tool_type or "keyseat" in tool_type:
                 geometry = "T-Slot"
             elif "dovetail" in tool_type:
                 geometry = "Dovetail"
             elif "lollipop" in tool_type:
                 geometry = "Lollipop"
-            elif "thread mill" in tool_type:
+            elif "thread" in tool_type:
                 geometry = "Thread Mill"
-            elif "chamfer mill" in tool_type or "engraving" in tool_type:
+            elif "chamfer" in tool_type or "engraving" in tool_type:
                 geometry = "Chamfer"
-            elif "ball end mill" in tool_type or "radius mill" in tool_type:
+            elif "ball" in tool_type or "radius" in tool_type:
                 geometry = "Ball Nose"
-            elif "bull nose" in tool_type:
+            elif "bull" in tool_type:
                 geometry = "Bull Nose"
             else:
                 geometry = "Square" if corner_rad == 0 else "Radiused"
-            
+
+            # Clean stale or prior presets if requested
+            if clean_existing_for_material or clean_all_non_toolwiz:
+                target_mat = material_label if clean_existing_for_material else None
+                t_dict, _ = clean_tool_presets(t_dict, clean_all_non_toolwiz=clean_all_non_toolwiz, target_material_to_replace=target_mat)
+
             if "start-values" not in t_dict:
                 t_dict["start-values"] = {}
             if "presets" not in t_dict["start-values"]:
                 t_dict["start-values"]["presets"] = []
                 
             presets_list = t_dict["start-values"]["presets"]
-            
-            material_label = alloy if alloy else family
-            
+
             if is_drilling:
                 is_tap = "tap" in tool_type
                 db_tool_type = "Tapping" if is_tap else ("HP Carbide Twist Drill" if is_carbide else "Carbide Twist Drill")
@@ -789,10 +983,7 @@ def twin_batch_generate():
                 target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
                 adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)
                 
-                # Hardness modifier via exponential BHN curve
                 target_sfm, adj_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, adj_ipt)
-                
-                # Chatter / Resonance penalty
                 target_sfm, adj_ipt = physics.apply_chatter_penalty(target_sfm, adj_ipt, diameter, stickout, is_drilling=True)
                 
                 if not is_tap:
@@ -802,15 +993,12 @@ def twin_batch_generate():
                 
                 if is_tap:
                     tp = parse_dim(geo.get("TP", 1.0), tool_unit)
-                    # For taps, feed per rev (f_n) MUST exactly equal the thread pitch
                     feedrate = rpm * tp
-                    # We can set adj_ipt to the pitch, so f_z output makes sense
                     adj_ipt = tp
                 else:
                     feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
                     
                 actual_sfm = physics.calc_sfm(rpm, diameter)
-                
                 final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - Drilling"
                 
                 if tool_unit == "inches":
@@ -859,14 +1047,10 @@ def twin_batch_generate():
             elif is_milling:
                 is_saw = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool_type.lower() for s in ["woodruff", "saw"])
                 for strat in strategies:
-                    # 1. Physics lookup
                     target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
                     base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout, flutes=flutes, is_carbide=is_carbide)
                     
-                    # Hardness modifier via exponential BHN curve
                     target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-                        
-                    # Chatter / Resonance penalty
                     target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=False, is_saw_woodruff=is_saw)
                     
                     target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
@@ -884,12 +1068,23 @@ def twin_batch_generate():
                     actual_sfm = physics.calc_sfm(rpm, diameter)
                     ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_type)
                     
+                    wear_comp_note = ""
+                    if "finish" in strat.lower():
+                        deflection = physics.tool_deflection(
+                            diameter, shank_dia, stickout, rec_doc, rec_woc, feedrate, rpm, flutes,
+                            is_carbide=is_carbide, material_family=family, flute_length=flute_len
+                        )
+                        sb, total_err, wear_comp = physics.calc_springback_and_deflection(
+                            family, diameter, rec_doc, rec_woc, feedrate, rpm, flutes, deflection, alloy=alloy
+                        )
+                        if abs(wear_comp) > 0.0002:
+                            wear_comp_note = f" | Wear Comp: {wear_comp:+.4f}\""
+
                     if custom_preset_name:
                         preset_name = f"{custom_preset_name} - {strat}"
                     else:
                         preset_name = f"{material_label} - {strat}"
                     
-                    # Convert to pure numeric values based on the tool's native unit
                     if tool_unit == "inches":
                         p_n = float(rpm)
                         p_vc = float(actual_sfm)
@@ -900,9 +1095,8 @@ def twin_batch_generate():
                         p_stepdown = float(rec_doc)
                         p_stepover = float(rec_woc)
                     else:
-                        # tool_unit == "millimeters"
                         p_n = float(rpm)
-                        p_vc = float(actual_sfm * 0.3048) # SFM to m/min
+                        p_vc = float(actual_sfm * 0.3048)
                         p_fz = float(adj_ipt * 25.4)
                         p_vf = float(feedrate * 25.4)
                         p_vf_ramp = float(ramp_feed * 25.4)
@@ -910,10 +1104,12 @@ def twin_batch_generate():
                         p_stepdown = float(rec_doc * 25.4)
                         p_stepover = float(rec_woc * 25.4)
                     
+                    preset_desc = f"{preset_name}{wear_comp_note} (Aggressiveness: {int(aggressiveness*100)}%)"
+
                     preset_dict = {
                         "guid": str(uuid.uuid4()),
                         "name": preset_name,
-                        "description": preset_name,
+                        "description": preset_desc,
                         "material": {
                             "category": "all",
                             "query": material_label,
@@ -938,9 +1134,9 @@ def twin_batch_generate():
                         "tool-coolant": "flood"
                     }
                     
-                    # Update in place if duplicate name exists, else append
                     existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == preset_name), None)
                     if existing_idx is not None:
+                        preset_dict["guid"] = presets_list[existing_idx].get("guid", preset_dict["guid"])
                         presets_list[existing_idx].update(preset_dict)
                     else:
                         presets_list.append(preset_dict)
@@ -950,7 +1146,6 @@ def twin_batch_generate():
             tools[idx] = t_dict
             updated_tools_count += 1
             
-        # Deduplicate tool GUIDs to prevent Fusion's library manager from silently dropping tools
         seen_guids = set()
         for i, t in enumerate(tools):
             if isinstance(t, str):
@@ -962,7 +1157,7 @@ def twin_batch_generate():
             tools[i] = t
             
         library_data["tools"] = tools
-        lib_name = library_data.get("library_name", "Modified_Library")
+        lib_name = library_data.get("library_name", "Master_Shop_Tool_Crib")
         backup_info = bm.save_working_library(library_data, lib_name)
         
         return jsonify({
@@ -986,57 +1181,78 @@ def twin_get_import_payload():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-import zipfile
-import io
-import json
-from flask import send_file
-
 @app.route("/api/twin/upload", methods=["POST"])
 def twin_upload():
-    """Handles manual drag-and-drop file uploads of .tools or .json libraries"""
+    """
+    Handles manual drag-and-drop file uploads.
+    Supports single or MULTIPLE .tools or .json files simultaneously, with
+    automatic library merging and deduplication.
+    """
     try:
-        if 'file' not in request.files:
+        uploaded_files = request.files.getlist('files')
+        if not uploaded_files and 'file' in request.files:
+            uploaded_files = [request.files['file']]
+            
+        if not uploaded_files or uploaded_files[0].filename == '':
             return jsonify({"success": False, "error": "No file uploaded"}), 400
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"success": False, "error": "No selected file"}), 400
+
+        merge_mode = request.form.get("merge_mode", "merge_deduplicate")
+        parsed_libraries = []
+
+        for file in uploaded_files:
+            filename = file.filename.lower()
+            library_data = None
+
+            if filename.endswith('.json'):
+                content = file.read().decode('utf-8')
+                library_data = json.loads(content)
+            elif filename.endswith('.tools'):
+                with zipfile.ZipFile(file, 'r') as z:
+                    json_files = [n for n in z.namelist() if n.endswith('.json')]
+                    if json_files:
+                        with z.open(json_files[0]) as f:
+                            library_data = json.loads(f.read().decode('utf-8'))
             
-        filename = file.filename.lower()
-        library_data = None
-        
-        if filename.endswith('.json'):
-            library_data = json.loads(file.read().decode('utf-8'))
-        elif filename.endswith('.tools'):
-            with zipfile.ZipFile(file, 'r') as z:
-                json_files = [n for n in z.namelist() if n.endswith('.json')]
-                if not json_files:
-                    return jsonify({"success": False, "error": "No .json found inside .tools archive"}), 400
-                with z.open(json_files[0]) as f:
-                    library_data = json.loads(f.read().decode('utf-8'))
-        else:
-            return jsonify({"success": False, "error": "Unsupported file type. Please upload .tools or .json"}), 400
-            
-        tools_list = []
-        if isinstance(library_data, dict) and "data" in library_data:
-            tools_list = library_data["data"]
-        elif isinstance(library_data, list):
-            tools_list = library_data
-        elif isinstance(library_data, dict) and "tools" in library_data:
-            tools_list = library_data["tools"]
-            
-        lib_name = file.filename.replace('.json', '').replace('.tools', '')
-        normalized_data = {
-            "library_name": lib_name,
-            "tools": tools_list
-        }
-        
-        backup_info = bm.save_working_library(normalized_data, lib_name)
-        
+            if not library_data:
+                continue
+
+            tools_list = []
+            if isinstance(library_data, dict) and "data" in library_data:
+                tools_list = library_data["data"]
+            elif isinstance(library_data, list):
+                tools_list = library_data
+            elif isinstance(library_data, dict) and "tools" in library_data:
+                tools_list = library_data["tools"]
+
+            lib_name = file.filename.replace('.json', '').replace('.tools', '')
+            parsed_libraries.append({
+                "library_name": lib_name,
+                "tools": tools_list
+            })
+
+        if not parsed_libraries:
+            return jsonify({"success": False, "error": "No valid tool libraries could be parsed."}), 400
+
+        if merge_mode == "append":
+            current_data = bm.load_working_library()
+            if current_data and current_data.get("tools"):
+                parsed_libraries.insert(0, {
+                    "library_name": current_data.get("library_name", "Current_Master_Library"),
+                    "tools": current_data["tools"]
+                })
+
+        master_lib_name = "Master_Shop_Tool_Crib" if len(parsed_libraries) > 1 else parsed_libraries[0]["library_name"]
+        auto_dedup = merge_mode != "raw"
+        merged_library, summary = merge_multiple_libraries(parsed_libraries, master_library_name=master_lib_name, deduplicate=auto_dedup)
+
+        backup_info = bm.save_working_library(merged_library, master_lib_name)
+
         return jsonify({
             "success": True,
-            "library_name": lib_name,
-            "tool_count": len(tools_list),
+            "library_name": master_lib_name,
+            "tool_count": len(merged_library.get("tools", [])),
+            "files_processed": len(parsed_libraries),
+            "summary": summary,
             "backup": backup_info
         })
         
@@ -1045,7 +1261,7 @@ def twin_upload():
 
 @app.route("/api/twin/download", methods=["GET"])
 def twin_download():
-    """Provides the active Digital Twin library as a downloadable .json file"""
+    """Provides the active Digital Twin library as a downloadable .json file formatted for Fusion 360"""
     try:
         data = bm.load_working_library()
         if not data:
@@ -1056,7 +1272,7 @@ def twin_download():
         }
         
         json_str = json.dumps(fusion_format, indent=2)
-        lib_name = data.get("library_name", "ToolWiz_Digital_Twin")
+        lib_name = data.get("library_name", "ToolWiz_Master_Crib")
         
         mem_file = io.BytesIO()
         mem_file.write(json_str.encode('utf-8'))
@@ -1066,7 +1282,7 @@ def twin_download():
             mem_file,
             mimetype='application/json',
             as_attachment=True,
-            download_name=f"{lib_name}_Updated.json"
+            download_name=f"{lib_name}.json"
         )
     except Exception as e:
         return str(e), 500
