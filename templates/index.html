@@ -769,13 +769,16 @@
                                 <input type="checkbox" id="stratRoughing" checked style="accent-color: var(--accent);"> Standard Roughing
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
-                                <input type="checkbox" id="stratFinishing" checked style="accent-color: var(--accent);"> Wall Finishing
+                                <input type="checkbox" id="stratSemiFinishing" style="accent-color: var(--accent);"> Semi-Finishing
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
-                                <input type="checkbox" id="stratFloorFinishing" checked style="accent-color: var(--accent);"> Floor Finishing
+                                <input type="checkbox" id="stratFinishing" checked style="accent-color: var(--accent);"> Wall Finishing (Deep DOC)
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
-                                <input type="checkbox" id="stratSlotting" checked style="accent-color: var(--accent);"> Slotting (100% WOC)
+                                <input type="checkbox" id="stratFloorFinishing" checked style="accent-color: var(--accent);"> Floor Finishing (Skim)
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                                <input type="checkbox" id="stratSlotting" checked style="accent-color: var(--accent);"> Slotting / Tab Milling
                             </label>
                             <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
                                 <input type="checkbox" id="stratHighFeed" style="accent-color: var(--accent);"> High Feed Milling
@@ -3509,7 +3512,8 @@
             const strategies = [];
             if (document.getElementById('stratAdaptive')?.checked) strategies.push('Adaptive Roughing');
             if (document.getElementById('stratRoughing')?.checked) strategies.push('Roughing');
-            if (document.getElementById('stratFinishing')?.checked) strategies.push('Finishing');
+            if (document.getElementById('stratSemiFinishing')?.checked) strategies.push('Semi-Finishing');
+            if (document.getElementById('stratFinishing')?.checked) strategies.push('Wall Finishing');
             if (document.getElementById('stratFloorFinishing')?.checked) strategies.push('Floor Finishing');
             if (document.getElementById('stratSlotting')?.checked) strategies.push('Slotting');
             if (document.getElementById('stratHighFeed')?.checked) strategies.push('High Feed Milling');

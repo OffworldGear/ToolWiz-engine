@@ -607,7 +607,11 @@ class CuttingMechanics:
         is_finish = "finish" in op_low
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low or "hem" in op_low
         
-        if is_finish:
+        if "semi" in op_low:
+            # Semi-finishing: intermediate tolerance between roughing and finishing (up to 0.0010")
+            lim = diameter * 0.003 * (0.5 + aggressiveness * 0.5)
+            return max(0.0003, min(0.0010, lim))
+        elif is_finish:
             # Finishing: tight tolerance (0.001x to 0.002x D, max 0.0005")
             lim = diameter * 0.002 * (0.7 + aggressiveness * 0.6)
             return max(0.0001, min(0.0005, lim))
@@ -852,8 +856,18 @@ class OptimizationEngine:
                 diameter, operation=operation, aggressiveness=aggressiveness, is_carbide=is_carbide
             )
 
-        if "finish" in op_low:
-            target_woc = diameter * 0.05
+        is_floor_finish = "floor" in op_low
+        is_semi_finish = "semi" in op_low
+
+        if is_floor_finish:
+            # Floor Finishing: wide radial pass (50-75% D) across pocket/feature bottom
+            target_woc = diameter * 0.65
+        elif is_semi_finish:
+            # Semi-Finishing: moderate radial cut (6-10% D) leaving ~0.005"-0.010" skin for finish
+            target_woc = max(0.008, diameter * 0.08)
+        elif "finish" in op_low:
+            # Wall Finishing: light radial stepover (2% to 4% D, max 0.015") enabling deep single-pass DOC
+            target_woc = max(0.003, min(0.015, diameter * 0.035))
         elif "slot" in op_low:
             target_woc = diameter
         elif is_high_feed:
@@ -918,6 +932,11 @@ class OptimizationEngine:
             else:
                 rec_doc = diameter * 0.035
             rec_doc = max(rec_doc, 0.001)
+            return rec_doc, target_woc, target_deflection
+
+        if is_floor_finish:
+            # Floor finishing takes a shallow skim depth (0.003"-0.010") to clean up floor stock
+            rec_doc = min(0.010, max(0.003, diameter * 0.04))
             return rec_doc, target_woc, target_deflection
 
         if is_adaptive:
