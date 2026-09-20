@@ -1,286 +1,131 @@
 {
-  "library_name": "Main_Milling_Hub_Library",
+  "library_name": "Master_Shop_Tool_Crib",
   "tools": [
     {
-      "description": "1/4 4-Flute Flat Carbide Endmill",
       "type": "flat end mill",
-      "unit": "inches",
-      "geometry": {
-        "DC": 0.25,
-        "NOF": 4,
-        "LCF": 0.75,
-        "SF": 0.25,
-        "RE": 0.0
-      },
-      "postProcess": {
+      "description": "1/4 3-Flute Carbide Endmill",
+      "post-process": {
         "number": 1
       },
-      "start-values": {
-        "presets": [
-          {
-            "name": "Default Preset",
-            "n": "5000.000000rpm",
-            "v_f": "30.000000in/min"
-          },
-          {
-            "guid": "f4f840c8-ee9a-40fb-b7cc-6868c740c488",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
-            "material": {
-              "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
-              "use-hardness": false
-            },
-            "n": 1862,
-            "n_ramp": 1862,
-            "v_c": 121.91742852571095,
-            "f_z": 0.0013950736321371206,
-            "f_n": 0.005580294528548482,
-            "v_f": 10.3947555424946,
-            "v_f_leadIn": 10.3947555424946,
-            "v_f_leadOut": 10.3947555424946,
-            "v_f_transition": 10.3947555424946,
-            "v_f_ramp": 5.1973777712473,
-            "v_f_plunge": 2.59868888562365,
-            "stepdown": 0.10750000000000005,
-            "stepover": 0.025,
-            "use-stepdown": true,
-            "use-stepover": true,
-            "ramp-angle": 1.5,
-            "tool-coolant": "flood"
-          },
-          {
-            "guid": "90e850a4-154d-4d0c-bb31-c2daecb8d6d5",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
-            "material": {
-              "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
-              "use-hardness": false
-            },
-            "n": 1862,
-            "n_ramp": 1862,
-            "v_c": 121.91742852571095,
-            "f_z": 0.0006438801379094403,
-            "f_n": 0.002575520551637761,
-            "v_f": 4.797579481151354,
-            "v_f_leadIn": 4.797579481151354,
-            "v_f_leadOut": 4.797579481151354,
-            "v_f_transition": 4.797579481151354,
-            "v_f_ramp": 2.398789740575677,
-            "v_f_plunge": 1.1993948702878385,
-            "stepdown": 0.015,
-            "stepover": 0.125,
-            "use-stepdown": true,
-            "use-stepover": true,
-            "ramp-angle": 1.5,
-            "tool-coolant": "flood"
-          },
-          {
-            "guid": "5dff44b5-8670-4d08-a954-0f0ebf242e82",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
-            "material": {
-              "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
-              "use-hardness": false
-            },
-            "n": 1862,
-            "n_ramp": 1862,
-            "v_c": 121.91742852571095,
-            "f_z": 0.0008862974061790366,
-            "f_n": 0.0035451896247161462,
-            "v_f": 6.603841304824122,
-            "v_f_leadIn": 6.603841304824122,
-            "v_f_leadOut": 6.603841304824122,
-            "v_f_transition": 6.603841304824122,
-            "v_f_ramp": 3.301920652412061,
-            "v_f_plunge": 1.6509603262060304,
-            "stepdown": 0.09500000000000001,
-            "stepover": 0.0125,
-            "use-stepdown": true,
-            "use-stepover": true,
-            "ramp-angle": 1.5,
-            "tool-coolant": "flood"
-          },
-          {
-            "guid": "997644c4-b274-4ca8-a976-6935e30a5410",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
-            "material": {
-              "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
-              "use-hardness": false
-            },
-            "n": 1862,
-            "n_ramp": 1862,
-            "v_c": 121.91742852571095,
-            "f_z": 0.0006438801379094403,
-            "f_n": 0.002575520551637761,
-            "v_f": 4.797579481151354,
-            "v_f_leadIn": 4.797579481151354,
-            "v_f_leadOut": 4.797579481151354,
-            "v_f_transition": 4.797579481151354,
-            "v_f_ramp": 2.398789740575677,
-            "v_f_plunge": 1.1993948702878385,
-            "stepdown": 0.005,
-            "stepover": 0.25,
-            "use-stepdown": true,
-            "use-stepover": true,
-            "ramp-angle": 1.5,
-            "tool-coolant": "flood"
-          }
-        ]
-      },
-      "guid": "decd117d-eacd-4ed2-8959-488dbb110ba0"
-    },
-    {
-      "description": "6mm 3-Flute Aluminum Endmill",
-      "type": "flat end mill",
-      "unit": "millimeters",
       "geometry": {
-        "DC": 6.0,
+        "DC": 0.25,
         "NOF": 3,
-        "LCF": 20.0,
-        "SF": 6.0,
-        "RE": 0.0
-      },
-      "postProcess": {
-        "number": 2
-      },
-      "start-values": {
-        "presets": []
-      },
-      "guid": "daef9d32-e66c-498a-91d5-d550d354697a"
-    },
-    {
-      "description": "1/8 Ball Endmill",
-      "type": "ball end mill",
-      "unit": "inches",
-      "geometry": {
-        "DC": 0.125,
-        "NOF": 2,
-        "LCF": 0.5,
-        "SF": 0.125,
-        "RE": 0.0625
-      },
-      "postProcess": {
-        "number": 3
+        "LCF": 0.75,
+        "SF": 0.25
       },
       "start-values": {
         "presets": [
           {
-            "guid": "16f4053f-0d03-4338-b3e7-0d03b22bbb16",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Adaptive Roughing",
+            "name": "Preset Inconel Roughing",
+            "guid": "p-101",
+            "f_z": 0.001,
+            "n": 3500
+          },
+          {
+            "name": "Preset Aluminum High Speed",
+            "guid": "p-102",
+            "f_z": 0.004,
+            "n": 18000
+          },
+          {
+            "guid": "8a8f3e78-3cff-4cb0-9d00-99b8473c4670",
+            "name": "Black Titanium 5545 - Adaptive Roughing",
+            "description": "Black Titanium 5545 - Adaptive Roughing (Aggressiveness: 25%)",
+            "operation_type": "Adaptive Roughing",
             "material": {
               "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
+              "query": "Black Titanium 5545",
               "use-hardness": false
             },
-            "n": 2643,
-            "n_ramp": 2643,
-            "v_c": 86.52204605050456,
-            "f_z": 0.00027127219360397424,
-            "f_n": 0.0005425443872079485,
-            "v_f": 1.434443398789381,
-            "v_f_leadIn": 1.434443398789381,
-            "v_f_leadOut": 1.434443398789381,
-            "v_f_transition": 1.434443398789381,
-            "v_f_ramp": 0.7172216993946905,
-            "v_f_plunge": 0.35861084969734525,
-            "stepdown": 0.03375000000000001,
-            "stepover": 0.0375,
+            "n": 7727,
+            "n_ramp": 7727,
+            "v_c": 154.15259999999998,
+            "f_z": 0.04138253383399498,
+            "f_n": 0.12414760150198495,
+            "v_f": 959.3246185556262,
+            "v_f_leadIn": 959.3246185556262,
+            "v_f_leadOut": 959.3246185556262,
+            "v_f_transition": 959.3246185556262,
+            "v_f_ramp": 479.6623092778131,
+            "v_f_plunge": 239.83115463890655,
+            "stepdown": 6.35,
+            "stepover": 0.508,
             "use-stepdown": true,
             "use-stepover": true,
-            "ramp-angle": 1.9500000000000002,
+            "ramp-angle": 1.275,
             "tool-coolant": "flood"
           },
           {
-            "guid": "f223c2e1-5284-44f5-8cff-0b92723cba0a",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Roughing",
+            "guid": "bd31bd24-a041-4340-b7fb-5209f6b1a7f5",
+            "name": "Black Titanium 5545 - Floor Finishing",
+            "description": "Black Titanium 5545 - Floor Finishing | Wear Comp: -0.0009\" (Aggressiveness: 25%)",
+            "operation_type": "Floor Finishing",
             "material": {
               "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
+              "query": "Black Titanium 5545",
               "use-hardness": false
             },
-            "n": 2643,
-            "n_ramp": 2643,
-            "v_c": 86.52204605050456,
-            "f_z": 0.0003575241066441826,
-            "f_n": 0.0007150482132883652,
-            "v_f": 1.890529537400788,
-            "v_f_leadIn": 1.890529537400788,
-            "v_f_leadOut": 1.890529537400788,
-            "v_f_transition": 1.890529537400788,
-            "v_f_ramp": 0.945264768700394,
-            "v_f_plunge": 0.472632384350197,
-            "stepdown": 0.0075,
-            "stepover": 0.0625,
+            "n": 7727,
+            "n_ramp": 7727,
+            "v_c": 154.15259999999998,
+            "f_z": 0.0103632,
+            "f_n": 0.0310896,
+            "v_f": 240.2383799623397,
+            "v_f_leadIn": 240.2383799623397,
+            "v_f_leadOut": 240.2383799623397,
+            "v_f_transition": 240.2383799623397,
+            "v_f_ramp": 120.11918998116985,
+            "v_f_plunge": 60.05959499058493,
+            "stepdown": 0.254,
+            "stepover": 4.1274999999999995,
             "use-stepdown": true,
             "use-stepover": true,
-            "ramp-angle": 1.9500000000000002,
+            "ramp-angle": 1.275,
             "tool-coolant": "flood"
           },
           {
-            "guid": "37976367-232d-4afc-a528-22eae63095b6",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Finishing",
+            "guid": "65123893-335c-4c1f-ae6b-909c987221d0",
+            "name": "Black Titanium 5545 - Finishing",
+            "description": "Black Titanium 5545 - Finishing | Wear Comp: -0.0012\" (Aggressiveness: 25%)",
+            "operation_type": "Finishing",
             "material": {
               "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
+              "query": "Black Titanium 5545",
               "use-hardness": false
             },
-            "n": 2643,
-            "n_ramp": 2643,
-            "v_c": 86.52204605050456,
-            "f_z": 0.00023450037215509408,
-            "f_n": 0.00046900074431018815,
-            "v_f": 1.2399999660215812,
-            "v_f_leadIn": 1.2399999660215812,
-            "v_f_leadOut": 1.2399999660215812,
-            "v_f_transition": 1.2399999660215812,
-            "v_f_ramp": 0.6199999830107906,
-            "v_f_plunge": 0.3099999915053953,
-            "stepdown": 0.057500000000000016,
-            "stepover": 0.00625,
+            "n": 7727,
+            "n_ramp": 7727,
+            "v_c": 154.15259999999998,
+            "f_z": 0.028194617373759508,
+            "f_n": 0.08458385212127853,
+            "v_f": 653.60402207137,
+            "v_f_leadIn": 653.60402207137,
+            "v_f_leadOut": 653.60402207137,
+            "v_f_transition": 653.60402207137,
+            "v_f_ramp": 326.802011035685,
+            "v_f_plunge": 163.4010055178425,
+            "stepdown": 9.779000000000005,
+            "stepover": 0.22225,
             "use-stepdown": true,
             "use-stepover": true,
-            "ramp-angle": 1.9500000000000002,
-            "tool-coolant": "flood"
-          },
-          {
-            "guid": "77618997-8b64-4848-ad7f-5b0441ef288f",
-            "name": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
-            "description": "CPM MagnaCut (Hardened ~62 HRC) - Slotting",
-            "material": {
-              "category": "all",
-              "query": "CPM MagnaCut (Hardened ~62 HRC)",
-              "use-hardness": false
-            },
-            "n": 2643,
-            "n_ramp": 2643,
-            "v_c": 86.52204605050456,
-            "f_z": 0.0006064805066650929,
-            "f_n": 0.0012129610133301857,
-            "v_f": 3.206970636106643,
-            "v_f_leadIn": 3.206970636106643,
-            "v_f_leadOut": 3.206970636106643,
-            "v_f_transition": 3.206970636106643,
-            "v_f_ramp": 1.6034853180533215,
-            "v_f_plunge": 0.8017426590266608,
-            "stepdown": 0.0025,
-            "stepover": 0.125,
-            "use-stepdown": true,
-            "use-stepover": true,
-            "ramp-angle": 1.9500000000000002,
+            "ramp-angle": 1.275,
             "tool-coolant": "flood"
           }
         ]
       },
-      "guid": "d82cbd6a-5276-49b0-8d03-a2d970577d1e"
+      "custom_aggressiveness": 25.0,
+      "guid": "882d3d7c-7f63-4a95-b7e6-e143b8fcb5db"
     }
   ],
-  "last_modified": "2026-09-17T19:07:31.356374"
+  "source_libraries": [
+    {
+      "name": "Roughing Tools",
+      "tools_count": 1
+    },
+    {
+      "name": "Finishing Tools",
+      "tools_count": 2
+    }
+  ],
+  "last_modified": "2026-09-20T09:25:16.580212"
 }

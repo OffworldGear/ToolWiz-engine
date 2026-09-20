@@ -607,7 +607,10 @@ class CuttingMechanics:
         is_finish = "finish" in op_low
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low or "hem" in op_low
         
-        if "semi" in op_low:
+        if "high feed" in op_low or "hf" in op_low:
+            lim = diameter * 0.002 * (0.5 + aggressiveness * 0.8)
+            return max(0.0005, min(0.0030, lim))
+        elif "semi" in op_low:
             # Semi-finishing: intermediate tolerance between roughing and finishing (up to 0.0010")
             lim = diameter * 0.003 * (0.5 + aggressiveness * 0.5)
             return max(0.0003, min(0.0010, lim))
@@ -1848,7 +1851,10 @@ class GWizardPhysics:
 
         op_low = operation.lower()
         if "finish" in op_low:
-            adjusted_ipt *= 0.60
+            if "semi" in op_low:
+                adjusted_ipt *= 0.80
+            else:
+                adjusted_ipt *= 0.60
         elif "slot" in op_low:
             cut_width = diameter
 

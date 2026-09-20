@@ -319,11 +319,14 @@
                         <div class="input-group" style="margin-bottom:1.5rem;">
                             <label for="operation">Strategy / Operation</label>
                             <select id="operation" onchange="handleOpChange()">
-                                <option value="Roughing">Standard Roughing</option>
-                                <option value="Adaptive Roughing">Adaptive / Trochoidal</option>
-                                <option value="Slotting">Full Slotting</option>
+                                <option value="Adaptive Roughing">Adaptive Roughing</option>
+                                <option value="Standard Roughing">Standard Roughing</option>
+                                <option value="Semi-Finishing">Semi-Finishing</option>
+                                <option value="Wall Finishing (Deep DOC)">Wall Finishing (Deep DOC)</option>
+                                <option value="Floor Finishing (Skim)">Floor Finishing (Skim)</option>
+                                <option value="Slotting / Tab Milling">Slotting / Tab Milling</option>
+                                <option value="High Feed Milling">High Feed Milling</option>
                                 <option value="Facing">Facing</option>
-                                <option value="Finishing">Light Finishing</option>
                             </select>
                         </div>
 
@@ -1400,7 +1403,7 @@
                     cutDepth_val: document.getElementById('cutDepth_val')?.value || "0.25",
                     cutWidth_val: document.getElementById('cutWidth_val')?.value || "0.1",
                     stickout_val: document.getElementById('stickout_val')?.value || "1.5",
-                    operation: document.getElementById('operation')?.value || "Roughing",
+                    operation: document.getElementById('operation')?.value || "Standard Roughing",
                     aggressiveness: document.getElementById('aggressiveness')?.value || "50",
                     isCarbide: document.getElementById('isCarbide')?.checked ?? true,
                     isMetric: isMetric,
@@ -1449,7 +1452,13 @@
                         document.getElementById('stickout_val').value = state.stickout_val;
                         if(document.getElementById('stickout_range')) document.getElementById('stickout_range').value = state.stickout_val;
                     }
-                    if(state.operation && document.getElementById('operation')) document.getElementById('operation').value = state.operation;
+                    if(state.operation && document.getElementById('operation')) {
+                        let opVal = state.operation;
+                        if (opVal === 'Roughing') opVal = 'Standard Roughing';
+                        else if (opVal === 'Finishing') opVal = 'Wall Finishing (Deep DOC)';
+                        else if (opVal === 'Slotting') opVal = 'Slotting / Tab Milling';
+                        document.getElementById('operation').value = opVal;
+                    }
                     if(state.aggressiveness && document.getElementById('aggressiveness')) {
                         document.getElementById('aggressiveness').value = state.aggressiveness;
                         const aggrVol = document.getElementById('aggrVol');
@@ -1792,35 +1801,29 @@
                 } else if (is3DContour) {
                     targetFamily = 'contour';
                     targetOptions = [
-                        { value: "Adaptive Roughing", text: "3D Adaptive / Trochoidal" },
-                        { value: "Roughing", text: "Standard 3D Roughing" },
+                        { value: "Adaptive Roughing", text: "3D Adaptive Roughing" },
+                        { value: "Standard Roughing", text: "Standard Roughing" },
+                        { value: "Semi-Finishing", text: "Semi-Finishing" },
                         { value: "3D Contouring", text: "3D Scallop / Surface Profiling" },
-                        { value: "Finishing", text: "Light Finishing Pass" },
-                        { value: "Slotting", text: "Channel Slotting" }
+                        { value: "Wall Finishing (Deep DOC)", text: "Wall Finishing (Deep DOC)" },
+                        { value: "Floor Finishing (Skim)", text: "Floor Finishing (Skim)" },
+                        { value: "Slotting / Tab Milling", text: "Slotting / Tab Milling" },
+                        { value: "High Feed Milling", text: "High Feed Milling" }
                     ];
-                    if (isHighFeedCapable) {
-                        targetOptions.splice(3, 0,
-                            { value: "High Feed Milling", text: "High Feed Milling (Axial Chip Thinning)" },
-                            { value: "High Feed Slotting / Window Profiling", text: "High Feed Slotting / Window Profiling (Tabs)" }
-                        );
-                    }
                     defaultVal = (isHighFeedCapable && geo === 'High Feed') ? "High Feed Milling" : "Adaptive Roughing";
                 } else {
                     targetFamily = 'milling';
                     targetOptions = [
-                        { value: "Roughing", text: "Standard Roughing" },
-                        { value: "Adaptive Roughing", text: "Adaptive / Trochoidal" },
-                        { value: "Slotting", text: "Full Slotting" },
-                        { value: "Facing", text: "Facing" },
-                        { value: "Finishing", text: "Light Finishing" }
+                        { value: "Adaptive Roughing", text: "Adaptive Roughing" },
+                        { value: "Standard Roughing", text: "Standard Roughing" },
+                        { value: "Semi-Finishing", text: "Semi-Finishing" },
+                        { value: "Wall Finishing (Deep DOC)", text: "Wall Finishing (Deep DOC)" },
+                        { value: "Floor Finishing (Skim)", text: "Floor Finishing (Skim)" },
+                        { value: "Slotting / Tab Milling", text: "Slotting / Tab Milling" },
+                        { value: "High Feed Milling", text: "High Feed Milling" },
+                        { value: "Facing", text: "Facing" }
                     ];
-                    if (isHighFeedCapable) {
-                        targetOptions.splice(3, 0,
-                            { value: "High Feed Milling", text: "High Feed Milling (Axial Chip Thinning)" },
-                            { value: "High Feed Slotting / Window Profiling", text: "High Feed Slotting / Window Profiling (Tabs)" }
-                        );
-                    }
-                    defaultVal = (isHighFeedCapable && geo === 'High Feed') ? "High Feed Milling" : "Roughing";
+                    defaultVal = (isHighFeedCapable && geo === 'High Feed') ? "High Feed Milling" : "Adaptive Roughing";
                 }
 
                 const targetKey = targetFamily + (isHighFeedCapable ? '_hf' : '');
@@ -1835,8 +1838,13 @@
                         opt.text = o.text;
                         opSelect.appendChild(opt);
                     });
-                    const hasSaved = targetOptions.some(o => o.value === savedOp);
-                    opSelect.value = hasSaved ? savedOp : defaultVal;
+                    let matchedSaved = targetOptions.find(o => o.value === savedOp);
+                    if (!matchedSaved && savedOp) {
+                        if (savedOp === "Roughing") matchedSaved = targetOptions.find(o => o.value === "Standard Roughing");
+                        else if (savedOp === "Finishing") matchedSaved = targetOptions.find(o => o.value.includes("Wall Finishing"));
+                        else if (savedOp === "Slotting") matchedSaved = targetOptions.find(o => o.value.includes("Slotting"));
+                    }
+                    opSelect.value = matchedSaved ? matchedSaved.value : defaultVal;
                 }
             }
 
@@ -3511,11 +3519,11 @@
 
             const strategies = [];
             if (document.getElementById('stratAdaptive')?.checked) strategies.push('Adaptive Roughing');
-            if (document.getElementById('stratRoughing')?.checked) strategies.push('Roughing');
+            if (document.getElementById('stratRoughing')?.checked) strategies.push('Standard Roughing');
             if (document.getElementById('stratSemiFinishing')?.checked) strategies.push('Semi-Finishing');
-            if (document.getElementById('stratFinishing')?.checked) strategies.push('Wall Finishing');
-            if (document.getElementById('stratFloorFinishing')?.checked) strategies.push('Floor Finishing');
-            if (document.getElementById('stratSlotting')?.checked) strategies.push('Slotting');
+            if (document.getElementById('stratFinishing')?.checked) strategies.push('Wall Finishing (Deep DOC)');
+            if (document.getElementById('stratFloorFinishing')?.checked) strategies.push('Floor Finishing (Skim)');
+            if (document.getElementById('stratSlotting')?.checked) strategies.push('Slotting / Tab Milling');
             if (document.getElementById('stratHighFeed')?.checked) strategies.push('High Feed Milling');
 
             if (strategies.length === 0) {
@@ -4050,7 +4058,7 @@
             const mat = document.getElementById('alloy')?.value || document.getElementById('family')?.value || 'Standard Alloy';
             const dia = document.getElementById('diameter')?.value || '0.5';
             const unit = isMetric ? 'mm' : '"';
-            const op = document.getElementById('operation')?.value || 'Roughing';
+            const op = document.getElementById('operation')?.value || 'Standard Roughing';
             chip.innerText = `${mat} · ${dia}${unit} · ${op}`;
         }
 
@@ -4089,7 +4097,7 @@
                 flutes: parseInt(document.getElementById('flutes_val')?.value || 4),
                 fluteLength: parseFloat(fluteL.toFixed(4)),
                 stickout: parseFloat(stick.toFixed(4)),
-                operation: document.getElementById('operation')?.value || 'Roughing',
+                operation: document.getElementById('operation')?.value || 'Standard Roughing',
                 cutDepth: parseFloat(doc.toFixed(4)),
                 cutWidth: parseFloat(woc.toFixed(4)),
                 rpm: parseInt(document.getElementById('rpm')?.innerText) || 0,

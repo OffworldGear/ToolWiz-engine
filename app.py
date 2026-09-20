@@ -1110,6 +1110,7 @@ def twin_batch_generate():
                         "guid": str(uuid.uuid4()),
                         "name": preset_name,
                         "description": preset_desc,
+                        "operation_type": strat,
                         "material": {
                             "category": "all",
                             "query": material_label,
