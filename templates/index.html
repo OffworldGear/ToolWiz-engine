@@ -792,10 +792,10 @@
                             </div>
                             <input type="range" id="twinAggressiveness" min="10" max="100" value="50" oninput="document.getElementById('twinAggrVal').innerText = this.value + '%'">
                             <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-secondary);">
-                                <span>Conservative (25%)</span>
-                                <span>Balanced (50%)</span>
-                                <span>Aggressive (75%)</span>
-                                <span>Extreme (90%)</span>
+                                <span>Safe / Delicate (25%)</span>
+                                <span>Standard Baseline (50%)</span>
+                                <span>High Speed (75%)</span>
+                                <span>Max Production (90%)</span>
                             </div>
                         </div>
 
@@ -3029,7 +3029,7 @@
                 activeTwinTools = data.tools || [];
                 renderTwinTools();
                 renderTwinBackups(data.backups || []);
-                updateTwinMaterialSuggestion();
+                updateTwinMaterialSuggestion(false);
             } catch (e) {
                 console.error("Failed to load Digital Twin data:", e);
             }
@@ -3463,30 +3463,40 @@
             }
         }
 
-        function updateTwinMaterialSuggestion() {
+        function updateTwinMaterialSuggestion(autoSetSlider = true) {
             const family = (document.getElementById('twinFamily')?.value || '').toLowerCase();
             const alloy = (document.getElementById('twinAlloy')?.value || '').toLowerCase();
             const banner = document.getElementById('twinMaterialSuggestionBanner');
+            const slider = document.getElementById('twinAggressiveness');
+            const aggrVal = document.getElementById('twinAggrVal');
             if (!banner) return;
 
             let suggested = 50;
-            let rationale = "Balanced baseline for general steels & standard alloys.";
+            let rationale = "Standard 1.00x baseline; balances tool life, spindle load, and positive shearing.";
 
             if (family.includes('titanium') || alloy.includes('ti-') || alloy.includes('titanium') || alloy.includes('nitronic') || alloy.includes('inconel') || alloy.includes('monel') || alloy.includes('hastelloy') || alloy.includes('stainless')) {
-                suggested = 35;
-                rationale = "High work-hardening & tool deflection risk; conservative feeds recommended.";
+                suggested = 50;
+                rationale = "Recommended 50% baseline: maintains positive chip load under edge hone to prevent rubbing & work hardening.";
             } else if (family.includes('aluminum') || family.includes('plastic') || alloy.includes('6061') || alloy.includes('7075') || alloy.includes('brass') || alloy.includes('delrin')) {
-                suggested = 70;
-                rationale = "Free-machining non-ferrous; high SFM & aggressive chipping recommended.";
+                suggested = 80;
+                rationale = "Free-machining non-ferrous; high SFM & aggressive chip evacuation optimized for high-speed spindles (Speedio 16K).";
             } else if (family.includes('hardened') || alloy.includes('d2') || alloy.includes('m2') || alloy.includes('magnacut') || alloy.includes('cpm')) {
-                suggested = 40;
-                rationale = "High hardness & tool pressure; moderate conservative baseline recommended.";
+                suggested = 50;
+                rationale = "Controlled chipping baseline for abrasive high-hardness tool steels.";
             } else if (family.includes('cast iron')) {
-                suggested = 55;
-                rationale = "Abrasive but rigid cut characteristics; standard chipping.";
+                suggested = 60;
+                rationale = "Standard rigid cut characteristics; clean shearing through abrasive casting scale.";
+            } else if (family.includes('steel') || alloy.includes('4140') || alloy.includes('1018') || alloy.includes('1045') || alloy.includes('4340')) {
+                suggested = 60;
+                rationale = "High-efficiency baseline balancing MRR and tool life on alloy steels.";
             }
 
             banner.innerHTML = `💡 <strong>Suggested Baseline:</strong> ${suggested}% (${rationale})`;
+
+            if (autoSetSlider && slider && aggrVal) {
+                slider.value = suggested;
+                aggrVal.innerText = `${suggested}%`;
+            }
         }
 
         async function runBatchPresetGeneration() {
