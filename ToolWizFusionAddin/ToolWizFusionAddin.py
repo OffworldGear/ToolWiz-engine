@@ -768,7 +768,12 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
     try:
         prod = app.activeProduct
         if prod and hasattr(prod, 'unitsManager') and prod.unitsManager:
-            val = prod.unitsManager.evaluateExpression(s, unit)
+            # evaluateExpression always returns database units (centimeters)
+            val_cm = prod.unitsManager.evaluateExpression(s, unit)
+            if unit == "mm":
+                val = val_cm * 10.0  # cm to mm
+            else:
+                val = val_cm / 2.54  # cm to inches
             if abs(val) < 1e-6:
                 val = 0.0
             if unit == "mm":

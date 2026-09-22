@@ -1413,16 +1413,11 @@ def stock_compensation():
             coating = op.get("coating", "Uncoated")
             geometry = op.get("geometry", "Square")
             
-            # Feeds & Speeds / Cut parameters
+            # Feeds & Speeds / Cut parameters (normalized to inches and IPM internally)
             rpm = float(op.get("rpm", 0.0))
-            feedrate_raw = float(op.get("feedrate", 0.0))
-            feedrate_ipm = feedrate_raw / 25.4 if (is_metric and feedrate_raw > 0) else feedrate_raw
-            
-            doc_raw = float(op.get("doc", 0.0))
-            doc_in = doc_raw / 25.4 if (is_metric and doc_raw > 0) else doc_raw
-            
-            woc_raw = float(op.get("woc", 0.0))
-            woc_in = woc_raw / 25.4 if (is_metric and woc_raw > 0) else woc_raw
+            feedrate_ipm = float(op.get("feedrate", 0.0))
+            doc_in = float(op.get("doc", 0.0))
+            woc_in = float(op.get("woc", 0.0))
             
             zero_rad_str = "0.000 mm" if is_metric else "0.0000 in"
             zero_ax_str = "0.000 mm" if is_metric else "0.0000 in"
