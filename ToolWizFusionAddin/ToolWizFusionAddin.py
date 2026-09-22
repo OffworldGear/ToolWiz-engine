@@ -49,32 +49,62 @@ alloys_dict = {
 
 def parse_dim_to_inches(val, default=0.25, tool_unit=""):
     """Safely converts Fusion dimension expressions/floats/strings to inches, respecting tool unit context."""
-    if val is None: return default
+    if val is None:
+        return default
     if isinstance(val, (int, float)):
-        u = str(tool_unit).strip().lower()
-        if u in ["inches", "in", "inch"]: return float(val)
-        elif u in ["millimeters", "mm", "millimeter"]: return float(val) / 25.4
-        else: return float(val) / 25.4 if float(val) > 1.5 else float(val)
+        try:
+            f = float(val)
+            u = str(tool_unit).strip().lower()
+            if u in ["inches", "in", "inch"]:
+                return f
+            elif u in ["millimeters", "mm", "millimeter"]:
+                return f / 25.4
+            else:
+                return f / 25.4 if f > 1.5 else f
+        except:
+            return default
     if isinstance(val, str):
         v = val.strip().lower()
-        if "in" in v:
-            v = v.replace("in", "").strip()
-            if "/" in v:
-                n, d = v.split("/")
-                return float(n)/float(d)
-            return float(v)
-        elif "mm" in v:
-            v = v.replace("mm", "").strip()
-            return float(v) / 25.4
-        else:
-            try:
-                f = float(v)
-                u = str(tool_unit).strip().lower()
-                if u in ["inches", "in", "inch"]: return f
-                elif u in ["millimeters", "mm", "millimeter"]: return f / 25.4
-                return f / 25.4 if f > 1.5 else f
-            except:
-                return default
+        try:
+            # Handle fraction like "1/4", "3/8", "1/2 in"
+            if "/" in v and not any(c in v for c in ['(', ')', ';', '*', '+', 'math', 'min', 'max']):
+                clean_v = v.replace("in", "").replace('"', '').strip()
+                if "/" in clean_v:
+                    n, d = clean_v.split("/")
+                    return float(n) / float(d)
+            # Regex for pure numbers with optional unit suffix: e.g. "0.25", "0.25 in", "6.35 mm", "0.5\""
+            import re
+            m = re.match(r'^([-+]?[0-9]*\.?[0-9]+)\s*(in|inch|inches|mm|millimeter|millimetre|")?$', v)
+            if m:
+                num = float(m.group(1))
+                unit = m.group(2) or tool_unit
+                if unit and any(u in str(unit).lower() for u in ['mm', 'milli']):
+                    return num / 25.4
+                return num
+        except:
+            pass
+    return default
+
+def parse_cam_param_to_inches(p, default=0.0):
+    """Safely retrieves a CAM parameter's evaluated length in inches.
+    Fusion CAM parameters evaluate internal length in centimeters (cm).
+    """
+    if not p:
+        return default
+    # 1. Primary: Use evaluated value if available (already evaluated by Fusion CAM engine)
+    try:
+        if hasattr(p, 'value') and hasattr(p.value, 'value') and isinstance(p.value.value, (int, float)):
+            val_cm = float(p.value.value)
+            if val_cm > 0:
+                return val_cm / 2.54  # cm to inches
+    except:
+        pass
+    # 2. Fallback: Parse expression string
+    try:
+        if hasattr(p, 'expression') and p.expression:
+            return parse_dim_to_inches(p.expression, default)
+    except:
+        pass
     return default
 
 def get_op_tool_info(op):
@@ -670,37 +700,57 @@ def get_op_stock_values(op):
 def get_op_cut_params(op):
     """Extracts feeds, speeds, DOC, and WOC from operation."""
     rpm = 0.0
-    p_rpm = op.parameters.itemByName('tool_spindleSpeed')
-    if p_rpm and p_rpm.expression:
-        try:
-            rpm = float(str(p_rpm.expression).split()[0].replace(',', ''))
-        except:
-            pass
-            
     feed = 0.0
-    p_feed = op.parameters.itemByName('tool_feedCutting')
-    if p_feed and p_feed.expression:
-        try:
-            feed = float(str(p_feed.expression).split()[0].replace(',', ''))
-        except:
-            pass
-            
     doc = 0.0
-    for doc_name in ['maximumStepdown', 'stepdown']:
-        p = op.parameters.itemByName(doc_name)
-        if p and p.expression:
-            doc = parse_dim_to_inches(p.expression, 0.0)
-            if doc > 0:
-                break
-                
     woc = 0.0
-    for woc_name in ['stepover', 'maximumStepover', 'optimalLoad']:
-        p = op.parameters.itemByName(woc_name)
-        if p and p.expression:
-            woc = parse_dim_to_inches(p.expression, 0.0)
-            if woc > 0:
-                break
+    try:
+        p_rpm = op.parameters.itemByName('tool_spindleSpeed')
+        if p_rpm:
+            try:
+                if hasattr(p_rpm, 'value') and hasattr(p_rpm.value, 'value') and p_rpm.value.value > 0:
+                    rpm = float(p_rpm.value.value)
+                elif p_rpm.expression:
+                    import re
+                    m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_rpm.expression))
+                    if m:
+                        rpm = float(m.group(1))
+            except:
+                pass
                 
+        p_feed = op.parameters.itemByName('tool_feedCutting')
+        if p_feed:
+            try:
+                if p_feed.expression:
+                    import re
+                    m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_feed.expression))
+                    if m:
+                        raw_feed = float(m.group(1))
+                        if 'mm' in str(p_feed.expression).lower():
+                            feed = raw_feed / 25.4
+                        else:
+                            feed = raw_feed
+                elif hasattr(p_feed, 'value') and hasattr(p_feed.value, 'value') and p_feed.value.value > 0:
+                    val = float(p_feed.value.value)
+                    feed = (val * 60.0 / 2.54) if val < 100 else val
+            except:
+                pass
+                
+        for doc_name in ['maximumStepdown', 'stepdown']:
+            p = op.parameters.itemByName(doc_name)
+            if p:
+                doc = parse_cam_param_to_inches(p, 0.0)
+                if doc > 0:
+                    break
+                    
+        for woc_name in ['stepover', 'maximumStepover', 'optimalLoad']:
+            p = op.parameters.itemByName(woc_name)
+            if p:
+                woc = parse_cam_param_to_inches(p, 0.0)
+                if woc > 0:
+                    break
+    except:
+        pass
+        
     return rpm, feed, doc, woc
 
 def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in"):
@@ -920,39 +970,42 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             op_idx = 0
             for setup in camObj.setups:
                 for op in setup.allOperations:
-                    if op_supports_stock_to_leave(op):
-                        op_idx += 1
-                        op_id = f"op_{op_idx}"
-                        op_label = f"{setup.name} > {op.name}"
-                        geo_payload, tool_summary, _ = get_op_tool_info(op)
-                        rad_val, ax_val = get_op_stock_values(op)
-                        rpm, feed, doc, woc = get_op_cut_params(op)
-                        strat = getattr(op, 'strategy', 'contour2d')
-                        
-                        tool_short = "Tool"
-                        if geo_payload:
-                            tool_short = f"T{geo_payload.get('number', 1)}: {geo_payload.get('diameter', 0.25):.3f}\" ({geo_payload.get('flutes', 4)}FL)"
-                        elif tool_summary:
-                            tool_short = tool_summary.split('|')[0].strip()
+                    try:
+                        if op_supports_stock_to_leave(op):
+                            op_idx += 1
+                            op_id = f"op_{op_idx}"
+                            op_label = f"{setup.name} > {op.name}"
+                            geo_payload, tool_summary, _ = get_op_tool_info(op)
+                            rad_val, ax_val = get_op_stock_values(op)
+                            rpm, feed, doc, woc = get_op_cut_params(op)
+                            strat = getattr(op, 'strategy', 'contour2d')
                             
-                        stock_ops_cache[op_id] = {
-                            "op": op,
-                            "op_id": op_id,
-                            "label": op_label,
-                            "name": op.name,
-                            "strategy": strat,
-                            "tool_summary": tool_short,
-                            "geo": geo_payload or {
-                                "diameter": 0.375, "flutes": 4, "fluteLength": 0.75,
-                                "shankDiameter": 0.375, "stickout": 1.25, "coating": "Uncoated"
-                            },
-                            "current_radial": rad_val,
-                            "current_axial": ax_val,
-                            "rpm": rpm,
-                            "feed": feed,
-                            "doc": doc,
-                            "woc": woc
-                        }
+                            tool_short = "Tool"
+                            if geo_payload:
+                                tool_short = f"T{geo_payload.get('number', 1)}: {geo_payload.get('diameter', 0.25):.3f}\" ({geo_payload.get('flutes', 4)}FL)"
+                            elif tool_summary:
+                                tool_short = tool_summary.split('|')[0].strip()
+                                
+                            stock_ops_cache[op_id] = {
+                                "op": op,
+                                "op_id": op_id,
+                                "label": op_label,
+                                "name": op.name,
+                                "strategy": strat,
+                                "tool_summary": tool_short,
+                                "geo": geo_payload or {
+                                    "diameter": 0.375, "flutes": 4, "fluteLength": 0.75,
+                                    "shankDiameter": 0.375, "stickout": 1.25, "coating": "Uncoated"
+                                },
+                                "current_radial": rad_val,
+                                "current_axial": ax_val,
+                                "rpm": rpm,
+                                "feed": feed,
+                                "doc": doc,
+                                "woc": woc
+                            }
+                    except:
+                        pass
                         
             if not stock_ops_cache:
                 ui.messageBox('No operations supporting Stock to Leave were found in the active document.')
