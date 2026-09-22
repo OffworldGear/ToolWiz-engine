@@ -936,8 +936,17 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
             # If any control changing calculation parameters was touched:
             if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset']:
                 family = mat_family_input.selectedItem.name if (mat_family_input and mat_family_input.selectedItem) else "Aluminum - Wrought (6061)"
-                alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
-                agg = agg_input.valueOne if agg_input else 50
+                agg = 50
+                if agg_input:
+                    if hasattr(agg_input, 'valueOne'):
+                        agg = agg_input.valueOne
+                    elif hasattr(agg_input, 'value'):
+                        agg = agg_input.value
+                if cmdInput.id == 'stockAggressiveness':
+                    if hasattr(cmdInput, 'valueOne'):
+                        agg = cmdInput.valueOne
+                    elif hasattr(cmdInput, 'value'):
+                        agg = cmdInput.value
                 mode_choice = mode_input.selectedItem.name if (mode_input and mode_input.selectedItem) else "Auto-Compensate Finishing (Negative Stock)"
                 
                 mode_code = "auto_compensate"

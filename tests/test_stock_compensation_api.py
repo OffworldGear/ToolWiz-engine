@@ -147,5 +147,44 @@ class TestStockCompensationAPI(unittest.TestCase):
         self.assertEqual(r_fin["recommended_axial_stock"], "0.0000 in")
         self.assertEqual(r_rough["recommended_radial_stock"], "0.0250 in")
 
+    def test_aggressiveness_slider_scales_offsets(self):
+        def query_agg(agg_val):
+            payload = {
+                "family": "Titanium Alloy",
+                "alloy": "Ti-6Al-4V (Grade 5)",
+                "aggressiveness": agg_val,
+                "mode": "auto_compensate",
+                "operations": [
+                    {
+                        "id": "op_fin",
+                        "name": "Wall Finishing Contour",
+                        "strategy": "contour2d",
+                        "unit": "inches",
+                        "diameter": 0.25,
+                        "flutes": 4,
+                        "fluteLength": 0.75,
+                        "stickout": 1.25,
+                        "rpm": 5000,
+                        "feedrate": 20.0,
+                        "doc": 0.25,
+                        "woc": 0.015,
+                        "current_radial_stock": "0.0000 in",
+                        "current_axial_stock": "0.0000 in"
+                    }
+                ]
+            }
+            resp = self.client.post("/api/stock_compensation", json=payload)
+            self.assertEqual(resp.status_code, 200)
+            return resp.get_json()["results"][0]
+
+        r_low = query_agg(10)
+        r_mid = query_agg(50)
+        r_high = query_agg(90)
+
+        # Higher aggressiveness should produce larger total wall error / more negative compensation
+        self.assertLess(r_low["total_error_in"], r_mid["total_error_in"])
+        self.assertLess(r_mid["total_error_in"], r_high["total_error_in"])
+        self.assertNotEqual(r_low["recommended_radial_stock"], r_high["recommended_radial_stock"])
+
 if __name__ == '__main__':
     unittest.main()

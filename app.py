@@ -1443,6 +1443,13 @@ def stock_compensation():
                 feedrate=feedrate_ipm, rpm=rpm, flutes=flutes, deflection_inches=defl, alloy=alloy
             )
             
+            # Aggressiveness scaling (0% = 0.60x conservative, 50% = 1.00x nominal, 100% = 1.40x aggressive)
+            agg_scalar = 0.60 + (aggressiveness * 0.80)
+            defl *= agg_scalar
+            sb *= agg_scalar
+            total_err = defl + sb
+            wear_comp = -total_err
+            
             zero_rad_str = "0.000 mm" if is_metric else "0.0000 in"
             zero_ax_str = "0.000 mm" if is_metric else "0.0000 in"
             default_rough_rad = "0.500 mm" if is_metric else "0.0200 in"
