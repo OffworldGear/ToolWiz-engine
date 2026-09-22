@@ -1400,15 +1400,15 @@ def stock_compensation():
                 "contour", "scallop", "pencil", "parallel", "morf", "ramp", "flow", "spiral", "finish", "swarf"
             ])
             is_roughing_strat = any(s in strat_lower for s in [
-                "adaptive", "pocket", "rough", "clearing", "cavity", "rest"
+                "adaptive", "pocket", "rough", "clearing", "cavity", "rest", "flat", "face", "horizontal"
             ])
             
-            if "finish" in name_lower or "contour" in name_lower or "wall" in name_lower or "skim" in name_lower:
-                is_finishing = True
-            elif "rough" in name_lower or "adaptive" in name_lower or "clearing" in name_lower:
+            if is_roughing_strat or "rough" in name_lower or "adaptive" in name_lower or "clearing" in name_lower or "flat" in name_lower or "face" in name_lower:
                 is_finishing = False
+            elif is_finishing_strat or "finish" in name_lower or "contour" in name_lower or "wall" in name_lower or "skim" in name_lower:
+                is_finishing = True
             else:
-                is_finishing = is_finishing_strat and not is_roughing_strat
+                is_finishing = False
                 
             # If doc/woc or feeds/speeds are missing, use standard finishing or roughing defaults
             if is_finishing:
@@ -1452,31 +1452,31 @@ def stock_compensation():
                 if is_finishing:
                     rec_rad = zero_rad_str
                     rec_ax = zero_ax_str
-                    advisory = "Finishing: Zero Stock (0.0000)"
+                    advisory = "Finishing Pass\nZero Stock (0.0000)"
                 else:
                     rec_rad = current_radial if current_radial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_rad
                     rec_ax = current_axial if current_axial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_ax
-                    advisory = f"Roughing: Retaining roughing stock ({rec_rad})"
+                    advisory = f"Roughing Pass\nRetaining stock ({rec_rad})"
             elif mode == "custom":
                 rec_rad = custom_radial_offset or zero_rad_str
                 rec_ax = custom_axial_offset or zero_ax_str
-                advisory = f"Custom Batch: Rad {rec_rad}, Ax {rec_ax}"
+                advisory = f"Custom Batch\nRad: {rec_rad} | Ax: {rec_ax}"
             else:  # auto_compensate
                 if is_finishing:
                     if is_metric:
                         rec_rad_val = -total_err * 25.4
                         rec_rad = f"{rec_rad_val:.3f} mm"
                         rec_ax = zero_ax_str
-                        advisory = f"Defl: {defl*25.4*1000:.1f}µm | Spring: {sb*25.4*1000:.1f}µm → Rec: {rec_rad}"
+                        advisory = f"Defl: {defl*25.4*1000:.1f}µm | Spring: {sb*25.4*1000:.1f}µm\nRec: {rec_rad}"
                     else:
                         rec_rad_val = -total_err
                         rec_rad = f"{rec_rad_val:.4f} in"
                         rec_ax = zero_ax_str
-                        advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\" → Rec: {rec_rad}"
+                        advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad}"
                 else:
                     rec_rad = current_radial if current_radial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_rad
                     rec_ax = current_axial if current_axial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_ax
-                    advisory = f"Roughing: Retaining roughing stock ({rec_rad})"
+                    advisory = f"Roughing Pass\nRetaining stock ({rec_rad})"
                     
             results.append({
                 "id": op_id,

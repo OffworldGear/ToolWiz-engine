@@ -673,6 +673,15 @@ def op_supports_stock_to_leave(op):
     """Checks if an operation supports stock to leave parameters."""
     if not op or not hasattr(op, 'parameters') or not op.parameters:
         return False
+    strat = getattr(op, 'strategy', '').lower()
+    op_name = getattr(op, 'name', '').lower()
+    # Exclude hole-making operations (drilling, tapping, boring, reaming)
+    if any(h in strat for h in ['drill', 'tap', 'bore', 'thread', 'hole', 'circular', 'ream']):
+        return False
+    if op_name.startswith('drill') or op_name.startswith('tap') or 'drill' in op_name:
+        if any(h in strat for h in ['drill', 'bore', 'hole', 'tap']):
+            return False
+            
     for p_name in ['stockToLeave', 'radialStockToLeave', 'useStockToLeave', 'isStockToLeave']:
         p = op.parameters.itemByName(p_name)
         if p is not None:
@@ -685,14 +694,19 @@ def get_op_stock_values(op):
     for r_name in ['stockToLeave', 'radialStockToLeave']:
         p = op.parameters.itemByName(r_name)
         if p is not None and p.expression:
-            rad_val = str(p.expression)
+            rad_val = str(p.expression).strip()
             break
             
     ax_val = "0.0000 in"
     for a_name in ['verticalStockToLeave', 'axialStockToLeave']:
         p = op.parameters.itemByName(a_name)
         if p is not None and p.expression:
-            ax_val = str(p.expression)
+            raw_ax = str(p.expression).strip()
+            # If axial stock references radial stock expression (e.g. 'stockToLeave'), resolve to rad_val
+            if raw_ax in ['stockToLeave', 'radialStockToLeave', 'useStockToLeave']:
+                ax_val = rad_val
+            else:
+                ax_val = raw_ax
             break
             
     return rad_val, ax_val
@@ -804,6 +818,16 @@ def find_table_input(inputs, table, input_id):
     if not item and table and hasattr(table, 'commandInputs'):
         item = table.commandInputs.itemById(input_id)
     return item
+
+def add_cell_text(parent_inputs, item_id, text, num_rows=1, is_read_only=True):
+    """Helper to create formatted text or fallback to string value input for table cells."""
+    try:
+        return parent_inputs.addTextBoxCommandInput(item_id, '', text, num_rows, is_read_only)
+    except:
+        plain_text = text.replace('<b>', '').replace('</b>', '').replace('<br>', ' ').replace('<br/>', ' ')
+        inp = parent_inputs.addStringValueInput(item_id, '', plain_text)
+        inp.isReadOnly = is_read_only
+        return inp
 
 class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -936,10 +960,21 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                         inp_r = find_table_input(inputs, table, f'inp_rad_{op_id}')
                         inp_a = find_table_input(inputs, table, f'inp_ax_{op_id}')
                         lbl_adv = find_table_input(inputs, table, f'lbl_adv_{op_id}')
+                        chk = find_table_input(inputs, table, f'chk_{op_id}')
                         
                         if inp_r and rad_val: inp_r.value = str(rad_val)
                         if inp_a and ax_val: inp_a.value = str(ax_val)
-                        if lbl_adv and adv_text: lbl_adv.value = str(adv_text)
+                        if lbl_adv and adv_text:
+                            formatted_val = str(adv_text).replace('\n', '<br>')
+                            if hasattr(lbl_adv, 'formattedText'):
+                                lbl_adv.formattedText = formatted_val
+                            elif hasattr(lbl_adv, 'text'):
+                                lbl_adv.text = str(adv_text)
+                            elif hasattr(lbl_adv, 'value'):
+                                lbl_adv.value = str(adv_text)
+                                
+                        if cmdInput.id == 'stockBatchMode' and chk and "Finishing" in mode_choice:
+                            chk.value = res.get("is_finishing", False)
         except:
             pass
 
@@ -1071,48 +1106,59 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             )
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             
-            # Build Table
-            table = inputs.addTableCommandInput('stockTable', 'Stock to Leave Operations', 6, '1:4:3:2:2:4')
+            # Common column ratios: Apply, Toolpath Operation, Cutter, Radial Stock, Axial Stock, ToolWiz Advisory
+            col_ratio = '2:7:5:4:4:8'
+            
+            # 1. Fixed Header Table (Never scrolls away)
+            header_table = inputs.addTableCommandInput('stockHeaderTable', 'Operations List', 6, col_ratio)
+            header_table.isFullWidth = True
+            header_table.minimumVisibleRows = 1
+            header_table.maximumVisibleRows = 1
+            header_table.hasGrid = False
+            header_table.columnSpacing = 6
+            header_table.rowSpacing = 4
+            header_table.tablePresentationStyle = adsk.core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
+            
+            # Row 0 of Header Table
+            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '<b>Apply</b>', 1, True)
+            header_table.addCommandInput(h_apply, 0, 0)
+            
+            h_op = add_cell_text(header_table.commandInputs, 'hdr_op', '<b>Toolpath Operation</b>', 1, True)
+            header_table.addCommandInput(h_op, 0, 1)
+            
+            h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 1, True)
+            header_table.addCommandInput(h_tool, 0, 2)
+            
+            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>Radial Stock</b>', 1, True)
+            header_table.addCommandInput(h_rad, 0, 3)
+            
+            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>Axial Stock</b>', 1, True)
+            header_table.addCommandInput(h_ax, 0, 4)
+            
+            h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics Advisory</b>', 1, True)
+            header_table.addCommandInput(h_adv, 0, 5)
+            
+            # 2. Scrollable Operations Table
+            table = inputs.addTableCommandInput('stockTable', '', 6, col_ratio)
+            table.isFullWidth = True
             table.minimumVisibleRows = 4
             table.maximumVisibleRows = 12
-            table.hasGrid = True
-            table.tablePresentationStyle = adsk.core.TablePresentationStyles.itemBorderTablePresentationStyle
+            table.hasGrid = False
+            table.columnSpacing = 6
+            table.rowSpacing = 4
+            table.tablePresentationStyle = adsk.core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
             
-            # Row 0: Headers
-            h_apply = table.commandInputs.addStringValueInput('hdr_apply', '', 'Apply')
-            h_apply.isReadOnly = True
-            table.addCommandInput(h_apply, 0, 0)
-            
-            h_op = table.commandInputs.addStringValueInput('hdr_op', '', 'Toolpath Operation')
-            h_op.isReadOnly = True
-            table.addCommandInput(h_op, 0, 1)
-            
-            h_tool = table.commandInputs.addStringValueInput('hdr_tool', '', 'Cutter')
-            h_tool.isReadOnly = True
-            table.addCommandInput(h_tool, 0, 2)
-            
-            h_rad = table.commandInputs.addStringValueInput('hdr_rad', '', 'Radial Stock')
-            h_rad.isReadOnly = True
-            table.addCommandInput(h_rad, 0, 3)
-            
-            h_ax = table.commandInputs.addStringValueInput('hdr_ax', '', 'Axial Stock')
-            h_ax.isReadOnly = True
-            table.addCommandInput(h_ax, 0, 4)
-            
-            h_adv = table.commandInputs.addStringValueInput('hdr_adv', '', 'ToolWiz Physics Advisory')
-            h_adv.isReadOnly = True
-            table.addCommandInput(h_adv, 0, 5)
-            
-            # Rows 1..N: Operations
-            row_idx = 1
+            # Rows 0..N-1: Operations
+            row_idx = 0
             for op_id, op_info in stock_ops_cache.items():
                 calc_r = res_map.get(op_id, {})
                 init_rad = calc_r.get("recommended_radial_stock", op_info["current_radial"])
                 init_ax = calc_r.get("recommended_axial_stock", op_info["current_axial"])
                 init_adv = calc_r.get("advisory", "Ready")
+                is_finish_op = calc_r.get("is_finishing", False)
                 
-                # Col 0: Checkbox
-                chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', True)
+                # Col 0: Checkbox (finishing ops checked by default, roughing unchecked)
+                chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', is_finish_op)
                 table.addCommandInput(chk, row_idx, 0)
                 
                 # Col 1: Op Label
@@ -1133,9 +1179,9 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 inp_ax = table.commandInputs.addStringValueInput(f'inp_ax_{op_id}', '', str(init_ax))
                 table.addCommandInput(inp_ax, row_idx, 4)
                 
-                # Col 5: Advisory
-                lbl_adv = table.commandInputs.addStringValueInput(f'lbl_adv_{op_id}', '', str(init_adv))
-                lbl_adv.isReadOnly = True
+                # Col 5: Multi-line Advisory (Formatted 2-line wrapped text)
+                adv_html = str(init_adv).replace('\n', '<br>')
+                lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True)
                 table.addCommandInput(lbl_adv, row_idx, 5)
                 
                 row_idx += 1
