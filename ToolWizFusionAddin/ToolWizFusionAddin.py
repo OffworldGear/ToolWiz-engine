@@ -19,6 +19,8 @@ available_ops_map = {}
 discovered_libraries_map = {}
 stock_ops_cache = {}
 stock_setups_cache = {}
+stock_table_input = None
+_is_updating_ui = False
 
 # Global caches
 families_list = [
@@ -867,14 +869,13 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
         try:
             eventArgs = adsk.core.CommandEventArgs.cast(args)
             inputs = eventArgs.command.commandInputs
-            table = inputs.itemById('stockTable')
             
             applied_ops = []
             for op_id, op_info in stock_ops_cache.items():
-                chk = find_table_input(inputs, table, f'chk_{op_id}')
+                chk = op_info.get("chk")
                 if chk and chk.value and getattr(chk, 'isVisible', True):
-                    inp_rad = find_table_input(inputs, table, f'inp_rad_{op_id}')
-                    inp_ax = find_table_input(inputs, table, f'inp_ax_{op_id}')
+                    inp_rad = op_info.get("inp_rad")
+                    inp_ax = op_info.get("inp_ax")
                     
                     rad_val = inp_rad.value.strip() if inp_rad else op_info["current_radial"]
                     ax_val = inp_ax.value.strip() if inp_ax else op_info["current_axial"]
@@ -935,19 +936,25 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args):
+        global _is_updating_ui
+        if _is_updating_ui:
+            return
+        cmdInput = None
         try:
             eventArgs = adsk.core.InputChangedEventArgs.cast(args)
             inputs = eventArgs.inputs
             cmdInput = eventArgs.input
-            table = inputs.itemById('stockTable')
-            
-            mat_family_input = inputs.itemById('stockMatFamily')
-            alloy_input = inputs.itemById('stockMatAlloy')
+            if not cmdInput:
+                return
+                
+            mat_family_input = adsk.core.DropDownCommandInput.cast(inputs.itemById('stockMatFamily'))
+            alloy_input = adsk.core.DropDownCommandInput.cast(inputs.itemById('stockMatAlloy'))
             agg_input = inputs.itemById('stockAggressiveness')
-            mode_input = inputs.itemById('stockBatchMode')
+            mode_input = adsk.core.DropDownCommandInput.cast(inputs.itemById('stockBatchMode'))
             custom_rad = inputs.itemById('customRadOffset')
             custom_ax = inputs.itemById('customAxOffset')
             
+            # 1. Update Alloy Dropdown if Material Family changed
             if cmdInput.id == 'stockMatFamily':
                 family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
                 if alloy_input:
@@ -959,51 +966,62 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                         for i, a in enumerate(alloys):
                             alloy_input.listItems.add(a, i == 0)
                             
+            # 2. Toggle custom offset input visibility
             if cmdInput.id == 'stockBatchMode':
                 is_custom = mode_input.selectedItem.name == 'Batch Apply Custom Offset' if mode_input.selectedItem else False
                 if custom_rad: custom_rad.isVisible = is_custom
                 if custom_ax: custom_ax.isVisible = is_custom
                 
+            # 3. Handle Setup Master ON/OFF Switch
             if cmdInput.id.startswith('setup_sw_'):
-                sw_id = cmdInput.id.replace('setup_sw_', '')
-                for s_name, s_op_ids in stock_setups_cache.items():
-                    safe_s_id = re.sub(r'[^a-zA-Z0-9_]', '_', s_name)
-                    if safe_s_id == sw_id:
-                        is_active = cmdInput.value
-                        for op_id in s_op_ids:
-                            chk = find_table_input(inputs, table, f'chk_{op_id}')
-                            lbl_op = find_table_input(inputs, table, f'lbl_op_{op_id}')
-                            lbl_tool = find_table_input(inputs, table, f'lbl_tool_{op_id}')
-                            lbl_curr = find_table_input(inputs, table, f'lbl_curr_{op_id}')
-                            inp_r = find_table_input(inputs, table, f'inp_rad_{op_id}')
-                            inp_a = find_table_input(inputs, table, f'inp_ax_{op_id}')
-                            lbl_adv = find_table_input(inputs, table, f'lbl_adv_{op_id}')
+                sw = adsk.core.BoolValueCommandInput.cast(cmdInput)
+                is_active = sw.value if sw else getattr(cmdInput, 'value', True)
+                
+                target_setup = None
+                for s_name, s_data in stock_setups_cache.items():
+                    if s_data.get("sw_id") == cmdInput.id:
+                        target_setup = s_data
+                        break
+                        
+                if target_setup:
+                    _is_updating_ui = True
+                    try:
+                        for op_id in target_setup.get("ops", []):
+                            op_info = stock_ops_cache.get(op_id)
+                            if not op_info:
+                                continue
                             
-                            for item in [chk, lbl_op, lbl_tool, lbl_curr, inp_r, inp_a, lbl_adv]:
-                                if item:
-                                    item.isVisible = is_active
-                                    
+                            # Update Checkbox (Col 0)
+                            chk = op_info.get("chk")
                             if chk:
                                 if not is_active:
                                     chk.value = False
                                 else:
-                                    chk.value = stock_ops_cache.get(op_id, {}).get("is_finishing", False)
-                        break
+                                    chk.value = op_info.get("is_finishing", False)
+                                    
+                            # Set isVisible on all cells in the row to collapse or show the row in the table
+                            for cell in op_info.get("cells", []):
+                                try:
+                                    cell.isVisible = is_active
+                                except:
+                                    pass
+                    finally:
+                        _is_updating_ui = False
+                return
                 
-            # If any control changing calculation parameters was touched:
+            # 4. Handle Material / Aggressiveness / Mode changes
             if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset']:
                 family = mat_family_input.selectedItem.name if (mat_family_input and mat_family_input.selectedItem) else "Aluminum - Wrought (6061)"
+                alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
                 agg = 50
                 if agg_input:
-                    if hasattr(agg_input, 'valueOne'):
+                    slider_input = adsk.core.IntegerSliderCommandInput.cast(agg_input)
+                    if slider_input:
+                        agg = slider_input.valueOne
+                    elif hasattr(agg_input, 'valueOne'):
                         agg = agg_input.valueOne
                     elif hasattr(agg_input, 'value'):
                         agg = agg_input.value
-                if cmdInput.id == 'stockAggressiveness':
-                    if hasattr(cmdInput, 'valueOne'):
-                        agg = cmdInput.valueOne
-                    elif hasattr(cmdInput, 'value'):
-                        agg = cmdInput.value
                 mode_choice = mode_input.selectedItem.name if (mode_input and mode_input.selectedItem) else "Auto-Compensate Finishing (Negative Stock)"
                 
                 mode_code = "auto_compensate"
@@ -1017,35 +1035,51 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 
                 calc_results = query_toolwiz_stock_compensation(family, alloy, agg, mode_code, c_rad, c_ax)
                 if calc_results:
-                    for res in calc_results:
-                        op_id = res.get("id")
-                        rad_val = res.get("recommended_radial_stock")
-                        ax_val = res.get("recommended_axial_stock")
-                        adv_text = res.get("advisory")
-                        is_fin = res.get("is_finishing", False)
-                        if op_id in stock_ops_cache:
-                            stock_ops_cache[op_id]["is_finishing"] = is_fin
-                        
-                        inp_r = find_table_input(inputs, table, f'inp_rad_{op_id}')
-                        inp_a = find_table_input(inputs, table, f'inp_ax_{op_id}')
-                        lbl_adv = find_table_input(inputs, table, f'lbl_adv_{op_id}')
-                        chk = find_table_input(inputs, table, f'chk_{op_id}')
-                        
-                        if inp_r and rad_val: inp_r.value = str(rad_val)
-                        if inp_a and ax_val: inp_a.value = str(ax_val)
-                        if lbl_adv and adv_text:
-                            formatted_val = str(adv_text).replace('\n', '<br>')
-                            if hasattr(lbl_adv, 'formattedText'):
-                                lbl_adv.formattedText = formatted_val
-                            elif hasattr(lbl_adv, 'text'):
-                                lbl_adv.text = str(adv_text)
-                            elif hasattr(lbl_adv, 'value'):
-                                lbl_adv.value = str(adv_text)
+                    _is_updating_ui = True
+                    try:
+                        for res in calc_results:
+                            op_id = res.get("id")
+                            op_info = stock_ops_cache.get(op_id)
+                            if not op_info:
+                                continue
                                 
-                        if cmdInput.id == 'stockBatchMode' and chk and "Finishing" in mode_choice and getattr(chk, 'isVisible', True):
-                            chk.value = is_fin
-        except:
-            pass
+                            rad_val = res.get("recommended_radial_stock")
+                            ax_val = res.get("recommended_axial_stock")
+                            adv_text = res.get("advisory")
+                            is_fin = res.get("is_finishing", False)
+                            op_info["is_finishing"] = is_fin
+                            
+                            inp_r = op_info.get("inp_rad")
+                            inp_a = op_info.get("inp_ax")
+                            lbl_adv = op_info.get("lbl_adv")
+                            chk = op_info.get("chk")
+                            
+                            if inp_r and rad_val is not None:
+                                inp_r.value = str(rad_val)
+                            if inp_a and ax_val is not None:
+                                inp_a.value = str(ax_val)
+                            if lbl_adv and adv_text:
+                                adv_box = adsk.core.TextBoxCommandInput.cast(lbl_adv)
+                                if adv_box:
+                                    adv_box.formattedText = str(adv_text).replace('\n', '<br>')
+                                elif hasattr(lbl_adv, 'formattedText'):
+                                    lbl_adv.formattedText = str(adv_text).replace('\n', '<br>')
+                                elif hasattr(lbl_adv, 'value'):
+                                    lbl_adv.value = str(adv_text)
+                                    
+                            if cmdInput.id == 'stockBatchMode' and chk and "Finishing" in mode_choice and chk.isVisible:
+                                chk.value = is_fin
+                    finally:
+                        _is_updating_ui = False
+                        
+        except Exception as e:
+            try:
+                log_path = os.path.expanduser('~/.gemini/antigravity/scratch/stock_manager_debug.log')
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(f"InputChanged error on {getattr(cmdInput, 'id', 'unknown')}:\n{traceback.format_exc()}\n")
+            except:
+                pass
+
 
 class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self):
@@ -1062,9 +1096,10 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             handlers.append(onInputChanged)
             
             inputs = cmd.commandInputs
-            global stock_ops_cache, stock_setups_cache
+            global stock_ops_cache, stock_setups_cache, stock_table_input
             stock_ops_cache.clear()
             stock_setups_cache.clear()
+            stock_table_input = None
             
             camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
             if not camObj:
@@ -1097,8 +1132,14 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                                 tool_short = tool_summary.split('|')[0].strip()
                                 
                             if setup_name not in stock_setups_cache:
-                                stock_setups_cache[setup_name] = []
-                            stock_setups_cache[setup_name].append(op_id)
+                                s_idx = len(stock_setups_cache)
+                                stock_setups_cache[setup_name] = {
+                                    "sw_id": f"setup_sw_{s_idx}",
+                                    "ops": [],
+                                    "name": setup_name,
+                                    "idx": s_idx
+                                }
+                            stock_setups_cache[setup_name]["ops"].append(op_id)
                                 
                             stock_ops_cache[op_id] = {
                                 "op": op,
@@ -1184,10 +1225,11 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             if len(stock_setups_cache) > 1:
                 setup_group = inputs.addGroupCommandInput('setupGroup', 'Setups to Include (Master ON/OFF)')
                 setup_group.isExpanded = True
-                for s_name, s_ops in stock_setups_cache.items():
-                    safe_s_id = re.sub(r'[^a-zA-Z0-9_]', '_', s_name)
+                for s_name, s_data in stock_setups_cache.items():
+                    s_ops = s_data["ops"]
+                    sw_id = s_data["sw_id"]
                     setup_group.children.addBoolValueInput(
-                        f'setup_sw_{safe_s_id}', f'{s_name} ({len(s_ops)} ops)', True, '', True
+                        sw_id, f'{s_name} ({len(s_ops)} ops)', True, '', True
                     )
             
             # Initial calculation from Tool Wizard
@@ -1233,6 +1275,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             # 2. Scrollable Operations Table
             table = inputs.addTableCommandInput('stockTable', '', 7, col_ratio)
+            stock_table_input = table
             table.isFullWidth = True
             table.minimumVisibleRows = 4
             table.maximumVisibleRows = 12
@@ -1250,6 +1293,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 init_adv = calc_r.get("advisory", "Ready")
                 is_finish_op = calc_r.get("is_finishing", False)
                 op_info["is_finishing"] = is_finish_op
+                op_info["row_idx"] = row_idx
                 
                 # Col 0: Checkbox (finishing ops checked by default, roughing unchecked)
                 chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', is_finish_op)
@@ -1285,7 +1329,15 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True)
                 table.addCommandInput(lbl_adv, row_idx, 6)
                 
+                # Store direct references in op_info for lightning-fast, 100% reliable UI manipulation
+                op_info["chk"] = chk
+                op_info["inp_rad"] = inp_rad
+                op_info["inp_ax"] = inp_ax
+                op_info["lbl_adv"] = lbl_adv
+                op_info["cells"] = [chk, lbl_op, lbl_tool, lbl_curr, inp_rad, inp_ax, lbl_adv]
+                
                 row_idx += 1
+
 
                 
         except Exception as e:
