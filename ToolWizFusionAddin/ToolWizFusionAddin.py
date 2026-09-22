@@ -322,6 +322,9 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, args):
         try:
             cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            cmd.isAutoExecute = False
             onExecute = ToolWizExportExecuteHandler()
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
@@ -434,6 +437,9 @@ class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, args):
         try:
             cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            cmd.isAutoExecute = False
             onExecute = ToolWizImportExecuteHandler()
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
@@ -602,6 +608,9 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, args):
         try:
             cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            cmd.isAutoExecute = False
             onExecute = ToolWizExecuteHandler()
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
@@ -1205,6 +1214,9 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, args):
         try:
             cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            cmd.isAutoExecute = False
             onExecute = ToolWizStockExecuteHandler()
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
