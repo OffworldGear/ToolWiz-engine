@@ -858,15 +858,29 @@ def escape_html(text):
         return ""
     return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-def add_cell_text(parent_inputs, item_id, text, num_rows=1, is_read_only=True):
-    """Helper to create formatted text or fallback to string value input for table cells."""
+def format_cell_html(text, bg_color=None, align="left"):
+    """Wraps text in a formatted HTML table container with custom background color and padding."""
+    if not bg_color:
+        return text
+    return (
+        f'<table width="100%" bgcolor="{bg_color}" cellpadding="3" cellspacing="0" '
+        f'style="background-color:{bg_color}; border-radius:3px;">'
+        f'<tr><td align="{align}" style="color:#222222; font-size:11px; font-family:sans-serif;">'
+        f'{text}'
+        f'</td></tr></table>'
+    )
+
+def add_cell_text(parent_inputs, item_id, text, num_rows=1, is_read_only=True, bg_color=None, align="left"):
+    """Helper to create formatted text with background contrast or fallback to string value input for table cells."""
+    formatted = format_cell_html(text, bg_color, align) if bg_color else text
     try:
-        return parent_inputs.addTextBoxCommandInput(item_id, '', text, num_rows, is_read_only)
+        return parent_inputs.addTextBoxCommandInput(item_id, '', formatted, num_rows, is_read_only)
     except:
         plain_text = text.replace('<b>', '').replace('</b>', '').replace('<br>', ' ').replace('<br/>', ' ')
         inp = parent_inputs.addStringValueInput(item_id, '', plain_text)
         inp.isReadOnly = is_read_only
         return inp
+
 
 
 class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
@@ -1066,13 +1080,17 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                             if inp_a and ax_val is not None:
                                 inp_a.value = str(ax_val)
                             if lbl_adv and adv_text:
+                                adv_html = str(adv_text).replace('\n', '<br>')
+                                bg_col = op_info.get("bg_color", "#ffffff")
+                                formatted_val = format_cell_html(adv_html, bg_col)
                                 adv_box = adsk.core.TextBoxCommandInput.cast(lbl_adv)
                                 if adv_box:
-                                    adv_box.formattedText = str(adv_text).replace('\n', '<br>')
+                                    adv_box.formattedText = formatted_val
                                 elif hasattr(lbl_adv, 'formattedText'):
-                                    lbl_adv.formattedText = str(adv_text).replace('\n', '<br>')
+                                    lbl_adv.formattedText = formatted_val
                                 elif hasattr(lbl_adv, 'value'):
                                     lbl_adv.value = str(adv_text)
+
                                     
                             if cmdInput.id == 'stockBatchMode' and chk and "Finishing" in mode_choice and chk.isVisible:
                                 chk.value = is_fin
@@ -1254,30 +1272,31 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             header_table.minimumVisibleRows = 1
             header_table.maximumVisibleRows = 1
             header_table.hasGrid = False
-            header_table.columnSpacing = 6
-            header_table.rowSpacing = 4
+            header_table.columnSpacing = 4
+            header_table.rowSpacing = 3
             header_table.tablePresentationStyle = adsk.core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
             
-            # Row 0 of Header Table (2-line wrapping headers)
-            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '<b>Apply</b>', 2, True)
+            # Row 0 of Header Table (2-line wrapping headers with clean header background)
+            hdr_bg = "#d9e1e8"
+            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '<b>Apply</b>', 2, True, hdr_bg, align="center")
             header_table.addCommandInput(h_apply, 0, 0)
             
-            h_op = add_cell_text(header_table.commandInputs, 'hdr_op', '<b>Toolpath Operation</b>', 2, True)
+            h_op = add_cell_text(header_table.commandInputs, 'hdr_op', '<b>Toolpath Operation</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_op, 0, 1)
             
-            h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 2, True)
+            h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_tool, 0, 2)
             
-            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', '<b>Current Stock<br>To Leave</b>', 2, True)
+            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', '<b>Current Stock<br>To Leave</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_curr, 0, 3)
             
-            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>New Radial<br>Stock</b>', 2, True)
+            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>New Radial<br>Stock</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_rad, 0, 4)
             
-            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>New Axial<br>Stock</b>', 2, True)
+            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>New Axial<br>Stock</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_ax, 0, 5)
             
-            h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics<br>Advisory</b>', 2, True)
+            h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics<br>Advisory</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_adv, 0, 6)
             
             # 2. Scrollable Operations Table
@@ -1287,8 +1306,8 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             table.minimumVisibleRows = 4
             table.maximumVisibleRows = 12
             table.hasGrid = False
-            table.columnSpacing = 6
-            table.rowSpacing = 4
+            table.columnSpacing = 4
+            table.rowSpacing = 3
             table.tablePresentationStyle = adsk.core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
             
             # Rows 0..N-1: Operations
@@ -1302,27 +1321,31 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 op_info["is_finishing"] = is_finish_op
                 op_info["row_idx"] = row_idx
                 
+                # Alternating row contrast: White on even rows, Light Gray on odd rows
+                bg_color = "#ffffff" if (row_idx % 2 == 0) else "#e8edf2"
+                op_info["bg_color"] = bg_color
+                
                 # Col 0: Checkbox (finishing ops checked by default, roughing unchecked)
                 chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', is_finish_op)
                 table.addCommandInput(chk, row_idx, 0)
                 
-                # Col 1: Op Label (2-line auto-wrapping rich text)
+                # Col 1: Op Label (2-line auto-wrapping rich text with row background contrast)
                 s_clean = escape_html(op_info.get('setup_name', ''))
                 n_clean = escape_html(op_info.get('name', ''))
                 op_html = f"{s_clean}<br><b>{n_clean}</b>"
-                lbl_op = add_cell_text(table.commandInputs, f'lbl_op_{op_id}', op_html, 2, True)
+                lbl_op = add_cell_text(table.commandInputs, f'lbl_op_{op_id}', op_html, 2, True, bg_color)
                 table.addCommandInput(lbl_op, row_idx, 1)
                 
-                # Col 2: Tool with Cutter Type (2-line auto-wrapping text)
+                # Col 2: Tool with Cutter Type (2-line auto-wrapping text with row background contrast)
                 tool_html = escape_html(op_info.get("tool_summary", ""))
-                lbl_tool = add_cell_text(table.commandInputs, f'lbl_tool_{op_id}', tool_html, 2, True)
+                lbl_tool = add_cell_text(table.commandInputs, f'lbl_tool_{op_id}', tool_html, 2, True, bg_color)
                 table.addCommandInput(lbl_tool, row_idx, 2)
                 
-                # Col 3: Current Stock To Leave (Comparison column)
+                # Col 3: Current Stock To Leave (Comparison column with row background contrast)
                 curr_rad = op_info["current_radial"]
                 curr_ax = op_info["current_axial"]
                 curr_html = f"Rad: {curr_rad}<br>Ax: {curr_ax}"
-                lbl_curr = add_cell_text(table.commandInputs, f'lbl_curr_{op_id}', curr_html, 2, True)
+                lbl_curr = add_cell_text(table.commandInputs, f'lbl_curr_{op_id}', curr_html, 2, True, bg_color)
                 table.addCommandInput(lbl_curr, row_idx, 3)
                 
                 # Col 4: Editable New Radial Stock
@@ -1333,10 +1356,11 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 inp_ax = table.commandInputs.addStringValueInput(f'inp_ax_{op_id}', '', str(init_ax))
                 table.addCommandInput(inp_ax, row_idx, 5)
                 
-                # Col 6: Multi-line Advisory (Formatted 2-line wrapped text)
+                # Col 6: Multi-line Advisory (Formatted 2-line wrapped text with row background contrast)
                 adv_html = str(init_adv).replace('\n', '<br>')
-                lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True)
+                lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True, bg_color)
                 table.addCommandInput(lbl_adv, row_idx, 6)
+
 
                 
                 # Store direct references in op_info for lightning-fast, 100% reliable UI manipulation
