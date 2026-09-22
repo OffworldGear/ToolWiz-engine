@@ -1,6 +1,6 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
 import urllib.request, json
-import os
+import os, re
 from . import json_mutator
 
 app = None
@@ -18,6 +18,7 @@ panelToUse = 'CAMManagePanel'
 available_ops_map = {}
 discovered_libraries_map = {}
 stock_ops_cache = {}
+stock_setups_cache = {}
 
 # Global caches
 families_list = [
@@ -107,6 +108,33 @@ def parse_cam_param_to_inches(p, default=0.0):
         pass
     return default
 
+def format_cutter_type(raw_type, desc=""):
+    """Normalizes cutter types into clean, readable labels (e.g. Flat End Mill, T-Slot Cutter, Chamfer Mill)"""
+    t_str = (raw_type or "").lower().replace('_', ' ').replace('-', ' ').strip()
+    d_str = (desc or "").lower()
+    
+    if "chamfer" in t_str or "chamfer" in d_str:
+        return "Chamfer Mill"
+    elif "t-slot" in t_str or "t slot" in t_str or "tslot" in t_str or "tslot" in d_str:
+        return "T-Slot Cutter"
+    elif "dovetail" in t_str or "dovetail" in d_str:
+        return "Dovetail Cutter"
+    elif "thread" in t_str or "thread" in d_str:
+        return "Thread Mill"
+    elif "ball" in t_str or "ball" in d_str:
+        return "Ball End Mill"
+    elif "bull" in t_str or "bull" in d_str or "corner rad" in d_str:
+        return "Bull Nose Mill"
+    elif "face" in t_str or "face" in d_str:
+        return "Face Mill"
+    elif "slot" in t_str or "slot" in d_str:
+        return "Slot Mill"
+    elif "flat" in t_str or "end mill" in t_str or "endmill" in d_str:
+        return "Flat End Mill"
+    elif t_str:
+        return t_str.title()
+    return "Flat End Mill"
+
 def get_op_tool_info(op):
     """Extracts tool metadata and geometry formatted in inches with dual unit display"""
     if not op or not hasattr(op, 'tool') or not op.tool:
@@ -126,6 +154,8 @@ def get_op_tool_info(op):
         corner_radius = parse_dim_to_inches(geo.get("RE", 0.0), 0.0, tool_unit)
         desc = t_dict.get("description", f"{diameter:.3f}in Endmill")
         t_num = t_dict.get("postProcess", {}).get("number", 1)
+        raw_type = t_dict.get("type", "")
+        cutter_type = format_cutter_type(raw_type, desc)
         
         presets = t_dict.get("start-values", {}).get("presets", [])
         preset_names = [p.get("name", "Unnamed Preset") for p in presets if p.get("name")]
@@ -141,12 +171,13 @@ def get_op_tool_info(op):
             "geometry": "Square" if corner_radius == 0 else "Radiused",
             "desc": desc,
             "number": t_num,
+            "tool_type": cutter_type,
             "raw_json": raw_json
         }
         
         dia_mm = diameter * 25.4
         fl_mm = flute_length * 25.4
-        summary = f"T{t_num}: {desc} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
+        summary = f"T{t_num}: {desc} | {cutter_type} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
         return geo_payload, summary, preset_names
     except Exception as e:
         return None, f"Error extracting tool: {str(e)}", []
@@ -841,7 +872,7 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
             applied_ops = []
             for op_id, op_info in stock_ops_cache.items():
                 chk = find_table_input(inputs, table, f'chk_{op_id}')
-                if chk and chk.value:
+                if chk and chk.value and getattr(chk, 'isVisible', True):
                     inp_rad = find_table_input(inputs, table, f'inp_rad_{op_id}')
                     inp_ax = find_table_input(inputs, table, f'inp_ax_{op_id}')
                     
@@ -933,6 +964,32 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 if custom_rad: custom_rad.isVisible = is_custom
                 if custom_ax: custom_ax.isVisible = is_custom
                 
+            if cmdInput.id.startswith('setup_sw_'):
+                sw_id = cmdInput.id.replace('setup_sw_', '')
+                for s_name, s_op_ids in stock_setups_cache.items():
+                    safe_s_id = re.sub(r'[^a-zA-Z0-9_]', '_', s_name)
+                    if safe_s_id == sw_id:
+                        is_active = cmdInput.value
+                        for op_id in s_op_ids:
+                            chk = find_table_input(inputs, table, f'chk_{op_id}')
+                            lbl_op = find_table_input(inputs, table, f'lbl_op_{op_id}')
+                            lbl_tool = find_table_input(inputs, table, f'lbl_tool_{op_id}')
+                            lbl_curr = find_table_input(inputs, table, f'lbl_curr_{op_id}')
+                            inp_r = find_table_input(inputs, table, f'inp_rad_{op_id}')
+                            inp_a = find_table_input(inputs, table, f'inp_ax_{op_id}')
+                            lbl_adv = find_table_input(inputs, table, f'lbl_adv_{op_id}')
+                            
+                            for item in [chk, lbl_op, lbl_tool, lbl_curr, inp_r, inp_a, lbl_adv]:
+                                if item:
+                                    item.isVisible = is_active
+                                    
+                            if chk:
+                                if not is_active:
+                                    chk.value = False
+                                else:
+                                    chk.value = stock_ops_cache.get(op_id, {}).get("is_finishing", False)
+                        break
+                
             # If any control changing calculation parameters was touched:
             if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset']:
                 family = mat_family_input.selectedItem.name if (mat_family_input and mat_family_input.selectedItem) else "Aluminum - Wrought (6061)"
@@ -965,6 +1022,9 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                         rad_val = res.get("recommended_radial_stock")
                         ax_val = res.get("recommended_axial_stock")
                         adv_text = res.get("advisory")
+                        is_fin = res.get("is_finishing", False)
+                        if op_id in stock_ops_cache:
+                            stock_ops_cache[op_id]["is_finishing"] = is_fin
                         
                         inp_r = find_table_input(inputs, table, f'inp_rad_{op_id}')
                         inp_a = find_table_input(inputs, table, f'inp_ax_{op_id}')
@@ -982,8 +1042,8 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                             elif hasattr(lbl_adv, 'value'):
                                 lbl_adv.value = str(adv_text)
                                 
-                        if cmdInput.id == 'stockBatchMode' and chk and "Finishing" in mode_choice:
-                            chk.value = res.get("is_finishing", False)
+                        if cmdInput.id == 'stockBatchMode' and chk and "Finishing" in mode_choice and getattr(chk, 'isVisible', True):
+                            chk.value = is_fin
         except:
             pass
 
@@ -1002,8 +1062,9 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             handlers.append(onInputChanged)
             
             inputs = cmd.commandInputs
-            global stock_ops_cache
+            global stock_ops_cache, stock_setups_cache
             stock_ops_cache.clear()
+            stock_setups_cache.clear()
             
             camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
             if not camObj:
@@ -1013,12 +1074,13 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             # Scan setups and operations
             op_idx = 0
             for setup in camObj.setups:
+                setup_name = setup.name
                 for op in setup.allOperations:
                     try:
                         if op_supports_stock_to_leave(op):
                             op_idx += 1
                             op_id = f"op_{op_idx}"
-                            op_label = f"{setup.name} > {op.name}"
+                            op_label = f"{setup_name} > {op.name}"
                             geo_payload, tool_summary, _ = get_op_tool_info(op)
                             rad_val, ax_val = get_op_stock_values(op)
                             rpm, feed, doc, woc = get_op_cut_params(op)
@@ -1026,13 +1088,22 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             
                             tool_short = "Tool"
                             if geo_payload:
-                                tool_short = f"T{geo_payload.get('number', 1)}: {geo_payload.get('diameter', 0.25):.3f}\" ({geo_payload.get('flutes', 4)}FL)"
+                                t_num = geo_payload.get('number', 1)
+                                t_dia = geo_payload.get('diameter', 0.25)
+                                t_flutes = geo_payload.get('flutes', 4)
+                                t_type = geo_payload.get('tool_type', 'Flat End Mill')
+                                tool_short = f"T{t_num}: {t_dia:.3f}\" {t_type} ({t_flutes}FL)"
                             elif tool_summary:
                                 tool_short = tool_summary.split('|')[0].strip()
+                                
+                            if setup_name not in stock_setups_cache:
+                                stock_setups_cache[setup_name] = []
+                            stock_setups_cache[setup_name].append(op_id)
                                 
                             stock_ops_cache[op_id] = {
                                 "op": op,
                                 "op_id": op_id,
+                                "setup_name": setup_name,
                                 "label": op_label,
                                 "name": op.name,
                                 "strategy": strat,
@@ -1109,17 +1180,27 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             custom_rad.isVisible = False
             custom_ax.isVisible = False
             
+            # Setup Master ON/OFF switches (if multiple setups exist)
+            if len(stock_setups_cache) > 1:
+                setup_group = inputs.addGroupCommandInput('setupGroup', 'Setups to Include (Master ON/OFF)')
+                setup_group.isExpanded = True
+                for s_name, s_ops in stock_setups_cache.items():
+                    safe_s_id = re.sub(r'[^a-zA-Z0-9_]', '_', s_name)
+                    setup_group.children.addBoolValueInput(
+                        f'setup_sw_{safe_s_id}', f'{s_name} ({len(s_ops)} ops)', True, '', True
+                    )
+            
             # Initial calculation from Tool Wizard
             init_results = query_toolwiz_stock_compensation(
                 default_family, init_alloys[0] if init_alloys else "", 50, "auto_compensate"
             )
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             
-            # Common column ratios: Apply, Toolpath Operation, Cutter, Radial Stock, Axial Stock, ToolWiz Advisory
-            col_ratio = '2:7:5:4:4:8'
+            # Column ratios (7 columns): Apply, Toolpath Operation, Cutter, Current Stock To Leave, New Radial Stock, New Axial Stock, ToolWiz Advisory
+            col_ratio = '2:7:6:5:4:4:8'
             
             # 1. Fixed Header Table (Never scrolls away)
-            header_table = inputs.addTableCommandInput('stockHeaderTable', 'Operations List', 6, col_ratio)
+            header_table = inputs.addTableCommandInput('stockHeaderTable', 'Operations List', 7, col_ratio)
             header_table.isFullWidth = True
             header_table.minimumVisibleRows = 1
             header_table.maximumVisibleRows = 1
@@ -1138,17 +1219,20 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 1, True)
             header_table.addCommandInput(h_tool, 0, 2)
             
-            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>Radial Stock</b>', 1, True)
-            header_table.addCommandInput(h_rad, 0, 3)
+            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', '<b>Current Stock To Leave</b>', 1, True)
+            header_table.addCommandInput(h_curr, 0, 3)
             
-            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>Axial Stock</b>', 1, True)
-            header_table.addCommandInput(h_ax, 0, 4)
+            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>New Radial Stock</b>', 1, True)
+            header_table.addCommandInput(h_rad, 0, 4)
+            
+            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>New Axial Stock</b>', 1, True)
+            header_table.addCommandInput(h_ax, 0, 5)
             
             h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics Advisory</b>', 1, True)
-            header_table.addCommandInput(h_adv, 0, 5)
+            header_table.addCommandInput(h_adv, 0, 6)
             
             # 2. Scrollable Operations Table
-            table = inputs.addTableCommandInput('stockTable', '', 6, col_ratio)
+            table = inputs.addTableCommandInput('stockTable', '', 7, col_ratio)
             table.isFullWidth = True
             table.minimumVisibleRows = 4
             table.maximumVisibleRows = 12
@@ -1165,6 +1249,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 init_ax = calc_r.get("recommended_axial_stock", op_info["current_axial"])
                 init_adv = calc_r.get("advisory", "Ready")
                 is_finish_op = calc_r.get("is_finishing", False)
+                op_info["is_finishing"] = is_finish_op
                 
                 # Col 0: Checkbox (finishing ops checked by default, roughing unchecked)
                 chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', is_finish_op)
@@ -1175,25 +1260,33 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 lbl_op.isReadOnly = True
                 table.addCommandInput(lbl_op, row_idx, 1)
                 
-                # Col 2: Tool
+                # Col 2: Tool with Cutter Type
                 lbl_tool = table.commandInputs.addStringValueInput(f'lbl_tool_{op_id}', '', op_info["tool_summary"])
                 lbl_tool.isReadOnly = True
                 table.addCommandInput(lbl_tool, row_idx, 2)
                 
-                # Col 3: Editable Radial Stock
+                # Col 3: Current Stock To Leave (Comparison column)
+                curr_rad = op_info["current_radial"]
+                curr_ax = op_info["current_axial"]
+                curr_html = f"Rad: {curr_rad}<br>Ax: {curr_ax}"
+                lbl_curr = add_cell_text(table.commandInputs, f'lbl_curr_{op_id}', curr_html, 2, True)
+                table.addCommandInput(lbl_curr, row_idx, 3)
+                
+                # Col 4: Editable New Radial Stock
                 inp_rad = table.commandInputs.addStringValueInput(f'inp_rad_{op_id}', '', str(init_rad))
-                table.addCommandInput(inp_rad, row_idx, 3)
+                table.addCommandInput(inp_rad, row_idx, 4)
                 
-                # Col 4: Editable Axial Stock
+                # Col 5: Editable New Axial Stock
                 inp_ax = table.commandInputs.addStringValueInput(f'inp_ax_{op_id}', '', str(init_ax))
-                table.addCommandInput(inp_ax, row_idx, 4)
+                table.addCommandInput(inp_ax, row_idx, 5)
                 
-                # Col 5: Multi-line Advisory (Formatted 2-line wrapped text)
+                # Col 6: Multi-line Advisory (Formatted 2-line wrapped text)
                 adv_html = str(init_adv).replace('\n', '<br>')
                 lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True)
-                table.addCommandInput(lbl_adv, row_idx, 5)
+                table.addCommandInput(lbl_adv, row_idx, 6)
                 
                 row_idx += 1
+
                 
         except Exception as e:
             if ui:
