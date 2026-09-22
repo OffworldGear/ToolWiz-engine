@@ -852,6 +852,12 @@ def find_table_input(inputs, table, input_id):
         item = table.commandInputs.itemById(input_id)
     return item
 
+def escape_html(text):
+    """Escapes HTML special characters for safe formattedText rendering."""
+    if not text:
+        return ""
+    return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
 def add_cell_text(parent_inputs, item_id, text, num_rows=1, is_read_only=True):
     """Helper to create formatted text or fallback to string value input for table cells."""
     try:
@@ -861,6 +867,7 @@ def add_cell_text(parent_inputs, item_id, text, num_rows=1, is_read_only=True):
         inp = parent_inputs.addStringValueInput(item_id, '', plain_text)
         inp.isReadOnly = is_read_only
         return inp
+
 
 class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -1239,7 +1246,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             
             # Column ratios (7 columns): Apply, Toolpath Operation, Cutter, Current Stock To Leave, New Radial Stock, New Axial Stock, ToolWiz Advisory
-            col_ratio = '2:7:6:5:4:4:8'
+            col_ratio = '2:10:6:5:4:4:7'
             
             # 1. Fixed Header Table (Never scrolls away)
             header_table = inputs.addTableCommandInput('stockHeaderTable', 'Operations List', 7, col_ratio)
@@ -1251,26 +1258,26 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             header_table.rowSpacing = 4
             header_table.tablePresentationStyle = adsk.core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
             
-            # Row 0 of Header Table
-            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '<b>Apply</b>', 1, True)
+            # Row 0 of Header Table (2-line wrapping headers)
+            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '<b>Apply</b>', 2, True)
             header_table.addCommandInput(h_apply, 0, 0)
             
-            h_op = add_cell_text(header_table.commandInputs, 'hdr_op', '<b>Toolpath Operation</b>', 1, True)
+            h_op = add_cell_text(header_table.commandInputs, 'hdr_op', '<b>Toolpath Operation</b>', 2, True)
             header_table.addCommandInput(h_op, 0, 1)
             
-            h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 1, True)
+            h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 2, True)
             header_table.addCommandInput(h_tool, 0, 2)
             
-            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', '<b>Current Stock To Leave</b>', 1, True)
+            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', '<b>Current Stock<br>To Leave</b>', 2, True)
             header_table.addCommandInput(h_curr, 0, 3)
             
-            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>New Radial Stock</b>', 1, True)
+            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>New Radial<br>Stock</b>', 2, True)
             header_table.addCommandInput(h_rad, 0, 4)
             
-            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>New Axial Stock</b>', 1, True)
+            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>New Axial<br>Stock</b>', 2, True)
             header_table.addCommandInput(h_ax, 0, 5)
             
-            h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics Advisory</b>', 1, True)
+            h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics<br>Advisory</b>', 2, True)
             header_table.addCommandInput(h_adv, 0, 6)
             
             # 2. Scrollable Operations Table
@@ -1299,14 +1306,16 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', is_finish_op)
                 table.addCommandInput(chk, row_idx, 0)
                 
-                # Col 1: Op Label
-                lbl_op = table.commandInputs.addStringValueInput(f'lbl_op_{op_id}', '', op_info["label"])
-                lbl_op.isReadOnly = True
+                # Col 1: Op Label (2-line auto-wrapping rich text)
+                s_clean = escape_html(op_info.get('setup_name', ''))
+                n_clean = escape_html(op_info.get('name', ''))
+                op_html = f"{s_clean}<br><b>{n_clean}</b>"
+                lbl_op = add_cell_text(table.commandInputs, f'lbl_op_{op_id}', op_html, 2, True)
                 table.addCommandInput(lbl_op, row_idx, 1)
                 
-                # Col 2: Tool with Cutter Type
-                lbl_tool = table.commandInputs.addStringValueInput(f'lbl_tool_{op_id}', '', op_info["tool_summary"])
-                lbl_tool.isReadOnly = True
+                # Col 2: Tool with Cutter Type (2-line auto-wrapping text)
+                tool_html = escape_html(op_info.get("tool_summary", ""))
+                lbl_tool = add_cell_text(table.commandInputs, f'lbl_tool_{op_id}', tool_html, 2, True)
                 table.addCommandInput(lbl_tool, row_idx, 2)
                 
                 # Col 3: Current Stock To Leave (Comparison column)
@@ -1328,6 +1337,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 adv_html = str(init_adv).replace('\n', '<br>')
                 lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True)
                 table.addCommandInput(lbl_adv, row_idx, 6)
+
                 
                 # Store direct references in op_info for lightning-fast, 100% reliable UI manipulation
                 op_info["chk"] = chk
