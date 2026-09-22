@@ -809,9 +809,48 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
         
     return s
 
+def is_op_stock_to_leave_active(op):
+    """Determines whether Stock to Leave is actively checked / enabled on an operation."""
+    if not op or not hasattr(op, 'parameters') or not op.parameters:
+        return False
+        
+    for chk_name in ['useStockToLeave', 'isStockToLeave']:
+        p_chk = op.parameters.itemByName(chk_name)
+        if p_chk is not None:
+            # 1. Check expression string
+            if hasattr(p_chk, 'expression') and p_chk.expression is not None:
+                expr = str(p_chk.expression).strip().lower()
+                if expr in ['true', '1', 'yes']:
+                    return True
+                if expr in ['false', '0', 'no']:
+                    return False
+            # 2. Check value object
+            try:
+                v = getattr(p_chk, 'value', None)
+                if v is not None:
+                    if hasattr(v, 'value'):
+                        return bool(v.value)
+                    return bool(v)
+            except:
+                pass
+                
+    # 3. Fallback: check if radial parameter exists and is enabled
+    for r_name in ['stockToLeave', 'radialStockToLeave']:
+        p_rad = op.parameters.itemByName(r_name)
+        if p_rad is not None:
+            if hasattr(p_rad, 'isEnabled'):
+                return bool(p_rad.isEnabled)
+                
+    return False
+
 def get_op_stock_values(op, doc_unit="in"):
-    """Retrieves current radial and axial stock to leave expressions cleanly formatted."""
+    """Retrieves current radial and axial stock to leave expressions cleanly formatted.
+    Returns (is_active, rad_val, ax_val).
+    If Stock to Leave is not actively checked, returns (False, zero_str, zero_str).
+    """
     zero_str = "0.000 mm" if doc_unit == "mm" else "0.0000 in"
+    is_active = is_op_stock_to_leave_active(op)
+    
     rad_val = zero_str
     for r_name in ['stockToLeave', 'radialStockToLeave']:
         p = op.parameters.itemByName(r_name)
@@ -831,7 +870,10 @@ def get_op_stock_values(op, doc_unit="in"):
                 ax_val = clean_and_eval_stock_expr(raw_ax, doc_unit)
             break
             
-    return rad_val, ax_val
+    if not is_active:
+        return False, zero_str, zero_str
+        
+    return True, rad_val, ax_val
 
 def get_op_cut_params(op):
     """Extracts feeds, speeds, DOC, and WOC from operation."""
@@ -955,11 +997,12 @@ def format_cell_html(text, bg_color=None, align="left"):
     """Wraps text in a formatted HTML table container with custom background color and padding."""
     if not bg_color:
         return text
+    inner_text = text if (text and text.strip()) else "&nbsp;"
     return (
         f'<table width="100%" bgcolor="{bg_color}" cellpadding="3" cellspacing="0" '
         f'style="background-color:{bg_color}; border-radius:3px;">'
         f'<tr><td align="{align}" style="color:#222222; font-size:11px; font-family:sans-serif;">'
-        f'{text}'
+        f'{inner_text}'
         f'</td></tr></table>'
     )
 
@@ -1249,8 +1292,8 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             op_id = f"op_{op_idx}"
                             op_label = f"{setup_name} > {op.name}"
                             geo_payload, tool_summary, _ = get_op_tool_info(op)
-                            rad_val, ax_val = get_op_stock_values(op, doc_unit)
-                            if "mm" in str(rad_val).lower() or "mm" in str(ax_val).lower():
+                            is_active, rad_val, ax_val = get_op_stock_values(op, doc_unit)
+                            if is_active and ("mm" in str(rad_val).lower() or "mm" in str(ax_val).lower()):
                                 doc_unit = "mm"
                             rpm, feed, doc, woc = get_op_cut_params(op)
                             strat = getattr(op, 'strategy', 'contour2d')
@@ -1288,6 +1331,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                                     "diameter": 0.375, "flutes": 4, "fluteLength": 0.75,
                                     "shankDiameter": 0.375, "stickout": 1.25, "coating": "Uncoated"
                                 },
+                                "stock_active": is_active,
                                 "current_radial": rad_val,
                                 "current_axial": ax_val,
                                 "rpm": rpm,
@@ -1453,9 +1497,12 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 table.addCommandInput(lbl_tool, row_idx, 2)
                 
                 # Col 3: Current Stock To Leave (Comparison column with row background contrast)
-                curr_rad = op_info["current_radial"]
-                curr_ax = op_info["current_axial"]
-                curr_html = f"Rad: {curr_rad}<br>Ax: {curr_ax}"
+                if op_info.get("stock_active", False):
+                    curr_rad = op_info["current_radial"]
+                    curr_ax = op_info["current_axial"]
+                    curr_html = f"Rad: {curr_rad}<br>Ax: {curr_ax}"
+                else:
+                    curr_html = ""
                 lbl_curr = add_cell_text(table.commandInputs, f'lbl_curr_{op_id}', curr_html, 2, True, bg_color)
                 table.addCommandInput(lbl_curr, row_idx, 3)
                 
