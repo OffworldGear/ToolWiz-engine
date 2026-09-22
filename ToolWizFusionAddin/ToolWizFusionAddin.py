@@ -1386,13 +1386,13 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             h_tool = add_cell_text(header_table.commandInputs, 'hdr_tool', '<b>Cutter</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_tool, 0, 2)
             
-            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', '<b>Current Stock<br>To Leave</b>', 2, True, hdr_bg)
+            h_curr = add_cell_text(header_table.commandInputs, 'hdr_curr', f'<b>Current Stock<br>To Leave ({doc_unit})</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_curr, 0, 3)
             
-            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', '<b>New Radial<br>Stock</b>', 2, True, hdr_bg)
+            h_rad = add_cell_text(header_table.commandInputs, 'hdr_rad', f'<b>New Radial<br>Stock ({doc_unit})</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_rad, 0, 4)
             
-            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', '<b>New Axial<br>Stock</b>', 2, True, hdr_bg)
+            h_ax = add_cell_text(header_table.commandInputs, 'hdr_ax', f'<b>New Axial<br>Stock ({doc_unit})</b>', 2, True, hdr_bg)
             header_table.addCommandInput(h_ax, 0, 5)
             
             h_adv = add_cell_text(header_table.commandInputs, 'hdr_adv', '<b>ToolWiz Physics<br>Advisory</b>', 2, True, hdr_bg)

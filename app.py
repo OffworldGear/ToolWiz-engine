@@ -1503,12 +1503,12 @@ def stock_compensation():
                         rec_rad_val = -total_err * 25.4
                         rec_rad = f"{rec_rad_val:.3f} mm"
                         rec_ax = zero_ax_str
-                        advisory = f"Defl: {defl*25.4*1000:.1f}µm | Spring: {sb*25.4*1000:.1f}µm\nRec: {rec_rad}"
+                        advisory = f"Defl: {defl*25.4*1000:.1f}µm | Spring: {sb*25.4*1000:.1f}µm\nRec: {rec_rad} ({-total_err:.4f}\")"
                     else:
                         rec_rad_val = -total_err
                         rec_rad = f"{rec_rad_val:.4f} in"
                         rec_ax = zero_ax_str
-                        advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad}"
+                        advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} ({-total_err*25.4:.3f} mm)"
                 else:
                     rec_rad = current_radial
                     rec_ax = current_axial
