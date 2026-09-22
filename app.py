@@ -1346,6 +1346,161 @@ def ai_models():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/api/stock_compensation", methods=["POST"])
+def stock_compensation():
+    """Calculates tool deflection, material springback, and recommended radial/axial stock to leave
+    for a batch of Fusion 360 CAM operations.
+    """
+    try:
+        data = request.get_json() or {}
+        family = data.get("family", "Aluminum - Wrought (6061)")
+        alloy = data.get("alloy", "")
+        agg_raw = data.get("aggressiveness", 50)
+        aggressiveness = float(agg_raw) / 100.0 if float(agg_raw) > 1.0 else float(agg_raw)
+        mode = data.get("mode", "auto_compensate")  # auto_compensate, zero_finishing, custom
+        custom_radial_offset = str(data.get("custom_radial_offset", "0.0000 in")).strip()
+        custom_axial_offset = str(data.get("custom_axial_offset", "0.0000 in")).strip()
+        operations = data.get("operations", [])
+        
+        results = []
+        for op in operations:
+            op_id = op.get("id", "")
+            op_name = op.get("name", "Unknown Op")
+            strat = op.get("strategy", "").lower()
+            unit = str(op.get("unit", "inches")).lower()
+            is_metric = "mm" in unit or "milli" in unit
+            
+            # Geometry (always in inches internally)
+            diameter = float(op.get("diameter", 0.375))
+            flutes = max(int(op.get("flutes", 4)), 1)
+            flute_len = float(op.get("fluteLength", diameter * 2.0))
+            shank_dia = float(op.get("shankDiameter", diameter))
+            stickout = float(op.get("stickout", flute_len * 1.5))
+            coating = op.get("coating", "Uncoated")
+            geometry = op.get("geometry", "Square")
+            
+            # Feeds & Speeds / Cut parameters
+            rpm = float(op.get("rpm", 0.0))
+            feedrate_raw = float(op.get("feedrate", 0.0))
+            feedrate_ipm = feedrate_raw / 25.4 if (is_metric and feedrate_raw > 0) else feedrate_raw
+            
+            doc_raw = float(op.get("doc", 0.0))
+            doc_in = doc_raw / 25.4 if (is_metric and doc_raw > 0) else doc_raw
+            
+            woc_raw = float(op.get("woc", 0.0))
+            woc_in = woc_raw / 25.4 if (is_metric and woc_raw > 0) else woc_raw
+            
+            current_radial = str(op.get("current_radial_stock", "0.0000 in")).strip()
+            current_axial = str(op.get("current_axial_stock", "0.0000 in")).strip()
+            
+            # Identify if Finishing vs Roughing
+            strat_lower = strat.lower()
+            name_lower = op_name.lower()
+            is_finishing_strat = any(s in strat_lower for s in [
+                "contour", "scallop", "pencil", "parallel", "morf", "ramp", "flow", "spiral", "finish", "swarf"
+            ])
+            is_roughing_strat = any(s in strat_lower for s in [
+                "adaptive", "pocket", "rough", "clearing", "cavity", "rest"
+            ])
+            
+            if "finish" in name_lower or "contour" in name_lower or "wall" in name_lower or "skim" in name_lower:
+                is_finishing = True
+            elif "rough" in name_lower or "adaptive" in name_lower or "clearing" in name_lower:
+                is_finishing = False
+            else:
+                is_finishing = is_finishing_strat and not is_roughing_strat
+                
+            # If doc/woc or feeds/speeds are missing, use standard finishing or roughing defaults
+            if is_finishing:
+                if doc_in <= 0:
+                    doc_in = flute_len * 0.75 if flute_len > 0 else diameter * 1.5
+                if woc_in <= 0:
+                    woc_in = max(diameter * 0.04, 0.008)  # 4% D light finishing cut
+            else:
+                if doc_in <= 0:
+                    doc_in = diameter * 1.0
+                if woc_in <= 0:
+                    woc_in = diameter * 0.40  # 40% D roughing
+                    
+            if rpm <= 0 or feedrate_ipm <= 0:
+                target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
+                base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, flutes=flutes, is_carbide=True)
+                target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
+                target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
+                target_sfm *= physics.get_coating_multiplier(coating, family)
+                if rpm <= 0:
+                    rpm = physics.calc_rpm(target_sfm, diameter)
+                if feedrate_ipm <= 0:
+                    feedrate_ipm = physics.calc_feedrate(rpm, flutes, base_ipt)
+                    
+            defl = physics.tool_deflection(
+                diameter=diameter, shank_size=shank_dia, stickout=stickout, cut_depth=doc_in, cut_width=woc_in,
+                feedrate=feedrate_ipm, rpm=rpm, flutes=flutes, is_carbide=True, material_family=family,
+                flute_length=flute_len, operation="Finishing" if is_finishing else "Roughing"
+            )
+            sb, total_err, wear_comp = physics.calc_springback_and_deflection(
+                material_family=family, diameter=diameter, cut_depth=doc_in, cut_width=woc_in,
+                feedrate=feedrate_ipm, rpm=rpm, flutes=flutes, deflection_inches=defl, alloy=alloy
+            )
+            
+            zero_rad_str = "0.000 mm" if is_metric else "0.0000 in"
+            zero_ax_str = "0.000 mm" if is_metric else "0.0000 in"
+            default_rough_rad = "0.500 mm" if is_metric else "0.0200 in"
+            default_rough_ax = "0.250 mm" if is_metric else "0.0100 in"
+            
+            if mode == "zero_finishing":
+                if is_finishing:
+                    rec_rad = zero_rad_str
+                    rec_ax = zero_ax_str
+                    advisory = "Finishing: Zero Stock (0.0000)"
+                else:
+                    rec_rad = current_radial if current_radial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_rad
+                    rec_ax = current_axial if current_axial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_ax
+                    advisory = f"Roughing: Retaining roughing stock ({rec_rad})"
+            elif mode == "custom":
+                rec_rad = custom_radial_offset or zero_rad_str
+                rec_ax = custom_axial_offset or zero_ax_str
+                advisory = f"Custom Batch: Rad {rec_rad}, Ax {rec_ax}"
+            else:  # auto_compensate
+                if is_finishing:
+                    if is_metric:
+                        rec_rad_val = -total_err * 25.4
+                        rec_rad = f"{rec_rad_val:.3f} mm"
+                        rec_ax = zero_ax_str
+                        advisory = f"Defl: {defl*25.4*1000:.1f}µm | Spring: {sb*25.4*1000:.1f}µm → Rec: {rec_rad}"
+                    else:
+                        rec_rad_val = -total_err
+                        rec_rad = f"{rec_rad_val:.4f} in"
+                        rec_ax = zero_ax_str
+                        advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\" → Rec: {rec_rad}"
+                else:
+                    rec_rad = current_radial if current_radial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_rad
+                    rec_ax = current_axial if current_axial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_ax
+                    advisory = f"Roughing: Retaining roughing stock ({rec_rad})"
+                    
+            results.append({
+                "id": op_id,
+                "name": op_name,
+                "strategy": strat,
+                "is_finishing": is_finishing,
+                "deflection_in": round(defl, 6),
+                "springback_in": round(sb, 6),
+                "total_error_in": round(total_err, 6),
+                "wear_comp_offset_in": round(wear_comp, 6),
+                "recommended_radial_stock": rec_rad,
+                "recommended_axial_stock": rec_ax,
+                "advisory": advisory
+            })
+            
+        return jsonify({
+            "success": True,
+            "family": family,
+            "alloy": alloy,
+            "results": results
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="127.0.0.1", port=5000, debug=debug_mode)

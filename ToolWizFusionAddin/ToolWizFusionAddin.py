@@ -10,9 +10,14 @@ handlers = []
 exportCommandId = 'ToolWizExportTwinCmd'
 importCommandId = 'ToolWizImportTwinCmd'
 calcCommandId = 'ToolWizCalcCmd'
+stockCommandId = 'ToolWizStockToLeaveCmd'
 
 workspaceToUse = 'CAMEnvironment'
 panelToUse = 'CAMManagePanel'
+
+available_ops_map = {}
+discovered_libraries_map = {}
+stock_ops_cache = {}
 
 # Global caches
 families_list = [
@@ -41,8 +46,6 @@ alloys_dict = {
     "Stainless - 300 Series (316)": ["304 - Annealed", "316 - Annealed"]
 }
 
-available_ops_map = {}
-discovered_libraries_map = {}
 
 def parse_dim_to_inches(val, default=0.25, tool_unit=""):
     """Safely converts Fusion dimension expressions/floats/strings to inches, respecting tool unit context."""
@@ -633,6 +636,462 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 ui.messageBox(f"Command Created Failed:\n{traceback.format_exc()}")
 
 # ==============================================================================
+# COMMAND 4: STOCK TO LEAVE & DEFLECTION MANAGER
+# ==============================================================================
+
+def op_supports_stock_to_leave(op):
+    """Checks if an operation supports stock to leave parameters."""
+    if not op or not hasattr(op, 'parameters') or not op.parameters:
+        return False
+    for p_name in ['stockToLeave', 'radialStockToLeave', 'useStockToLeave', 'isStockToLeave']:
+        p = op.parameters.itemByName(p_name)
+        if p is not None:
+            return True
+    return False
+
+def get_op_stock_values(op):
+    """Retrieves current radial and axial stock to leave expressions."""
+    rad_val = "0.0000 in"
+    for r_name in ['stockToLeave', 'radialStockToLeave']:
+        p = op.parameters.itemByName(r_name)
+        if p is not None and p.expression:
+            rad_val = str(p.expression)
+            break
+            
+    ax_val = "0.0000 in"
+    for a_name in ['verticalStockToLeave', 'axialStockToLeave']:
+        p = op.parameters.itemByName(a_name)
+        if p is not None and p.expression:
+            ax_val = str(p.expression)
+            break
+            
+    return rad_val, ax_val
+
+def get_op_cut_params(op):
+    """Extracts feeds, speeds, DOC, and WOC from operation."""
+    rpm = 0.0
+    p_rpm = op.parameters.itemByName('tool_spindleSpeed')
+    if p_rpm and p_rpm.expression:
+        try:
+            rpm = float(str(p_rpm.expression).split()[0].replace(',', ''))
+        except:
+            pass
+            
+    feed = 0.0
+    p_feed = op.parameters.itemByName('tool_feedCutting')
+    if p_feed and p_feed.expression:
+        try:
+            feed = float(str(p_feed.expression).split()[0].replace(',', ''))
+        except:
+            pass
+            
+    doc = 0.0
+    for doc_name in ['maximumStepdown', 'stepdown']:
+        p = op.parameters.itemByName(doc_name)
+        if p and p.expression:
+            doc = parse_dim_to_inches(p.expression, 0.0)
+            if doc > 0:
+                break
+                
+    woc = 0.0
+    for woc_name in ['stepover', 'maximumStepover', 'optimalLoad']:
+        p = op.parameters.itemByName(woc_name)
+        if p and p.expression:
+            woc = parse_dim_to_inches(p.expression, 0.0)
+            if woc > 0:
+                break
+                
+    return rpm, feed, doc, woc
+
+def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in"):
+    """Queries http://127.0.0.1:5000/api/stock_compensation for all cached operations"""
+    try:
+        ops_payload = []
+        for op_id, op_info in stock_ops_cache.items():
+            geo = op_info.get("geo", {})
+            ops_payload.append({
+                "id": op_id,
+                "name": op_info["name"],
+                "strategy": op_info["strategy"],
+                "diameter": geo.get("diameter", 0.375),
+                "flutes": geo.get("flutes", 4),
+                "fluteLength": geo.get("fluteLength", 0.75),
+                "shankDiameter": geo.get("shankDiameter", 0.375),
+                "stickout": geo.get("stickout", 1.25),
+                "coating": geo.get("coating", "Uncoated"),
+                "geometry": geo.get("geometry", "Square"),
+                "rpm": op_info.get("rpm", 0.0),
+                "feedrate": op_info.get("feed", 0.0),
+                "doc": op_info.get("doc", 0.0),
+                "woc": op_info.get("woc", 0.0),
+                "current_radial_stock": op_info.get("current_radial", "0.0000 in"),
+                "current_axial_stock": op_info.get("current_axial", "0.0000 in")
+            })
+            
+        payload = {
+            "family": family,
+            "alloy": alloy,
+            "aggressiveness": aggressiveness,
+            "mode": mode,
+            "custom_radial_offset": custom_rad,
+            "custom_axial_offset": custom_ax,
+            "operations": ops_payload
+        }
+        
+        req = urllib.request.Request("http://127.0.0.1:5000/api/stock_compensation")
+        req.add_header('Content-Type', 'application/json; charset=utf-8')
+        response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), timeout=2.5)
+        res_data = json.loads(response.read().decode('utf-8'))
+        if res_data.get("success"):
+            return res_data.get("results", [])
+    except:
+        pass
+    return []
+
+def find_table_input(inputs, table, input_id):
+    """Finds an input control in either dialog inputs or table commandInputs"""
+    item = inputs.itemById(input_id)
+    if not item and table and hasattr(table, 'commandInputs'):
+        item = table.commandInputs.itemById(input_id)
+    return item
+
+class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            eventArgs = adsk.core.CommandEventArgs.cast(args)
+            inputs = eventArgs.command.commandInputs
+            table = inputs.itemById('stockTable')
+            
+            applied_ops = []
+            for op_id, op_info in stock_ops_cache.items():
+                chk = find_table_input(inputs, table, f'chk_{op_id}')
+                if chk and chk.value:
+                    inp_rad = find_table_input(inputs, table, f'inp_rad_{op_id}')
+                    inp_ax = find_table_input(inputs, table, f'inp_ax_{op_id}')
+                    
+                    rad_val = inp_rad.value.strip() if inp_rad else op_info["current_radial"]
+                    ax_val = inp_ax.value.strip() if inp_ax else op_info["current_axial"]
+                    
+                    op = op_info["op"]
+                    
+                    # 1. Enable Stock to Leave checkbox
+                    for chk_name in ['useStockToLeave', 'isStockToLeave']:
+                        p_chk = op.parameters.itemByName(chk_name)
+                        if p_chk:
+                            try: p_chk.expression = "true"
+                            except:
+                                try: p_chk.value.value = True
+                                except: pass
+                                
+                    # 2. Unlock independent radial and axial stock
+                    p_simple = op.parameters.itemByName('simpleStockToLeave')
+                    if p_simple:
+                        try: p_simple.expression = "false"
+                        except:
+                            try: p_simple.value.value = False
+                            except: pass
+                            
+                    # 3. Set Radial Stock to Leave
+                    for r_name in ['stockToLeave', 'radialStockToLeave']:
+                        p_rad = op.parameters.itemByName(r_name)
+                        if p_rad:
+                            p_rad.expression = str(rad_val)
+                            break
+                            
+                    # 4. Set Axial Stock to Leave
+                    for a_name in ['verticalStockToLeave', 'axialStockToLeave']:
+                        p_ax = op.parameters.itemByName(a_name)
+                        if p_ax:
+                            p_ax.expression = str(ax_val)
+                            break
+                            
+                    applied_ops.append(f" • {op_info['label']}: Radial {rad_val} | Axial {ax_val}")
+                    
+            if applied_ops:
+                summary = "\n".join(applied_ops)
+                msg = (
+                    f"Stock to Leave Compensation Applied!\n"
+                    f"====================================\n"
+                    f"Operations Updated: {len(applied_ops)}\n\n"
+                    f"{summary}\n\n"
+                    f"Deflection and material springback compensation values are now active in your toolpaths."
+                )
+                ui.messageBox(msg, 'ToolWiz Stock to Leave Manager')
+            else:
+                ui.messageBox('No operations were selected to update.', 'ToolWiz Stock to Leave Manager')
+                
+        except Exception as e:
+            if ui:
+                ui.messageBox(f"Stock Manager Apply Failed:\n{traceback.format_exc()}")
+
+class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            eventArgs = adsk.core.InputChangedEventArgs.cast(args)
+            inputs = eventArgs.inputs
+            cmdInput = eventArgs.input
+            table = inputs.itemById('stockTable')
+            
+            mat_family_input = inputs.itemById('stockMatFamily')
+            alloy_input = inputs.itemById('stockMatAlloy')
+            agg_input = inputs.itemById('stockAggressiveness')
+            mode_input = inputs.itemById('stockBatchMode')
+            custom_rad = inputs.itemById('customRadOffset')
+            custom_ax = inputs.itemById('customAxOffset')
+            
+            if cmdInput.id == 'stockMatFamily':
+                family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
+                if alloy_input:
+                    alloy_input.listItems.clear()
+                    alloys = alloys_dict.get(family, [])
+                    if not alloys:
+                        alloy_input.listItems.add("Standard Grade", True)
+                    else:
+                        for i, a in enumerate(alloys):
+                            alloy_input.listItems.add(a, i == 0)
+                            
+            if cmdInput.id == 'stockBatchMode':
+                is_custom = mode_input.selectedItem.name == 'Batch Apply Custom Offset' if mode_input.selectedItem else False
+                if custom_rad: custom_rad.isVisible = is_custom
+                if custom_ax: custom_ax.isVisible = is_custom
+                
+            # If any control changing calculation parameters was touched:
+            if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset']:
+                family = mat_family_input.selectedItem.name if (mat_family_input and mat_family_input.selectedItem) else "Aluminum - Wrought (6061)"
+                alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
+                agg = agg_input.valueOne if agg_input else 50
+                mode_choice = mode_input.selectedItem.name if (mode_input and mode_input.selectedItem) else "Auto-Compensate Finishing (Negative Stock)"
+                
+                mode_code = "auto_compensate"
+                if "Zero-Out" in mode_choice:
+                    mode_code = "zero_finishing"
+                elif "Custom" in mode_choice:
+                    mode_code = "custom"
+                
+                c_rad = custom_rad.value if custom_rad else "0.0000 in"
+                c_ax = custom_ax.value if custom_ax else "0.0000 in"
+                
+                calc_results = query_toolwiz_stock_compensation(family, alloy, agg, mode_code, c_rad, c_ax)
+                if calc_results:
+                    for res in calc_results:
+                        op_id = res.get("id")
+                        rad_val = res.get("recommended_radial_stock")
+                        ax_val = res.get("recommended_axial_stock")
+                        adv_text = res.get("advisory")
+                        
+                        inp_r = find_table_input(inputs, table, f'inp_rad_{op_id}')
+                        inp_a = find_table_input(inputs, table, f'inp_ax_{op_id}')
+                        lbl_adv = find_table_input(inputs, table, f'lbl_adv_{op_id}')
+                        
+                        if inp_r and rad_val: inp_r.value = str(rad_val)
+                        if inp_a and ax_val: inp_a.value = str(ax_val)
+                        if lbl_adv and adv_text: lbl_adv.value = str(adv_text)
+        except:
+            pass
+
+class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            cmd = args.command
+            onExecute = ToolWizStockExecuteHandler()
+            cmd.execute.add(onExecute)
+            handlers.append(onExecute)
+            
+            onInputChanged = ToolWizStockInputChangedHandler()
+            cmd.inputChanged.add(onInputChanged)
+            handlers.append(onInputChanged)
+            
+            inputs = cmd.commandInputs
+            global stock_ops_cache
+            stock_ops_cache.clear()
+            
+            camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+            if not camObj:
+                ui.messageBox('Please switch to the Manufacture (CAM) workspace with an active setup.')
+                return
+                
+            # Scan setups and operations
+            op_idx = 0
+            for setup in camObj.setups:
+                for op in setup.allOperations:
+                    if op_supports_stock_to_leave(op):
+                        op_idx += 1
+                        op_id = f"op_{op_idx}"
+                        op_label = f"{setup.name} > {op.name}"
+                        geo_payload, tool_summary, _ = get_op_tool_info(op)
+                        rad_val, ax_val = get_op_stock_values(op)
+                        rpm, feed, doc, woc = get_op_cut_params(op)
+                        strat = getattr(op, 'strategy', 'contour2d')
+                        
+                        tool_short = "Tool"
+                        if geo_payload:
+                            tool_short = f"T{geo_payload.get('number', 1)}: {geo_payload.get('diameter', 0.25):.3f}\" ({geo_payload.get('flutes', 4)}FL)"
+                        elif tool_summary:
+                            tool_short = tool_summary.split('|')[0].strip()
+                            
+                        stock_ops_cache[op_id] = {
+                            "op": op,
+                            "op_id": op_id,
+                            "label": op_label,
+                            "name": op.name,
+                            "strategy": strat,
+                            "tool_summary": tool_short,
+                            "geo": geo_payload or {
+                                "diameter": 0.375, "flutes": 4, "fluteLength": 0.75,
+                                "shankDiameter": 0.375, "stickout": 1.25, "coating": "Uncoated"
+                            },
+                            "current_radial": rad_val,
+                            "current_axial": ax_val,
+                            "rpm": rpm,
+                            "feed": feed,
+                            "doc": doc,
+                            "woc": woc
+                        }
+                        
+            if not stock_ops_cache:
+                ui.messageBox('No operations supporting Stock to Leave were found in the active document.')
+                return
+                
+            # Populate Materials from Tool Wizard DB
+            global families_list, alloys_dict
+            try:
+                response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.5)
+                data = json.loads(response.read().decode('utf-8'))
+                if "families" in data and len(data["families"]) > 0:
+                    families_list = data["families"]
+                if "alloys" in data:
+                    new_alloys = {}
+                    for a in data["alloys"]:
+                        f = a.get("family", "")
+                        name = f"{a.get('alloy', '')} ({a.get('condition', '')})" if a.get('condition') else a.get('alloy', '')
+                        if f and name:
+                            if f not in new_alloys: new_alloys[f] = []
+                            if name not in new_alloys[f]: new_alloys[f].append(name)
+                    if new_alloys:
+                        alloys_dict = new_alloys
+            except:
+                pass
+
+            # Instructions Header
+            intro_box = inputs.addTextBoxCommandInput(
+                'stockIntro', '',
+                '<b>ToolWiz Stock to Leave & Deflection Manager</b><br>'
+                'Pre-populates recommended <b>negative radial stock to leave</b> on finishing toolpaths '
+                'based on predicted cutter deflection and workpiece elastic springback.',
+                2, True
+            )
+            intro_box.isFullWidth = True
+
+            # Material Dropdowns
+            mat_family_input = inputs.addDropDownCommandInput('stockMatFamily', 'Workpiece Material', adsk.core.DropDownStyles.TextListDropDownStyle)
+            default_family = "Titanium Alloy" if "Titanium Alloy" in families_list else families_list[0]
+            for m in families_list:
+                mat_family_input.listItems.add(m, m == default_family)
+                
+            alloy_input = inputs.addDropDownCommandInput('stockMatAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
+            init_alloys = alloys_dict.get(default_family, ["Standard Grade"])
+            for i, a in enumerate(init_alloys):
+                alloy_input.listItems.add(a, i == 0)
+                
+            agg_input = inputs.addIntegerSliderCommandInput('stockAggressiveness', 'Aggressiveness', 0, 100)
+            agg_input.valueOne = 50
+            
+            mode_input = inputs.addDropDownCommandInput('stockBatchMode', 'Compensation Preset', adsk.core.DropDownStyles.TextListDropDownStyle)
+            mode_input.listItems.add('Auto-Compensate Finishing (Negative Stock)', True)
+            mode_input.listItems.add('Zero-Out Finishing (0.0000")', False)
+            mode_input.listItems.add('Batch Apply Custom Offset', False)
+            
+            custom_rad = inputs.addStringValueInput('customRadOffset', 'Custom Radial Stock', '0.0000 in')
+            custom_ax = inputs.addStringValueInput('customAxOffset', 'Custom Axial Stock', '0.0000 in')
+            custom_rad.isVisible = False
+            custom_ax.isVisible = False
+            
+            # Initial calculation from Tool Wizard
+            init_results = query_toolwiz_stock_compensation(
+                default_family, init_alloys[0] if init_alloys else "", 50, "auto_compensate"
+            )
+            res_map = {r.get("id"): r for r in init_results} if init_results else {}
+            
+            # Build Table
+            table = inputs.addTableCommandInput('stockTable', 'Stock to Leave Operations', 6, '1:4:3:2:2:4')
+            table.minimumVisibleRows = 4
+            table.maximumVisibleRows = 12
+            table.hasGrid = True
+            table.tablePresentationStyle = adsk.core.TablePresentationStyles.itemBorderTablePresentationStyle
+            
+            # Row 0: Headers
+            h_apply = table.commandInputs.addStringValueInput('hdr_apply', '', 'Apply')
+            h_apply.isReadOnly = True
+            table.addCommandInput(h_apply, 0, 0)
+            
+            h_op = table.commandInputs.addStringValueInput('hdr_op', '', 'Toolpath Operation')
+            h_op.isReadOnly = True
+            table.addCommandInput(h_op, 0, 1)
+            
+            h_tool = table.commandInputs.addStringValueInput('hdr_tool', '', 'Cutter')
+            h_tool.isReadOnly = True
+            table.addCommandInput(h_tool, 0, 2)
+            
+            h_rad = table.commandInputs.addStringValueInput('hdr_rad', '', 'Radial Stock')
+            h_rad.isReadOnly = True
+            table.addCommandInput(h_rad, 0, 3)
+            
+            h_ax = table.commandInputs.addStringValueInput('hdr_ax', '', 'Axial Stock')
+            h_ax.isReadOnly = True
+            table.addCommandInput(h_ax, 0, 4)
+            
+            h_adv = table.commandInputs.addStringValueInput('hdr_adv', '', 'ToolWiz Physics Advisory')
+            h_adv.isReadOnly = True
+            table.addCommandInput(h_adv, 0, 5)
+            
+            # Rows 1..N: Operations
+            row_idx = 1
+            for op_id, op_info in stock_ops_cache.items():
+                calc_r = res_map.get(op_id, {})
+                init_rad = calc_r.get("recommended_radial_stock", op_info["current_radial"])
+                init_ax = calc_r.get("recommended_axial_stock", op_info["current_axial"])
+                init_adv = calc_r.get("advisory", "Ready")
+                
+                # Col 0: Checkbox
+                chk = table.commandInputs.addBoolValueInput(f'chk_{op_id}', '', True, '', True)
+                table.addCommandInput(chk, row_idx, 0)
+                
+                # Col 1: Op Label
+                lbl_op = table.commandInputs.addStringValueInput(f'lbl_op_{op_id}', '', op_info["label"])
+                lbl_op.isReadOnly = True
+                table.addCommandInput(lbl_op, row_idx, 1)
+                
+                # Col 2: Tool
+                lbl_tool = table.commandInputs.addStringValueInput(f'lbl_tool_{op_id}', '', op_info["tool_summary"])
+                lbl_tool.isReadOnly = True
+                table.addCommandInput(lbl_tool, row_idx, 2)
+                
+                # Col 3: Editable Radial Stock
+                inp_rad = table.commandInputs.addStringValueInput(f'inp_rad_{op_id}', '', str(init_rad))
+                table.addCommandInput(inp_rad, row_idx, 3)
+                
+                # Col 4: Editable Axial Stock
+                inp_ax = table.commandInputs.addStringValueInput(f'inp_ax_{op_id}', '', str(init_ax))
+                table.addCommandInput(inp_ax, row_idx, 4)
+                
+                # Col 5: Advisory
+                lbl_adv = table.commandInputs.addStringValueInput(f'lbl_adv_{op_id}', '', str(init_adv))
+                lbl_adv.isReadOnly = True
+                table.addCommandInput(lbl_adv, row_idx, 5)
+                
+                row_idx += 1
+                
+        except Exception as e:
+            if ui:
+                ui.messageBox(f"Stock Manager Created Failed:\n{traceback.format_exc()}")
+
+# ==============================================================================
 # ADD-IN RUN / STOP
 # ==============================================================================
 
@@ -672,6 +1131,16 @@ def run(context):
         calcDef.commandCreated.add(onCalcCreated)
         handlers.append(onCalcCreated)
         
+        # 4. Stock to Leave & Deflection Manager Command
+        stockDef = ui.commandDefinitions.itemById(stockCommandId)
+        if not stockDef:
+            stockDef = ui.commandDefinitions.addButtonDefinition(
+                stockCommandId, 'Stock to Leave Manager', 'Batch inspect and apply Stock to Leave with automatic ToolWiz deflection & springback compensation.'
+            )
+        onStockCreated = ToolWizStockCreatedHandler()
+        stockDef.commandCreated.add(onStockCreated)
+        handlers.append(onStockCreated)
+        
         workSpace = ui.workspaces.itemById(workspaceToUse)
         if workSpace:
             panel = workSpace.toolbarPanels.itemById(panelToUse)
@@ -679,6 +1148,7 @@ def run(context):
                 if not panel.controls.itemById(exportCommandId): panel.controls.addCommand(exportDef)
                 if not panel.controls.itemById(importCommandId): panel.controls.addCommand(importDef)
                 if not panel.controls.itemById(calcCommandId): panel.controls.addCommand(calcDef)
+                if not panel.controls.itemById(stockCommandId): panel.controls.addCommand(stockDef)
                     
     except Exception as e:
         if ui:
@@ -691,14 +1161,15 @@ def stop(context):
         if workSpace:
             panel = workSpace.toolbarPanels.itemById(panelToUse)
             if panel:
-                for cid in [exportCommandId, importCommandId, calcCommandId]:
+                for cid in [exportCommandId, importCommandId, calcCommandId, stockCommandId]:
                     ctrl = panel.controls.itemById(cid)
                     if ctrl: ctrl.deleteMe()
                     
-        for cid in [exportCommandId, importCommandId, calcCommandId]:
+        for cid in [exportCommandId, importCommandId, calcCommandId, stockCommandId]:
             cmdDef = ui.commandDefinitions.itemById(cid)
             if cmdDef: cmdDef.deleteMe()
             
     except Exception as e:
         if ui:
             ui.messageBox(f"Add-in Stop Failed:\n{traceback.format_exc()}")
+
