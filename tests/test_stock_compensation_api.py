@@ -186,5 +186,43 @@ class TestStockCompensationAPI(unittest.TestCase):
         self.assertLess(r_mid["total_error_in"], r_high["total_error_in"])
         self.assertNotEqual(r_low["recommended_radial_stock"], r_high["recommended_radial_stock"])
 
+    def test_evaluates_formula_expressions(self):
+        from app import clean_and_eval_stock_expr
+        # Direct evaluation tests
+        self.assertEqual(clean_and_eval_stock_expr("(-.1) * 1mm", "mm"), "-0.100 mm")
+        self.assertEqual(clean_and_eval_stock_expr("(.1)*1mm", "mm"), "0.100 mm")
+        self.assertEqual(clean_and_eval_stock_expr("(-0.1) * 1 mm", "mm"), "-0.100 mm")
+        self.assertEqual(clean_and_eval_stock_expr("0mm", "mm"), "0.000 mm")
+        self.assertEqual(clean_and_eval_stock_expr("0.0 mm", "mm"), "0.000 mm")
+        self.assertEqual(clean_and_eval_stock_expr("(-.002) * 1 in", "in"), "-0.0020 in")
+        self.assertEqual(clean_and_eval_stock_expr("0.0000 in", "in"), "0.0000 in")
+
+        # API integration test with raw formula expressions
+        payload = {
+            "family": "Titanium Alloy",
+            "alloy": "Ti-6Al-4V (Grade 5)",
+            "mode": "auto_compensate",
+            "operations": [
+                {
+                    "id": "op_flat",
+                    "name": "Flat (ProfileCentre)",
+                    "strategy": "flat",
+                    "unit": "mm",
+                    "diameter": 0.125,
+                    "flutes": 4,
+                    "current_radial_stock": "0mm",
+                    "current_axial_stock": "(-.1) * 1mm"
+                }
+            ]
+        }
+        resp = self.client.post("/api/stock_compensation", json=payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        r = data["results"][0]
+        self.assertEqual(r["recommended_radial_stock"], "0.000 mm")
+        self.assertEqual(r["recommended_axial_stock"], "-0.100 mm")
+        self.assertNotIn("(", r["recommended_axial_stock"])
+        self.assertNotIn("*", r["recommended_axial_stock"])
+
 if __name__ == '__main__':
     unittest.main()

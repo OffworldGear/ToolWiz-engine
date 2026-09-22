@@ -721,16 +721,91 @@ def op_supports_stock_to_leave(op):
             return True
     return False
 
-def get_op_stock_values(op):
-    """Retrieves current radial and axial stock to leave expressions."""
-    rad_val = "0.0000 in"
+def get_cam_document_units():
+    """Detects whether active CAM workspace is in millimeters or inches."""
+    try:
+        prod = app.activeProduct
+        if prod and hasattr(prod, 'unitsManager') and prod.unitsManager:
+            u = str(prod.unitsManager.defaultLengthUnits).lower()
+            if any(m in u for m in ['mm', 'millimeter', 'milli']):
+                return "mm"
+    except:
+        pass
+    try:
+        camObj = app.activeDocument.products.itemByProductType('CAMProductType')
+        if camObj and hasattr(camObj, 'unitsManager') and camObj.unitsManager:
+            u = str(camObj.unitsManager.defaultLengthUnits).lower()
+            if any(m in u for m in ['mm', 'millimeter', 'milli']):
+                return "mm"
+    except:
+        pass
+    try:
+        doc = app.activeDocument
+        if doc and hasattr(doc, 'unitsManager') and doc.unitsManager:
+            u = str(doc.unitsManager.defaultLengthUnits).lower()
+            if any(m in u for m in ['mm', 'millimeter', 'milli']):
+                return "mm"
+    except:
+        pass
+    return "in"
+
+def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
+    """Evaluates dimension expressions like '(-.1) * 1mm', '(.1)*1mm', or '0mm'
+    into clean, formatted numeric strings like '-0.100 mm' or '0.000 mm'.
+    """
+    if expr_str is None or str(expr_str).strip() == "":
+        return "0.000 mm" if doc_unit == "mm" else "0.0000 in"
+    s = str(expr_str).strip()
+    
+    unit = doc_unit
+    s_lower = s.lower()
+    if "mm" in s_lower or "milli" in s_lower:
+        unit = "mm"
+    elif "in" in s_lower or '"' in s:
+        unit = "in"
+        
+    # Try Fusion's native unitsManager first if available
+    try:
+        prod = app.activeProduct
+        if prod and hasattr(prod, 'unitsManager') and prod.unitsManager:
+            val = prod.unitsManager.evaluateExpression(s, unit)
+            if abs(val) < 1e-6:
+                val = 0.0
+            if unit == "mm":
+                return f"{val:.3f} mm"
+            else:
+                return f"{val:.4f} in"
+    except:
+        pass
+
+    # Regex arithmetic fallback
+    try:
+        math_str = re.sub(r'([0-9\.\)])\s*(?:mm|millimeter|millimetre|inches|inch|in|\")', r'\1 * 1.0', s, flags=re.I)
+        math_str = re.sub(r'(?:mm|millimeter|millimetre|inches|inch|in|\")', r' 1.0 ', math_str, flags=re.I)
+        if re.match(r'^[0-9\.\+\-\*\/\(\)\s]+$', math_str):
+            val = float(eval(math_str, {'__builtins__': None}, {}))
+            if abs(val) < 1e-6:
+                val = 0.0
+            if unit == "mm":
+                return f"{val:.3f} mm"
+            else:
+                return f"{val:.4f} in"
+    except:
+        pass
+        
+    return s
+
+def get_op_stock_values(op, doc_unit="in"):
+    """Retrieves current radial and axial stock to leave expressions cleanly formatted."""
+    zero_str = "0.000 mm" if doc_unit == "mm" else "0.0000 in"
+    rad_val = zero_str
     for r_name in ['stockToLeave', 'radialStockToLeave']:
         p = op.parameters.itemByName(r_name)
         if p is not None and p.expression:
-            rad_val = str(p.expression).strip()
+            rad_val = clean_and_eval_stock_expr(p.expression, doc_unit)
             break
             
-    ax_val = "0.0000 in"
+    ax_val = zero_str
     for a_name in ['verticalStockToLeave', 'axialStockToLeave']:
         p = op.parameters.itemByName(a_name)
         if p is not None and p.expression:
@@ -739,7 +814,7 @@ def get_op_stock_values(op):
             if raw_ax in ['stockToLeave', 'radialStockToLeave', 'useStockToLeave']:
                 ax_val = rad_val
             else:
-                ax_val = raw_ax
+                ax_val = clean_and_eval_stock_expr(raw_ax, doc_unit)
             break
             
     return rad_val, ax_val
@@ -800,16 +875,19 @@ def get_op_cut_params(op):
         
     return rpm, feed, doc, woc
 
-def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in"):
+def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in", doc_unit="in"):
     """Queries http://127.0.0.1:5000/api/stock_compensation for all cached operations"""
     try:
         ops_payload = []
         for op_id, op_info in stock_ops_cache.items():
             geo = op_info.get("geo", {})
+            op_unit = op_info.get("unit", doc_unit)
+            zero_val = "0.000 mm" if op_unit == "mm" else "0.0000 in"
             ops_payload.append({
                 "id": op_id,
                 "name": op_info["name"],
                 "strategy": op_info["strategy"],
+                "unit": op_unit,
                 "diameter": geo.get("diameter", 0.375),
                 "flutes": geo.get("flutes", 4),
                 "fluteLength": geo.get("fluteLength", 0.75),
@@ -821,8 +899,8 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
                 "feedrate": op_info.get("feed", 0.0),
                 "doc": op_info.get("doc", 0.0),
                 "woc": op_info.get("woc", 0.0),
-                "current_radial_stock": op_info.get("current_radial", "0.0000 in"),
-                "current_axial_stock": op_info.get("current_axial", "0.0000 in")
+                "current_radial_stock": op_info.get("current_radial", zero_val),
+                "current_axial_stock": op_info.get("current_axial", zero_val)
             })
             
         payload = {
@@ -830,6 +908,7 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
             "alloy": alloy,
             "aggressiveness": aggressiveness,
             "mode": mode,
+            "unit": doc_unit,
             "custom_radial_offset": custom_rad,
             "custom_axial_offset": custom_ax,
             "operations": ops_payload
@@ -898,8 +977,12 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
                     inp_rad = op_info.get("inp_rad")
                     inp_ax = op_info.get("inp_ax")
                     
-                    rad_val = inp_rad.value.strip() if inp_rad else op_info["current_radial"]
-                    ax_val = inp_ax.value.strip() if inp_ax else op_info["current_axial"]
+                    rad_raw = inp_rad.value.strip() if inp_rad else op_info["current_radial"]
+                    ax_raw = inp_ax.value.strip() if inp_ax else op_info["current_axial"]
+                    
+                    doc_u = op_info.get("unit", "in")
+                    rad_val = clean_and_eval_stock_expr(rad_raw, doc_u)
+                    ax_val = clean_and_eval_stock_expr(ax_raw, doc_u)
                     
                     op = op_info["op"]
                     
@@ -1051,10 +1134,15 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 elif "Custom" in mode_choice:
                     mode_code = "custom"
                 
-                c_rad = custom_rad.value if custom_rad else "0.0000 in"
-                c_ax = custom_ax.value if custom_ax else "0.0000 in"
+                doc_u = "in"
+                for o_info in stock_ops_cache.values():
+                    doc_u = o_info.get("unit", "in")
+                    break
+                zero_str = "0.000 mm" if doc_u == "mm" else "0.0000 in"
+                c_rad = custom_rad.value if custom_rad else zero_str
+                c_ax = custom_ax.value if custom_ax else zero_str
                 
-                calc_results = query_toolwiz_stock_compensation(family, alloy, agg, mode_code, c_rad, c_ax)
+                calc_results = query_toolwiz_stock_compensation(family, alloy, agg, mode_code, c_rad, c_ax, doc_unit=doc_u)
                 if calc_results:
                     _is_updating_ui = True
                     try:
@@ -1076,9 +1164,9 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                             chk = op_info.get("chk")
                             
                             if inp_r and rad_val is not None:
-                                inp_r.value = str(rad_val)
+                                inp_r.value = clean_and_eval_stock_expr(str(rad_val), doc_u)
                             if inp_a and ax_val is not None:
-                                inp_a.value = str(ax_val)
+                                inp_a.value = clean_and_eval_stock_expr(str(ax_val), doc_u)
                             if lbl_adv and adv_text:
                                 adv_html = str(adv_text).replace('\n', '<br>')
                                 bg_col = op_info.get("bg_color", "#ffffff")
@@ -1131,6 +1219,8 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 ui.messageBox('Please switch to the Manufacture (CAM) workspace with an active setup.')
                 return
                 
+            doc_unit = get_cam_document_units()
+            
             # Scan setups and operations
             op_idx = 0
             for setup in camObj.setups:
@@ -1142,7 +1232,9 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             op_id = f"op_{op_idx}"
                             op_label = f"{setup_name} > {op.name}"
                             geo_payload, tool_summary, _ = get_op_tool_info(op)
-                            rad_val, ax_val = get_op_stock_values(op)
+                            rad_val, ax_val = get_op_stock_values(op, doc_unit)
+                            if "mm" in str(rad_val).lower() or "mm" in str(ax_val).lower():
+                                doc_unit = "mm"
                             rpm, feed, doc, woc = get_op_cut_params(op)
                             strat = getattr(op, 'strategy', 'contour2d')
                             
@@ -1174,6 +1266,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                                 "name": op.name,
                                 "strategy": strat,
                                 "tool_summary": tool_short,
+                                "unit": doc_unit,
                                 "geo": geo_payload or {
                                     "diameter": 0.375, "flutes": 4, "fluteLength": 0.75,
                                     "shankDiameter": 0.375, "stickout": 1.25, "coating": "Uncoated"
@@ -1241,8 +1334,9 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             mode_input.listItems.add('Zero-Out Finishing (0.0000")', False)
             mode_input.listItems.add('Batch Apply Custom Offset', False)
             
-            custom_rad = inputs.addStringValueInput('customRadOffset', 'Custom Radial Stock', '0.0000 in')
-            custom_ax = inputs.addStringValueInput('customAxOffset', 'Custom Axial Stock', '0.0000 in')
+            zero_str = "0.000 mm" if doc_unit == "mm" else "0.0000 in"
+            custom_rad = inputs.addStringValueInput('customRadOffset', 'Custom Radial Stock', zero_str)
+            custom_ax = inputs.addStringValueInput('customAxOffset', 'Custom Axial Stock', zero_str)
             custom_rad.isVisible = False
             custom_ax.isVisible = False
             
@@ -1259,7 +1353,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             # Initial calculation from Tool Wizard
             init_results = query_toolwiz_stock_compensation(
-                default_family, init_alloys[0] if init_alloys else "", 50, "auto_compensate"
+                default_family, init_alloys[0] if init_alloys else "", 50, "auto_compensate", doc_unit=doc_unit
             )
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             
@@ -1314,8 +1408,8 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             row_idx = 0
             for op_id, op_info in stock_ops_cache.items():
                 calc_r = res_map.get(op_id, {})
-                init_rad = calc_r.get("recommended_radial_stock", op_info["current_radial"])
-                init_ax = calc_r.get("recommended_axial_stock", op_info["current_axial"])
+                init_rad = clean_and_eval_stock_expr(calc_r.get("recommended_radial_stock", op_info["current_radial"]), doc_unit)
+                init_ax = clean_and_eval_stock_expr(calc_r.get("recommended_axial_stock", op_info["current_axial"]), doc_unit)
                 init_adv = calc_r.get("advisory", "Ready")
                 is_finish_op = calc_r.get("is_finishing", False)
                 op_info["is_finishing"] = is_finish_op

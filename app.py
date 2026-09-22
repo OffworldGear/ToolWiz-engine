@@ -3,6 +3,7 @@ import io
 import json
 import math
 import uuid
+import re
 from flask import Flask, render_template, request, jsonify, send_file
 from gwizard_physics import GWizardPhysics
 from ai_machinist import query_ai_machinist, get_available_gemini_models
@@ -1346,6 +1347,36 @@ def ai_models():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
+    """Evaluates dimension expressions like '(-.1) * 1mm', '(.1)*1mm', or '0mm'
+    into clean, formatted numeric strings like '-0.100 mm' or '0.000 mm'.
+    """
+    if expr_str is None or str(expr_str).strip() == "":
+        return "0.000 mm" if doc_unit == "mm" else "0.0000 in"
+    s = str(expr_str).strip()
+    
+    unit = doc_unit
+    s_lower = s.lower()
+    if "mm" in s_lower or "milli" in s_lower:
+        unit = "mm"
+    elif "in" in s_lower or '"' in s:
+        unit = "in"
+        
+    try:
+        math_str = re.sub(r'([0-9\.\)])\s*(?:mm|millimeter|millimetre|inches|inch|in|\")', r'\1 * 1.0', s, flags=re.I)
+        math_str = re.sub(r'(?:mm|millimeter|millimetre|inches|inch|in|\")', r' 1.0 ', math_str, flags=re.I)
+        if re.match(r'^[0-9\.\+\-\*\/\(\)\s]+$', math_str):
+            val = float(eval(math_str, {'__builtins__': None}, {}))
+            if abs(val) < 1e-6:
+                val = 0.0
+            if unit == "mm":
+                return f"{val:.3f} mm"
+            else:
+                return f"{val:.4f} in"
+    except Exception:
+        pass
+    return s
+
 @app.route("/api/stock_compensation", methods=["POST"])
 def stock_compensation():
     """Calculates tool deflection, material springback, and recommended radial/axial stock to leave
@@ -1367,8 +1398,11 @@ def stock_compensation():
             op_id = op.get("id", "")
             op_name = op.get("name", "Unknown Op")
             strat = op.get("strategy", "").lower()
-            unit = str(op.get("unit", "inches")).lower()
-            is_metric = "mm" in unit or "milli" in unit
+            unit = str(op.get("unit", "")).lower()
+            raw_rad = str(op.get("current_radial_stock", "")).strip()
+            raw_ax = str(op.get("current_axial_stock", "")).strip()
+            is_metric = "mm" in unit or "milli" in unit or "mm" in raw_rad.lower() or "mm" in raw_ax.lower()
+            doc_unit = "mm" if is_metric else "in"
             
             # Geometry (always in inches internally)
             diameter = float(op.get("diameter", 0.375))
@@ -1390,8 +1424,13 @@ def stock_compensation():
             woc_raw = float(op.get("woc", 0.0))
             woc_in = woc_raw / 25.4 if (is_metric and woc_raw > 0) else woc_raw
             
-            current_radial = str(op.get("current_radial_stock", "0.0000 in")).strip()
-            current_axial = str(op.get("current_axial_stock", "0.0000 in")).strip()
+            zero_rad_str = "0.000 mm" if is_metric else "0.0000 in"
+            zero_ax_str = "0.000 mm" if is_metric else "0.0000 in"
+            default_rough_rad = "0.500 mm" if is_metric else "0.0200 in"
+            default_rough_ax = "0.250 mm" if is_metric else "0.0100 in"
+            
+            current_radial = clean_and_eval_stock_expr(raw_rad, doc_unit) if raw_rad else default_rough_rad
+            current_axial = clean_and_eval_stock_expr(raw_ax, doc_unit) if raw_ax else default_rough_ax
             
             # Identify if Finishing vs Roughing
             strat_lower = strat.lower()
@@ -1450,23 +1489,18 @@ def stock_compensation():
             total_err = defl + sb
             wear_comp = -total_err
             
-            zero_rad_str = "0.000 mm" if is_metric else "0.0000 in"
-            zero_ax_str = "0.000 mm" if is_metric else "0.0000 in"
-            default_rough_rad = "0.500 mm" if is_metric else "0.0200 in"
-            default_rough_ax = "0.250 mm" if is_metric else "0.0100 in"
-            
             if mode == "zero_finishing":
                 if is_finishing:
                     rec_rad = zero_rad_str
                     rec_ax = zero_ax_str
                     advisory = "Finishing Pass\nZero Stock (0.0000)"
                 else:
-                    rec_rad = current_radial if current_radial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_rad
-                    rec_ax = current_axial if current_axial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_ax
+                    rec_rad = current_radial
+                    rec_ax = current_axial
                     advisory = f"Roughing Pass\nRetaining stock ({rec_rad})"
             elif mode == "custom":
-                rec_rad = custom_radial_offset or zero_rad_str
-                rec_ax = custom_axial_offset or zero_ax_str
+                rec_rad = clean_and_eval_stock_expr(custom_radial_offset, doc_unit) if custom_radial_offset else zero_rad_str
+                rec_ax = clean_and_eval_stock_expr(custom_axial_offset, doc_unit) if custom_axial_offset else zero_ax_str
                 advisory = f"Custom Batch\nRad: {rec_rad} | Ax: {rec_ax}"
             else:  # auto_compensate
                 if is_finishing:
@@ -1481,8 +1515,8 @@ def stock_compensation():
                         rec_ax = zero_ax_str
                         advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad}"
                 else:
-                    rec_rad = current_radial if current_radial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_rad
-                    rec_ax = current_axial if current_axial not in ["0 in", "0.0 in", "0.0000 in", "0 mm", "0.000 mm"] else default_rough_ax
+                    rec_rad = current_radial
+                    rec_ax = current_axial
                     advisory = f"Roughing Pass\nRetaining stock ({rec_rad})"
                     
             results.append({
