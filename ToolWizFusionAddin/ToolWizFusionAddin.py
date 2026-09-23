@@ -88,7 +88,7 @@ def parse_dim_to_inches(val, default=0.25, tool_unit=""):
             pass
     return default
 
-def parse_cam_param_to_inches(p, default=0.0):
+def parse_cam_param_to_inches(p, default=0.0, doc_unit="in"):
     """Safely retrieves a CAM parameter's evaluated length in inches.
     Fusion CAM parameters evaluate internal length in centimeters (cm).
     """
@@ -102,10 +102,10 @@ def parse_cam_param_to_inches(p, default=0.0):
                 return val_cm / 2.54  # cm to inches
     except:
         pass
-    # 2. Fallback: Parse expression string
+    # 2. Fallback: Parse expression string respecting document unit context
     try:
         if hasattr(p, 'expression') and p.expression:
-            return parse_dim_to_inches(p.expression, default)
+            return parse_dim_to_inches(p.expression, default, tool_unit=doc_unit)
     except:
         pass
     return default
@@ -740,13 +740,25 @@ def op_supports_stock_to_leave(op):
     return False
 
 def get_cam_document_units():
-    """Detects whether active CAM workspace is in millimeters or inches."""
+    """Detects whether active CAM workspace / document is in millimeters or inches."""
+    try:
+        des = app.activeDocument.products.itemByProductType('DesignProductType')
+        if des and hasattr(des, 'unitsManager') and des.unitsManager:
+            u = str(des.unitsManager.defaultLengthUnits).lower()
+            if any(m in u for m in ['mm', 'millimeter', 'milli']):
+                return "mm"
+            if any(m in u for m in ['in', 'inch']):
+                return "in"
+    except:
+        pass
     try:
         prod = app.activeProduct
         if prod and hasattr(prod, 'unitsManager') and prod.unitsManager:
             u = str(prod.unitsManager.defaultLengthUnits).lower()
             if any(m in u for m in ['mm', 'millimeter', 'milli']):
                 return "mm"
+            if any(m in u for m in ['in', 'inch']):
+                return "in"
     except:
         pass
     try:
@@ -755,6 +767,8 @@ def get_cam_document_units():
             u = str(camObj.unitsManager.defaultLengthUnits).lower()
             if any(m in u for m in ['mm', 'millimeter', 'milli']):
                 return "mm"
+            if any(m in u for m in ['in', 'inch']):
+                return "in"
     except:
         pass
     try:
@@ -763,6 +777,8 @@ def get_cam_document_units():
             u = str(doc.unitsManager.defaultLengthUnits).lower()
             if any(m in u for m in ['mm', 'millimeter', 'milli']):
                 return "mm"
+            if any(m in u for m in ['in', 'inch']):
+                return "in"
     except:
         pass
     return "in"
@@ -884,13 +900,12 @@ def get_op_stock_values(op, doc_unit="in"):
         
     return True, rad_val, ax_val
 
-def get_op_cut_params(op):
-    """Extracts feeds, speeds, DOC, and WOC from operation."""
+def get_op_cut_params(op, doc_unit="in"):
+    """Extracts feeds, speeds, DOC, and WOC from operation, correctly converting metric values to inches."""
     rpm = 0.0
     feed = 0.0
     doc = 0.0
     woc = 0.0
-    doc_unit = get_cam_document_units()
     try:
         # 1. Spindle Speed (RPM)
         p_rpm = op.parameters.itemByName('tool_spindleSpeed')
@@ -917,30 +932,35 @@ def get_op_cut_params(op):
         p_feed = op.parameters.itemByName('tool_feedCutting')
         if p_feed:
             try:
-                # Primary: evaluated internal value in cm/s (1 cm/s = 60 cm/min = 600 mm/min = 23.622 in/min)
-                if hasattr(p_feed, 'value') and hasattr(p_feed.value, 'value') and isinstance(p_feed.value.value, (int, float)):
-                    val_cm_s = float(p_feed.value.value)
-                    if val_cm_s > 0:
-                        feed = val_cm_s * 60.0 / 2.54  # cm/s to in/min (IPM)
-                # Secondary: parse expression string
-                if feed <= 0 and p_feed.expression:
+                # Primary: parse expression string
+                if p_feed.expression:
                     import re
                     m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_feed.expression))
                     if m:
                         raw_feed = float(m.group(1))
                         expr_str = str(p_feed.expression).lower()
-                        if 'mm' in expr_str or doc_unit == 'mm':
+                        # If feed is above 100 or metric unit detected, it is mm/min
+                        if 'mm' in expr_str or doc_unit == 'mm' or raw_feed > 120:
                             feed = raw_feed / 25.4  # mm/min to IPM
                         else:
                             feed = raw_feed
+                # Secondary: evaluated internal value in cm/s (1 cm/s = 60 cm/min = 600 mm/min = 23.622 in/min)
+                if feed <= 0 and hasattr(p_feed, 'value') and hasattr(p_feed.value, 'value') and isinstance(p_feed.value.value, (int, float)):
+                    val_cm_s = float(p_feed.value.value)
+                    if val_cm_s > 0:
+                        feed = val_cm_s * 60.0 / 2.54  # cm/s to in/min (IPM)
             except:
                 pass
                 
+        # Sanity check: cutting feedrate in IPM should almost never exceed 150 IPM for precision milling
+        if feed > 150:
+            feed = feed / 25.4
+
         # 3. Axial Depth of Cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:
             p = op.parameters.itemByName(doc_name)
             if p and getattr(p, 'isEnabled', True):
-                doc = parse_cam_param_to_inches(p, 0.0)
+                doc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                 if doc > 0:
                     break
                     
@@ -949,7 +969,7 @@ def get_op_cut_params(op):
         for woc_fin in ['finishingStepover']:
             p = op.parameters.itemByName(woc_fin)
             if p and getattr(p, 'isEnabled', True):
-                woc = parse_cam_param_to_inches(p, 0.0)
+                woc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                 if woc > 0:
                     break
                     
@@ -957,7 +977,7 @@ def get_op_cut_params(op):
             for woc_name in ['stepover', 'optimalLoad', 'maximumStepover']:
                 p = op.parameters.itemByName(woc_name)
                 if p and getattr(p, 'isEnabled', True):
-                    woc = parse_cam_param_to_inches(p, 0.0)
+                    woc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                     if woc > 0:
                         break
     except:
@@ -1374,7 +1394,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             is_active, rad_val, ax_val = get_op_stock_values(op, doc_unit)
                             if is_active and ("mm" in str(rad_val).lower() or "mm" in str(ax_val).lower()):
                                 doc_unit = "mm"
-                            rpm, feed, doc, woc = get_op_cut_params(op)
+                            rpm, feed, doc, woc = get_op_cut_params(op, doc_unit)
                             strat = getattr(op, 'strategy', 'contour2d')
                             
                             tool_short = "Tool"

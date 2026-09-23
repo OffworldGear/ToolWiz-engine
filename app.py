@@ -1445,6 +1445,17 @@ def stock_compensation():
                 is_finishing = False
                 
             # If doc/woc or feeds/speeds are missing, use standard finishing or roughing defaults
+            # Sanitize inputs for realistic physics against accidental unit confusion (e.g. mm/min sent as IPM)
+            if is_metric:
+                if feedrate_ipm > 120 or (rpm > 0 and flutes > 0 and (feedrate_ipm / (rpm * flutes)) > 0.008):
+                    feedrate_ipm = feedrate_ipm / 25.4
+                if doc_in > diameter * 4.0:
+                    doc_in = doc_in / 25.4
+                if woc_in > diameter:
+                    woc_in = woc_in / 25.4
+            elif feedrate_ipm > 150:
+                feedrate_ipm = feedrate_ipm / 25.4
+
             if is_finishing:
                 if doc_in <= 0:
                     doc_in = flute_len * 0.75 if flute_len > 0 else diameter * 1.5
@@ -1502,9 +1513,9 @@ def stock_compensation():
             else:  # auto_compensate
                 if is_finishing:
                     # Maximum safe negative radial stock compensation ceiling for finishing passes
-                    # Precision finish cuts should never exceed 0.0025" - 0.0030" (0.065 - 0.075 mm)
-                    # to prevent any risk of part gouging from extreme tool stickout or heavy cuts.
-                    max_safe_comp_in = 0.0025
+                    # Precision finish cuts should never exceed 0.0025" (0.065 mm) or 2.5% of tool diameter
+                    # to prevent any risk of part gouging or scrap.
+                    max_safe_comp_in = min(0.0025, max(0.0008, diameter * 0.025))
                     is_clamped = total_err > max_safe_comp_in
                     eff_total_err = min(total_err, max_safe_comp_in)
                     
@@ -1515,7 +1526,7 @@ def stock_compensation():
                         defl_um = defl * 25.4 * 1000
                         sb_um = sb * 25.4 * 1000
                         if is_clamped:
-                            advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} (Clamped to safe ceiling)"
+                            advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} (Clamped to safe finish ceiling)"
                         else:
                             advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} ({-eff_total_err:.4f}\")"
                     else:
@@ -1523,7 +1534,7 @@ def stock_compensation():
                         rec_rad = f"{rec_rad_val:.4f} in"
                         rec_ax = zero_ax_str
                         if is_clamped:
-                            advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} (Clamped to safe ceiling)"
+                            advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} (Clamped to safe finish ceiling)"
                         else:
                             advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} ({-eff_total_err*25.4:.3f} mm)"
                 else:
