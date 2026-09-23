@@ -1167,7 +1167,42 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 if custom_rad: custom_rad.isVisible = is_custom
                 if custom_ax: custom_ax.isVisible = is_custom
                 
-            # 3. Handle Setup Master ON/OFF Switch
+            # 3. Handle Setup Master ON/OFF Switches
+            if cmdInput.id == 'setup_master_toggle':
+                master_sw = adsk.core.BoolValueCommandInput.cast(cmdInput)
+                is_master_active = master_sw.value if master_sw else getattr(cmdInput, 'value', True)
+                
+                _is_updating_ui = True
+                try:
+                    for s_name, s_data in stock_setups_cache.items():
+                        sw_id = s_data.get("sw_id")
+                        sw_input = adsk.core.BoolValueCommandInput.cast(inputs.itemById(sw_id))
+                        if sw_input:
+                            sw_input.value = is_master_active
+                        
+                        for op_id in s_data.get("ops", []):
+                            op_info = stock_ops_cache.get(op_id)
+                            if not op_info:
+                                continue
+                            
+                            # Update Checkbox (Col 0)
+                            chk = op_info.get("chk")
+                            if chk:
+                                if not is_master_active:
+                                    chk.value = False
+                                else:
+                                    chk.value = op_info.get("is_finishing", False)
+                                    
+                            # Set isVisible on all cells in the row to collapse or show the row in the table
+                            for cell in op_info.get("cells", []):
+                                try:
+                                    cell.isVisible = is_master_active
+                                except:
+                                    pass
+                finally:
+                    _is_updating_ui = False
+                return
+
             if cmdInput.id.startswith('setup_sw_'):
                 sw = adsk.core.BoolValueCommandInput.cast(cmdInput)
                 is_active = sw.value if sw else getattr(cmdInput, 'value', True)
@@ -1200,6 +1235,16 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                                     cell.isVisible = is_active
                                 except:
                                     pass
+
+                        # Sync master toggle checkbox state
+                        master_sw = adsk.core.BoolValueCommandInput.cast(inputs.itemById('setup_master_toggle'))
+                        if master_sw:
+                            all_checked = all(
+                                getattr(inputs.itemById(s['sw_id']), 'value', False)
+                                for s in stock_setups_cache.values()
+                                if inputs.itemById(s['sw_id'])
+                            )
+                            master_sw.value = all_checked
                     finally:
                         _is_updating_ui = False
                 return
@@ -1437,8 +1482,11 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             # Setup Master ON/OFF switches (if multiple setups exist)
             if len(stock_setups_cache) > 1:
-                setup_group = inputs.addGroupCommandInput('setupGroup', 'Setups to Include (Master ON/OFF)')
+                setup_group = inputs.addGroupCommandInput('setupGroup', 'Setups to Include')
                 setup_group.isExpanded = True
+                setup_group.children.addBoolValueInput(
+                    'setup_master_toggle', '<b>Select / Deselect All Setups</b>', True, '', True
+                )
                 for s_name, s_data in stock_setups_cache.items():
                     s_ops = s_data["ops"]
                     sw_id = s_data["sw_id"]
@@ -1467,7 +1515,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             # Row 0 of Header Table (2-line wrapping headers with clean header background)
             hdr_bg = "#d9e1e8"
-            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '<b>Apply</b>', 2, True, hdr_bg, align="center")
+            h_apply = add_cell_text(header_table.commandInputs, 'hdr_apply', '', 2, True, hdr_bg, align="center")
             header_table.addCommandInput(h_apply, 0, 0)
             
             h_op = add_cell_text(header_table.commandInputs, 'hdr_op', '<b>Toolpath Operation</b>', 2, True, hdr_bg)
@@ -1493,7 +1541,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             stock_table_input = table
             table.isFullWidth = True
             table.minimumVisibleRows = 4
-            table.maximumVisibleRows = 12
+            table.maximumVisibleRows = 6
             table.hasGrid = False
             table.columnSpacing = 4
             table.rowSpacing = 3
