@@ -1450,6 +1450,8 @@ def stock_compensation():
                     doc_in = flute_len * 0.75 if flute_len > 0 else diameter * 1.5
                 if woc_in <= 0:
                     woc_in = max(diameter * 0.04, 0.008)  # 4% D light finishing cut
+                # Ensure finishing WOC does not exceed standard finish cut allowance (max 10% D or 0.025")
+                woc_in = min(woc_in, max(diameter * 0.10, 0.025))
             else:
                 if doc_in <= 0:
                     doc_in = diameter * 1.0
@@ -1499,16 +1501,31 @@ def stock_compensation():
                 advisory = f"Custom Batch\nRad: {rec_rad} | Ax: {rec_ax}"
             else:  # auto_compensate
                 if is_finishing:
+                    # Maximum safe negative radial stock compensation ceiling for finishing passes
+                    # Precision finish cuts should never exceed 0.0025" - 0.0030" (0.065 - 0.075 mm)
+                    # to prevent any risk of part gouging from extreme tool stickout or heavy cuts.
+                    max_safe_comp_in = 0.0025
+                    is_clamped = total_err > max_safe_comp_in
+                    eff_total_err = min(total_err, max_safe_comp_in)
+                    
                     if is_metric:
-                        rec_rad_val = -total_err * 25.4
+                        rec_rad_val = -eff_total_err * 25.4
                         rec_rad = f"{rec_rad_val:.3f} mm"
                         rec_ax = zero_ax_str
-                        advisory = f"Defl: {defl*25.4*1000:.1f}µm | Spring: {sb*25.4*1000:.1f}µm\nRec: {rec_rad} ({-total_err:.4f}\")"
+                        defl_um = defl * 25.4 * 1000
+                        sb_um = sb * 25.4 * 1000
+                        if is_clamped:
+                            advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} (Clamped to safe ceiling)"
+                        else:
+                            advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} ({-eff_total_err:.4f}\")"
                     else:
-                        rec_rad_val = -total_err
+                        rec_rad_val = -eff_total_err
                         rec_rad = f"{rec_rad_val:.4f} in"
                         rec_ax = zero_ax_str
-                        advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} ({-total_err*25.4:.3f} mm)"
+                        if is_clamped:
+                            advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} (Clamped to safe ceiling)"
+                        else:
+                            advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} ({-eff_total_err*25.4:.3f} mm)"
                 else:
                     rec_rad = current_radial
                     rec_ax = current_axial

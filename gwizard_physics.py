@@ -2156,13 +2156,16 @@ class GWizardPhysics:
         if material_family and material_family in self.machinability:
             unit_hp = self.machinability[material_family].get("unit_hp", 1.0)
 
-        _, _, deflection_force, _ = CuttingMechanics.calc_cutting_forces(
+        _, radial_force, deflection_force, _ = CuttingMechanics.calc_cutting_forces(
             diameter, cut_depth, cut_width, feedrate, rpm, flutes, unit_hp, helix_angle,
             operation=operation, geometry=geometry, corner_radius=corner_radius
         )
 
+        # For finishing operations, wall dimensional error is governed by the radial force pushing the cutter normal to the wall
+        applied_force = radial_force if "finish" in str(operation).lower() else deflection_force
+
         return BeamDeflectionEngine.calculate_deflection(
-            cutting_force_lbs=deflection_force,
+            cutting_force_lbs=applied_force,
             diameter=diameter,
             shank_diameter=shank_size,
             stickout=stickout,

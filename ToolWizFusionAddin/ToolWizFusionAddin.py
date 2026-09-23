@@ -162,13 +162,22 @@ def get_op_tool_info(op):
         presets = t_dict.get("start-values", {}).get("presets", [])
         preset_names = [p.get("name", "Unnamed Preset") for p in presets if p.get("name")]
         
+        # Check Length Below Holder (LB) or body length from tool geometry
+        lb_raw = geo.get("LB") or geo.get("bodyLength")
+        if lb_raw:
+            stickout = parse_dim_to_inches(lb_raw, flute_length + diameter * 0.5, tool_unit)
+        else:
+            # Default realistic stickout: flute_length + 0.125" clamped to 3.5xD unless tool has long flutes
+            default_stick = flute_length + min(0.25, diameter * 0.5)
+            stickout = max(flute_length * 1.05, min(default_stick, diameter * 3.5))
+
         geo_payload = {
             "diameter": diameter,
             "flutes": flutes,
             "fluteLength": flute_length,
             "shankDiameter": shank_diameter,
             "cornerRadius": corner_radius,
-            "stickout": flute_length * 1.5,
+            "stickout": stickout,
             "coating": "Uncoated",
             "geometry": "Square" if corner_radius == 0 else "Radiused",
             "desc": desc,
@@ -881,51 +890,76 @@ def get_op_cut_params(op):
     feed = 0.0
     doc = 0.0
     woc = 0.0
+    doc_unit = get_cam_document_units()
     try:
+        # 1. Spindle Speed (RPM)
         p_rpm = op.parameters.itemByName('tool_spindleSpeed')
         if p_rpm:
             try:
-                if hasattr(p_rpm, 'value') and hasattr(p_rpm.value, 'value') and p_rpm.value.value > 0:
-                    rpm = float(p_rpm.value.value)
-                elif p_rpm.expression:
+                # Expression has highest priority for user-entered RPM string (e.g. "3500 rpm" or "3500")
+                if p_rpm.expression:
                     import re
                     m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_rpm.expression))
                     if m:
                         rpm = float(m.group(1))
+                # Fallback to evaluated value
+                if rpm <= 0 and hasattr(p_rpm, 'value') and hasattr(p_rpm.value, 'value'):
+                    val = float(p_rpm.value.value)
+                    # Fusion CAM angular velocity database unit is rad/s (1 rad/s = 9.5493 RPM)
+                    if 0 < val < 2000:
+                        rpm = val * 60.0 / (2.0 * math.pi)
+                    else:
+                        rpm = val
             except:
                 pass
                 
+        # 2. Cutting Feedrate (IPM)
         p_feed = op.parameters.itemByName('tool_feedCutting')
         if p_feed:
             try:
-                if p_feed.expression:
+                # Primary: evaluated internal value in cm/s (1 cm/s = 60 cm/min = 600 mm/min = 23.622 in/min)
+                if hasattr(p_feed, 'value') and hasattr(p_feed.value, 'value') and isinstance(p_feed.value.value, (int, float)):
+                    val_cm_s = float(p_feed.value.value)
+                    if val_cm_s > 0:
+                        feed = val_cm_s * 60.0 / 2.54  # cm/s to in/min (IPM)
+                # Secondary: parse expression string
+                if feed <= 0 and p_feed.expression:
                     import re
                     m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_feed.expression))
                     if m:
                         raw_feed = float(m.group(1))
-                        if 'mm' in str(p_feed.expression).lower():
-                            feed = raw_feed / 25.4
+                        expr_str = str(p_feed.expression).lower()
+                        if 'mm' in expr_str or doc_unit == 'mm':
+                            feed = raw_feed / 25.4  # mm/min to IPM
                         else:
                             feed = raw_feed
-                elif hasattr(p_feed, 'value') and hasattr(p_feed.value, 'value') and p_feed.value.value > 0:
-                    val = float(p_feed.value.value)
-                    feed = (val * 60.0 / 2.54) if val < 100 else val
             except:
                 pass
                 
+        # 3. Axial Depth of Cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:
             p = op.parameters.itemByName(doc_name)
-            if p:
+            if p and getattr(p, 'isEnabled', True):
                 doc = parse_cam_param_to_inches(p, 0.0)
                 if doc > 0:
                     break
                     
-        for woc_name in ['stepover', 'maximumStepover', 'optimalLoad']:
-            p = op.parameters.itemByName(woc_name)
-            if p:
+        # 4. Radial Width of Cut (WOC)
+        # Check finishing stepover first (for 2D Contour and finishing ops)
+        for woc_fin in ['finishingStepover']:
+            p = op.parameters.itemByName(woc_fin)
+            if p and getattr(p, 'isEnabled', True):
                 woc = parse_cam_param_to_inches(p, 0.0)
                 if woc > 0:
                     break
+                    
+        if woc <= 0:
+            for woc_name in ['stepover', 'optimalLoad', 'maximumStepover']:
+                p = op.parameters.itemByName(woc_name)
+                if p and getattr(p, 'isEnabled', True):
+                    woc = parse_cam_param_to_inches(p, 0.0)
+                    if woc > 0:
+                        break
     except:
         pass
         
