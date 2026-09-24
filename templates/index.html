@@ -107,6 +107,49 @@
         .tool-setup-header-status a:hover {
             background: rgba(245, 158, 11, 0.65) !important;
         }
+
+        /* High-Contrast Inputs Column & Cards */
+        .inputs-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .input-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            background: rgba(30, 41, 59, 0.72) !important;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 12px;
+            padding: 1.15rem 1.25rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+        }
+        .input-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--accent), transparent);
+        }
+        .input-card-title {
+            margin: 0 0 0.85rem 0;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.5rem;
+        }
+        .input-card-title .input-card-icon {
+            font-size: 1.05rem;
+        }
     </style>
 </head>
 <body>
@@ -154,12 +197,11 @@
             </div>
 
             <main class="calculator-3col-layout">
-                <!-- INPUTS PANEL -->
-                <section class="glass-panel inputs-panel">
-                    <h2>Parameters</h2>
-                    
-                    <fieldset class="param-group">
-                        <legend>Workpiece Material</legend>
+                <!-- INPUTS COLUMN (3 High-Contrast Distinct Cards) -->
+                <div class="inputs-column">
+                    <!-- 1. WORKPIECE MATERIAL CARD -->
+                    <div class="glass-panel input-card">
+                        <h3 class="input-card-title"><span class="input-card-icon">🧱</span> Workpiece Material</h3>
                         <div class="input-group">
                             <label for="family">Material Family</label>
                             <select id="family" onchange="updateAlloys(); calculate()"></select>
@@ -168,10 +210,83 @@
                             <label for="alloy">Specific Alloy</label>
                             <select id="alloy" onchange="calculate()"></select>
                         </div>
-                    </fieldset>
+                    </div>
 
-                    <fieldset class="param-group">
-                        <legend>Tool Properties <span id="autoSetSummaryPill" class="tool-setup-header-status" style="display:none;"></span></legend>
+                    <!-- 2. MACHINE & CUT PARAMETERS CARD (Above Tool Properties) -->
+                    <div class="glass-panel input-card">
+                        <h3 class="input-card-title"><span class="input-card-icon">⚙️</span> Machine & Cut Parameters</h3>
+                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
+                            <div class="input-group" style="margin:0;">
+                                <label for="maxRpm">Max RPM</label>
+                                <input type="number" id="maxRpm" class="tool-dialog-input" value="16000" oninput="calculate()">
+                            </div>
+                            <div class="input-group" style="margin:0;">
+                                <label for="maxHp">Max HP</label>
+                                <input type="number" id="maxHp" class="tool-dialog-input" value="10.0" step="0.5" oninput="calculate()">
+                            </div>
+                            <div class="input-group" style="margin:0;">
+                                <label for="runout">Runout (<span class="unit-lbl">in</span>)</label>
+                                <input type="number" id="runout" class="tool-dialog-input" value="0.0002" step="0.0001" oninput="calculate()">
+                            </div>
+                        </div>
+
+                        <div class="input-group" style="margin-bottom:1.5rem;">
+                            <label for="operation">Strategy / Operation</label>
+                            <select id="operation" onchange="handleOpChange()">
+                                <option value="Adaptive Roughing">Adaptive Roughing</option>
+                                <option value="Standard Roughing">Standard Roughing</option>
+                                <option value="Semi-Finishing">Semi-Finishing</option>
+                                <option value="Wall Finishing (Deep DOC)">Wall Finishing (Deep DOC)</option>
+                                <option value="Floor Finishing (Skim)">Floor Finishing (Skim)</option>
+                                <option value="3D Contouring / Scallop Finishing">3D Contouring / Scallop Finishing</option>
+                                <option value="Slotting / Tab Milling">Slotting / Tab Milling</option>
+                                <option value="High Feed Milling">High Feed Milling</option>
+                                <option value="Facing">Facing</option>
+                            </select>
+                        </div>
+
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label for="aggressiveness">Tortoise to Hare (Aggressiveness)</label>
+                                <span id="aggrVol">50%</span>
+                            </div>
+                            <input type="range" id="aggressiveness" min="0" max="100" step="1" value="50" oninput="document.getElementById('aggrVol').innerText = this.value + '%'; calculate()">
+                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
+                                <span>Conservative</span>
+                                <span>Aggressive</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0.4rem 0.65rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px;">
+                            <span style="font-size: 0.8rem; color: #cbd5e1;">
+                                <strong style="color: var(--accent);">Target Cut:</strong> <span id="subRecOutput">--</span>
+                            </span>
+                            <button type="button" onclick="applyRecommendations()" class="btn-ratio" style="flex: initial; padding: 3px 8px; background: var(--accent); color: white; border-color: var(--accent); cursor: pointer;" title="Automatically set Axial DOC and Radial WOC to physics recommendations">⚡ Auto-Set Dials</button>
+                        </div>
+
+                        <div class="slider-group" id="cutDepthGroup">
+                            <div class="slider-header">
+                                <label for="cutDepth_range"><span id="cutDepthLabelText">Axial Depth of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutDepth" class="auto-set-badge" onclick="confirmAutoSet('cutDepth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="cutDepth_val" step="0.0001" value="0.250" class="inline-num" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_range').value = this.value; calculate()">
+                            </div>
+                            <input type="range" id="cutDepth_range" min="0.001" max="2.0" step="0.001" value="0.25" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
+                        </div>
+
+                        <div class="slider-group" id="cutWidthGroup" style="margin-bottom:0;">
+                            <div class="slider-header">
+                                <label for="cutWidth_range"><span id="cutWidthLabelText">Radial Width of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutWidth" class="auto-set-badge" onclick="confirmAutoSet('cutWidth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="cutWidth_val" step="0.0001" value="0.100" class="inline-num" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_range').value = this.value; calculate()">
+                            </div>
+                            <input type="range" id="cutWidth_range" min="0.001" max="2.0" step="0.001" value="0.1" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
+                        </div>
+                    </div>
+
+                    <!-- 3. TOOL PROPERTIES CARD -->
+                    <div class="glass-panel input-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.5rem;">
+                            <h3 class="input-card-title" style="margin: 0; border: none; padding: 0;"><span class="input-card-icon">📐</span> Tool Properties</h3>
+                            <span id="autoSetSummaryPill" class="tool-setup-header-status" style="display:none;"></span>
+                        </div>
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="tool">Tool Category</label>
@@ -298,75 +413,8 @@
                             <input type="number" id="stickout_val" class="tool-dialog-input" step="0.001" value="1.500" oninput="markManualEdit('stickout'); document.getElementById('stickout_range').value = this.value; calculate()">
                             <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" style="margin-top: 6px;" oninput="markManualEdit('stickout'); document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
                         </div>
-                    </fieldset>
-
-                    <fieldset class="param-group">
-                        <legend>Machine & Cut Parameters</legend>
-                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
-                            <div class="input-group" style="margin:0;">
-                                <label for="maxRpm">Max RPM</label>
-                                <input type="number" id="maxRpm" class="tool-dialog-input" value="16000" oninput="calculate()">
-                            </div>
-                            <div class="input-group" style="margin:0;">
-                                <label for="maxHp">Max HP</label>
-                                <input type="number" id="maxHp" class="tool-dialog-input" value="10.0" step="0.5" oninput="calculate()">
-                            </div>
-                            <div class="input-group" style="margin:0;">
-                                <label for="runout">Runout (<span class="unit-lbl">in</span>)</label>
-                                <input type="number" id="runout" class="tool-dialog-input" value="0.0002" step="0.0001" oninput="calculate()">
-                            </div>
-                        </div>
-
-                        <div class="input-group" style="margin-bottom:1.5rem;">
-                            <label for="operation">Strategy / Operation</label>
-                            <select id="operation" onchange="handleOpChange()">
-                                <option value="Adaptive Roughing">Adaptive Roughing</option>
-                                <option value="Standard Roughing">Standard Roughing</option>
-                                <option value="Semi-Finishing">Semi-Finishing</option>
-                                <option value="Wall Finishing (Deep DOC)">Wall Finishing (Deep DOC)</option>
-                                <option value="Floor Finishing (Skim)">Floor Finishing (Skim)</option>
-                                <option value="Slotting / Tab Milling">Slotting / Tab Milling</option>
-                                <option value="High Feed Milling">High Feed Milling</option>
-                                <option value="Facing">Facing</option>
-                            </select>
-                        </div>
-
-                        <div class="slider-group">
-                            <div class="slider-header">
-                                <label for="aggressiveness">Tortoise to Hare (Aggressiveness)</label>
-                                <span id="aggrVol">50%</span>
-                            </div>
-                            <input type="range" id="aggressiveness" min="0" max="100" step="1" value="50" oninput="document.getElementById('aggrVol').innerText = this.value + '%'; calculate()">
-                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
-                                <span>Conservative</span>
-                                <span>Aggressive</span>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0.4rem 0.65rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px;">
-                            <span style="font-size: 0.8rem; color: #cbd5e1;">
-                                <strong style="color: var(--accent);">Target Cut:</strong> <span id="subRecOutput">--</span>
-                            </span>
-                            <button type="button" onclick="applyRecommendations()" class="btn-ratio" style="flex: initial; padding: 3px 8px; background: var(--accent); color: white; border-color: var(--accent); cursor: pointer;" title="Automatically set Axial DOC and Radial WOC to physics recommendations">⚡ Auto-Set Dials</button>
-                        </div>
-
-                        <div class="slider-group" id="cutDepthGroup">
-                            <div class="slider-header">
-                                <label for="cutDepth_range"><span id="cutDepthLabelText">Axial Depth of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutDepth" class="auto-set-badge" onclick="confirmAutoSet('cutDepth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                                <input type="number" id="cutDepth_val" step="0.0001" value="0.250" class="inline-num" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_range').value = this.value; calculate()">
-                            </div>
-                            <input type="range" id="cutDepth_range" min="0.001" max="2.0" step="0.001" value="0.25" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
-                        </div>
-
-                        <div class="slider-group" id="cutWidthGroup" style="margin-bottom:0;">
-                            <div class="slider-header">
-                                <label for="cutWidth_range"><span id="cutWidthLabelText">Radial Width of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutWidth" class="auto-set-badge" onclick="confirmAutoSet('cutWidth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                                <input type="number" id="cutWidth_val" step="0.0001" value="0.100" class="inline-num" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_range').value = this.value; calculate()">
-                            </div>
-                            <input type="range" id="cutWidth_range" min="0.001" max="2.0" step="0.001" value="0.1" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
-                        </div>
-                    </fieldset>
-                </section>
+                    </div>
+                </div>
 
                 <!-- RESULTS PANEL (COLUMN 2: Speeds, Feeds & Physical Tool Dynamics) -->
                 <section class="results-panel">
@@ -374,6 +422,14 @@
                         <h3>Spindle Speed</h3>
                         <div class="result-val"><span id="rpm">0</span> <span class="unit">RPM</span></div>
                         <div class="sub-val">Surface Speed: <span id="sfm">0</span> <span class="sfm-lbl">SFM</span></div>
+                        <div id="effDiaBadge" style="display:none; margin-top: 8px; padding: 6px 10px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; font-size: 0.75rem; text-align: left;">
+                            <div style="color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                                <span>⚡</span> Effective Dia (D<sub>eff</sub>): <span id="effDiaVal" style="color: #ffffff; font-weight: 700; margin-left: 2px;">--</span>
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 0.72rem; margin-top: 2px;">
+                                Contact Speed: <span id="effContactSfm" style="color: #38bdf8; font-weight: 600;">--</span> <span class="sfm-lbl">SFM</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="glass-panel result-card primary-card">
@@ -2322,6 +2378,20 @@
                     
                     let out_sfm = isMetric ? res.sfm * 0.3048 : res.sfm;
                     document.getElementById('sfm').innerText = Math.round(out_sfm);
+                    
+                    const effDiaBadge = document.getElementById('effDiaBadge');
+                    if (effDiaBadge) {
+                        if (res.effective_diameter && p_dia > 0 && res.effective_diameter < (p_dia * 0.95)) {
+                            effDiaBadge.style.display = 'block';
+                            const effDiaFormatted = (isMetric ? res.effective_diameter * 25.4 : res.effective_diameter).toFixed(isMetric ? 3 : 4) + (isMetric ? " mm" : " in");
+                            document.getElementById('effDiaVal').innerText = effDiaFormatted;
+                            const contactSfmVal = res.contact_sfm !== undefined ? res.contact_sfm : res.sfm;
+                            const contactSfmFormatted = Math.round(isMetric ? contactSfmVal * 0.3048 : contactSfmVal);
+                            document.getElementById('effContactSfm').innerText = contactSfmFormatted;
+                        } else {
+                            effDiaBadge.style.display = 'none';
+                        }
+                    }
                     
                     let out_ipt = isMetric ? res.adj_ipt * 25.4 : res.adj_ipt;
                     let out_bipt = isMetric ? res.base_ipt * 25.4 : res.base_ipt;

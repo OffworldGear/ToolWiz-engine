@@ -861,8 +861,12 @@ class OptimizationEngine:
 
         is_floor_finish = "floor" in op_low
         is_semi_finish = "semi" in op_low
+        is_3d_contour = any(s in op_low for s in ["3d", "scallop", "contour finishing", "surfacing"])
 
-        if is_floor_finish:
+        if is_3d_contour:
+            # 3D Contouring / Scallop: light stepover (8-12% D, min 0.005", max 0.040")
+            target_woc = max(0.005, min(0.040, diameter * 0.10))
+        elif is_floor_finish:
             # Floor Finishing: wide radial pass (50-75% D) across pocket/feature bottom
             target_woc = diameter * 0.65
         elif is_semi_finish:
@@ -935,6 +939,11 @@ class OptimizationEngine:
             else:
                 rec_doc = diameter * 0.035
             rec_doc = max(rec_doc, 0.001)
+            return rec_doc, target_woc, target_deflection
+
+        if is_3d_contour:
+            # 3D Contouring / Scallop Finishing: light axial stepdown and shallow radial stepover
+            rec_doc = min(0.015, max(0.003, diameter * 0.04))
             return rec_doc, target_woc, target_deflection
 
         if is_floor_finish:
@@ -1267,6 +1276,29 @@ class AdvisoryEngine:
                 ),
                 "type": "critical"
             })
+
+        # Ball Nose & Radiused Cutter 3D Contouring Effective Diameter & Speed Diagnostic
+        is_ball_or_radiused = any(b in str(geometry).lower() for b in ["ball", "radiused", "bull"]) or "ball" in str(tool_type).lower()
+        if is_ball_or_radiused and not is_drilling and diameter > 0.0 and cut_depth > 0.0:
+            eff_dia = CuttingKinematics.calc_effective_diameter(diameter, cut_depth, geometry, corner_radius)
+            if eff_dia < (diameter * 0.92):
+                eff_ratio = eff_dia / diameter
+                contact_sfm = physics.calc_sfm(rpm, eff_dia)
+                nominal_sfm = physics.calc_sfm(rpm, diameter)
+                
+                tip_type = "warning" if eff_ratio < 0.40 else "info"
+                tips.append({
+                    "title": "Ball Mill Effective Diameter & 3D Contouring Dynamics",
+                    "message": (
+                        f"At your shallow cut depth ({cut_depth:.4f}\" / {cut_depth*25.4:.3f} mm), cutting occurs on the ball radius at an "
+                        f"**Effective Cutting Diameter (Deff) of {eff_dia:.4f}\" ({eff_dia*25.4:.3f} mm)** ({eff_ratio*100:.0f}% of nominal {diameter:.4f}\").\n"
+                        f"• **Elevated Spindle Speed:** Spindle RPM ({rpm:,.0f} RPM) is scaled up to maintain true surface speed ({contact_sfm:.0f} SFM) "
+                        f"at the actual contact circle. At the full cutter equator, surface speed is {nominal_sfm:.0f} SFM.\n"
+                        f"• **Zero-SFM Dead Center Trap:** Surface footage collapses to literally 0 SFM at the absolute center tip of the ball ($Z=0$). "
+                        f"Avoid dragging the tip perpendicular across flat floors; use 3D sloped toolpaths or a 10°–15° tool lead/tilt angle so cutting forces shear cleanly on the spinning radius."
+                    ),
+                    "type": tip_type
+                })
 
         if diameter < 0.125:
             if is_drilling:

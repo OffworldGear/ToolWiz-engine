@@ -343,5 +343,81 @@ class TestStockCompensationAPI(unittest.TestCase):
         self.assertIn("Floor (Axial)", wall_tip["message"])
         self.assertIn("keep Axial Stock at 0.0000\"", wall_tip["message"])
 
+    def test_ball_mill_3d_contouring_effective_diameter(self):
+        # 1/4" Ball mill doing shallow 3D contour pass (DOC = 0.005")
+        payload = {
+            "family": "Titanium Alloy",
+            "alloy": "Ti-6Al-4V (Grade 5)",
+            "tool": "Carbide Endmill",
+            "geometry": "Ball",
+            "diameter": 0.25,
+            "flutes": 4,
+            "cutDepth": 0.005,
+            "cutWidth": 0.015,
+            "operation": "3D Contouring / Scallop Finishing",
+            "aggressiveness": 50,
+            "maxRpm": 16000
+        }
+        resp = self.client.post("/api/calculate", json=payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data["success"])
+        
+        # Effective diameter for 0.25" ball mill at 0.005" DOC is 2 * sqrt(0.005 * (0.25 - 0.005)) = ~0.070"
+        eff_dia = data.get("effective_diameter")
+        self.assertIsNotNone(eff_dia)
+        self.assertAlmostEqual(eff_dia, 0.070, places=2)
+        self.assertLess(eff_dia, 0.10)
+        
+        # Verify contact_sfm is returned
+        self.assertIn("contact_sfm", data)
+        self.assertGreater(data["rpm"], 4000)
+        
+        # Verify 3D contour ball mill tip is present
+        tip_titles = [t["title"] for t in data["tips"]]
+        self.assertIn("Ball Mill Effective Diameter & 3D Contouring Dynamics", tip_titles)
+        ball_tip = next(t for t in data["tips"] if "Ball Mill Effective Diameter" in t["title"])
+        self.assertIn("Effective Cutting Diameter (Deff)", ball_tip["message"])
+        self.assertIn("Zero-SFM Dead Center Trap", ball_tip["message"])
+
+    def test_stock_compensation_3d_contouring(self):
+        payload = {
+            "family": "Titanium Alloy",
+            "alloy": "Ti-6Al-4V (Grade 5)",
+            "aggressiveness": 50,
+            "mode": "auto_compensate",
+            "operations": [
+                {
+                    "id": "op_3d_1",
+                    "name": "3D Scallop Finish",
+                    "strategy": "scallop",
+                    "unit": "inches",
+                    "diameter": 0.25,
+                    "geometry": "Ball",
+                    "flutes": 4,
+                    "fluteLength": 0.50,
+                    "shankDiameter": 0.25,
+                    "stickout": 1.0,
+                    "rpm": 8500,
+                    "feedrate": 40.0,
+                    "doc": 0.006,
+                    "woc": 0.015,
+                    "current_radial_stock": "0.0000 in",
+                    "current_axial_stock": "0.0000 in"
+                }
+            ]
+        }
+        resp = self.client.post("/api/stock_compensation", json=payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data.get("success"))
+        results = data.get("results", [])
+        self.assertEqual(len(results), 1)
+        r0 = results[0]
+        self.assertTrue(r0["is_finishing"])
+        self.assertTrue(r0["recommended_radial_stock"].startswith("-0.00"))
+        self.assertTrue(r0["recommended_axial_stock"].startswith("-0.00"))
+
 if __name__ == '__main__':
     unittest.main()
+

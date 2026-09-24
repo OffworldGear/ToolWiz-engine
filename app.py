@@ -239,6 +239,7 @@ def calculate():
         mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=geometry, diameter=diameter)
         
         actual_sfm = physics.calc_sfm(rpm, diameter)
+        contact_sfm = physics.calc_sfm(rpm, effective_diameter)
         # 3. Ramping Params
         ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool)
         
@@ -308,6 +309,8 @@ def calculate():
             "is_floor_finish": is_floor_finish,
             "is_finishing": is_finishing,
             "sfm": round(actual_sfm, 1),
+            "effective_diameter": round(effective_diameter, 5),
+            "contact_sfm": round(contact_sfm, 1),
             "base_ipt": round(base_ipt, 6),
             "adj_ipt": round(adjusted_ipt, 6),
             "ipr": round(ipr, 6),
@@ -404,10 +407,12 @@ def calculate_for_fusion():
         effective_diameter = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_radius)
         ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
         is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
+        rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
         
         adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius)
         feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
         actual_sfm = physics.calc_sfm(rpm, diameter)
+        contact_sfm = physics.calc_sfm(rpm, effective_diameter)
         
         # 3. Ramping Params
         tool_val = data.get("tool", "")
@@ -419,6 +424,8 @@ def calculate_for_fusion():
             "rpm": round(rpm),
             "feed": round(feedrate, 2),
             "sfm": round(actual_sfm, 1),
+            "effective_diameter": round(effective_diameter, 5),
+            "contact_sfm": round(contact_sfm, 1),
             "ipt": round(adjusted_ipt, 6),
             "doc": round(rec_doc, 3),
             "woc": round(rec_woc, 3),
@@ -1445,7 +1452,7 @@ def stock_compensation():
             
             is_floor_finish = any(s in strat_lower for s in ["flat", "face", "horizontal", "facing", "floor"])
             is_wall_finish = any(s in strat_lower for s in [
-                "contour", "scallop", "pencil", "parallel", "morf", "ramp", "flow", "spiral", "finish", "swarf"
+                "contour", "scallop", "pencil", "parallel", "morf", "ramp", "flow", "spiral", "finish", "swarf", "3d"
             ])
             is_rough_strat = any(s in strat_lower for s in [
                 "adaptive", "pocket", "rough", "clearing", "cavity", "rest"
@@ -1467,7 +1474,7 @@ def stock_compensation():
                     is_finishing = True
                     is_floor_finish = True
                     is_wall_finish = False
-                elif any(s in name_lower for s in ["finish", "contour", "wall", "scallop"]):
+                elif any(s in name_lower for s in ["finish", "contour", "wall", "scallop", "3d"]):
                     is_finishing = True
                     is_floor_finish = False
                     is_wall_finish = True
@@ -1492,6 +1499,11 @@ def stock_compensation():
                         doc_in = max(0.005, min(0.015, diameter * 0.05))
                     if woc_in <= 0:
                         woc_in = diameter * 0.65  # 65% stepover for floor/face
+                elif any(s in strat_lower for s in ["3d", "scallop", "parallel"]) or any(s in name_lower for s in ["3d", "scallop"]):
+                    if doc_in <= 0:
+                        doc_in = min(0.015, max(0.003, diameter * 0.04))
+                    if woc_in <= 0:
+                        woc_in = max(0.005, min(0.040, diameter * 0.10))
                 else:
                     if doc_in <= 0:
                         doc_in = flute_len * 0.75 if flute_len > 0 else diameter * 1.5
