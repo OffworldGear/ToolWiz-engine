@@ -5,7 +5,16 @@ All notable changes to the ToolWiz Engine project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-09-18
+## [Unreleased] - 2026-09-24
+
+### Added
+- **Floor Finishing & Wall Finishing Dual-Component Stock Compensation & Advisory (`gwizard_physics.py`, `app.py`, `templates/index.html`, `ai_machinist.py`, `ToolWizFusionAddin`)**:
+  - **Floor Finishing Kinematics & Axial Springback**: When floor finishing or facing (`Floor Finishing (Skim)`, `Flat`, `Horizontal`, `Facing`), floor error is recognized as axial thrust push-up and material springback ($Z$) rather than lateral wall deflection. ToolWiz now calculates and recommends Negative Axial Stock-to-Leave (`-0.0005"` / `-0.012 mm`) to hit nominal print floor height.
+  - **Amber/Yellow Warning for Positive Radial Stock on Floor-Only Cuts**: Displays an active warning advising Positive Radial Stock-to-Leave (`+0.0050"` to `+0.0100"` / `+0.13` to `+0.25 mm`) on floor-only passes to keep tool side flutes off finished pocket walls and eliminate corner chatter, witness marks, and chip re-cutting.
+  - **Combined Floor + Wall Guidance**: Provides dual-component outputs and clear instructions for combined toolpaths (such as Fusion 360 `Flat` with finishing passes enabled) where both Axial Stock (floor springback) and Radial Stock (perimeter wall deflection) must be entered.
+  - **Wall Finishing Axial Component**: Wall finishing operations (`2D Contour`, `Scallop`, etc.) now output both recommended Radial Stock (compensating lateral wall deflection) and recommended Axial Stock (compensating bottom springback if cutting down to an uncut floor or shoulder), with clear advisory guidance to keep Axial Stock at `0.0000"` (`0.000 mm`) if the floor was already finished.
+  - **Web UI Deflection Card Enhancement**: Upgraded `#deflectionCard` to display dual stock compensation rows (`Rad (Wall)` and `Ax (Floor)`), dynamic contextual labels (`Floor Error` vs `Wall Error`), and real-time floor-only radial stock guidance.
+  - **Fusion 360 Add-in Full Integration**: Deployed updated add-in populating both "New Radial Stock" and "New Axial Stock" columns with contextual physics advisories across all setups.
 
 ### Fixed
 - **Tool Deflection Alert Alignment & Auto-Set Physics Safety (`gwizard_physics.py`, `app.py`, & `templates/index.html`)**:

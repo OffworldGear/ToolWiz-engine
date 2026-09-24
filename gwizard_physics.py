@@ -1116,7 +1116,9 @@ class AdvisoryEngine:
             )
 
             mat_display_name = alloy if (alloy and alloy.strip()) else material_family
-            is_finishing = "finish" in str(operation).lower() or cut_width <= (diameter * 0.15)
+            op_lower = str(operation).lower()
+            is_floor_finishing = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"])
+            is_finishing = "finish" in op_lower or is_floor_finishing or cut_width <= (diameter * 0.15)
             should_advise_wear_comp = (
                 total_error >= 0.00025
                 or (has_high_springback and is_finishing)
@@ -1124,24 +1126,49 @@ class AdvisoryEngine:
             )
 
             if should_advise_wear_comp:
-                tip_type = "warning" if total_error > 0.0005 else "info"
-                spring_note = ""
-                if is_work_hardening:
-                    spring_note = (
-                        f" Note: In work-hardening {mat_display_name}, never take a zero-offset 'spring pass' to clean up "
-                        f"this error--cutting below the Minimum Chip Thickness ({mct:.4f}\" / {mct*25.4:.3f} mm) will rub, "
-                        f"burnish the surface, and destroy the cutting edge. Apply wear compensation directly to the finish pass."
-                    )
-                tips.append({
-                    "title": "Tool Wear Compensation (Springback & Deflection)",
-                    "message": (
-                        f"Expect the machined wall to cut +{total_error:.4f}\" ({total_error*25.4:.3f} mm) oversized due to "
-                        f"Material Springback ({springback_inches:.4f}\" / {springback_inches*25.4:.3f} mm) and Tool Deflection ({deflection_inches:.4f}\" / {deflection_inches*25.4:.3f} mm). "
-                        f"To hit nominal print tolerance, set a Negative Tool Wear Offset of {wear_comp:.4f}\" ({wear_comp*25.4:.3f} mm) "
-                        f"at your CNC controller (D-offset in G41/G42) or apply a Negative Radial Stock-to-Leave in CAM.{spring_note}"
-                    ),
-                    "type": tip_type
-                })
+                if is_floor_finishing:
+                    tip_type = "warning" if springback_inches > 0.0005 else "info"
+                    tips.append({
+                        "title": "Floor Finishing (Axial Springback & Z-Compensation)",
+                        "message": (
+                            f"Floor finish cuts experience axial tool push-up and material springback ({springback_inches:.4f}\" / {springback_inches*25.4:.3f} mm) "
+                            f"rather than lateral wall deflection. To hit nominal print floor height, apply a **Negative Axial Stock-to-Leave** of "
+                            f"{-springback_inches:.4f}\" ({-springback_inches*25.4:.3f} mm) in CAM (or lower your tool Z-offset at the CNC controller)."
+                        ),
+                        "type": tip_type
+                    })
+                    tips.append({
+                        "title": "Radial Stock Strategy for Floors (Floor-Only vs Combined)",
+                        "message": (
+                            f"• **Floor-Only Cut:** Set **Positive Radial Stock-to-Leave** (+0.0050\" to +0.0100\" / +0.13 to +0.25 mm). "
+                            f"This keeps the cutter flutes off finished pocket walls, avoiding wall rubbing, corner chatter, and chip drag marks.\n"
+                            f"• **Combined Floor + Wall Cut** (e.g. Fusion 360 'Flat' with finishing pass enabled): If your toolpath cuts both the floor "
+                            f"and sweeps perimeter walls, enter **BOTH** compensation values in CAM: Axial Stock {-springback_inches:.4f}\" "
+                            f"({-springback_inches*25.4:.3f} mm) and Radial Stock {wear_comp:.4f}\" ({wear_comp*25.4:.3f} mm)."
+                        ),
+                        "type": "warning"
+                    })
+                else:
+                    tip_type = "warning" if total_error > 0.0005 else "info"
+                    spring_note = ""
+                    if is_work_hardening:
+                        spring_note = (
+                            f" Note: In work-hardening {mat_display_name}, never take a zero-offset 'spring pass' to clean up "
+                            f"this error--cutting below the Minimum Chip Thickness ({mct:.4f}\" / {mct*25.4:.3f} mm) will rub, "
+                            f"burnish the surface, and destroy the cutting edge. Apply wear compensation directly to the finish pass."
+                        )
+                    tips.append({
+                        "title": "Tool Wear Compensation (Wall Deflection & Axial Springback)",
+                        "message": (
+                            f"• **Wall (Radial):** Expect the machined wall to cut +{total_error:.4f}\" ({total_error*25.4:.3f} mm) oversized due to "
+                            f"Material Springback ({springback_inches:.4f}\" / {springback_inches*25.4:.3f} mm) and Tool Deflection ({deflection_inches:.4f}\" / {deflection_inches*25.4:.3f} mm). "
+                            f"Set a **Negative Radial Stock-to-Leave** of {wear_comp:.4f}\" ({wear_comp*25.4:.3f} mm) (or D-offset in G41/G42).\n"
+                            f"• **Floor (Axial):** If finishing down to a floor or shoulder that was not previously cut by a floor operation, apply a "
+                            f"**Negative Axial Stock-to-Leave** of {-springback_inches:.4f}\" ({-springback_inches*25.4:.3f} mm) to account for vertical springback. "
+                            f"*(If floor was already finished by a prior floor pass, keep Axial Stock at 0.0000\" / 0.000 mm).*{spring_note}"
+                        ),
+                        "type": tip_type
+                    })
 
             if total_error > 0.0005 and is_work_hardening:
                 if total_error < mct:
@@ -1164,7 +1191,7 @@ class AdvisoryEngine:
                         "type": "info"
                     })
 
-            if is_highly_elastic and cut_width < diameter * 0.15:
+            if is_highly_elastic and cut_width < diameter * 0.15 and not is_floor_finishing:
                 tips.append({
                     "title": "Conventional Milling for Finishing",
                     "message": (

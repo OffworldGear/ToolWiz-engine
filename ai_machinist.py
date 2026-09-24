@@ -107,8 +107,10 @@ Yes! Utilizing **negative stock to leave on flats/floors** is an established sho
 2. **Step 2: Try a Spring Pass First**:
    - In Fusion 360 (e.g. *Flat Machining* or *2D Pocket*), enable **Spring Passes: 1** at nominal `0.0000"` stock at $100\\%$ programmed feed. A clean spring pass frequently removes the $+0.0008"$ push-off without any risk of gouging.
 3. **Step 3: Program Negative Axial Stock to Leave**:
-   - If the floor still measures $+0.0006"$ thick due to springback, set **Radial Stock to Leave = 0.0000"** and **Axial Stock to Leave = -0.0005" to -0.0008" (-0.012 mm to -0.020 mm)**.
-   - ⚠️ **Caution**: Keep Radial Stock at `0.0000"` (do not make radial stock negative, or the side flutes will gouge adjacent vertical walls).
+   - If the floor still measures $+0.0006"$ thick due to springback, set **Axial Stock to Leave = -0.0005" to -0.0008" (-0.012 mm to -0.020 mm)**.
+   - **Floor-Only Cuts**: Set **Positive Radial Stock to Leave = +0.0050" to +0.0100" (+0.13 to +0.25 mm)**. This keeps the perimeter flutes completely off pocket walls, preventing tool rubbing, corner chatter, and chip drag marks.
+   - **Combined Floor + Wall Cuts** (e.g. Fusion 360 *Flat* with finishing passes enabled): Enter **BOTH** values—Axial Stock (`-0.0005"`) for floor springback, and Radial Stock (`-0.0008"`) for wall deflection.
+   - **Wall Finishing Cuts** (e.g. *2D Contour*): Apply Negative Radial Stock (`-0.0008"`), and also enter Negative Axial Stock (`-0.0005"`) if finishing down to an uncut floor (keep Axial at `0.0000"` if the floor was already cut).
 
 ---
 

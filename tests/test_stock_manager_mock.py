@@ -75,11 +75,11 @@ class TestStockManagerMock(unittest.TestCase):
         results = res_data.get("results")
         self.assertEqual(len(results), 3)
 
-        # op_1: Finishing contour -> negative radial stock
+        # op_1: Finishing contour -> negative radial stock and negative axial stock for un-cut floor
         r1 = results[0]
         self.assertTrue(r1["is_finishing"])
         self.assertTrue(r1["recommended_radial_stock"].startswith("-0.00"))
-        self.assertEqual(r1["recommended_axial_stock"], "0.0000 in")
+        self.assertTrue(r1["recommended_axial_stock"].startswith("-0.00"))
 
         # op_2: Roughing -> retains positive stock
         r2 = results[1]

@@ -242,11 +242,17 @@ def calculate():
         # 3. Ramping Params
         ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool)
         
+        op_lower = str(operation).lower()
+        is_floor_finish = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"])
+        is_finishing = "finish" in op_lower or is_floor_finish or cut_width <= (diameter * 0.15)
+
         if is_hole_tool:
             deflection = 0.0
             springback = 0.0
             total_error = 0.0
             wear_comp = 0.0
+            radial_comp = 0.0
+            axial_comp = 0.0
         else:
             deflection = physics.tool_deflection(
                 diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
@@ -256,6 +262,8 @@ def calculate():
             springback, total_error, wear_comp = physics.calc_springback_and_deflection(
                 family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=alloy
             )
+            radial_comp = wear_comp
+            axial_comp = -springback
         
         tips = physics.generate_advanced_strategies(
             family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
@@ -295,6 +303,10 @@ def calculate():
             "springback": round(springback, 6),
             "total_error": round(total_error, 6),
             "wear_comp": round(wear_comp, 6),
+            "radial_comp": round(radial_comp, 6),
+            "axial_comp": round(axial_comp, 6),
+            "is_floor_finish": is_floor_finish,
+            "is_finishing": is_finishing,
             "sfm": round(actual_sfm, 1),
             "base_ipt": round(base_ipt, 6),
             "adj_ipt": round(adjusted_ipt, 6),
@@ -1427,22 +1439,40 @@ def stock_compensation():
             current_radial = clean_and_eval_stock_expr(raw_rad, doc_unit) if raw_rad else default_rough_rad
             current_axial = clean_and_eval_stock_expr(raw_ax, doc_unit) if raw_ax else default_rough_ax
             
-            # Identify if Finishing vs Roughing
+            # Identify if Finishing vs Roughing, and Floor vs Wall
             strat_lower = strat.lower()
             name_lower = op_name.lower()
-            is_finishing_strat = any(s in strat_lower for s in [
+            
+            is_floor_finish = any(s in strat_lower for s in ["flat", "face", "horizontal", "facing", "floor"])
+            is_wall_finish = any(s in strat_lower for s in [
                 "contour", "scallop", "pencil", "parallel", "morf", "ramp", "flow", "spiral", "finish", "swarf"
             ])
-            is_roughing_strat = any(s in strat_lower for s in [
-                "adaptive", "pocket", "rough", "clearing", "cavity", "rest", "flat", "face", "horizontal"
+            is_rough_strat = any(s in strat_lower for s in [
+                "adaptive", "pocket", "rough", "clearing", "cavity", "rest"
             ])
             
-            if is_roughing_strat or "rough" in name_lower or "adaptive" in name_lower or "clearing" in name_lower or "flat" in name_lower or "face" in name_lower:
-                is_finishing = False
-            elif is_finishing_strat or "finish" in name_lower or "contour" in name_lower or "wall" in name_lower or "skim" in name_lower:
+            if is_floor_finish or is_wall_finish:
                 is_finishing = True
-            else:
+            elif is_rough_strat:
                 is_finishing = False
+                is_floor_finish = False
+                is_wall_finish = False
+            else:
+                # Strategy unrecognized; inspect operation name
+                if any(s in name_lower for s in ["rough", "adaptive", "clearing"]):
+                    is_finishing = False
+                    is_floor_finish = False
+                    is_wall_finish = False
+                elif any(s in name_lower for s in ["flat", "horizontal", "face", "facing", "floor", "skim"]):
+                    is_finishing = True
+                    is_floor_finish = True
+                    is_wall_finish = False
+                elif any(s in name_lower for s in ["finish", "contour", "wall", "scallop"]):
+                    is_finishing = True
+                    is_floor_finish = False
+                    is_wall_finish = True
+                else:
+                    is_finishing = False
                 
             # If doc/woc or feeds/speeds are missing, use standard finishing or roughing defaults
             # Sanitize inputs for realistic physics against accidental unit confusion (e.g. mm/min sent as IPM)
@@ -1457,12 +1487,17 @@ def stock_compensation():
                 feedrate_ipm = feedrate_ipm / 25.4
 
             if is_finishing:
-                if doc_in <= 0:
-                    doc_in = flute_len * 0.75 if flute_len > 0 else diameter * 1.5
-                if woc_in <= 0:
-                    woc_in = max(diameter * 0.04, 0.008)  # 4% D light finishing cut
-                # Ensure finishing WOC does not exceed standard finish cut allowance (max 10% D or 0.025")
-                woc_in = min(woc_in, max(diameter * 0.10, 0.025))
+                if is_floor_finish:
+                    if doc_in <= 0:
+                        doc_in = max(0.005, min(0.015, diameter * 0.05))
+                    if woc_in <= 0:
+                        woc_in = diameter * 0.65  # 65% stepover for floor/face
+                else:
+                    if doc_in <= 0:
+                        doc_in = flute_len * 0.75 if flute_len > 0 else diameter * 1.5
+                    if woc_in <= 0:
+                        woc_in = max(diameter * 0.04, 0.008)  # 4% D light finishing cut
+                    woc_in = min(woc_in, max(diameter * 0.10, 0.025))
             else:
                 if doc_in <= 0:
                     doc_in = diameter * 1.0
@@ -1512,31 +1547,39 @@ def stock_compensation():
                 advisory = f"Custom Batch\nRad: {rec_rad} | Ax: {rec_ax}"
             else:  # auto_compensate
                 if is_finishing:
-                    # Maximum safe negative radial stock compensation ceiling for finishing passes
+                    # Maximum safe negative radial/axial stock compensation ceiling for finishing passes
                     # Precision finish cuts should never exceed 0.0025" (0.065 mm) or 2.5% of tool diameter
                     # to prevent any risk of part gouging or scrap.
                     max_safe_comp_in = min(0.0025, max(0.0008, diameter * 0.025))
-                    is_clamped = total_err > max_safe_comp_in
                     eff_total_err = min(total_err, max_safe_comp_in)
+                    eff_sb = min(sb, max_safe_comp_in)
                     
-                    if is_metric:
-                        rec_rad_val = -eff_total_err * 25.4
-                        rec_rad = f"{rec_rad_val:.3f} mm"
-                        rec_ax = zero_ax_str
-                        defl_um = defl * 25.4 * 1000
-                        sb_um = sb * 25.4 * 1000
-                        if is_clamped:
-                            advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} (Clamped to safe finish ceiling)"
+                    if is_floor_finish:
+                        if is_metric:
+                            rec_ax_val = -eff_sb * 25.4
+                            rec_rad_val = -eff_total_err * 25.4
+                            rec_ax = f"{rec_ax_val:.3f} mm"
+                            rec_rad = f"{rec_rad_val:.3f} mm"
+                            advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\nTip: Use Rad +0.150mm if floor-only"
                         else:
-                            advisory = f"Defl: {defl_um:.1f}µm | Spring: {sb_um:.1f}µm\nRec: {rec_rad} ({-eff_total_err:.4f}\")"
-                    else:
-                        rec_rad_val = -eff_total_err
-                        rec_rad = f"{rec_rad_val:.4f} in"
-                        rec_ax = zero_ax_str
-                        if is_clamped:
-                            advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} (Clamped to safe finish ceiling)"
+                            rec_ax_val = -eff_sb
+                            rec_rad_val = -eff_total_err
+                            rec_ax = f"{rec_ax_val:.4f} in"
+                            rec_rad = f"{rec_rad_val:.4f} in"
+                            advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\nTip: Use Rad +0.005\" if floor-only"
+                    else:  # Wall finishing / lateral contour
+                        if is_metric:
+                            rec_rad_val = -eff_total_err * 25.4
+                            rec_ax_val = -eff_sb * 25.4
+                            rec_rad = f"{rec_rad_val:.3f} mm"
+                            rec_ax = f"{rec_ax_val:.3f} mm"
+                            advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\nKeep Ax: 0.000 if floor pre-cut"
                         else:
-                            advisory = f"Defl: {defl:.4f}\" | Spring: {sb:.4f}\"\nRec: {rec_rad} ({-eff_total_err*25.4:.3f} mm)"
+                            rec_rad_val = -eff_total_err
+                            rec_ax_val = -eff_sb
+                            rec_rad = f"{rec_rad_val:.4f} in"
+                            rec_ax = f"{rec_ax_val:.4f} in"
+                            advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\nKeep Ax: 0.000\" if floor pre-cut"
                 else:
                     rec_rad = current_radial
                     rec_ax = current_axial
@@ -1547,6 +1590,8 @@ def stock_compensation():
                 "name": op_name,
                 "strategy": strat,
                 "is_finishing": is_finishing,
+                "is_floor_finish": is_floor_finish,
+                "is_wall_finish": is_wall_finish,
                 "deflection_in": round(defl, 6),
                 "springback_in": round(sb, 6),
                 "total_error_in": round(total_err, 6),

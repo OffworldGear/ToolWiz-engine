@@ -436,14 +436,21 @@
                             <span id="deflection_um_wrap" style="display:none; font-size:0.9rem; opacity:0.85; margin-left:4px;">(<span id="deflection_um">0.0</span> µm)</span>
                         </div>
                         <div class="sub-val" id="deflectionWarning">Safe Limit: < <span id="defLimit">0.0010</span> <span class="unit-lbl">in</span></div>
-                        <div id="wearCompBadge" style="display:none; margin-top: 8px; padding: 6px 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 6px; text-align: left;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; font-size: 0.85rem;">
-                                <span><i class="fa-solid fa-sliders"></i> Wear Comp: <span id="wearCompVal">-0.0000 in</span></span>
+                        <div id="wearCompBadge" style="display:none; margin-top: 8px; padding: 7px 10px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 6px; text-align: left;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; font-size: 0.82rem; margin-bottom: 4px;">
+                                <span><i class="fa-solid fa-sliders"></i> <span id="compBadgeTitle">Stock Compensation</span></span>
                                 <a href="#tipsContainer" onclick="focusAdvisorWearComp(event)" style="color:var(--accent); font-size:0.75rem; text-decoration:none; font-weight:600;">Details &rarr;</a>
                             </div>
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 3px; display: flex; justify-content: space-between;">
+                            <div id="dualStockCompRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(15, 23, 42, 0.4); padding: 4px 6px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 4px;">
+                                <div><span style="color:#94a3b8;">Rad (Wall):</span> <strong id="radCompVal" style="color:#38bdf8;">-0.0000 in</strong></div>
+                                <div><span style="color:#94a3b8;">Ax (Floor):</span> <strong id="axCompVal" style="color:#38bdf8;">-0.0000 in</strong></div>
+                            </div>
+                            <div style="font-size: 0.72rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
                                 <span>Springback: <span id="springbackVal" style="color:#e2e8f0; font-weight:600;">0.0000 in</span></span>
-                                <span>Wall Error: <span id="totalErrorVal" style="color:#f59e0b; font-weight:600;">+0.0000 in</span></span>
+                                <span><span id="errorValTitle">Wall Error</span>: <span id="totalErrorVal" style="color:#f59e0b; font-weight:600;">+0.0000 in</span></span>
+                            </div>
+                            <div id="floorOnlyRadNote" style="display:none; font-size: 0.70rem; color: #fbbf24; margin-top: 4px; border-top: 1px dashed rgba(251, 191, 36, 0.3); padding-top: 3px;">
+                                <i class="fa-solid fa-lightbulb"></i> Floor-Only: Use <strong>+0.005"</strong> (+0.13mm) Radial to stay off walls
                             </div>
                         </div>
                     </div>
@@ -2433,12 +2440,36 @@
                         if (res.total_error && res.total_error >= 0.0002) {
                             wearCompBadge.style.display = 'block';
                             const u = isMetric ? ' mm' : ' in';
-                            const wcVal = isMetric ? (res.wear_comp * 25.4).toFixed(3) : res.wear_comp.toFixed(4);
+                            const radVal = res.radial_comp != null ? (isMetric ? (res.radial_comp * 25.4).toFixed(3) : res.radial_comp.toFixed(4)) : (isMetric ? (res.wear_comp * 25.4).toFixed(3) : res.wear_comp.toFixed(4));
+                            const axVal = res.axial_comp != null ? (isMetric ? (res.axial_comp * 25.4).toFixed(3) : res.axial_comp.toFixed(4)) : (isMetric ? (-res.springback * 25.4).toFixed(3) : (-res.springback).toFixed(4));
                             const sbVal = isMetric ? (res.springback * 25.4).toFixed(3) : res.springback.toFixed(4);
                             const teVal = isMetric ? (res.total_error * 25.4).toFixed(3) : res.total_error.toFixed(4);
-                            document.getElementById('wearCompVal').innerText = `${wcVal}${u}`;
+                            
+                            const radCompEl = document.getElementById('radCompVal');
+                            const axCompEl = document.getElementById('axCompVal');
+                            if (radCompEl) radCompEl.innerText = `${radVal}${u}`;
+                            if (axCompEl) axCompEl.innerText = `${axVal}${u}`;
+                            
                             document.getElementById('springbackVal').innerText = `${sbVal}${u}`;
                             document.getElementById('totalErrorVal').innerText = `+${teVal}${u}`;
+
+                            const badgeTitle = document.getElementById('compBadgeTitle');
+                            const errorTitle = document.getElementById('errorValTitle');
+                            const floorNote = document.getElementById('floorOnlyRadNote');
+                            if (res.is_floor_finish) {
+                                if (badgeTitle) badgeTitle.innerText = "Floor Finishing Comp";
+                                if (errorTitle) errorTitle.innerText = "Floor Error";
+                                if (floorNote) {
+                                    floorNote.style.display = 'block';
+                                    floorNote.innerHTML = isMetric 
+                                        ? '<i class="fa-solid fa-lightbulb"></i> Floor-Only: Use <strong>+0.130mm</strong> Radial to stay off walls'
+                                        : '<i class="fa-solid fa-lightbulb"></i> Floor-Only: Use <strong>+0.005"</strong> Radial to stay off walls';
+                                }
+                            } else {
+                                if (badgeTitle) badgeTitle.innerText = "Wall Finishing Comp";
+                                if (errorTitle) errorTitle.innerText = "Wall Error";
+                                if (floorNote) floorNote.style.display = 'none';
+                            }
                         } else {
                             wearCompBadge.style.display = 'none';
                         }
@@ -2459,9 +2490,9 @@
                             let color = t.type === 'critical' ? '#ef4444' : (t.type === 'warning' ? '#f59e0b' : '#38bdf8');
                             let icon = t.type === 'critical' ? 'fa-triangle-exclamation' : (t.type === 'warning' ? 'fa-circle-exclamation' : 'fa-circle-info');
                             let isWear = false;
-                            if (t.title && t.title.includes('Wear Compensation')) {
-                                icon = 'fa-sliders';
-                                color = '#38bdf8';
+                            if (t.title && (t.title.includes('Wear Compensation') || t.title.includes('Floor Finishing') || t.title.includes('Radial Stock Strategy'))) {
+                                icon = t.title.includes('Floor Finishing') ? 'fa-layer-group' : (t.title.includes('Radial Stock') ? 'fa-shield-halved' : 'fa-sliders');
+                                color = t.type === 'warning' ? '#f59e0b' : '#38bdf8';
                                 isWear = true;
                             } else if (t.title && t.title.includes('Work-Hardening')) {
                                 icon = 'fa-fire-flame-curved';

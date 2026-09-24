@@ -47,7 +47,9 @@ class TestStockCompensationAPI(unittest.TestCase):
         # In Titanium, deflection + springback should be > 0.0008 in
         self.assertGreater(r0["total_error_in"], 0.0008)
         self.assertTrue(r0["recommended_radial_stock"].startswith("-0.00"))
-        self.assertEqual(r0["recommended_axial_stock"], "0.0000 in")
+        self.assertTrue(r0["recommended_axial_stock"].startswith("-0.00"))
+        self.assertIn("Wall Rad", r0["advisory"])
+        self.assertIn("Keep Ax: 0", r0["advisory"])
 
     def test_roughing_preserves_positive_stock(self):
         payload = {
@@ -197,16 +199,16 @@ class TestStockCompensationAPI(unittest.TestCase):
         self.assertEqual(clean_and_eval_stock_expr("(-.002) * 1 in", "in"), "-0.0020 in")
         self.assertEqual(clean_and_eval_stock_expr("0.0000 in", "in"), "0.0000 in")
 
-        # API integration test with raw formula expressions
+        # API integration test with raw formula expressions on roughing pass
         payload = {
             "family": "Titanium Alloy",
             "alloy": "Ti-6Al-4V (Grade 5)",
             "mode": "auto_compensate",
             "operations": [
                 {
-                    "id": "op_flat",
-                    "name": "Flat (ProfileCentre)",
-                    "strategy": "flat",
+                    "id": "op_adaptive",
+                    "name": "2D Adaptive Roughing",
+                    "strategy": "adaptive2d",
                     "unit": "mm",
                     "diameter": 0.125,
                     "flutes": 4,
@@ -223,6 +225,123 @@ class TestStockCompensationAPI(unittest.TestCase):
         self.assertEqual(r["recommended_axial_stock"], "-0.100 mm")
         self.assertNotIn("(", r["recommended_axial_stock"])
         self.assertNotIn("*", r["recommended_axial_stock"])
+
+    def test_floor_finishing_operations(self):
+        """Verify Flat, Horizontal, and Facing operations output floor axial springback and dual advice."""
+        payload = {
+            "family": "Titanium Alloy",
+            "alloy": "Ti-6Al-4V (Grade 5)",
+            "aggressiveness": 50,
+            "mode": "auto_compensate",
+            "operations": [
+                {
+                    "id": "op_flat",
+                    "name": "Flat Finishing (Pocket Floor)",
+                    "strategy": "flat",
+                    "unit": "inches",
+                    "diameter": 0.375,
+                    "flutes": 4,
+                    "fluteLength": 0.75,
+                    "current_radial_stock": "0.0000 in",
+                    "current_axial_stock": "0.0000 in"
+                },
+                {
+                    "id": "op_facing",
+                    "name": "Facing Top Surface",
+                    "strategy": "face",
+                    "unit": "mm",
+                    "diameter": 0.50,
+                    "flutes": 4,
+                    "current_radial_stock": "0.000 mm",
+                    "current_axial_stock": "0.000 mm"
+                }
+            ]
+        }
+        resp = self.client.post("/api/stock_compensation", json=payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data.get("success"))
+        results = data.get("results", [])
+        self.assertEqual(len(results), 2)
+        
+        # Op 1: Flat (Inches)
+        r_flat = results[0]
+        self.assertTrue(r_flat["is_finishing"])
+        self.assertTrue(r_flat["is_floor_finish"])
+        self.assertTrue(r_flat["recommended_axial_stock"].startswith("-0.00"))
+        self.assertTrue(r_flat["recommended_radial_stock"].startswith("-0.00"))
+        self.assertIn("Floor Ax", r_flat["advisory"])
+        self.assertIn("Comb Rad", r_flat["advisory"])
+        self.assertIn("Tip: Use Rad +0.005\"", r_flat["advisory"])
+
+        # Op 2: Facing (Metric)
+        r_face = results[1]
+        self.assertTrue(r_face["is_finishing"])
+        self.assertTrue(r_face["is_floor_finish"])
+        self.assertTrue(r_face["recommended_axial_stock"].startswith("-0."))
+        self.assertTrue("mm" in r_face["recommended_axial_stock"])
+        self.assertIn("Floor Ax", r_face["advisory"])
+        self.assertIn("Comb Rad", r_face["advisory"])
+        self.assertIn("Tip: Use Rad +0.150mm", r_face["advisory"])
+
+    def test_calculate_floor_vs_wall_finishing(self):
+        """Verify /api/calculate returns radial_comp, axial_comp, is_floor_finish, and tailored tips."""
+        # 1. Floor Finishing
+        payload_floor = {
+            "family": "Titanium Alloy",
+            "alloy": "Ti-6Al-4V (Grade 5)",
+            "tool": "Carbide Endmill",
+            "diameter": 0.50,
+            "flutes": 4,
+            "cutDepth": 0.005,
+            "cutWidth": 0.35,
+            "operation": "Floor Finishing (Skim)"
+        }
+        resp = self.client.post("/api/calculate", json=payload_floor)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data["success"])
+        self.assertTrue(data["is_floor_finish"])
+        self.assertTrue(data["is_finishing"])
+        self.assertIn("radial_comp", data)
+        self.assertIn("axial_comp", data)
+        self.assertLess(data["axial_comp"], 0)
+        
+        # Check tips for yellow warning on positive radial stock & axial floor springback
+        tip_titles = [t["title"] for t in data["tips"]]
+        self.assertIn("Floor Finishing (Axial Springback & Z-Compensation)", tip_titles)
+        self.assertIn("Radial Stock Strategy for Floors (Floor-Only vs Combined)", tip_titles)
+        rad_tip = next(t for t in data["tips"] if t["title"] == "Radial Stock Strategy for Floors (Floor-Only vs Combined)")
+        self.assertEqual(rad_tip["type"], "warning")
+        self.assertIn("+0.0050\"", rad_tip["message"])
+        self.assertIn("Combined Floor + Wall", rad_tip["message"])
+
+        # 2. Wall Finishing
+        payload_wall = {
+            "family": "Titanium Alloy",
+            "alloy": "Ti-6Al-4V (Grade 5)",
+            "tool": "Carbide Endmill",
+            "diameter": 0.50,
+            "flutes": 4,
+            "cutDepth": 0.75,
+            "cutWidth": 0.015,
+            "operation": "Wall Finishing (Deep DOC)"
+        }
+        resp_wall = self.client.post("/api/calculate", json=payload_wall)
+        self.assertEqual(resp_wall.status_code, 200)
+        data_wall = resp_wall.get_json()
+        self.assertTrue(data_wall["success"])
+        self.assertFalse(data_wall["is_floor_finish"])
+        self.assertTrue(data_wall["is_finishing"])
+        self.assertLess(data_wall["radial_comp"], 0)
+        self.assertLess(data_wall["axial_comp"], 0)
+        
+        wall_tip_titles = [t["title"] for t in data_wall["tips"]]
+        self.assertIn("Tool Wear Compensation (Wall Deflection & Axial Springback)", wall_tip_titles)
+        wall_tip = next(t for t in data_wall["tips"] if "Wear Compensation" in t["title"])
+        self.assertIn("Wall (Radial)", wall_tip["message"])
+        self.assertIn("Floor (Axial)", wall_tip["message"])
+        self.assertIn("keep Axial Stock at 0.0000\"", wall_tip["message"])
 
 if __name__ == '__main__':
     unittest.main()
