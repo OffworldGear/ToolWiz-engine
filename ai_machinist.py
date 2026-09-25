@@ -32,7 +32,7 @@ CRITICAL MACHINING PRINCIPLES TO APPLY:
 
 
 def format_context_for_prompt(context: dict) -> str:
-    """Format the active machining context dictionary into a readable markdown block."""
+    """Format the active machining context dictionary into a readable markdown block with explicit dual units."""
     if not context:
         return "No live tool/material context available."
 
@@ -40,48 +40,233 @@ def format_context_for_prompt(context: dict) -> str:
     family = context.get("materialFamily", "General")
     tool = context.get("tool", "End Mill")
     geo = context.get("geometry", "Standard")
-    dia = context.get("diameter", "0.5")
     flutes = context.get("flutes", "4")
-    flute_len = context.get("fluteLength", "1.0")
-    stickout = context.get("stickout", "1.5")
     coating = context.get("coating", "None")
     carbide = context.get("isCarbide", True)
     op = context.get("operation", "Roughing")
-    
-    doc = context.get("cutDepth", "0.25")
-    woc = context.get("cutWidth", "0.10")
-    rpm = context.get("rpm", "0")
-    feed = context.get("feedrate", "0")
-    sfm = context.get("sfm", "0")
-    ipt = context.get("ipt", "0")
-    plunge = context.get("plungeFeed", "0")
-    ramp_feed = context.get("rampFeed", "0")
-    ramp_angle = context.get("rampAngle", "0")
-    
-    deflection = context.get("deflection", "0")
-    spindle_load = context.get("spindleLoadPct", "0")
-    mrr = context.get("mrr", "0")
-    tips = context.get("tips", [])
-    
-    tips_str = ", ".join(tips) if tips else "None active"
 
-    return f"""### Active Machining Telemetry:
-- **Workpiece Material**: {material} (Family: {family})
-- **Cutter Setup**: {tool} ({geo}), {dia}\" dia, {flutes}-flute, Flute Length: {flute_len}\", Stickout: {stickout}\", Coating: {coating} ({'Carbide' if carbide else 'HSS'})
-- **Operation**: {op}
-- **Programmed Engagement**: Axial DOC: {doc}\", Radial WOC: {woc}\"
-- **Kinematics**: {rpm} RPM, {feed} IPM ({sfm} SFM, {ipt} IPT), Plunge: {plunge} IPM, Ramp: {ramp_feed} IPM @ {ramp_angle}°
-- **Calculated Physics**: Lateral Deflection: {deflection}\", Spindle Load: {spindle_load}%, MRR: {mrr} in³/min
-- **Physics Advisor Alerts**: {tips_str}
-"""
+    is_metric = bool(context.get("isMetric", False) or "metric" in str(context.get("unitSystem", "")).lower())
+
+    # Safely parse numeric parameters supporting dual-unit keys and legacy keys
+    try:
+        dia_in = float(context.get("diameter_in", context.get("diameter", 0.5)))
+    except (ValueError, TypeError):
+        dia_in = 0.5
+    try:
+        dia_mm = float(context.get("diameter_mm", dia_in * 25.4))
+    except (ValueError, TypeError):
+        dia_mm = dia_in * 25.4
+
+    try:
+        flute_in = float(context.get("fluteLength_in", context.get("fluteLength", 1.0)))
+    except (ValueError, TypeError):
+        flute_in = 1.0
+    try:
+        flute_mm = float(context.get("fluteLength_mm", flute_in * 25.4))
+    except (ValueError, TypeError):
+        flute_mm = flute_in * 25.4
+
+    try:
+        stick_in = float(context.get("stickout_in", context.get("stickout", 1.5)))
+    except (ValueError, TypeError):
+        stick_in = 1.5
+    try:
+        stick_mm = float(context.get("stickout_mm", stick_in * 25.4))
+    except (ValueError, TypeError):
+        stick_mm = stick_in * 25.4
+
+    try:
+        doc_in = float(context.get("cutDepth_in", context.get("cutDepth", 0.25)))
+    except (ValueError, TypeError):
+        doc_in = 0.25
+    try:
+        doc_mm = float(context.get("cutDepth_mm", doc_in * 25.4))
+    except (ValueError, TypeError):
+        doc_mm = doc_in * 25.4
+
+    try:
+        woc_in = float(context.get("cutWidth_in", context.get("cutWidth", 0.10)))
+    except (ValueError, TypeError):
+        woc_in = 0.10
+    try:
+        woc_mm = float(context.get("cutWidth_mm", woc_in * 25.4))
+    except (ValueError, TypeError):
+        woc_mm = woc_in * 25.4
+
+    try:
+        rpm = int(float(context.get("rpm", 0)))
+    except (ValueError, TypeError):
+        rpm = 0
+
+    try:
+        feed_ipm = float(context.get("feedrate_ipm", context.get("feedrate", 0)))
+    except (ValueError, TypeError):
+        feed_ipm = 0.0
+    try:
+        feed_mmpm = float(context.get("feedrate_mmpm", feed_ipm * 25.4))
+    except (ValueError, TypeError):
+        feed_mmpm = feed_ipm * 25.4
+
+    try:
+        sfm = float(context.get("sfm", 0))
+    except (ValueError, TypeError):
+        sfm = 0.0
+    try:
+        smm = float(context.get("smm", sfm * 0.3048))
+    except (ValueError, TypeError):
+        smm = sfm * 0.3048
+
+    try:
+        ipt_in = float(context.get("ipt_in", context.get("ipt", 0)))
+    except (ValueError, TypeError):
+        ipt_in = 0.0
+    try:
+        ipt_mm = float(context.get("ipt_mm", ipt_in * 25.4))
+    except (ValueError, TypeError):
+        ipt_mm = ipt_in * 25.4
+
+    try:
+        plunge_ipm = float(context.get("plungeFeed_ipm", context.get("plungeFeed", 0)))
+    except (ValueError, TypeError):
+        plunge_ipm = 0.0
+    try:
+        plunge_mmpm = float(context.get("plungeFeed_mmpm", plunge_ipm * 25.4))
+    except (ValueError, TypeError):
+        plunge_mmpm = plunge_ipm * 25.4
+
+    try:
+        ramp_ipm = float(context.get("rampFeed_ipm", context.get("rampFeed", 0)))
+    except (ValueError, TypeError):
+        ramp_ipm = 0.0
+    try:
+        ramp_mmpm = float(context.get("rampFeed_mmpm", ramp_ipm * 25.4))
+    except (ValueError, TypeError):
+        ramp_mmpm = ramp_ipm * 25.4
+
+    try:
+        ramp_angle = float(context.get("rampAngle", 0))
+    except (ValueError, TypeError):
+        ramp_angle = 0.0
+
+    try:
+        def_in = float(context.get("deflection_in", context.get("deflection", 0)))
+    except (ValueError, TypeError):
+        def_in = 0.0
+    try:
+        def_mm = float(context.get("deflection_mm", def_in * 25.4))
+    except (ValueError, TypeError):
+        def_mm = def_in * 25.4
+    try:
+        def_um = float(context.get("deflection_um", def_mm * 1000.0))
+    except (ValueError, TypeError):
+        def_um = def_mm * 1000.0
+
+    try:
+        spring_in = float(context.get("springback_in", 0))
+    except (ValueError, TypeError):
+        spring_in = 0.0
+    try:
+        spring_mm = float(context.get("springback_mm", spring_in * 25.4))
+    except (ValueError, TypeError):
+        spring_mm = spring_in * 25.4
+
+    try:
+        rad_comp_in = float(context.get("radialComp_in", 0))
+    except (ValueError, TypeError):
+        rad_comp_in = 0.0
+    try:
+        rad_comp_mm = float(context.get("radialComp_mm", rad_comp_in * 25.4))
+    except (ValueError, TypeError):
+        rad_comp_mm = rad_comp_in * 25.4
+
+    try:
+        ax_comp_in = float(context.get("axialComp_in", 0))
+    except (ValueError, TypeError):
+        ax_comp_in = 0.0
+    try:
+        ax_comp_mm = float(context.get("axialComp_mm", ax_comp_in * 25.4))
+    except (ValueError, TypeError):
+        ax_comp_mm = ax_comp_in * 25.4
+
+    try:
+        spindle_load = float(context.get("spindleLoadPct", 0))
+    except (ValueError, TypeError):
+        spindle_load = 0.0
+
+    try:
+        mrr_in3 = float(context.get("mrr_in3", context.get("mrr", 0)))
+    except (ValueError, TypeError):
+        mrr_in3 = 0.0
+    try:
+        mrr_cm3 = float(context.get("mrr_cm3", mrr_in3 * 16.387))
+    except (ValueError, TypeError):
+        mrr_cm3 = mrr_in3 * 16.387
+
+    tips = context.get("tips", [])
+    tips_str = ", ".join(tips) if tips else "None active"
+    carbide_str = "Solid Carbide" if carbide else "HSS"
+
+    if is_metric:
+        unit_system_desc = "Metric (UI in mm & mm/min)"
+        dia_display = f"{dia_mm:.3f} mm ({dia_in:g}\" dia)"
+        flute_display = f"{flute_mm:.2f} mm ({flute_in:.3f}\")"
+        stick_display = f"{stick_mm:.2f} mm ({stick_in:.3f}\")"
+        doc_display = f"{doc_mm:.3f} mm ({doc_in:.4f}\")"
+        woc_display = f"{woc_mm:.3f} mm ({woc_in:.4f}\")"
+        feed_display = f"{feed_mmpm:.1f} mm/min ({feed_ipm:.2f} IPM)"
+        speed_display = f"{smm:.1f} m/min ({sfm:.1f} SFM)"
+        chip_display = f"{ipt_mm:.4f} mm/tooth ({ipt_in:.5f} IPT)"
+        plunge_display = f"{plunge_mmpm:.1f} mm/min ({plunge_ipm:.2f} IPM)"
+        ramp_display = f"{ramp_mmpm:.1f} mm/min ({ramp_ipm:.2f} IPM)"
+        def_display = f"{def_mm:.4f} mm / {def_um:.1f} µm ({def_in:.5f}\")"
+        spring_display = f"{spring_mm:.4f} mm ({spring_in:.5f}\")"
+        mrr_display = f"{mrr_cm3:.2f} cm³/min ({mrr_in3:.3f} in³/min)"
+        comp_display = f"Negative Radial Stock: {rad_comp_mm:.4f} mm ({rad_comp_in:.5f}\"), Negative Axial Stock: {ax_comp_mm:.4f} mm ({ax_comp_in:.5f}\")"
+    else:
+        unit_system_desc = "Imperial (UI in inches & IPM)"
+        dia_display = f"{dia_in:g}\" dia ({dia_mm:.3f} mm)"
+        flute_display = f"{flute_in:.3f}\" ({flute_mm:.2f} mm)"
+        stick_display = f"{stick_in:.3f}\" ({stick_mm:.2f} mm)"
+        doc_display = f"{doc_in:.4f}\" ({doc_mm:.3f} mm)"
+        woc_display = f"{woc_in:.4f}\" ({woc_mm:.3f} mm)"
+        feed_display = f"{feed_ipm:.2f} IPM ({feed_mmpm:.1f} mm/min)"
+        speed_display = f"{sfm:.1f} SFM ({smm:.1f} m/min)"
+        chip_display = f"{ipt_in:.5f} IPT ({ipt_mm:.4f} mm/tooth)"
+        plunge_display = f"{plunge_ipm:.2f} IPM ({plunge_mmpm:.1f} mm/min)"
+        ramp_display = f"{ramp_ipm:.2f} IPM ({ramp_mmpm:.1f} mm/min)"
+        def_display = f"{def_in:.5f}\" ({def_mm:.4f} mm / {def_um:.1f} µm)"
+        spring_display = f"{spring_in:.5f}\" ({spring_mm:.4f} mm)"
+        mrr_display = f"{mrr_in3:.3f} in³/min ({mrr_cm3:.2f} cm³/min)"
+        comp_display = f"Negative Radial Stock: {rad_comp_in:.5f}\" ({rad_comp_mm:.4f} mm), Negative Axial Stock: {ax_comp_in:.5f}\" ({ax_comp_mm:.4f} mm)"
+
+    lines = [
+        "### Active Machining Telemetry:",
+        f"- **Active Unit System**: {unit_system_desc}",
+        f"- **Workpiece Material**: {material} (Family: {family})",
+        f"- **Cutter Setup**: {tool} ({geo}), {dia_display}, {flutes}-flute, Flute Length: {flute_display}, Stickout: {stick_display}, Coating: {coating} ({carbide_str})",
+        f"- **Operation**: {op}",
+        f"- **Programmed Engagement**: Axial DOC: {doc_display}, Radial WOC: {woc_display}",
+        f"- **Kinematics**: {rpm} RPM, Cutting Feed: {feed_display}, Surface Speed: {speed_display}, Chip Load: {chip_display}, Plunge: {plunge_display}, Ramp: {ramp_display} @ {ramp_angle:g}°",
+        f"- **Calculated Physics**: Lateral Deflection: {def_display}, Material Springback: {spring_display}, Spindle Load: {spindle_load:.1f}%, MRR: {mrr_display}",
+        f"- **Suggested Stock to Leave (Comp)**: {comp_display}",
+        f"- **Physics Advisor Alerts**: {tips_str}"
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def get_offline_expert_response(prompt: str, context: dict) -> str:
     """Provides high-quality, physics-based fallback answers when no API key is set."""
     p_lower = prompt.lower()
     mat = context.get("material", "Nitronic 60 / Stainless Steel") if context else "tough alloy"
-    dia = context.get("diameter", "0.5") if context else "0.5"
     op = context.get("operation", "Finishing") if context else "Finishing"
+    is_metric = bool(context.get("isMetric", False) or "metric" in str(context.get("unitSystem", "")).lower()) if context else False
+    
+    try:
+        dia_in = float(context.get("diameter_in", context.get("diameter", 0.5)))
+    except (ValueError, TypeError):
+        dia_in = 0.5
+    dia_mm = dia_in * 25.4
+    dia_label = f"{dia_mm:.3f} mm ({dia_in:g}\")" if is_metric else f"{dia_in:g}\" ({dia_mm:.2f} mm)"
     
     if any(k in p_lower for k in ["negative stock", "stock to leave", "flat", "spring back", "springback", "floor"]):
         return f"""### 🎯 Recommendation: Negative Stock to Leave & Floor Finishing in {mat}
@@ -115,7 +300,7 @@ Yes! Utilizing **negative stock to leave on flats/floors** is an established sho
 ---
 
 ### 3. Cutting Parameters for This Pass
-- **Tool**: {dia}\" Diameter Carbide End Mill
+- **Tool**: {dia_label} Diameter Carbide End Mill
 - **Chip Load**: Maintain at least $0.0010"\\text{{ IPT}}$ ($0.025\\text{{ mm/tooth}}$) so the wiper edges cleanly shear the chip rather than burnishing and work-hardening the floor.
 - **Coolant**: Copious high-pressure coolant or high-lubricity mist to prevent microscopic chip welding on the bottom face.
 
@@ -123,7 +308,7 @@ Yes! Utilizing **negative stock to leave on flats/floors** is an established sho
 > *This response was generated using ToolWiz's built-in machining knowledge engine. To enable open-ended, real-time Gemini AI chat for any CAM question, configure your Google Gemini API Key in the settings.*"""
 
     elif any(k in p_lower for k in ["chatter", "vibration", "stickout", "harmonic"]):
-        return f"""### 🛡️ Mitigating Chatter & Harmonics for {dia}\" Cutter in {mat}
+        return f"""### 🛡️ Mitigating Chatter & Harmonics for {dia_label} Cutter in {mat}
 
 When operating at extended stickout, chatter is dominated by regenerative tool deflection and natural frequency resonance:
 
@@ -145,7 +330,7 @@ When operating at extended stickout, chatter is dominated by regenerative tool d
 
 **Active Context Analyzed**:
 - **Material**: {mat}
-- **Tool**: {dia}\" End Mill
+- **Tool**: {dia_label} End Mill
 - **Operation**: {op}
 
 For your inquiry: *"{(prompt[:120] + '...') if len(prompt) > 120 else prompt}"*

@@ -4168,19 +4168,54 @@
             const includeContext = document.getElementById('aiIncludeContext')?.checked ?? true;
             if (!includeContext) return {};
 
-            let dia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
-            let doc = parseFloat(document.getElementById('cutDepth_val')?.value) || 0.25;
-            let woc = parseFloat(document.getElementById('cutWidth_val')?.value) || 0.10;
-            let stick = parseFloat(document.getElementById('stickout_val')?.value) || 1.5;
-            let fluteL = parseFloat(document.getElementById('fluteLength')?.value) || 1.0;
+            const isMet = Boolean(isMetric);
 
-            if (isMetric) {
-                dia /= 25.4;
-                doc /= 25.4;
-                woc /= 25.4;
-                stick /= 25.4;
-                fluteL /= 25.4;
-            }
+            let dia_val = parseFloat(document.getElementById('diameter')?.value) || 0.5;
+            let doc_val = parseFloat(document.getElementById('cutDepth_val')?.value) || 0.25;
+            let woc_val = parseFloat(document.getElementById('cutWidth_val')?.value) || 0.10;
+            let stick_val = parseFloat(document.getElementById('stickout_val')?.value) || 1.5;
+            let fluteL_val = parseFloat(document.getElementById('fluteLength')?.value) || 1.0;
+            let cornerRad_val = parseFloat(document.getElementById('cornerRadius')?.value) || 0.0;
+
+            // Geometry normalized to inches
+            let dia_in = isMet ? (dia_val / 25.4) : dia_val;
+            let doc_in = isMet ? (doc_val / 25.4) : doc_val;
+            let woc_in = isMet ? (woc_val / 25.4) : woc_val;
+            let stick_in = isMet ? (stick_val / 25.4) : stick_val;
+            let fluteL_in = isMet ? (fluteL_val / 25.4) : fluteL_val;
+            let cornerRad_in = isMet ? (cornerRad_val / 25.4) : cornerRad_val;
+
+            // Read results from lastCalcResult (canonical inch values) or fallback to DOM
+            let rpm = lastCalcResult?.rpm ?? (parseInt(document.getElementById('rpm')?.innerText) || 0);
+
+            let domFeed = parseFloat(document.getElementById('feedrate')?.innerText) || 0;
+            let feed_ipm = lastCalcResult?.feedrate ?? (isMet ? (domFeed / 25.4) : domFeed);
+
+            let domSfm = parseFloat(document.getElementById('sfm')?.innerText) || 0;
+            let sfm = lastCalcResult?.sfm ?? (isMet ? (domSfm / 0.3048) : domSfm);
+
+            let domIpt = parseFloat(document.getElementById('adj_ipt')?.innerText) || 0;
+            let ipt = lastCalcResult?.adj_ipt ?? (isMet ? (domIpt / 25.4) : domIpt);
+
+            let domPlunge = parseFloat(document.getElementById('plunge_feed')?.innerText) || 0;
+            let plunge_ipm = lastCalcResult?.plunge_feed ?? (isMet ? (domPlunge / 25.4) : domPlunge);
+
+            let domRamp = parseFloat(document.getElementById('ramp_feed')?.innerText) || 0;
+            let ramp_feed_ipm = lastCalcResult?.ramp_feed ?? (isMet ? (domRamp / 25.4) : domRamp);
+
+            let ramp_angle = lastCalcResult?.ramp_angle ?? (parseFloat(document.getElementById('ramp_angle')?.innerText) || 0);
+
+            let domDef = parseFloat(document.getElementById('deflection')?.innerText) || 0;
+            let deflection_in = lastCalcResult?.deflection ?? (isMet ? (domDef / 25.4) : domDef);
+
+            let springback_in = lastCalcResult?.springback ?? 0;
+            let rad_comp_in = lastCalcResult?.radial_comp ?? 0;
+            let ax_comp_in = lastCalcResult?.axial_comp ?? 0;
+
+            let domMrr = parseFloat(document.getElementById('mrr')?.innerText) || 0;
+            let mrr_in3 = lastCalcResult?.mrr ?? (isMet ? (domMrr / 16.387) : domMrr);
+
+            let spindle_load = parseFloat(document.getElementById('spindle_load')?.innerText) || 0;
 
             const activeTips = [];
             const tipElements = document.querySelectorAll('#tipsList .tip-card strong');
@@ -4189,30 +4224,71 @@
             });
 
             return {
-                material: document.getElementById('alloy')?.value || '',
+                isMetric: isMet,
+                unitSystem: isMet ? 'Metric (mm)' : 'Imperial (inches)',
+                material: document.getElementById('alloy')?.value || document.getElementById('family')?.value || 'Standard Alloy',
                 materialFamily: document.getElementById('family')?.value || '',
                 tool: document.getElementById('tool')?.value || '',
                 geometry: document.getElementById('geometry')?.value || '',
                 coating: document.getElementById('coating')?.value || '',
                 isCarbide: document.getElementById('isCarbide')?.checked ?? true,
-                diameter: parseFloat(dia.toFixed(4)),
                 flutes: parseInt(document.getElementById('flutes_val')?.value || 4),
-                fluteLength: parseFloat(fluteL.toFixed(4)),
-                stickout: parseFloat(stick.toFixed(4)),
                 operation: document.getElementById('operation')?.value || 'Standard Roughing',
-                cutDepth: parseFloat(doc.toFixed(4)),
-                cutWidth: parseFloat(woc.toFixed(4)),
-                rpm: parseInt(document.getElementById('rpm')?.innerText) || 0,
-                feedrate: parseFloat(document.getElementById('feedrate')?.innerText) || 0,
-                sfm: parseFloat(document.getElementById('sfm_val')?.innerText) || 0,
-                ipt: parseFloat(document.getElementById('ipt_val')?.innerText) || 0,
-                plungeFeed: parseFloat(document.getElementById('plunge_feed')?.innerText) || 0,
-                rampFeed: parseFloat(document.getElementById('ramp_feed')?.innerText) || 0,
-                rampAngle: parseFloat(document.getElementById('ramp_angle')?.innerText) || 0,
-                deflection: document.getElementById('deflection')?.innerText || '0.0000',
-                spindleLoadPct: parseFloat(document.getElementById('spindle_load')?.innerText) || 0,
-                mrr: parseFloat(document.getElementById('mrr')?.innerText) || 0,
-                tips: activeTips
+
+                // Inch values
+                diameter_in: parseFloat(dia_in.toFixed(4)),
+                cutDepth_in: parseFloat(doc_in.toFixed(4)),
+                cutWidth_in: parseFloat(woc_in.toFixed(4)),
+                stickout_in: parseFloat(stick_in.toFixed(4)),
+                fluteLength_in: parseFloat(fluteL_in.toFixed(4)),
+                cornerRadius_in: parseFloat(cornerRad_in.toFixed(4)),
+                feedrate_ipm: parseFloat(feed_ipm.toFixed(2)),
+                sfm: parseFloat(sfm.toFixed(1)),
+                ipt_in: parseFloat(ipt.toFixed(6)),
+                plungeFeed_ipm: parseFloat(plunge_ipm.toFixed(2)),
+                rampFeed_ipm: parseFloat(ramp_feed_ipm.toFixed(2)),
+                deflection_in: parseFloat(deflection_in.toFixed(6)),
+                springback_in: parseFloat(springback_in.toFixed(6)),
+                radialComp_in: parseFloat(rad_comp_in.toFixed(6)),
+                axialComp_in: parseFloat(ax_comp_in.toFixed(6)),
+                mrr_in3: parseFloat(mrr_in3.toFixed(3)),
+
+                // Metric values
+                diameter_mm: parseFloat((dia_in * 25.4).toFixed(3)),
+                cutDepth_mm: parseFloat((doc_in * 25.4).toFixed(3)),
+                cutWidth_mm: parseFloat((woc_in * 25.4).toFixed(3)),
+                stickout_mm: parseFloat((stick_in * 25.4).toFixed(3)),
+                fluteLength_mm: parseFloat((fluteL_in * 25.4).toFixed(3)),
+                cornerRadius_mm: parseFloat((cornerRad_in * 25.4).toFixed(3)),
+                feedrate_mmpm: parseFloat((feed_ipm * 25.4).toFixed(1)),
+                smm: parseFloat((sfm * 0.3048).toFixed(1)),
+                ipt_mm: parseFloat((ipt * 25.4).toFixed(4)),
+                plungeFeed_mmpm: parseFloat((plunge_ipm * 25.4).toFixed(1)),
+                rampFeed_mmpm: parseFloat((ramp_feed_ipm * 25.4).toFixed(1)),
+                deflection_mm: parseFloat((deflection_in * 25.4).toFixed(4)),
+                deflection_um: parseFloat((deflection_in * 25.4 * 1000).toFixed(1)),
+                springback_mm: parseFloat((springback_in * 25.4).toFixed(4)),
+                radialComp_mm: parseFloat((rad_comp_in * 25.4).toFixed(4)),
+                axialComp_mm: parseFloat((ax_comp_in * 25.4).toFixed(4)),
+                mrr_cm3: parseFloat((mrr_in3 * 16.387).toFixed(2)),
+
+                rpm: parseInt(rpm),
+                rampAngle: parseFloat(ramp_angle.toFixed(1)),
+                spindleLoadPct: parseFloat(spindle_load.toFixed(1)),
+                tips: activeTips,
+
+                // Legacy keys for backward compatibility
+                diameter: parseFloat(dia_in.toFixed(4)),
+                cutDepth: parseFloat(doc_in.toFixed(4)),
+                cutWidth: parseFloat(woc_in.toFixed(4)),
+                stickout: parseFloat(stick_in.toFixed(4)),
+                fluteLength: parseFloat(fluteL_in.toFixed(4)),
+                feedrate: parseFloat(feed_ipm.toFixed(2)),
+                ipt: parseFloat(ipt.toFixed(6)),
+                deflection: deflection_in.toFixed(5),
+                mrr: parseFloat(mrr_in3.toFixed(3)),
+                plungeFeed: parseFloat(plunge_ipm.toFixed(2)),
+                rampFeed: parseFloat(ramp_feed_ipm.toFixed(2))
             };
         }
 

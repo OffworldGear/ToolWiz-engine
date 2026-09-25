@@ -38,6 +38,55 @@ class TestAiMachinist(unittest.TestCase):
         self.assertIn("deflection: 0.00018\"", text.lower())
         self.assertIn("wear compensation active", text.lower())
 
+    def test_context_formatting_metric(self):
+        """Verify format_context_for_prompt serializes metric telemetry with explicit mm and dual units."""
+        context = {
+            "isMetric": True,
+            "material": "Black Titanium 5545",
+            "materialFamily": "Titanium Alloy",
+            "tool": "HP Carbide Bull Nose Endmill",
+            "geometry": "Bullnose / Radiused",
+            "diameter_in": 0.375,
+            "diameter_mm": 9.525,
+            "flutes": 4,
+            "fluteLength_in": 1.125,
+            "fluteLength_mm": 28.575,
+            "stickout_in": 1.205,
+            "stickout_mm": 30.607,
+            "operation": "3D Adaptive Roughing",
+            "cutDepth_in": 0.375,
+            "cutDepth_mm": 9.525,
+            "cutWidth_in": 0.030,
+            "cutWidth_mm": 0.762,
+            "rpm": 2632,
+            "feedrate_ipm": 24.65,
+            "feedrate_mmpm": 626.1,
+            "sfm": 258.4,
+            "smm": 78.8,
+            "ipt_in": 0.00234,
+            "ipt_mm": 0.0594,
+            "plungeFeed_ipm": 6.16,
+            "plungeFeed_mmpm": 156.5,
+            "rampFeed_ipm": 12.33,
+            "rampFeed_mmpm": 313.1,
+            "deflection_in": 0.00082,
+            "deflection_mm": 0.0208,
+            "deflection_um": 20.8,
+            "spindleLoadPct": 12.0,
+            "mrr_in3": 0.28,
+            "mrr_cm3": 4.54
+        }
+        text = ai_machinist.format_context_for_prompt(context)
+        self.assertIn("Metric (UI in mm & mm/min)", text)
+        self.assertIn("9.525 mm", text)
+        self.assertIn("626.1 mm/min", text)
+        self.assertIn("24.65 IPM", text)
+        self.assertIn("78.8 m/min", text)
+        self.assertIn("258.4 SFM", text)
+        self.assertIn("0.0208 mm", text)
+        self.assertIn("0.00082\"", text)
+        self.assertIn("4.54 cm³/min", text)
+
     def test_offline_negative_stock_response(self):
         """Verify offline expert response answers flat finishing & springback questions."""
         res = ai_machinist.query_ai_machinist(
