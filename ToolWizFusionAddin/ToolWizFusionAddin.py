@@ -633,6 +633,10 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 
             material_label = alloy if alloy else family
             calc_result["name"] = f"{material_label} - {strategy}"
+            calc_result["material_query"] = material_label
+            calc_result["material_category"] = "metal"
+            calc_result["tool_number"] = geo_payload.get("number", 1)
+            calc_result["flutes"] = geo_payload.get("flutes", 4)
             
             rpm = calc_result.get("rpm", 5000)
             feed = calc_result.get("feed", 30.0)
@@ -652,6 +656,71 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 geo_payload["raw_json"], calc_result, target_preset_to_replace=target_preset_to_replace
             )
             
+            # Re-instantiate Tool with the mutated JSON and assign to operation & library
+            tool_updated = False
+            new_tool = None
+            try:
+                if hasattr(adsk, 'cam') and hasattr(adsk.cam, 'Tool') and hasattr(adsk.cam.Tool, 'createFromJson'):
+                    new_tool = adsk.cam.Tool.createFromJson(mutated_json)
+                    if new_tool:
+                        target_op.tool = new_tool
+                        tool_updated = True
+            except Exception as ex_tool:
+                pass
+                
+            # Fallback to direct tool presets collection manipulation if createFromJson was not used
+            if not tool_updated:
+                try:
+                    cur_tool = getattr(target_op, 'tool', None)
+                    if cur_tool and hasattr(cur_tool, 'presets'):
+                        target_preset = None
+                        if target_preset_to_replace and target_preset_to_replace != "+ Create New Preset (Auto-Named)":
+                            for pr in cur_tool.presets:
+                                if pr.name == target_preset_to_replace:
+                                    target_preset = pr
+                                    break
+                        if not target_preset:
+                            for pr in cur_tool.presets:
+                                if pr.name == final_preset_name:
+                                    target_preset = pr
+                                    break
+                        if not target_preset:
+                            target_preset = cur_tool.presets.add()
+                        if target_preset:
+                            target_preset.name = final_preset_name
+                            target_op.tool = cur_tool
+                            tool_updated = True
+                except Exception as ex_preset:
+                    pass
+
+            # Activate the newly created / updated preset on the operation
+            preset_linked = False
+            try:
+                active_tool = getattr(target_op, 'tool', None)
+                if active_tool and hasattr(active_tool, 'presets'):
+                    for pr in active_tool.presets:
+                        if pr.name == final_preset_name:
+                            try:
+                                target_op.toolPreset = pr
+                                preset_linked = True
+                            except:
+                                pass
+                            break
+            except Exception as ex_link:
+                pass
+
+            # Update Document Tool Library if accessible
+            try:
+                cam_prod = app.activeDocument.products.itemByProductType('CAMProductType')
+                if cam_prod:
+                    cam_obj = adsk.cam.CAM.cast(cam_prod)
+                    if cam_obj and hasattr(cam_obj, 'documentToolLibrary') and cam_obj.documentToolLibrary:
+                        doc_lib = cam_obj.documentToolLibrary
+                        if hasattr(doc_lib, 'update') and target_op.tool:
+                            doc_lib.update(target_op.tool, False)
+            except Exception as ex_doclib:
+                pass
+
             applied = []
             if apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm"):
                 applied.append(f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)")
@@ -675,15 +744,21 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
                 applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
                 
-            action_desc = "Updated preset in-place" if was_updated else "Created new preset"
+            action_desc = "Updated in-place" if was_updated else "Created new preset"
+            link_desc = "Linked as active preset" if preset_linked else ("Added to tool presets" if tool_updated else "Parameters applied")
             applied_summary = "\n".join([f" • {item}" for item in applied])
+            t_num = geo_payload.get("number", 1)
             msg = (
-                f"Cutting Parameters Applied!\n"
+                f"Tool Cutting Data & Preset Applied!\n"
                 f"====================================\n"
-                f"Preset: {final_preset_name} ({action_desc})\n"
-                f"Operation: {op_name}\n\n"
+                f"Tool: T{t_num} ({geo_payload.get('desc', 'Endmill')})\n"
+                f"Material: {material_label}\n"
+                f"Preset: {final_preset_name}\n"
+                f"Status: {action_desc} ({link_desc})\n"
+                f"Target Operation: {op_name}\n\n"
                 f"{applied_summary}\n\n"
-                f"Ramp Feed: {ramp_feed:.2f} in/min | Plunge Feed: {plunge_feed:.2f} in/min"
+                f"Ramp Feed: {ramp_feed:.2f} in/min | Plunge Feed: {plunge_feed:.2f} in/min\n\n"
+                f"💡 This preset is now permanently attached to Tool T{t_num}'s Cutting Data tab for use across your entire document."
             )
             ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
             
