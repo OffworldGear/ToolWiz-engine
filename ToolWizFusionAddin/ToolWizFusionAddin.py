@@ -1,7 +1,10 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
 import urllib.request, json
 import os, re
-from . import json_mutator
+try:
+    from . import json_mutator
+except (ImportError, ValueError):
+    import json_mutator
 
 app = None
 ui = None
@@ -33,6 +36,7 @@ families_list = [
     "Stainless - 300 Series (316)",
     "Stainless - 400 Series (420)",
     "Titanium Alloy",
+    "Black Titanium 5545",
     "Brass",
     "Plastics: Hard (ABS, Nylon, Foam Bd)"
 ]
@@ -46,7 +50,16 @@ alloys_dict = {
     ],
     "Steel - Low Carbon (1020)": ["1018 - Cold Drawn", "1020 - Hot Rolled"],
     "Steel - Medium Carbon Alloy (4130)": ["4140 - Pre-Hardened (~30 HRC)", "4130 - Annealed"],
-    "Stainless - 300 Series (316)": ["304 - Annealed", "316 - Annealed"]
+    "Stainless - 300 Series (316)": ["304 - Annealed", "316 - Annealed"],
+    "Titanium Alloy": [
+        "Ti-6Al-4V (Grade 5)",
+        "Black Titanium 5545 (~55% Zr / ~45% Ti)",
+        "Titanium Grade 2",
+        "Titanium Grade 1"
+    ],
+    "Black Titanium 5545": [
+        "Black Titanium 5545 (~55% Zr / ~45% Ti - 33.7 HRC)"
+    ]
 }
 
 
@@ -137,6 +150,71 @@ def format_cutter_type(raw_type, desc=""):
         return t_str.title()
     return "Flat End Mill"
 
+def extract_tool_number(op, t_dict=None):
+    """Accurately extracts tool number from operation CAMParameters, tool object, or tool JSON."""
+    # 1. Operation CAM parameters (authoritative for active CAM toolpath)
+    if op and hasattr(op, 'parameters') and op.parameters:
+        for p_name in ['tool_number', 'tool_toolNumber', 'toolNumber']:
+            try:
+                p = op.parameters.itemByName(p_name)
+                if p:
+                    if hasattr(p, 'value') and hasattr(p.value, 'value') and p.value.value is not None:
+                        try:
+                            val = int(float(p.value.value))
+                            if val > 0:
+                                return val
+                        except:
+                            pass
+                    if getattr(p, 'expression', None):
+                        try:
+                            m = re.search(r'(\d+)', str(p.expression))
+                            if m:
+                                val = int(m.group(1))
+                                if val > 0:
+                                    return val
+                        except:
+                            pass
+            except:
+                pass
+
+    # 2. Direct property on tool object
+    if op and hasattr(op, 'tool') and op.tool:
+        try:
+            if hasattr(op.tool, 'number'):
+                val = int(op.tool.number)
+                if val > 0:
+                    return val
+        except:
+            pass
+
+    # 3. Tool JSON dictionary
+    if t_dict and isinstance(t_dict, dict):
+        # Autodesk tool JSON schema uses "post-process" (hyphenated)
+        post = (
+            t_dict.get("post-process")
+            or t_dict.get("postProcess")
+            or t_dict.get("post_process")
+            or {}
+        )
+        if isinstance(post, dict):
+            num = post.get("number")
+            if num is not None:
+                try:
+                    val = int(num)
+                    if val > 0:
+                        return val
+                except:
+                    pass
+        if "number" in t_dict:
+            try:
+                val = int(t_dict["number"])
+                if val > 0:
+                    return val
+            except:
+                pass
+
+    return 1
+
 def get_op_tool_info(op):
     """Extracts tool metadata and geometry formatted in inches with dual unit display"""
     if not op or not hasattr(op, 'tool') or not op.tool:
@@ -155,7 +233,7 @@ def get_op_tool_info(op):
         shank_diameter = parse_dim_to_inches(geo.get("SF", diameter * 25.4), diameter, tool_unit)
         corner_radius = parse_dim_to_inches(geo.get("RE", 0.0), 0.0, tool_unit)
         desc = t_dict.get("description", f"{diameter:.3f}in Endmill")
-        t_num = t_dict.get("postProcess", {}).get("number", 1)
+        t_num = extract_tool_number(op, t_dict)
         raw_type = t_dict.get("type", "")
         cutter_type = format_cutter_type(raw_type, desc)
         
@@ -249,7 +327,7 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
                                     t_json = op.tool.toJson()
                                     t_dict = json.loads(t_json)
                                     t_desc = t_dict.get("description", "")
-                                    t_num = t_dict.get("postProcess", {}).get("number", 0)
+                                    t_num = extract_tool_number(op, t_dict)
                                     key = f"{t_num}_{t_desc}"
                                     if key not in seen_tools:
                                         seen_tools.add(key)
@@ -290,8 +368,21 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
             req.add_header('Content-Type', 'application/json; charset=utf-8')
             jsondata = json.dumps(payload).encode('utf-8')
             
-            response = urllib.request.urlopen(req, jsondata, timeout=5.0)
-            res_data = json.loads(response.read().decode('utf-8'))
+            try:
+                response = urllib.request.urlopen(req, jsondata, timeout=5.0)
+                res_data = json.loads(response.read().decode('utf-8'))
+            except (urllib.error.URLError, ConnectionRefusedError, OSError):
+                if ui:
+                    ui.messageBox(
+                        "Cannot connect to the Tool Wizard backend at http://127.0.0.1:5000.\n\n"
+                        "Tool Wizard must be running on your machine to export tool libraries.\n\n"
+                        "To start it:\n"
+                        "1. Open a terminal in your Tool Wizard directory.\n"
+                        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
+                        "3. Re-run this command once the server is started.",
+                        "Tool Wizard Server Offline"
+                    )
+                return
             
             if res_data.get("success"):
                 lib_display_name = res_data.get("library_name", "Master_Shop_Tool_Crib")
@@ -400,9 +491,22 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
     def notify(self, args):
         try:
             # Fetch latest mutated library JSON from ToolWiz server
-            req = urllib.request.Request("http://127.0.0.1:5000/api/twin/get_import_payload")
-            response = urllib.request.urlopen(req, timeout=5.0)
-            res_data = json.loads(response.read().decode('utf-8'))
+            try:
+                req = urllib.request.Request("http://127.0.0.1:5000/api/twin/get_import_payload")
+                response = urllib.request.urlopen(req, timeout=5.0)
+                res_data = json.loads(response.read().decode('utf-8'))
+            except (urllib.error.URLError, ConnectionRefusedError, OSError):
+                if ui:
+                    ui.messageBox(
+                        "Cannot connect to the Tool Wizard backend at http://127.0.0.1:5000.\n\n"
+                        "Tool Wizard must be running on your machine to import tool libraries.\n\n"
+                        "To start it:\n"
+                        "1. Open a terminal in your Tool Wizard directory.\n"
+                        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
+                        "3. Re-run this command once the server is started.",
+                        "Tool Wizard Server Offline"
+                    )
+                return
             
             if not res_data.get("success") or not res_data.get("library"):
                 ui.messageBox("No modified Digital Twin library found on ToolWiz server.\nPlease generate presets in ToolWiz first.")
@@ -505,10 +609,23 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 "stickout": geo_payload["stickout"], "coating": geo_payload["coating"], "geometry": geo_payload["geometry"]
             }
             
-            req = urllib.request.Request("http://127.0.0.1:5000/api/calculate_for_fusion")
-            req.add_header('Content-Type', 'application/json; charset=utf-8')
-            response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), timeout=5.0)
-            calc_result = json.loads(response.read().decode('utf-8'))
+            try:
+                req = urllib.request.Request("http://127.0.0.1:5000/api/calculate_for_fusion")
+                req.add_header('Content-Type', 'application/json; charset=utf-8')
+                response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), timeout=5.0)
+                calc_result = json.loads(response.read().decode('utf-8'))
+            except (urllib.error.URLError, ConnectionRefusedError, OSError):
+                if ui:
+                    ui.messageBox(
+                        "Cannot connect to the Tool Wizard backend at http://127.0.0.1:5000.\n\n"
+                        "Tool Wizard must be running on your machine to calculate speeds & feeds.\n\n"
+                        "To start it:\n"
+                        "1. Open a terminal in your Tool Wizard directory.\n"
+                        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
+                        "3. Click OK in this dialog once the server is started.",
+                        "Tool Wizard Server Offline"
+                    )
+                return
             
             if not calc_result.get("success"):
                 ui.messageBox(f"ToolWiz Calculation Error: {calc_result.get('error')}")
@@ -676,6 +793,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 preset_input.listItems.add(f"Replace: {p}", False)
             
             global families_list, alloys_dict
+            is_server_online = False
             try:
                 response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.5)
                 data = json.loads(response.read().decode('utf-8'))
@@ -689,8 +807,18 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             if f not in new_alloys: new_alloys[f] = []
                             if name not in new_alloys[f]: new_alloys[f].append(name)
                     if new_alloys: alloys_dict = new_alloys
+                is_server_online = True
             except:
-                pass
+                is_server_online = False
+
+            if not is_server_online:
+                server_warn = inputs.addTextBoxCommandInput(
+                    'serverOfflineNotice', '⚠️ Warning',
+                    'Tool Wizard local server is OFFLINE (http://127.0.0.1:5000).\n'
+                    'Please start Tool Wizard ("py app.py" in terminal) before calculating feeds & speeds.',
+                    2, True
+                )
+                server_warn.isFullWidth = True
                 
             mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
             default_family = "Steel - Tool (H13)" if "Steel - Tool (H13)" in families_list else families_list[0]
@@ -706,6 +834,8 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             strat_input.listItems.add('Adaptive Roughing', True)
             strat_input.listItems.add('Roughing', False)
             strat_input.listItems.add('Finishing', False)
+            strat_input.listItems.add('3D Contouring / Scallop Finishing', False)
+            strat_input.listItems.add('Floor Finishing (Skim)', False)
             strat_input.listItems.add('Slotting', False)
             strat_input.listItems.add('Facing', False)
             
@@ -1447,6 +1577,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 
             # Populate Materials from Tool Wizard DB
             global families_list, alloys_dict
+            is_server_online = False
             try:
                 response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.5)
                 data = json.loads(response.read().decode('utf-8'))
@@ -1462,8 +1593,18 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             if name not in new_alloys[f]: new_alloys[f].append(name)
                     if new_alloys:
                         alloys_dict = new_alloys
+                is_server_online = True
             except:
-                pass
+                is_server_online = False
+
+            if not is_server_online:
+                server_warn = inputs.addTextBoxCommandInput(
+                    'stockServerOfflineNotice', '⚠️ Warning',
+                    'Tool Wizard local server is OFFLINE (http://127.0.0.1:5000).\n'
+                    'Live deflection physics calculations require Tool Wizard running ("py app.py").',
+                    2, True
+                )
+                server_warn.isFullWidth = True
 
             # Instructions Header
             intro_box = inputs.addTextBoxCommandInput(
