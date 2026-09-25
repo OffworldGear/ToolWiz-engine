@@ -249,6 +249,29 @@ def get_op_tool_info(op):
             default_stick = flute_length + min(0.25, diameter * 0.5)
             stickout = max(flute_length * 1.05, min(default_stick, diameter * 3.5))
 
+        desc_lower = desc.lower()
+        bmc_lower = str(t_dict.get("BMC", "")).lower()
+        grade_lower = str(t_dict.get("GRADE", "")).lower()
+        text_all = f"{desc_lower} {bmc_lower} {grade_lower}"
+        
+        detected_coating = "AlTiN" if ("carbide" in bmc_lower or "carbide" in desc_lower) else "Uncoated"
+        if "altin" in text_all:
+            detected_coating = "AlTiN"
+        elif "tialn" in text_all:
+            detected_coating = "TiAlN"
+        elif "ticn" in text_all:
+            detected_coating = "TiCN"
+        elif "tin" in text_all:
+            detected_coating = "TiN"
+        elif "zrn" in text_all:
+            detected_coating = "ZrN"
+        elif "dlc" in text_all or "diamond" in text_all:
+            detected_coating = "Diamond"
+        elif "uncoated" in text_all or "bright" in text_all:
+            detected_coating = "Uncoated"
+
+        is_carbide = ("carbide" in bmc_lower or "carbide" in desc_lower or "generic" in grade_lower)
+
         geo_payload = {
             "diameter": diameter,
             "flutes": flutes,
@@ -256,8 +279,9 @@ def get_op_tool_info(op):
             "shankDiameter": shank_diameter,
             "cornerRadius": corner_radius,
             "stickout": stickout,
-            "coating": "Uncoated",
-            "geometry": "Square" if corner_radius == 0 else "Radiused",
+            "coating": detected_coating,
+            "is_carbide": is_carbide,
+            "geometry": "Square" if corner_radius == 0 else "Bullnose / Radiused",
             "desc": desc,
             "number": t_num,
             "tool_type": cutter_type,
@@ -574,6 +598,8 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             
             op_input = inputs.itemById('targetOp')
             preset_action_input = inputs.itemById('presetAction')
+            grade_input = inputs.itemById('toolGrade')
+            coat_input = inputs.itemById('toolCoating')
             family_input = inputs.itemById('matFamily')
             alloy_input = inputs.itemById('matAlloy')
             strat_input = inputs.itemById('strategy')
@@ -602,11 +628,43 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 ui.messageBox(f'Could not read tool geometry: {summary_str}')
                 return
                 
+            selected_grade = grade_input.selectedItem.name if (grade_input and grade_input.selectedItem) else "HP High Performance Carbide"
+            selected_coating_raw = coat_input.selectedItem.name if (coat_input and coat_input.selectedItem) else "AlTiN (Black)"
+
+            coating_code = "AlTiN"
+            if "tialn" in selected_coating_raw.lower():
+                coating_code = "TiAlN"
+            elif "altin" in selected_coating_raw.lower():
+                coating_code = "AlTiN"
+            elif "ticn" in selected_coating_raw.lower():
+                coating_code = "TiCN"
+            elif "tin" in selected_coating_raw.lower():
+                coating_code = "TiN"
+            elif "zrn" in selected_coating_raw.lower():
+                coating_code = "ZrN"
+            elif "dlc" in selected_coating_raw.lower() or "diamond" in selected_coating_raw.lower():
+                coating_code = "Diamond"
+            elif "uncoated" in selected_coating_raw.lower() or "bright" in selected_coating_raw.lower():
+                coating_code = "Uncoated"
+
+            corner_radius = geo_payload.get("cornerRadius", 0.0)
+            is_bullnose = corner_radius > 0.001
+            
+            if "hp" in selected_grade.lower() or "high performance" in selected_grade.lower():
+                tool_category = "HP Carbide Bull Nose Endmill" if is_bullnose else "HP Carbide Endmill"
+            elif "hss" in selected_grade.lower():
+                tool_category = "HSS Endmill"
+            elif "cobalt" in selected_grade.lower():
+                tool_category = "Cobalt Endmill"
+            else:
+                tool_category = "Carbide Bull Nose Endmill" if is_bullnose else "Carbide Endmill"
+
             payload = {
                 "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
+                "tool": tool_category, "coating": coating_code,
                 "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
                 "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
-                "stickout": geo_payload["stickout"], "coating": geo_payload["coating"], "geometry": geo_payload["geometry"]
+                "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"]
             }
             
             try:
@@ -721,19 +779,23 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             except Exception as ex_doclib:
                 pass
 
-            applied = []
-            if apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm"):
-                applied.append(f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)")
-            apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
+            applied = [
+                f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)",
+                f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)"
+            ]
             
-            if apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min"):
-                applied.append(f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)")
-            apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
+            # If preset was NOT successfully linked, apply feeds & speeds as manual parameter overrides
+            if not preset_linked:
+                apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
+                apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
+                apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min")
+                apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
+                apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
+                apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
+                apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
+                apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
             
+            # Apply operation-specific cut step parameters (not stored in tool presets)
             if "Adaptive" in strategy:
                 if apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"):
                     applied.append(f"Optimal Load (WOC): {woc:.4f} in")
@@ -743,6 +805,28 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                     
             if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
                 applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
+
+            # Guard smoothing tolerance from collapsing to microscopic values (0.001 mm / 1 micron)
+            try:
+                p_smooth = target_op.parameters.itemByName('smoothingTolerance')
+                if p_smooth and p_smooth.isEnabled:
+                    tol_val_mm = None
+                    if hasattr(p_smooth, 'value') and hasattr(p_smooth.value, 'value'):
+                        tol_val_mm = float(p_smooth.value.value) * 10.0  # cm to mm
+                    elif getattr(p_smooth, 'expression', None):
+                        m = re.search(r'([0-9.]+)', str(p_smooth.expression))
+                        if m:
+                            tol_val_mm = float(m.group(1))
+                            if 'in' in str(p_smooth.expression).lower():
+                                tol_val_mm *= 25.4
+                    if tol_val_mm is not None and tol_val_mm <= 0.002:
+                        p_tol = target_op.parameters.itemByName('tolerance')
+                        if p_tol and getattr(p_tol, 'expression', None):
+                            p_smooth.expression = p_tol.expression
+                        else:
+                            p_smooth.expression = "0.001 in"
+            except:
+                pass
                 
             action_desc = "Updated in-place" if was_updated else "Created new preset"
             link_desc = "Linked as active preset" if preset_linked else ("Added to tool presets" if tool_updated else "Parameters applied")
@@ -780,14 +864,50 @@ class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
                 target_op = available_ops_map.get(op_name)
                 tool_info_box = inputs.itemById('toolInfo')
                 preset_action_input = inputs.itemById('presetAction')
+                grade_input = inputs.itemById('toolGrade')
+                coat_input = inputs.itemById('toolCoating')
+                strat_input = inputs.itemById('strategy')
                 if target_op:
-                    _, summary_str, existing_presets = get_op_tool_info(target_op)
+                    g_payload, summary_str, existing_presets = get_op_tool_info(target_op)
                     if tool_info_box: tool_info_box.text = summary_str
                     if preset_action_input:
                         preset_action_input.listItems.clear()
                         preset_action_input.listItems.add("+ Create New Preset (Auto-Named)", True)
                         for p in existing_presets:
                             preset_action_input.listItems.add(f"Replace: {p}", False)
+                    if g_payload:
+                        det_c = g_payload.get("coating", "AlTiN")
+                        if coat_input:
+                            for itm in coat_input.listItems:
+                                itm.isSelected = (det_c.lower() in itm.name.lower())
+                        if grade_input:
+                            is_carb = g_payload.get("is_carbide", True)
+                            for itm in grade_input.listItems:
+                                if is_carb and "HP" in itm.name:
+                                    itm.isSelected = True
+                                elif not is_carb and "HSS" in itm.name:
+                                    itm.isSelected = True
+                    if strat_input and hasattr(target_op, 'strategy'):
+                        op_strat = str(target_op.strategy).lower()
+                        for itm in strat_input.listItems:
+                            if 'adaptive' in op_strat and 'adaptive' in itm.name.lower():
+                                itm.isSelected = True
+                                break
+                            elif ('face' in op_strat or 'facing' in op_strat) and 'facing' in itm.name.lower():
+                                itm.isSelected = True
+                                break
+                            elif ('flat' in op_strat or 'horizontal' in op_strat) and 'floor' in itm.name.lower():
+                                itm.isSelected = True
+                                break
+                            elif any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']) and '3d' in itm.name.lower():
+                                itm.isSelected = True
+                                break
+                            elif any(s in op_strat for s in ['contour', 'trace']) and itm.name.lower() == 'finishing':
+                                itm.isSelected = True
+                                break
+                            elif 'pocket' in op_strat and itm.name.lower() == 'roughing':
+                                itm.isSelected = True
+                                break
                             
             elif cmdInput.id == 'matFamily':
                 family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
@@ -858,7 +978,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 op_input.listItems.add(op_label, op_label == preselect_op_name)
                 
             initial_op = available_ops_map.get(preselect_op_name)
-            _, initial_summary, existing_presets = get_op_tool_info(initial_op)
+            initial_geo, initial_summary, existing_presets = get_op_tool_info(initial_op)
             tool_info_box = inputs.addTextBoxCommandInput('toolInfo', 'Detected Tool', initial_summary, 2, True)
             tool_info_box.isFullWidth = True
             
@@ -866,6 +986,27 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             preset_input.listItems.add('+ Create New Preset (Auto-Named)', True)
             for p in existing_presets:
                 preset_input.listItems.add(f"Replace: {p}", False)
+                
+            tool_grade_input = inputs.addDropDownCommandInput('toolGrade', 'Tool Performance Grade', adsk.core.DropDownStyles.TextListDropDownStyle)
+            is_carbide = initial_geo.get("is_carbide", True) if initial_geo else True
+            tool_grade_input.listItems.add('HP High Performance Carbide', is_carbide)
+            tool_grade_input.listItems.add('Carbide (Standard)', False)
+            tool_grade_input.listItems.add('High Speed Steel (HSS)', not is_carbide)
+            tool_grade_input.listItems.add('Cobalt (M42)', False)
+
+            tool_coating_input = inputs.addDropDownCommandInput('toolCoating', 'Tool Coating', adsk.core.DropDownStyles.TextListDropDownStyle)
+            det_coat = initial_geo.get("coating", "AlTiN") if initial_geo else "AlTiN"
+            coating_options = [
+                ('AlTiN (Black)', 'AlTiN'),
+                ('TiAlN (Dark Violet)', 'TiAlN'),
+                ('TiN (Gold)', 'TiN'),
+                ('TiCN', 'TiCN'),
+                ('ZrN', 'ZrN'),
+                ('Diamond / DLC', 'Diamond'),
+                ('Uncoated / Bright', 'Uncoated')
+            ]
+            for label, code in coating_options:
+                tool_coating_input.listItems.add(label, code.lower() == det_coat.lower())
             
             global families_list, alloys_dict
             is_server_online = False
@@ -906,13 +1047,28 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 alloy_input.listItems.add(a, i == 0)
                 
             strat_input = inputs.addDropDownCommandInput('strategy', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
-            strat_input.listItems.add('Adaptive Roughing', True)
-            strat_input.listItems.add('Roughing', False)
-            strat_input.listItems.add('Finishing', False)
-            strat_input.listItems.add('3D Contouring / Scallop Finishing', False)
-            strat_input.listItems.add('Floor Finishing (Skim)', False)
-            strat_input.listItems.add('Slotting', False)
-            strat_input.listItems.add('Facing', False)
+            op_strat = str(getattr(initial_op, 'strategy', '')).lower() if initial_op else ""
+            default_strat = 'Adaptive Roughing'
+            if 'adaptive' in op_strat:
+                default_strat = 'Adaptive Roughing'
+            elif 'face' in op_strat or 'facing' in op_strat:
+                default_strat = 'Facing'
+            elif 'flat' in op_strat or 'horizontal' in op_strat:
+                default_strat = 'Floor Finishing (Skim)'
+            elif any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']):
+                default_strat = '3D Contouring / Scallop Finishing'
+            elif any(s in op_strat for s in ['contour', 'trace']):
+                default_strat = 'Finishing'
+            elif 'pocket' in op_strat:
+                default_strat = 'Roughing'
+
+            strat_input.listItems.add('Adaptive Roughing', default_strat == 'Adaptive Roughing')
+            strat_input.listItems.add('Roughing', default_strat == 'Roughing')
+            strat_input.listItems.add('Finishing', default_strat == 'Finishing')
+            strat_input.listItems.add('3D Contouring / Scallop Finishing', default_strat == '3D Contouring / Scallop Finishing')
+            strat_input.listItems.add('Floor Finishing (Skim)', default_strat == 'Floor Finishing (Skim)')
+            strat_input.listItems.add('Slotting', default_strat == 'Slotting')
+            strat_input.listItems.add('Facing', default_strat == 'Facing')
             
             agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
             agg_input.valueOne = 50

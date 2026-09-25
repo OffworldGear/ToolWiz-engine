@@ -48,19 +48,19 @@ class TestFusionJsonMutator(unittest.TestCase):
         self.assertEqual(len(presets), 2)
         self.assertEqual(presets[0]["name"], "Default")
         
-        # Ensure our payload was injected correctly with stringified units
+        # Ensure our payload was injected correctly with native numeric values
         our_preset = presets[1]
         self.assertEqual(our_preset["name"], "ToolWiz Adaptive Roughing")
-        self.assertEqual(our_preset["n"], "12000.000000rpm")
-        self.assertEqual(our_preset["v_f"], "100.000000in/min")
-        self.assertEqual(our_preset["stepdown"], "0.250000in")
-        self.assertEqual(our_preset["stepover"], "0.050000in")
+        self.assertEqual(our_preset["n"], 12000.0)
+        self.assertEqual(our_preset["v_f"], 100.0)
+        self.assertEqual(our_preset["stepdown"], 0.25)
+        self.assertEqual(our_preset["stepover"], 0.05)
 
     def test_mutate_tool_json_update_existing(self):
         raw_json = json.dumps({
             "start-values": {
                 "presets": [
-                    {"name": "ToolWiz Auto", "n": "5000rpm", "v_f": "20in/min"}
+                    {"name": "ToolWiz Auto", "n": 5000, "v_f": 20}
                 ]
             }
         })
@@ -77,7 +77,7 @@ class TestFusionJsonMutator(unittest.TestCase):
         
         # Ensure it updated in place rather than appending
         self.assertEqual(len(presets), 1)
-        self.assertEqual(presets[0]["n"], "15000.000000rpm")
+        self.assertEqual(presets[0]["n"], 15000.0)
 
 if __name__ == '__main__':
     unittest.main()

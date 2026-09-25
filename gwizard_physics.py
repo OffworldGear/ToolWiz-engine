@@ -861,7 +861,7 @@ class OptimizationEngine:
 
         is_floor_finish = "floor" in op_low
         is_semi_finish = "semi" in op_low
-        is_3d_contour = any(s in op_low for s in ["3d", "scallop", "contour finishing", "surfacing"])
+        is_3d_contour = any(s in op_low for s in ["scallop", "contour finishing", "surfacing"]) or ("3d" in op_low and not is_adaptive and "rough" not in op_low)
 
         if is_3d_contour:
             # 3D Contouring / Scallop: light stepover (8-12% D, min 0.005", max 0.040")

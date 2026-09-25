@@ -74,10 +74,10 @@ class TestToolPresetInjection(unittest.TestCase):
         self.assertTrue(len(bt_preset["guid"]) > 0)
         self.assertEqual(bt_preset["material"]["query"], "Black Titanium 5545")
         self.assertEqual(bt_preset["material"]["category"], "metal")
-        self.assertEqual(bt_preset["n"], "12224.000000rpm")
-        self.assertEqual(bt_preset["v_f"], "12.200000in/min")
-        self.assertEqual(bt_preset["stepdown"], "0.005000in")
-        self.assertEqual(bt_preset["stepover"], "0.002000in")
+        self.assertEqual(bt_preset["n"], 12224.0)
+        self.assertEqual(bt_preset["v_f"], 12.2)
+        self.assertEqual(bt_preset["stepdown"], 0.005)
+        self.assertEqual(bt_preset["stepover"], 0.002)
         self.assertTrue(bt_preset["use-stepdown"])
         self.assertTrue(bt_preset["use-stepover"])
         
@@ -105,7 +105,7 @@ class TestToolPresetInjection(unittest.TestCase):
         presets = mutated_dict["start-values"]["presets"]
         self.assertEqual(len(presets), 1)
         self.assertEqual(presets[0]["guid"], "existing-preset-guid-1234")
-        self.assertEqual(presets[0]["n"], "15000.000000rpm")
+        self.assertEqual(presets[0]["n"], 15000.0)
         self.assertEqual(presets[0]["material"]["query"], "Black Titanium 5545")
 
 if __name__ == '__main__':

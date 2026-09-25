@@ -26,6 +26,9 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
     preset_name = new_preset_data.get("name", "ToolWiz Auto Preset")
     material_label = new_preset_data.get("material_query") or new_preset_data.get("alloy") or new_preset_data.get("family") or "Generic"
     
+    tool_unit = tool_dict.get("unit", tool_dict.get("geometry", {}).get("unit", "inches"))
+    is_metric = (str(tool_unit).lower() in ["millimeters", "mm"])
+    
     rpm_val = float(new_preset_data.get("rpm", 0))
     sfm_val = float(new_preset_data.get("sfm", 0))
     ipt_val = float(new_preset_data.get("ipt", 0))
@@ -42,6 +45,15 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
     if pf is None or pf <= 0:
         pf = rf if rf > 0 else (feed_val * 0.25 if feed_val > 0 else 5.0)
         
+    rpm_num = float(round(rpm_val, 2))
+    sfm_num = float(round(sfm_val if not is_metric else sfm_val * 0.3048, 2))
+    ipt_num = float(round(ipt_val if not is_metric else ipt_val * 25.4, 6))
+    feed_num = float(round(feed_val if not is_metric else feed_val * 25.4, 2))
+    doc_num = float(round(doc_val if not is_metric else doc_val * 25.4, 4))
+    woc_num = float(round(woc_val if not is_metric else woc_val * 25.4, 4))
+    rf_num = float(round(rf if not is_metric else rf * 25.4, 2))
+    pf_num = float(round(pf if not is_metric else pf * 25.4, 2))
+
     mapped_data = {
         "guid": str(uuid.uuid4()),
         "name": preset_name,
@@ -51,19 +63,19 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
             "query": material_label,
             "use-hardness": False
         },
-        "n": format_unit(rpm_val, "rpm"),
-        "n_ramp": format_unit(rpm_val, "rpm"),
-        "v_c": format_unit(sfm_val, "ft/min"),
-        "f_z": format_unit(ipt_val, "in"),
-        "f_n": format_unit(ipt_val * flutes, "in"),
-        "v_f": format_unit(feed_val, "in/min"),
-        "v_f_leadIn": format_unit(feed_val, "in/min"),
-        "v_f_leadOut": format_unit(feed_val, "in/min"),
-        "v_f_transition": format_unit(feed_val * 1.5, "in/min"),
-        "v_f_ramp": format_unit(rf, "in/min"),
-        "v_f_plunge": format_unit(pf, "in/min"),
-        "stepdown": format_unit(doc_val, "in"),
-        "stepover": format_unit(woc_val, "in"),
+        "n": rpm_num,
+        "n_ramp": rpm_num,
+        "v_c": sfm_num,
+        "f_z": ipt_num,
+        "f_n": float(round(ipt_num * flutes, 6)),
+        "v_f": feed_num,
+        "v_f_leadIn": feed_num,
+        "v_f_leadOut": feed_num,
+        "v_f_transition": float(round(feed_num * 1.5, 2)),
+        "v_f_ramp": rf_num,
+        "v_f_plunge": pf_num,
+        "stepdown": doc_num,
+        "stepover": woc_num,
         "use-stepdown": True,
         "use-stepover": True,
         "ramp-angle": 2.0,
