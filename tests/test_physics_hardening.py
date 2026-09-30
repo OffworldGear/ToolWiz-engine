@@ -31,11 +31,12 @@ class TestAlloyMatching(unittest.TestCase):
         # Rows sharing alloy+condition (castings) legitimately resolve to the harder duplicate.
         dup = {}
         for a in self.p.specific_alloys:
-            dup.setdefault((a["family"], a["alloy"], a["condition"]), []).append(a)
+            dup.setdefault((a["family"], a["alloy"].lower(), a["condition"].lower()), []).append(a)
         for a in self.p.specific_alloys:
             m = self.p.match_alloy(a["family"], f"{a['alloy']} ({a['condition']})")
             self.assertIsNotNone(m)
-            if len(dup[(a["family"], a["alloy"], a["condition"])]) == 1:
+            # Empty condition = bare alloy name, which intentionally resolves to the hardest row.
+            if a["condition"].strip() and len(dup[(a["family"], a["alloy"].lower(), a["condition"].lower())]) == 1:
                 self.assertEqual(str(m["hardness"]), str(a["hardness"]), a)
 
 

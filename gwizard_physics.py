@@ -2081,6 +2081,10 @@ class GWizardPhysics:
         target = str(alloy_name or "").strip().lower()
         if not target:
             return None
+
+        def norm(s: str) -> str:
+            return " ".join(re.sub(r'[()\[\],;/\-]+', ' ', s).split())
+
         best, best_key = None, None
         for a in self.specific_alloys:
             if a.get("family") != material_family:
@@ -2088,11 +2092,14 @@ class GWizardPhysics:
             base = str(a.get("alloy", "")).strip().lower()
             if not base or not re.search(r'(?<![a-z0-9])' + re.escape(base) + r'(?![a-z0-9])', target):
                 continue
-            tokens = [t.strip() for t in re.split(r'[,/;]', str(a.get("condition", "")).lower()) if t.strip()]
+            condition = str(a.get("condition", "")).strip().lower()
+            # Whatever remains after removing the alloy name is the user's condition text.
+            exact = bool(condition) and norm(target.replace(base, " ", 1)) == norm(condition)
+            tokens = [t.strip() for t in re.split(r'[,/;]', condition) if t.strip()]
             cond_hits = sum(1 for t in tokens
                             if re.search(r'(?<![a-z0-9])' + re.escape(t) + r'(?![a-z0-9])', target))
             hb = ASTMHardnessConverter.parse_hardness(a.get("hardness")) or 0.0
-            key = (len(base), cond_hits, hb)
+            key = (len(base), exact, cond_hits, (cond_hits - len(tokens)) if cond_hits else 0, hb)
             if best_key is None or key > best_key:
                 best, best_key = a, key
         return best
