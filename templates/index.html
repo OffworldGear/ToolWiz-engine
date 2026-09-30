@@ -1602,7 +1602,7 @@
                     }
                     if(state.family && document.getElementById('family')) document.getElementById('family').value = state.family;
                     updateAlloys(); // Repopulate alloy list based on loaded family
-                    if(state.alloy && document.getElementById('alloy')) document.getElementById('alloy').value = state.alloy;
+                    if(state.alloy && document.getElementById('alloy')) selectAlloyOption(document.getElementById('alloy'), state.alloy);
                     if(state.tool && document.getElementById('tool')) document.getElementById('tool').value = state.tool;
                     updateGeometryDisplay('tool');
                     if(state.coating && document.getElementById('coating')) document.getElementById('coating').value = state.coating;
@@ -2341,6 +2341,16 @@
             const h = String(a.hardness == null ? '' : a.hardness).trim();
             if (!h || /^0+(\.0+)?$/.test(h)) return '';
             return ' · ' + (/[A-Za-z]/.test(h) ? h : h + ' HB');
+        }
+        // Select a saved alloy value. Values saved before the "[NNN HB]" tag existed match by
+        // their untagged prefix; if nothing matches, fall back to the first option (never blank).
+        function selectAlloyOption(sel, saved) {
+            if (!sel) return;
+            const opts = [...sel.options];
+            const hit = opts.find(o => o.value === saved)
+                || opts.find(o => o.value.replace(/\s*\[[^\]]*\]\s*$/, '') === saved);
+            if (hit) sel.value = hit.value;
+            else if (opts.length && !sel.value) sel.value = opts[0].value;
         }
         function alloyHardnessText(a) {
             const h = String(a.hardness == null ? '' : a.hardness).trim();
