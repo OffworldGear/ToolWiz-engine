@@ -95,6 +95,12 @@ HARD_MILL_FACTORS: List[Tuple[float, float, float]] = [
 ]
 
 
+def is_ferrous_family(material_family: str) -> bool:
+    """The hard-milling curve is fitted to hardened STEEL data only."""
+    f = str(material_family or "").lower()
+    return any(k in f for k in ("steel", "stainless", "iron"))
+
+
 def hard_milling_factors(hrc: float) -> Tuple[float, float]:
     """Piecewise-linear (SFM, IPT) multipliers for hardened work above 45 HRC."""
     pts = HARD_MILL_FACTORS
@@ -1632,7 +1638,7 @@ class AdvisoryEngine:
 
         hb = physics.resolve_alloy_hardness(material_family, alloy) if alloy else None
         hrc = ASTMHardnessConverter.brinell_to_hrc(hb) if hb else None
-        if hrc is not None and hrc > HARD_MILL_ONSET_HRC and not is_drilling:
+        if hrc is not None and hrc > HARD_MILL_ONSET_HRC and not is_drilling and is_ferrous_family(material_family):
             sfm_f, ipt_f = hard_milling_factors(hrc)
             if hrc > HARD_MILL_FACTORS[-1][0]:
                 tips.append({
@@ -2265,7 +2271,7 @@ class GWizardPhysics:
         # Above HARD_MILL_ONSET_HRC, GWizard's linear model is used only up to the onset and the
         # vendor-fitted curve takes over for both SFM and IPT (see HARD_MILL_FACTORS).
         hrc = ASTMHardnessConverter.brinell_to_hrc(float(alloy_hardness))
-        is_hard_milling = hrc is not None and hrc > HARD_MILL_ONSET_HRC
+        is_hard_milling = hrc is not None and hrc > HARD_MILL_ONSET_HRC and is_ferrous_family(material_family)
         gw_bhn = ASTMHardnessConverter.hrc_to_brinell(HARD_MILL_ONSET_HRC) if is_hard_milling else float(alloy_hardness)
 
         if sfm_range > 0 and max_bhn > min_bhn:

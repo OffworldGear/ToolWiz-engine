@@ -2802,7 +2802,8 @@
                     
                     let limit_val = res.rec_limit ? res.rec_limit : (p_dia * 0.001);
                     let out_limit = isMetric ? limit_val * 25.4 : limit_val;
-                    document.getElementById('defLimit').innerText = out_limit.toFixed(isMetric ? 4 : 5);
+                    document.getElementById('defLimit').innerText = out_limit.toFixed(isMetric ? 4 : 5)
+                        + (isMetric ? ` (${(limit_val * 25.4 * 1000).toFixed(1)} µm)` : '');
                     
                     let out_sfm = isMetric ? res.sfm * 0.3048 : res.sfm;
                     document.getElementById('sfm').innerText = Math.round(out_sfm);
@@ -2922,8 +2923,9 @@
                     }
 
                     const defCard = document.getElementById('deflectionCard');
+                    // Optimizer cuts sit right at the limit by design; allow float/rounding noise.
                     let defRatio = res.deflection / limit_val;
-                    if (defRatio >= 1.0) {
+                    if (defRatio > 1.005) {
                         defCard.classList.add("danger");
                         defCard.classList.remove("warning");
                     } else if (defRatio >= 0.65) {
@@ -3237,7 +3239,13 @@
             }
 
             // Workpiece engagement dimensions
-            let hDocPx = Math.max(Math.min(depthVal * hScale, H_stick + 30), 4);
+            // Draw DOC relative to the flutes as drawn (flute height is capped for layout), so a DOC
+            // shorter than the flute can never look longer than it; any excess uses the true scale.
+            const hFluteDrawn = Math.max(yTip - yFluteTop, 1);
+            let hDocPx = (fluteLVal > 0 && depthVal <= fluteLVal)
+                ? hFluteDrawn * (depthVal / fluteLVal)
+                : hFluteDrawn + (depthVal - fluteLVal) * hScale;
+            hDocPx = Math.max(Math.min(hDocPx, H_stick + 30), 4);
             let wWocPx = Math.max(Math.min(widthVal * wScale, 115), 4);
 
             // Assemble SVG

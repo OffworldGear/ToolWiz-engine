@@ -146,6 +146,9 @@ class TestPipelineParity(unittest.TestCase):
                 for k in NUMERIC_KEYS:
                     e, g = exp[k], got[k]
                     tol = max(abs(e) * 0.001, 1e-6)
+                    if k in ('rec_limit', 'deflection'):
+                        # Snapshot was taken when the API rounded these to 5-6 decimals; it now sends 7.
+                        tol = max(tol, 5.1e-6)  # half of the old 1e-5 rounding step
                     self.assertAlmostEqual(g, e, delta=tol, msg=f'{name}.{k}: {g} vs snapshot {e}')
                 for k in EXACT_KEYS:
                     self.assertEqual(got[k], exp[k], f'{name}.{k}')

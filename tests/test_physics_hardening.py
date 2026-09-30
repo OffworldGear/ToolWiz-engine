@@ -199,5 +199,17 @@ class TestWorkHardeningAndThreads(unittest.TestCase):
         self.assertAlmostEqual(m16["min_pitch_in"] * 25.4, basic, places=2)
 
 
+class TestHardMillingOnlyFerrous(unittest.TestCase):
+    def test_copper_with_high_listed_hardness_gets_no_hard_milling_correction(self):
+        p = GWizardPhysics(DB)
+        fam, alloy = "Copper Alloy - Wrought", "C72900 - Toughmet 3 Nickel Bronze (Annealed)"
+        s, i = p.apply_alloy_hardness_scaling(fam, alloy, 1000.0, 0.002)
+        self.assertEqual(i, 0.002)  # no IPT cut: the steel-fitted curve doesn't apply
+        tips = p.generate_advanced_strategies(fam, 0.126, 0.36, 0.0044, 109, 16000, 4, "AlTiN", 0.00025,
+                                              stickout=0.4, flute_length=0.378, operation="Wall Finishing (Deep DOC)",
+                                              alloy=alloy)
+        self.assertNotIn("Hard Milling Correction Applied", [t["title"] for t in tips])
+
+
 if __name__ == "__main__":
     unittest.main()
