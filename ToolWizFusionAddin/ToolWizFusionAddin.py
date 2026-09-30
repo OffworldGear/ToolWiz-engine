@@ -1,5 +1,5 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
-import urllib.request, urllib.error, json
+import urllib.request, urllib.error, urllib.parse, json
 import os, re, sys, math, time, datetime
 
 # ---------------------------------------------------------------------------
@@ -40,11 +40,13 @@ exportCommandId = 'ToolWizExportTwinCmd'
 importCommandId = 'ToolWizImportTwinCmd'
 calcCommandId = 'ToolWizCalcCmd'
 stockCommandId = 'ToolWizStockToLeaveCmd'
+logCutCommandId = 'ToolWizLogCutCmd'
 
 workspaceToUse = 'CAMEnvironment'
 panelToUse = 'CAMManagePanel'
 
 available_ops_map = {}
+logcut_ops_map = {}
 discovered_libraries_map = {}
 stock_ops_cache = {}
 stock_setups_cache = {}
@@ -283,6 +285,203 @@ def _add_materials_notice(inputs, input_id):
         title = 'Error' if _materials.get("status") == "none" else 'Warning'
         box = inputs.addTextBoxCommandInput(input_id, title, notice, 3, True)
         box.isFullWidth = True
+
+
+# ==============================================================================
+# REMEMBERED CHOICES (prefs shared by the Speeds & Feeds and Stock to Leave dialogs)
+# ==============================================================================
+
+def _prefs_path():
+    return os.path.join(_toolwiz_dir(), 'addin_prefs.json')
+
+
+def _clean_prefs(raw):
+    """Keep only the known keys with sane types. Anything else is dropped."""
+    out = {}
+    if not isinstance(raw, dict):
+        return out
+    for key in ('family', 'alloy', 'strategy'):
+        v = raw.get(key)
+        if isinstance(v, str) and v.strip():
+            out[key] = v
+    agg = raw.get('aggressiveness')
+    if isinstance(agg, (int, float)) and not isinstance(agg, bool) and math.isfinite(agg):
+        out['aggressiveness'] = int(max(0, min(100, round(agg))))
+    return out
+
+
+def load_prefs():
+    """Read the remembered choices. A missing or corrupt file simply yields {}."""
+    try:
+        with open(_prefs_path(), 'r', encoding='utf-8') as f:
+            return _clean_prefs(json.load(f))
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        _log("Could not read addin_prefs.json (ignored)", e)
+        return {}
+
+
+def save_prefs(**updates):
+    """Merge `updates` (family / alloy / aggressiveness / strategy) into the saved choices.
+    Empty or None values are ignored. Never raises; returns True if the file was written."""
+    try:
+        merged = load_prefs()
+        merged.update(_clean_prefs({k: v for k, v in updates.items() if v not in (None, "")}))
+        os.makedirs(_toolwiz_dir(), exist_ok=True)
+        tmp = _prefs_path() + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(merged, f, indent=2)
+        os.replace(tmp, _prefs_path())
+        return True
+    except Exception as e:
+        _log("Could not save addin_prefs.json", e)
+        return False
+
+
+def pick_saved(saved, items, default):
+    """Return `saved` when it is one of `items`, otherwise `default`."""
+    return saved if (saved is not None and saved in items) else default
+
+
+def _selected_name(dropdown):
+    """Name of a dropdown's selected item, or "" (tolerates a missing input)."""
+    try:
+        return dropdown.selectedItem.name if (dropdown and dropdown.selectedItem) else ""
+    except Exception:
+        return ""
+
+
+# ==============================================================================
+# RESULT MESSAGES
+# ==============================================================================
+
+def _limited_by_text(limited):
+    if isinstance(limited, (list, tuple)):
+        limited = ", ".join(str(x) for x in limited if x)
+    return str(limited).strip() if limited else ""
+
+
+def format_provenance_line(provenance, top_n=3):
+    """One line with the `top_n` largest non-1.0 SFM multipliers, e.g.
+    "SFM: hard-milling x0.72, coating x1.40, stickout x0.85". "" when there are none."""
+    if not isinstance(provenance, (list, tuple)):
+        return ""
+    steps = []
+    for s in provenance:
+        try:
+            if not isinstance(s, dict) or str(s.get("quantity", "")).lower() != "sfm":
+                continue
+            step = str(s.get("step", "")).strip()
+            m = float(s.get("multiplier"))
+            if not step or step in ("base_lookup", "spindle_cap") or not math.isfinite(m) or m <= 0:
+                continue
+            if round(m, 2) == 1.0:
+                continue
+            steps.append((abs(math.log(m)), step.replace("_", "-"), m))
+        except (TypeError, ValueError):
+            continue
+    if not steps:
+        return ""
+    steps.sort(key=lambda t: -t[0])
+    return "SFM: " + ", ".join(f"{name} ×{m:.2f}" for _, name, m in steps[:top_n])
+
+
+def format_autoset_message(t_label, geo, material_label, strategy, rpm, feed, ipt,
+                           doc=None, woc=None, limited_by=None, provenance=None, preset_note=""):
+    """Concise success text for the Speeds & Feeds auto-setter. `doc` / `woc` are None when
+    they were not written to the operation."""
+    lines = [
+        f"{t_label} · {geo.get('diameter', 0.0):.3f}\" {geo.get('flutes', '?')}FL · {material_label} — {strategy}",
+        f"{rpm:,.0f} RPM · {feed:.1f} IPM · {ipt:.4f} IPT",
+    ]
+    cuts = []
+    if doc is not None:
+        cuts.append(f"DOC {doc:.3f}\"")
+    if woc is not None:
+        cuts.append(f"WOC {woc:.3f}\"")
+    if cuts:
+        lines.append(" · ".join(cuts))
+    lim = _limited_by_text(limited_by)
+    if lim:
+        lines.append(f"Limited by: {lim}")
+    prov = format_provenance_line(provenance)
+    if prov:
+        lines.append(prov)
+    if preset_note:
+        lines.append(preset_note)
+    return "\n".join(lines)
+
+
+def format_stock_summary(material, applied, failed, log_path):
+    """Concise apply summary for Stock to Leave. `applied` is [(label, radial, axial)],
+    `failed` is [(label, [parameter names])]."""
+    lines = []
+    if applied:
+        head = f"Stock to leave set on {len(applied)} op{'s' if len(applied) != 1 else ''}"
+        lines.append(f"{head} — {material}" if material else head)
+        for label, rad, ax in applied:
+            lines.append(f" • {label}: Rad {rad} · Ax {ax}")
+    if failed:
+        if lines:
+            lines.append("")
+        lines.append(f"Could not write (details in {log_path}):")
+        for label, names in failed:
+            lines.append(f" • {label}: {', '.join(names)}")
+    return "\n".join(lines)
+
+
+# ==============================================================================
+# CALIBRATION STATUS (cut-log feedback)
+# ==============================================================================
+
+_calibration_cache = {}
+
+
+def format_calibration_status(cal):
+    """Human text for one family's /api/calibration entry. "" when `cal` is unusable."""
+    if not isinstance(cal, dict):
+        return ""
+    status = cal.get("status")
+    n = cal.get("n", 0)
+    if status == "calibrated":
+        factor = cal.get("applied_factor") or cal.get("error_factor")
+        if isinstance(factor, (int, float)) and not isinstance(factor, bool):
+            return f"Calibrated from {n} cuts ×{factor:.2f}"
+        return f"Calibrated from {n} cuts"
+    if status == "provisional":
+        return f"Provisional ({n})"
+    return "Not calibrated — use Log Cut Result"
+
+
+def fetch_calibration(family, use_cache=True):
+    """GET /api/calibration?family=... -> the family's calibration dict (a synthetic
+    "insufficient" entry when it has no logged cuts), or None on any failure."""
+    if not family:
+        return None
+    if use_cache and family in _calibration_cache:
+        return _calibration_cache[family]
+    try:
+        res = _http_json('/api/calibration?family=' + urllib.parse.quote(family), timeout=3.0)
+        if not isinstance(res, dict) or not res.get("success"):
+            return None
+        cal = None
+        for e in (res.get("calibration") or []):
+            if isinstance(e, dict) and str(e.get("family", "")).lower() == family.lower():
+                cal = e
+                break
+        if cal is None:
+            cal = {"family": family, "n": 0, "status": "insufficient"}
+        _calibration_cache[family] = cal
+        return cal
+    except Exception as e:
+        _log(f"Calibration lookup for {family!r} failed", e)
+        return None
+
+
+def calibration_text_for(family, use_cache=True):
+    """Status text for the UI; "" when the server could not be asked."""
+    return format_calibration_status(fetch_calibration(family, use_cache))
 
 
 # ==============================================================================
@@ -954,7 +1153,9 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     """Calculate cutting data on the server and write it to the operation's tool preset."""
     geo_payload, summary_str, existing_presets = get_op_tool_info(target_op)
     if not geo_payload:
-        ui.messageBox(f'Could not read tool geometry: {summary_str}')
+        _log(f"Auto-setter: tool geometry unreadable for {op_name}: {summary_str}")
+        ui.messageBox(f'Could not read tool geometry for {op_name}:\n{summary_str}\n\nDetails: {_log_path()}',
+                      'ToolWiz CAM Auto-Setter')
         return False
 
     t_num = geo_payload.get("number")
@@ -977,7 +1178,9 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         return False
 
     if not calc_result.get("success"):
-        ui.messageBox(f"ToolWiz Calculation Error: {calc_result.get('error')}")
+        _log(f"calculate_for_fusion failed: {calc_result.get('error')}")
+        ui.messageBox(f"The server could not calculate cutting data:\n{calc_result.get('error')}\n\nDetails: {_log_path()}",
+                      "ToolWiz CAM Auto-Setter")
         return False
 
     if not confirm_feasibility(calc_result):
@@ -1089,11 +1292,6 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     except Exception as ex_doclib:
         _log("Document tool library update failed", ex_doclib)
 
-    applied = [
-        f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)",
-        f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)"
-    ]
-
     # Explicitly apply feeds & speeds as operation parameter values so the active toolpath uses them
     apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
     apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
@@ -1106,33 +1304,54 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
 
     # Apply operation-specific cut step parameters (not stored in tool presets)
     if "Adaptive" in strategy:
-        if apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"):
-            applied.append(f"Optimal Load (WOC): {woc:.4f} in")
+        woc_applied = bool(apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"))
     else:
-        if apply_param(target_op, 'stepover', f"{woc:.4f} in") or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"):
-            applied.append(f"Stepover (WOC): {woc:.4f} in")
+        woc_applied = bool(apply_param(target_op, 'stepover', f"{woc:.4f} in")
+                           or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"))
+    doc_applied = bool(apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"))
 
-    if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
-        applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
-
-    action_desc = "Updated in-place" if was_updated else "Created new preset"
-    link_desc = "Linked as active preset" if preset_linked else ("Added to tool presets" if tool_updated else "Parameters applied")
-    applied_summary = "\n".join([f" • {item}" for item in applied])
-    t_disp = tool_label(t_num)
-    msg = (
-        f"Tool Cutting Data & Preset Applied!\n"
-        f"====================================\n"
-        f"Tool: {t_disp} ({geo_payload.get('desc', 'Endmill')})\n"
-        f"Material: {material_label}\n"
-        f"Preset: {final_preset_name}\n"
-        f"Status: {action_desc} ({link_desc})\n"
-        f"Target Operation: {op_name}\n\n"
-        f"{applied_summary}\n\n"
-        f"Ramp Feed: {ramp_feed:.2f} in/min | Plunge Feed: {plunge_feed:.2f} in/min\n\n"
-        f"This preset is now attached to Tool {t_disp}'s Cutting Data tab for use across your entire document."
+    preset_note = f"Preset: {final_preset_name} ({'updated' if was_updated else 'created'}"
+    if not (tool_updated or preset_linked):
+        preset_note += ", parameters only"
+    preset_note += ")"
+    msg = format_autoset_message(
+        tool_label(t_num), geo_payload, material_label, strategy, rpm, feed, ipt,
+        doc=doc if doc_applied else None, woc=woc if woc_applied else None,
+        limited_by=calc_result.get("limited_by"), provenance=calc_result.get("provenance"),
+        preset_note=preset_note,
     )
     ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
     return True
+
+
+def _selected_op_label():
+    """"Setup > Operation" of the operation currently selected in Fusion, or None."""
+    try:
+        sel = ui.activeSelections
+        if sel.count > 0:
+            ent = sel.item(0).entity
+            if ent.objectType == adsk.cam.Operation.classType():
+                parent_setup = ent.parent
+                setup_name = parent_setup.name if parent_setup else "Setup"
+                return f"{setup_name} > {ent.name}"
+    except Exception:
+        pass
+    return None
+
+
+def discover_tool_ops(camObj, ops_map):
+    """Fill `ops_map` ("Setup > Op" -> operation) with every operation that has a tool.
+    Returns the label to pre-select (the selected operation, else the first one), or None."""
+    ops_map.clear()
+    preselect = _selected_op_label()
+    for setup in camObj.setups:
+        for op in setup.allOperations:
+            if hasattr(op, 'tool') and op.tool:
+                op_label = f"{setup.name} > {op.name}"
+                ops_map[op_label] = op
+                if not preselect:
+                    preselect = op_label
+    return preselect
 
 
 class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
@@ -1180,6 +1399,8 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
 
             selected_grade = grade_input.selectedItem.name if (grade_input and grade_input.selectedItem) else "HP High Performance Carbide"
             selected_coating_raw = coat_input.selectedItem.name if (coat_input and coat_input.selectedItem) else "AlTiN (Black)"
+
+            save_prefs(family=family, alloy=alloy, aggressiveness=aggressiveness, strategy=strategy)
 
             run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                         target_preset_to_replace, selected_grade, selected_coating_raw)
@@ -1286,26 +1507,8 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 ui.messageBox('Please switch to the Manufacture (CAM) workspace with an active setup.')
                 return
                 
-            preselect_op_name = None
-            try:
-                sel = ui.activeSelections
-                if sel.count > 0:
-                    ent = sel.item(0).entity
-                    if ent.objectType == adsk.cam.Operation.classType():
-                        parent_setup = ent.parent
-                        setup_name = parent_setup.name if parent_setup else "Setup"
-                        preselect_op_name = f"{setup_name} > {ent.name}"
-            except:
-                pass
-                
-            for setup in camObj.setups:
-                for op in setup.allOperations:
-                    if hasattr(op, 'tool') and op.tool:
-                        op_label = f"{setup.name} > {op.name}"
-                        available_ops_map[op_label] = op
-                        if not preselect_op_name:
-                            preselect_op_name = op_label
-                            
+            preselect_op_name = discover_tool_ops(camObj, available_ops_map)
+
             if not available_ops_map:
                 ui.messageBox('No operations with tools found in active document.')
                 return
@@ -1319,6 +1522,27 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             tool_info_box = inputs.addTextBoxCommandInput('toolInfo', 'Detected Tool', initial_summary, 3, True)
             tool_info_box.isFullWidth = True
             
+            # Materials: one shared loader (server, then on-disk cache). Placed right under the
+            # operation / detected tool so the first things to choose are the cut and the material.
+            prefs = load_prefs()
+            load_materials()
+            _add_materials_notice(inputs, 'materialsNotice')
+
+            init_family = None
+            if materials_ready():
+                families = _materials["families"]
+                mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
+                default_family = "Steel - Tool (H13)" if "Steel - Tool (H13)" in families else families[0]
+                init_family = pick_saved(prefs.get('family'), families, default_family)
+                for m in families:
+                    mat_input.listItems.add(m, m == init_family)
+
+                alloy_input = inputs.addDropDownCommandInput('matAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
+                init_alloys = alloys_for(init_family) or ["Standard Grade"]
+                init_alloy = pick_saved(prefs.get('alloy'), init_alloys, init_alloys[0])
+                for a in init_alloys:
+                    alloy_input.listItems.add(a, a == init_alloy)
+
             preset_input = inputs.addDropDownCommandInput('presetAction', 'Cutting Data Preset', adsk.core.DropDownStyles.TextListDropDownStyle)
             preset_input.listItems.add('+ Create New Preset (Auto-Named)', True)
             for p in existing_presets:
@@ -1345,25 +1569,15 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             for label, code in coating_options:
                 tool_coating_input.listItems.add(label, code.lower() == det_coat.lower())
             
-            # Materials: one shared loader (server, then on-disk cache)
-            load_materials()
-            _add_materials_notice(inputs, 'materialsNotice')
-
-            if materials_ready():
-                families = _materials["families"]
-                mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
-                default_family = "Steel - Tool (H13)" if "Steel - Tool (H13)" in families else families[0]
-                for m in families:
-                    mat_input.listItems.add(m, m == default_family)
-
-                alloy_input = inputs.addDropDownCommandInput('matAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
-                init_alloys = alloys_for(default_family) or ["Standard Grade"]
-                for i, a in enumerate(init_alloys):
-                    alloy_input.listItems.add(a, i == 0)
-
             strat_input = inputs.addDropDownCommandInput('strategy', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
             op_strat = str(getattr(initial_op, 'strategy', '')).lower() if initial_op else ""
             default_strat = 'Adaptive Roughing'
+            strat_names = ['Adaptive Roughing', 'Roughing', 'Finishing', '3D Contouring / Scallop Finishing',
+                           'Floor Finishing (Skim)', 'Slotting', 'Facing']
+            if not any(k in op_strat for k in ['adaptive', 'face', 'facing', 'flat', 'horizontal', 'scallop',
+                                               'parallel', 'morphed', 'ramp', 'flow', 'contour', 'trace', 'pocket']):
+                # Nothing recognisable in the operation: fall back to the last strategy used.
+                default_strat = pick_saved(prefs.get('strategy'), strat_names, default_strat)
             if 'adaptive' in op_strat:
                 default_strat = 'Adaptive Roughing'
             elif 'face' in op_strat or 'facing' in op_strat:
@@ -1386,8 +1600,8 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             strat_input.listItems.add('Facing', default_strat == 'Facing')
             
             agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
-            agg_input.valueOne = 50
-            
+            agg_input.valueOne = prefs.get('aggressiveness', 50)
+
         except Exception as e:
             _report_error("Command Created failed.", e)
 
@@ -1818,6 +2032,17 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
                               "ToolWiz Stock to Leave Manager")
                 return
 
+            eventArgs = adsk.core.CommandEventArgs.cast(args)
+            inputs = eventArgs.command.commandInputs
+            fam_name = _selected_name(inputs.itemById('stockMatFamily'))
+            alloy_name = _selected_name(inputs.itemById('stockMatAlloy'))
+            agg_in = inputs.itemById('stockAggressiveness')
+            try:
+                agg_val = int(agg_in.valueOne) if agg_in is not None else None
+            except (TypeError, ValueError, AttributeError):
+                agg_val = None
+            save_prefs(family=fam_name, alloy=alloy_name, aggressiveness=agg_val)
+
             applied_ops = []
             failed_ops = []
             for op_id, op_info in stock_ops_cache.items():
@@ -1837,28 +2062,16 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
                         failed = apply_stock_to_op(op_info["op"], rad_val, ax_val)
                     except Exception as e:
                         _log(f"Applying stock to leave to {op_info.get('label')} failed", e)
-                        failed = ['(unexpected error)']
+                        failed = ['unexpected error']
                     if failed:
-                        failed_ops.append(f" • {op_info['label']}: could not set {', '.join(failed)}")
+                        failed_ops.append((op_info['label'], failed))
                     else:
-                        applied_ops.append(f" • {op_info['label']}: Radial {rad_val} | Axial {ax_val}")
+                        applied_ops.append((op_info['label'], rad_val, ax_val))
 
             if applied_ops or failed_ops:
-                msg = ""
-                if applied_ops:
-                    msg += (
-                        f"Stock to Leave Compensation Applied!\n"
-                        f"====================================\n"
-                        f"Operations Updated: {len(applied_ops)}\n\n"
-                        f"{chr(10).join(applied_ops)}\n\n"
-                        f"Deflection and material springback compensation values are now active in your toolpaths."
-                    )
-                if failed_ops:
-                    msg += (
-                        f"\n\nSome parameters could not be written (see {_log_path()}):\n"
-                        f"{chr(10).join(failed_ops)}"
-                    )
-                ui.messageBox(msg.strip(), 'ToolWiz Stock to Leave Manager')
+                material = f"{fam_name} / {alloy_name}" if (fam_name and alloy_name) else fam_name
+                msg = format_stock_summary(material, applied_ops, failed_ops, _log_path())
+                ui.messageBox(msg, 'ToolWiz Stock to Leave Manager')
             else:
                 ui.messageBox('No operations were selected to update.', 'ToolWiz Stock to Leave Manager')
 
@@ -1898,7 +2111,13 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                     else:
                         for i, a in enumerate(alloys):
                             alloy_input.listItems.add(a, i == 0)
-                            
+                cal_box = inputs.itemById('stockCalibration')
+                if cal_box:
+                    try:
+                        cal_box.text = calibration_text_for(family) or ' '
+                    except Exception as e_cal:
+                        _log("Updating the calibration line failed", e_cal)
+
             # 2. Toggle custom offset input visibility
             if cmdInput.id == 'stockBatchMode':
                 is_custom = mode_input.selectedItem.name == 'Batch Apply Custom Offset' if mode_input.selectedItem else False
@@ -2182,20 +2401,29 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             )
             intro_box.isFullWidth = True
 
-            # Material Dropdowns
+            # Material Dropdowns (pre-selected from the last saved choice when still valid)
+            prefs = load_prefs()
+            _calibration_cache.clear()
             mat_family_input = inputs.addDropDownCommandInput('stockMatFamily', 'Workpiece Material', adsk.core.DropDownStyles.TextListDropDownStyle)
             default_family = "Titanium Alloy" if "Titanium Alloy" in families else families[0]
+            default_family = pick_saved(prefs.get('family'), families, default_family)
             for m in families:
                 mat_family_input.listItems.add(m, m == default_family)
-                
+
             alloy_input = inputs.addDropDownCommandInput('stockMatAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
             init_alloys = alloys_for(default_family) or ["Standard Grade"]
-            for i, a in enumerate(init_alloys):
-                alloy_input.listItems.add(a, i == 0)
-                
+            init_alloy = pick_saved(prefs.get('alloy'), init_alloys, init_alloys[0])
+            for a in init_alloys:
+                alloy_input.listItems.add(a, a == init_alloy)
+
+            # Calibration status for the selected family (blank when the server can't say)
+            cal_box = inputs.addTextBoxCommandInput('stockCalibration', '', calibration_text_for(default_family) or ' ', 1, True)
+            cal_box.isFullWidth = True
+
+            init_agg = prefs.get('aggressiveness', 50)
             agg_input = inputs.addIntegerSliderCommandInput('stockAggressiveness', 'Aggressiveness', 0, 100)
-            agg_input.valueOne = 50
-            
+            agg_input.valueOne = init_agg
+
             mode_input = inputs.addDropDownCommandInput('stockBatchMode', 'Compensation Preset', adsk.core.DropDownStyles.TextListDropDownStyle)
             mode_input.listItems.add('Auto-Compensate Finishing (Negative Stock)', True)
             mode_input.listItems.add('Zero-Out Finishing (0.0000")', False)
@@ -2223,7 +2451,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             # Initial calculation from Tool Wizard
             init_results = query_toolwiz_stock_compensation(
-                default_family, init_alloys[0] if init_alloys else "", 50, "auto_compensate", doc_unit=doc_unit
+                default_family, init_alloy, init_agg, "auto_compensate", doc_unit=doc_unit
             )
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             
@@ -2352,6 +2580,286 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             _report_error("Stock Manager failed to open.", e)
 
 # ==============================================================================
+# COMMAND 5: LOG CUT RESULT (feeds the server's cut log / calibration)
+# ==============================================================================
+
+class LogCutError(Exception):
+    """A problem the user should be told about. The message is user-facing."""
+
+
+def parse_measured_error_in(text, doc_unit="in"):
+    """"0.0008 in" / "0.02 mm" / "-.0005" -> inches (positive = oversize, negative = undersize).
+    A unit-less number uses the document unit. Blank -> None (nothing was measured)."""
+    s = (text or "").strip()
+    if not s:
+        return None
+    hint = f"Can't read the measured wall error {s!r}. Enter a number with units, e.g. 0.0008 in or 0.02 mm."
+    try:
+        val = parse_length_expr_to_inches(s, doc_unit)
+    except (ValueError, ArithmeticError):
+        raise ValueError(hint) from None
+    if not math.isfinite(val) or abs(val) > 1.0:
+        raise ValueError(f"Measured wall error {s!r} is out of range (must be within +/-1 inch).")
+    return val
+
+
+def build_single_op_compensation_payload(family, alloy, aggressiveness, op_name, strategy, geo, cut):
+    """/api/stock_compensation body for ONE operation. `cut` is (rpm, feed_ipm, doc_in, woc_in);
+    everything is inches / IPM and labelled so."""
+    rpm, feed, doc, woc = cut
+    cache = {"op_1": {"name": op_name, "strategy": str(strategy or ""), "unit": "in", "geo": geo,
+                      "rpm": rpm, "feed": feed, "doc": doc, "woc": woc}}
+    return {
+        "family": family, "alloy": alloy, "aggressiveness": aggressiveness,
+        "mode": "auto_compensate", "unit": "in",
+        "custom_radial_offset": "0.0000 in", "custom_axial_offset": "0.0000 in",
+        "operations": build_stock_ops_payload(cache, "in"),
+    }
+
+
+def build_cutlog_payload(family, alloy, op_name, geo, cut, prediction, measured_error_in,
+                         spindle_load_pct, chatter, surface_ok, notes):
+    """/api/cutlog body (source "fusion"). Pure function; raises ValueError naming anything that
+    is missing or unusable so the caller can tell the user instead of posting garbage.
+    `prediction` is one /api/stock_compensation result (deflection_in, springback_in, total_error_in)."""
+    rpm, feed, doc, woc = cut
+    missing = [n for n, v in (("spindle speed", rpm), ("cutting feed", feed),
+                              ("depth of cut (DOC)", doc), ("width of cut (WOC)", woc)) if not (v and v > 0)]
+    if missing:
+        raise ValueError("Could not read " + ", ".join(missing) + " from the operation. "
+                         "Set them in the operation's parameters and try again.")
+    if not geo:
+        raise ValueError("Tool geometry is not available for this operation.")
+    try:
+        pred = {k: float(prediction[k]) for k in ("deflection_in", "springback_in", "total_error_in")}
+    except (TypeError, KeyError, ValueError):
+        raise ValueError("The server's prediction did not include deflection / springback / total error.") from None
+
+    t_num = geo.get("number")
+    load = None
+    if spindle_load_pct is not None and float(spindle_load_pct) > 0:  # 0 means "not recorded"
+        load = float(spindle_load_pct)
+    payload = {
+        "family": family,
+        "alloy": alloy or None,
+        "operation": str(op_name or "Operation")[:100],
+        "tool_description": (str(geo["desc"])[:300] if geo.get("desc") else None),
+        "tool_number": t_num if isinstance(t_num, int) and not isinstance(t_num, bool) and t_num >= 0 else None,
+        "diameter_in": geo["diameter"],
+        "flutes": geo["flutes"],
+        "stickout_in": geo["stickout"],
+        "rpm": rpm,
+        "feed_ipm": feed,
+        "doc_in": doc,
+        "woc_in": woc,
+        "predicted_deflection_in": pred["deflection_in"],
+        "predicted_springback_in": pred["springback_in"],
+        "predicted_total_error_in": pred["total_error_in"],
+        "measured_wall_error_in": measured_error_in,
+        "spindle_load_pct": load,
+        "chatter": bool(chatter),
+        "surface_ok": bool(surface_ok),
+        "notes": ((notes or "").strip()[:2000] or None),
+        "source": "fusion",
+    }
+    return payload
+
+
+def _post_or_raise(path, payload, what, timeout=8.0):
+    """POST to the server; turn connection failures and {"success": false} into LogCutError."""
+    try:
+        res = _http_json(path, payload, timeout=timeout)
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        _log(f"Log Cut Result: could not {what}", e)
+        raise LogCutError(f"Could not reach the ToolWiz server to {what}.\n"
+                          f"Start Tool Wizard (py app.py) and try again.\n\nDetails: {_log_path()}") from None
+    if not isinstance(res, dict) or not res.get("success"):
+        err = res.get("error") if isinstance(res, dict) else res
+        _log(f"Log Cut Result: server refused to {what}: {err}")
+        raise LogCutError(f"The server could not {what}:\n{err}\n\nDetails: {_log_path()}")
+    return res
+
+
+def format_cutlog_confirmation(t_label, op_name, measured_error_in, predicted_total_in, family, cal_text):
+    """One confirmation line plus the family's calibration status."""
+    meas = f'measured {measured_error_in:+.4f}"' if measured_error_in is not None else "no measurement"
+    lines = [f"Logged: {t_label} · {op_name} — {meas}, predicted {predicted_total_in:.4f}\""]
+    if cal_text:
+        lines.append(f"{family}: {cal_text}")
+    return "\n".join(lines)
+
+
+def log_cut_result(op, op_label, family, alloy, measured_text, load_pct, chatter, surface_ok, notes,
+                   aggressiveness=50):
+    """Predict the cut on the server, log it with the machinist's outcome, and return the
+    confirmation text. Raises LogCutError (user-facing message) on any problem."""
+    op_name = op_label.split(" > ", 1)[-1]
+    doc_unit = get_cam_document_units()
+    try:
+        measured = parse_measured_error_in(measured_text, doc_unit)
+    except ValueError as e:
+        raise LogCutError(str(e)) from None
+
+    geo, summary, _ = get_op_tool_info(op)
+    if not geo:
+        _log(f"Log Cut Result: tool geometry unreadable for {op_label}: {summary}")
+        raise LogCutError(f"Could not read the tool geometry for {op_label}:\n{summary}\n\nDetails: {_log_path()}")
+    cut = get_op_cut_params(op, doc_unit)
+
+    comp_payload = build_single_op_compensation_payload(
+        family, alloy, aggressiveness, op_name, getattr(op, 'strategy', ''), geo, cut)
+    comp = _post_or_raise('/api/stock_compensation', comp_payload, "predict the wall error")
+    results = comp.get("results") or []
+    if not results:
+        _log(f"Log Cut Result: no prediction returned for {op_label}")
+        raise LogCutError(f"The server returned no prediction for {op_label}.\n\nDetails: {_log_path()}")
+    prediction = results[0]
+
+    try:
+        payload = build_cutlog_payload(family, alloy, op_name, geo, cut, prediction, measured,
+                                       load_pct, chatter, surface_ok, notes)
+    except ValueError as e:
+        _log(f"Log Cut Result: {e}")
+        raise LogCutError(f"{e}\n\nDetails: {_log_path()}") from None
+    _post_or_raise('/api/cutlog', payload, "save the cut")
+
+    _calibration_cache.pop(family, None)
+    cal_text = calibration_text_for(family, use_cache=False)
+    return format_cutlog_confirmation(tool_label(geo.get("number")), op_name, measured,
+                                      payload["predicted_total_error_in"], family, cal_text)
+
+
+class ToolWizLogCutExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            op_label = _selected_name(inputs.itemById('logTargetOp'))
+            op = logcut_ops_map.get(op_label)
+            if not op:
+                ui.messageBox('No valid CAM operation selected.', 'ToolWiz Log Cut Result')
+                return
+            family = _selected_name(inputs.itemById('logMatFamily'))
+            alloy = _selected_name(inputs.itemById('logMatAlloy'))
+            if not family:
+                ui.messageBox('Please select a material family.', 'ToolWiz Log Cut Result')
+                return
+            measured_in = inputs.itemById('logMeasured')
+            load_in = inputs.itemById('logLoad')
+            chatter_in = inputs.itemById('logChatter')
+            surface_in = inputs.itemById('logSurfaceOk')
+            notes_in = inputs.itemById('logNotes')
+
+            prefs = load_prefs()
+            try:
+                msg = log_cut_result(
+                    op, op_label, family, alloy,
+                    measured_in.value if measured_in else "",
+                    load_in.valueOne if load_in else 0,
+                    bool(chatter_in.value) if chatter_in else False,
+                    bool(surface_in.value) if surface_in else True,
+                    notes_in.value if notes_in else "",
+                    aggressiveness=prefs.get('aggressiveness', 50))
+            except LogCutError as e:
+                ui.messageBox(str(e), 'ToolWiz Log Cut Result')
+                return
+            save_prefs(family=family, alloy=alloy)
+            ui.messageBox(msg, 'ToolWiz Log Cut Result')
+        except Exception as e:
+            _report_error("Log Cut Result failed.", e)
+
+
+class ToolWizLogCutInputChangedHandler(adsk.core.InputChangedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            eventArgs = adsk.core.InputChangedEventArgs.cast(args)
+            if eventArgs.input.id == 'logMatFamily':
+                alloy_input = eventArgs.inputs.itemById('logMatAlloy')
+                if alloy_input:
+                    alloy_input.listItems.clear()
+                    alloys = alloys_for(_selected_name(eventArgs.input)) or ["Standard Grade"]
+                    for i, a in enumerate(alloys):
+                        alloy_input.listItems.add(a, i == 0)
+        except Exception as e:
+            _log("Log Cut Result input-changed handler failed", e)
+
+
+class ToolWizLogCutCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            cmd.isAutoExecute = False
+            try:
+                cmd.okButtonText = 'Log Cut'
+            except Exception:
+                pass
+            onExecute = ToolWizLogCutExecuteHandler()
+            cmd.execute.add(onExecute)
+            handlers.append(onExecute)
+            onInputChanged = ToolWizLogCutInputChangedHandler()
+            cmd.inputChanged.add(onInputChanged)
+            handlers.append(onInputChanged)
+
+            inputs = cmd.commandInputs
+            camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+            if not camObj:
+                ui.messageBox('Please switch to the Manufacture (CAM) workspace with an active setup.')
+                return
+            preselect = discover_tool_ops(camObj, logcut_ops_map)
+            if not logcut_ops_map:
+                ui.messageBox('No operations with tools found in active document.')
+                return
+
+            op_input = inputs.addDropDownCommandInput('logTargetOp', 'Operation', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for label in logcut_ops_map.keys():
+                op_input.listItems.add(label, label == preselect)
+
+            prefs = load_prefs()
+            load_materials()
+            _add_materials_notice(inputs, 'logMaterialsNotice')
+            if not materials_ready():
+                return
+            families = _materials["families"]
+            fam_input = inputs.addDropDownCommandInput('logMatFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
+            init_family = pick_saved(prefs.get('family'), families, families[0])
+            for m in families:
+                fam_input.listItems.add(m, m == init_family)
+            alloy_input = inputs.addDropDownCommandInput('logMatAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
+            init_alloys = alloys_for(init_family) or ["Standard Grade"]
+            init_alloy = pick_saved(prefs.get('alloy'), init_alloys, init_alloys[0])
+            for a in init_alloys:
+                alloy_input.listItems.add(a, a == init_alloy)
+
+            inputs.addStringValueInput('logMeasured', 'Measured wall error', '')
+            tip = inputs.addTextBoxCommandInput(
+                'logMeasuredTip', '',
+                'e.g. 0.0008 in or 0.02 mm. Positive = oversize, negative = undersize. Leave blank if not measured.',
+                2, True)
+            tip.isFullWidth = True
+            load_input = inputs.addIntegerSliderCommandInput('logLoad', 'Spindle load % (0 = not recorded)', 0, 150)
+            load_input.valueOne = 0
+            inputs.addBoolValueInput('logChatter', 'Chatter', True, '', False)
+            inputs.addBoolValueInput('logSurfaceOk', 'Surface OK', True, '', True)
+            notes_input = inputs.addStringValueInput('logNotes', 'Notes', '')
+            try:
+                notes_input.isMultiLine = True
+            except Exception:
+                pass
+        except Exception as e:
+            _report_error("Log Cut Result failed to open.", e)
+
+
+# ==============================================================================
 # ADD-IN RUN / STOP
 # ==============================================================================
 
@@ -2365,6 +2873,9 @@ COMMAND_SPECS = [
     (stockCommandId, 'Stock to Leave Manager',
      'Batch inspect and apply Stock to Leave with automatic ToolWiz deflection & springback compensation.',
      'ToolWizStockCreatedHandler'),
+    (logCutCommandId, 'Log Cut Result',
+     'Record the measured wall error, spindle load and chatter of a real cut so ToolWiz can calibrate its predictions.',
+     'ToolWizLogCutCreatedHandler'),
 ]
 
 
