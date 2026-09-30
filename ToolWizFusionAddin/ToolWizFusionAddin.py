@@ -662,7 +662,7 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
             merge_input = inputs.itemById('mergeIntoMaster')
             dedup_input = inputs.itemById('autoDeduplicate')
             merge_into_master = merge_input.value if merge_input else True
-            auto_dedup = dedup_input.value if dedup_input else True
+            auto_dedup = dedup_input.value if dedup_input else False
 
             libraries_payload = []
             total_extracted_tools = 0
@@ -814,7 +814,7 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 lib_select.listItems.add(name, i == 0)
 
             inputs.addBoolValueCommandInput('mergeIntoMaster', 'Merge into Master Tool Crib', True, '', True)
-            inputs.addBoolValueCommandInput('autoDeduplicate', 'Deduplicate Identical Cutters', True, '', True)
+            inputs.addBoolValueCommandInput('autoDeduplicate', 'Deduplicate Identical Cutters (merges same-geometry tools)', True, '', False)
                 
             info = inputs.addTextBoxCommandInput('info', '', 'Select one or more libraries above. ToolWiz will consolidate your cutters, combine unique cutting presets, and eliminate redundant duplicates.', 3, True)
             info.isFullWidth = True
