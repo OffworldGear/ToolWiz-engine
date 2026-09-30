@@ -37,9 +37,14 @@ class TestFusionJsonMutator(unittest.TestCase):
             "ipt": 0.002
         }
         
-        mutated_json_str = mutate_tool_json(raw_json, new_data)
+        mutated_json_str, preset_name, was_updated = mutate_tool_json(raw_json, new_data)
         mutated_dict = json.loads(mutated_json_str)
         
+        self.assertEqual(preset_name, "ToolWiz Adaptive Roughing")
+        self.assertFalse(was_updated)
+        self.assertIsInstance(mutated_json_str, str)
+        self.assertNotIn("post-process", mutated_dict)
+
         # Ensure geometry was NOT touched
         self.assertEqual(mutated_dict["geometry"]["DC"], 0.25)
         
@@ -71,10 +76,11 @@ class TestFusionJsonMutator(unittest.TestCase):
             "feed": 150
         }
         
-        mutated_json_str = mutate_tool_json(raw_json, new_data)
+        mutated_json_str, preset_name, was_updated = mutate_tool_json(raw_json, new_data)
         mutated_dict = json.loads(mutated_json_str)
         presets = mutated_dict["start-values"]["presets"]
         
+        self.assertTrue(was_updated)
         # Ensure it updated in place rather than appending
         self.assertEqual(len(presets), 1)
         self.assertEqual(presets[0]["n"], 15000.0)

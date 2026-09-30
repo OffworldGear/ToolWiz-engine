@@ -1,47 +1,36 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
-import urllib.request, json
-import os, re
-import ast
-import operator
+import urllib.request, urllib.error, json
+import os, re, sys, math, time, datetime
+
+# ---------------------------------------------------------------------------
+# Imports of sibling modules. Installed layout: json_mutator.py and toolwiz_common/
+# sit next to this file. Repo layout: toolwiz_common/ lives one level up.
+# ---------------------------------------------------------------------------
+_ADDIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(_ADDIN_DIR)
+
 try:
     from . import json_mutator
 except (ImportError, ValueError):
+    if _ADDIN_DIR not in sys.path:
+        sys.path.insert(0, _ADDIN_DIR)
     import json_mutator
 
-_SAFE_OPS = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.USub: operator.neg,
-    ast.UAdd: operator.pos,
-}
+try:
+    from .toolwiz_common import ToolGeometry, UnitError, safe_eval_length
+except (ImportError, ValueError):
+    if (not os.path.isdir(os.path.join(_ADDIN_DIR, 'toolwiz_common'))
+            and os.path.isdir(os.path.join(_REPO_ROOT, 'toolwiz_common'))
+            and _REPO_ROOT not in sys.path):
+        sys.path.insert(0, _REPO_ROOT)
+    if _ADDIN_DIR not in sys.path:
+        sys.path.insert(0, _ADDIN_DIR)
+    from toolwiz_common import ToolGeometry, UnitError, safe_eval_length
 
-def safe_eval_expr(expr_str: str) -> float:
-    """Safely evaluates basic arithmetic expressions without eval(). Disallows exponentiation (**) and arbitrary code."""
-    node = ast.parse(expr_str, mode='eval')
-
-    def _eval(n):
-        if isinstance(n, ast.Expression):
-            return _eval(n.body)
-        elif isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
-            return float(n.value)
-        elif isinstance(n, ast.BinOp):
-            op_type = type(n.op)
-            if op_type not in _SAFE_OPS:
-                raise ValueError(f"Unsupported operator: {op_type}")
-            left = _eval(n.left)
-            right = _eval(n.right)
-            return _SAFE_OPS[op_type](left, right)
-        elif isinstance(n, ast.UnaryOp):
-            op_type = type(n.op)
-            if op_type not in _SAFE_OPS:
-                raise ValueError(f"Unsupported operator: {op_type}")
-            return _SAFE_OPS[op_type](_eval(n.operand))
-        else:
-            raise ValueError(f"Unsupported syntax: {type(n)}")
-
-    return _eval(node)
+# Single server base URL used by every request.
+SERVER_BASE_URL = "http://127.0.0.1:5000"
+CLIENT_HEADER_NAME = 'X-ToolWiz-Client'
+CLIENT_HEADER_VALUE = 'fusion-addin'
 
 app = None
 ui = None
@@ -61,104 +50,353 @@ stock_ops_cache = {}
 stock_setups_cache = {}
 stock_table_input = None
 _is_updating_ui = False
+_stock_last_error = None
 
-# Global caches
-families_list = [
-    "Aluminum - Wrought (6061)",
-    "Aluminum - Cast",
-    "Steel - Low Carbon (1020)",
-    "Steel - Medium Carbon (1045)",
-    "Steel - Medium Carbon Alloy (4130)",
-    "Steel - Tool (H13)",
-    "Stainless - 300 Series (316)",
-    "Stainless - 400 Series (420)",
-    "Titanium Alloy",
-    "Black Titanium 5545",
-    "Brass",
-    "Plastics: Hard (ABS, Nylon, Foam Bd)"
-]
-alloys_dict = {
-    "Aluminum - Wrought (6061)": ["6061 - T6", "7075 - T6"],
-    "Steel - Tool (H13)": [
-        "CPM MagnaCut (Hardened ~62 HRC)",
-        "CPM MagnaCut (Annealed ~22 HRC)",
-        "H13 - Annealed",
-        "D2 - Hardened ~60 HRC"
-    ],
-    "Steel - Low Carbon (1020)": ["1018 - Cold Drawn", "1020 - Hot Rolled"],
-    "Steel - Medium Carbon Alloy (4130)": ["4140 - Pre-Hardened (~30 HRC)", "4130 - Annealed"],
-    "Stainless - 300 Series (316)": ["304 - Annealed", "316 - Annealed"],
-    "Titanium Alloy": [
-        "Ti-6Al-4V (Grade 5)",
-        "Black Titanium 5545 (~55% Zr / ~45% Ti)",
-        "Titanium Grade 2",
-        "Titanium Grade 1"
-    ],
-    "Black Titanium 5545": [
-        "Black Titanium 5545 (~55% Zr / ~45% Ti - 33.7 HRC)"
-    ]
-}
+# Shared material state, filled by load_materials() for BOTH the Speeds & Feeds
+# and the Stock to Leave commands.
+_materials = {"families": [], "alloys": {}, "status": "none", "cached_at": None, "notice": None}
+
+_LOG_MAX_BYTES = 1000000
 
 
-def parse_dim_to_inches(val, default=0.25, tool_unit=""):
-    """Safely converts Fusion dimension expressions/floats/strings to inches, respecting tool unit context."""
-    if val is None:
-        return default
-    if isinstance(val, (int, float)):
+# ==============================================================================
+# LOGGING
+# ==============================================================================
+
+def _toolwiz_dir():
+    base = os.environ.get('APPDATA') or os.path.expanduser('~')
+    return os.path.join(base, 'ToolWiz')
+
+
+def _log_path():
+    return os.path.join(_toolwiz_dir(), 'addin.log')
+
+
+def _log(msg, exc=None):
+    """Append a line (and optional traceback) to %APPDATA%/ToolWiz/addin.log. Never raises.
+    `exc` may be an exception instance or True (use the active exception)."""
+    try:
+        d = _toolwiz_dir()
+        os.makedirs(d, exist_ok=True)
+        path = _log_path()
         try:
-            f = float(val)
-            u = str(tool_unit).strip().lower()
-            if u in ["inches", "in", "inch"]:
-                return f
-            elif u in ["millimeters", "mm", "millimeter"]:
-                return f / 25.4
-            else:
-                return f / 25.4 if f > 1.5 else f
-        except:
-            return default
-    if isinstance(val, str):
-        v = val.strip().lower()
-        try:
-            # Handle fraction like "1/4", "3/8", "1/2 in"
-            if "/" in v and not any(c in v for c in ['(', ')', ';', '*', '+', 'math', 'min', 'max']):
-                clean_v = v.replace("in", "").replace('"', '').strip()
-                if "/" in clean_v:
-                    n, d = clean_v.split("/")
-                    return float(n) / float(d)
-            # Regex for pure numbers with optional unit suffix: e.g. "0.25", "0.25 in", "6.35 mm", "0.5\""
-            import re
-            m = re.match(r'^([-+]?[0-9]*\.?[0-9]+)\s*(in|inch|inches|mm|millimeter|millimetre|")?$', v)
-            if m:
-                num = float(m.group(1))
-                unit = m.group(2) or tool_unit
-                if unit and any(u in str(unit).lower() for u in ['mm', 'milli']):
-                    return num / 25.4
-                return num
-        except:
+            if os.path.exists(path) and os.path.getsize(path) > _LOG_MAX_BYTES:
+                os.replace(path, path + '.1')
+        except OSError:
             pass
-    return default
+        text = f"{datetime.datetime.now().isoformat(timespec='seconds')} {msg}\n"
+        if exc is not None:
+            if isinstance(exc, BaseException):
+                text += ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+            else:
+                text += traceback.format_exc()
+        with open(path, 'a', encoding='utf-8') as f:
+            f.write(text)
+    except Exception:
+        pass
+
+
+def _report_error(context, exc=None):
+    """Log the active/given exception and show the user a short message."""
+    _log(context, exc if exc is not None else True)
+    try:
+        if ui:
+            detail = f"\n{exc}" if exc is not None else ""
+            ui.messageBox(f"{context}{detail}\n\nDetails were written to:\n{_log_path()}", "ToolWiz")
+    except Exception:
+        pass
+
+
+# ==============================================================================
+# HTTP
+# ==============================================================================
+
+def _http_json(path, payload=None, timeout=5.0, retries=0):
+    """GET (payload None) or POST JSON to the ToolWiz server and return the decoded JSON.
+
+    Always sends the X-ToolWiz-Client header. An HTTP error that carries a JSON body
+    (e.g. 400 {"success": false, "error": ...}) returns that body. Connection errors
+    are retried `retries` times, then re-raised.
+    """
+    url = SERVER_BASE_URL + path
+    data = json.dumps(payload).encode('utf-8') if payload is not None else None
+    last_exc = None
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, data=data)
+        req.add_header(CLIENT_HEADER_NAME, CLIENT_HEADER_VALUE)
+        if data is not None:
+            req.add_header('Content-Type', 'application/json; charset=utf-8')
+        try:
+            resp = urllib.request.urlopen(req, timeout=timeout)
+            try:
+                return json.loads(resp.read().decode('utf-8'))
+            finally:
+                try:
+                    resp.close()
+                except Exception:
+                    pass
+        except urllib.error.HTTPError as e:
+            body = None
+            try:
+                body = json.loads(e.read().decode('utf-8'))
+            except Exception:
+                pass
+            try:
+                e.close()
+            except Exception:
+                pass
+            if isinstance(body, dict):
+                return body
+            last_exc = e
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            last_exc = e
+        _log(f"HTTP {'POST' if data is not None else 'GET'} {path} failed (attempt {attempt + 1}/{retries + 1})", last_exc)
+        if attempt < retries:
+            time.sleep(0.3)
+    raise last_exc
+
+
+def _offline_message(action):
+    return (
+        f"Cannot connect to the Tool Wizard backend at {SERVER_BASE_URL}.\n\n"
+        f"Tool Wizard must be running on your machine to {action}.\n\n"
+        "To start it:\n"
+        "1. Open a terminal in your Tool Wizard directory.\n"
+        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
+        "3. Re-run this command once the server is started."
+    )
+
+
+# ==============================================================================
+# MATERIALS (single shared loader)
+# ==============================================================================
+
+def _materials_cache_path():
+    return os.path.join(_toolwiz_dir(), 'materials_cache.json')
+
+
+def _build_materials(families, alloys_raw):
+    """Return (families, {family: ["alloy (condition)", ...]})."""
+    alloys = {}
+    for a in alloys_raw or []:
+        if not isinstance(a, dict):
+            continue
+        fam = a.get("family", "")
+        alloy = a.get("alloy", "")
+        cond = a.get("condition", "")
+        name = f"{alloy} ({cond})" if cond else alloy
+        if fam and name:
+            lst = alloys.setdefault(fam, [])
+            if name not in lst:
+                lst.append(name)
+    return list(families), alloys
+
+
+def _save_materials_cache(families, alloys_raw):
+    try:
+        os.makedirs(_toolwiz_dir(), exist_ok=True)
+        path = _materials_cache_path()
+        tmp = path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump({
+                "saved_at": datetime.datetime.now().isoformat(timespec='seconds'),
+                "families": families,
+                "alloys": alloys_raw,
+            }, f)
+        os.replace(tmp, path)
+    except Exception as e:
+        _log("Could not write materials cache", e)
+
+
+def _read_materials_cache():
+    """Return (families, alloys_raw, saved_at) or None."""
+    try:
+        with open(_materials_cache_path(), 'r', encoding='utf-8') as f:
+            c = json.load(f)
+        fams = c.get("families")
+        if isinstance(fams, list) and fams:
+            return fams, c.get("alloys") or [], str(c.get("saved_at", ""))
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        _log("Could not read materials cache", e)
+    return None
+
+
+def load_materials():
+    """Load material families + alloys. Used by BOTH the Speeds & Feeds and Stock to Leave commands.
+
+    GET /api/data (10 s timeout, 1 retry). On success the result is cached to
+    %APPDATA%/ToolWiz/materials_cache.json. On failure the cache is used and a notice is set;
+    with no cache either, status is "none" and calculation must not be allowed.
+    Updates and returns the module-level `_materials` dict.
+    """
+    global _materials
+    try:
+        data = _http_json('/api/data', timeout=10.0, retries=1)
+        families = data.get("families") if isinstance(data, dict) else None
+        if not isinstance(families, list) or not families:
+            raise ValueError("server returned no material families")
+        alloys_raw = data.get("alloys") or []
+        fams, alloys = _build_materials(families, alloys_raw)
+        _save_materials_cache(families, alloys_raw)
+        _materials = {"families": fams, "alloys": alloys, "status": "online", "cached_at": None, "notice": None}
+        return _materials
+    except Exception as e:
+        _log("Material list fetch from server failed", e)
+
+    cached = _read_materials_cache()
+    if cached:
+        fams, alloys = _build_materials(cached[0], cached[1])
+        when = cached[2][:16].replace('T', ' ') or "earlier"
+        _materials = {
+            "families": fams, "alloys": alloys, "status": "cache", "cached_at": when,
+            "notice": f"Server offline — using material list cached {when}",
+        }
+    else:
+        _materials = {
+            "families": [], "alloys": {}, "status": "none", "cached_at": None,
+            "notice": ("Cannot load materials: the ToolWiz server is offline and no cached material list exists. "
+                       f"Start ToolWiz (py app.py at {SERVER_BASE_URL}) and reopen this command. "
+                       "Calculation is disabled."),
+        }
+    return _materials
+
+
+def materials_ready():
+    return _materials.get("status") in ("online", "cache") and bool(_materials.get("families"))
+
+
+def alloys_for(family):
+    return _materials.get("alloys", {}).get(family, [])
+
+
+def _add_materials_notice(inputs, input_id):
+    """Show the offline / no-cache notice (if any) as a text box."""
+    notice = _materials.get("notice")
+    if notice:
+        title = 'Error' if _materials.get("status") == "none" else 'Warning'
+        box = inputs.addTextBoxCommandInput(input_id, title, notice, 3, True)
+        box.isFullWidth = True
+
+
+# ==============================================================================
+# UNIT-EXPLICIT PARSING OF FUSION EXPRESSIONS / CAM PARAMETERS
+# ==============================================================================
+
+_NUM = r'[-+]?(?:\d+\.?\d*|\.\d+)'
+_LEN_TOKEN_RE = re.compile(r'(?<![A-Za-z_])(millimeters?|millimetres?|inches|inch|mm|in)(?![A-Za-z_])|"', re.IGNORECASE)
+_FEED_RE = re.compile(r'^\s*(' + _NUM + r')\s*(in\s*/\s*min|ipm|mm\s*/\s*min|mmpm)?\s*$', re.IGNORECASE)
+_RPM_RE = re.compile(r'^\s*(' + _NUM + r')\s*(rpm|r\s*/\s*min)?\s*$', re.IGNORECASE)
+
+
+def _is_metric_unit(unit):
+    u = str(unit or "").strip().lower()
+    return u.startswith("mm") or u.startswith("milli")
+
+
+def _length_units_in(expr):
+    found = set()
+    for m in _LEN_TOKEN_RE.finditer(expr):
+        found.add('mm' if m.group(0).lower().startswith(('mm', 'milli')) else 'in')
+    return found
+
+
+def parse_length_expr_to_inches(expr, default_unit="in"):
+    """Evaluate a Fusion length expression to inches. An explicit unit token in the
+    expression wins; only a unit-less expression uses `default_unit` (the document unit).
+    Raises ValueError if it cannot be evaluated or mixes units."""
+    if expr is None:
+        raise ValueError("no expression")
+    s = str(expr).strip()
+    units = _length_units_in(s)
+    if len(units) > 1:
+        raise ValueError(f"mixed units in {s!r}")
+    unit = next(iter(units)) if units else ('mm' if _is_metric_unit(default_unit) else 'in')
+    val = safe_eval_length(s)
+    return val / 25.4 if unit == 'mm' else val
+
+
+def parse_feed_expr_to_ipm(expr, doc_unit="in"):
+    """'250 in/min' -> 250, '6350 mm/min' -> 250. A unit-less number uses the document unit."""
+    m = _FEED_RE.match(str(expr) if expr is not None else "")
+    if not m:
+        raise ValueError(f"cannot parse feed {expr!r}")
+    val = float(m.group(1))
+    unit = re.sub(r'\s+', '', (m.group(2) or '')).lower()
+    metric = unit.startswith('mm') if unit else _is_metric_unit(doc_unit)
+    return val / 25.4 if metric else val
+
+
+def parse_rpm_expr(expr):
+    m = _RPM_RE.match(str(expr) if expr is not None else "")
+    if not m:
+        raise ValueError(f"cannot parse spindle speed {expr!r}")
+    return float(m.group(1))
+
+
+def _numeric_param_value(p):
+    try:
+        v = p.value.value
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return float(v)
+    except Exception:
+        pass
+    return None
+
 
 def parse_cam_param_to_inches(p, default=0.0, doc_unit="in"):
-    """Safely retrieves a CAM parameter's evaluated length in inches.
-    Fusion CAM parameters evaluate internal length in centimeters (cm).
-    """
+    """Length CAM parameter -> inches. Fusion stores evaluated lengths in cm (database unit),
+    which is unit-independent; otherwise the expression is parsed by its explicit unit tokens."""
     if not p:
         return default
-    # 1. Primary: Use evaluated value if available (already evaluated by Fusion CAM engine)
+    val_cm = _numeric_param_value(p)
+    if val_cm is not None and val_cm > 0:
+        return val_cm / 2.54
     try:
-        if hasattr(p, 'value') and hasattr(p.value, 'value') and isinstance(p.value.value, (int, float)):
-            val_cm = float(p.value.value)
-            if val_cm > 0:
-                return val_cm / 2.54  # cm to inches
-    except:
-        pass
-    # 2. Fallback: Parse expression string respecting document unit context
-    try:
-        if hasattr(p, 'expression') and p.expression:
-            return parse_dim_to_inches(p.expression, default, tool_unit=doc_unit)
-    except:
+        expr = getattr(p, 'expression', None)
+        if expr:
+            return parse_length_expr_to_inches(expr, doc_unit)
+    except ValueError:
         pass
     return default
+
+
+def parse_cam_feed_to_ipm(p, doc_unit="in"):
+    """Feed CAM parameter -> IPM using the expression's explicit unit. Falls back to the
+    evaluated value (Fusion database unit cm/s) only when the expression is not a plain number."""
+    if not p:
+        return 0.0
+    expr = getattr(p, 'expression', None)
+    if expr:
+        try:
+            return parse_feed_expr_to_ipm(expr, doc_unit)
+        except ValueError:
+            pass
+    v = _numeric_param_value(p)
+    if v is not None and v > 0:
+        _log(f"Feed expression {expr!r} not a plain number; using evaluated cm/s value")
+        return v * 60.0 / 2.54
+    return 0.0
+
+
+def parse_cam_rpm(p):
+    """Spindle-speed CAM parameter -> RPM using the expression. Falls back to the evaluated
+    value (Fusion database unit rad/s) only when the expression is not a plain number."""
+    if not p:
+        return 0.0
+    expr = getattr(p, 'expression', None)
+    if expr:
+        try:
+            return parse_rpm_expr(expr)
+        except ValueError:
+            pass
+    v = _numeric_param_value(p)
+    if v is not None and v > 0:
+        _log(f"Spindle expression {expr!r} not a plain number; using evaluated rad/s value")
+        return v * 60.0 / (2.0 * math.pi)
+    return 0.0
+
 
 def format_cutter_type(raw_type, desc=""):
     """Normalizes cutter types into clean, readable labels (e.g. Flat End Mill, T-Slot Cutter, Chamfer Mill)"""
@@ -188,7 +426,8 @@ def format_cutter_type(raw_type, desc=""):
     return "Flat End Mill"
 
 def extract_tool_number(op, t_dict=None):
-    """Accurately extracts tool number from tool JSON, tool object, or operation CAMParameters."""
+    """Extracts the tool number from tool JSON, tool object, or operation CAMParameters.
+    Returns None when the number is unknown (never 0 or 1 as a guess)."""
     # 1. Tool JSON dictionary (authoritative definition from library)
     if t_dict and isinstance(t_dict, dict):
         post = (
@@ -204,14 +443,14 @@ def extract_tool_number(op, t_dict=None):
                     val = int(num)
                     if val > 0:
                         return val
-                except:
+                except Exception:
                     pass
         if "number" in t_dict:
             try:
                 val = int(t_dict["number"])
                 if val > 0:
                     return val
-            except:
+            except Exception:
                 pass
 
     # 2. Direct property or JSON on tool object
@@ -221,7 +460,7 @@ def extract_tool_number(op, t_dict=None):
                 val = int(op.tool.number)
                 if val > 0:
                     return val
-        except:
+        except Exception:
             pass
         if not t_dict and hasattr(op.tool, 'toJson'):
             try:
@@ -232,7 +471,7 @@ def extract_tool_number(op, t_dict=None):
                     val = int(post.get("number"))
                     if val > 0:
                         return val
-            except:
+            except Exception:
                 pass
 
     # 3. Operation CAM parameters (fallback)
@@ -246,7 +485,7 @@ def extract_tool_number(op, t_dict=None):
                             val = int(float(p.value.value))
                             if val > 0:
                                 return val
-                        except:
+                        except Exception:
                             pass
                     if getattr(p, 'expression', None):
                         try:
@@ -255,52 +494,68 @@ def extract_tool_number(op, t_dict=None):
                                 val = int(m.group(1))
                                 if val > 0:
                                     return val
-                        except:
+                        except Exception:
                             pass
-            except:
+            except Exception:
                 pass
 
-    return 0
+    return None
+
+def tool_label(t_num):
+    return f"T{t_num}" if t_num is not None and t_num > 0 else "T? (no tool number)"
+
+
+def describe_stickout(geo):
+    """Human text for the stickout and where it came from."""
+    src = geo.stickout_source
+    if src == "default":
+        ratio = geo.stickout / geo.diameter if geo.diameter else 0.0
+        note = f"Auto {ratio:.2f}×D — verify"
+    elif src == "fusion_LB":
+        note = "Fusion LB"
+    elif src == "fusion_gauge":
+        note = "Fusion gauge length"
+    else:
+        note = "override"
+    return f'Stickout {geo.stickout:.3f}" ({note})'
+
 
 def get_op_tool_info(op):
-    """Extracts tool metadata and geometry formatted in inches with dual unit display"""
+    """Extracts tool metadata and geometry (inches) via toolwiz_common.ToolGeometry.
+    Returns (geo_payload | None, summary_or_error_text, preset_names)."""
     if not op or not hasattr(op, 'tool') or not op.tool:
         return None, "No Tool Found", []
-    
+
     try:
         t = op.tool
         raw_json = t.toJson()
         t_dict = json.loads(raw_json)
-        geo = t_dict.get("geometry", {})
-        tool_unit = t_dict.get("unit", geo.get("unit", ""))
-        
-        diameter = parse_dim_to_inches(geo.get("DC", 6.35), 0.25, tool_unit)
-        flutes = int(geo.get("NOF", 4))
-        flute_length = parse_dim_to_inches(geo.get("LCF", 25.4), diameter * 3, tool_unit)
-        shank_diameter = parse_dim_to_inches(geo.get("SFDM", geo.get("SF", diameter)), diameter, tool_unit)
-        corner_radius = parse_dim_to_inches(geo.get("RE", 0.0), 0.0, tool_unit)
+        geo = ToolGeometry.from_fusion(t_dict)
+    except UnitError as e:
+        _log("Tool unit could not be determined", e)
+        return None, f"Cannot read tool geometry: {e}. Set the tool's unit to inches or millimeters in Fusion.", []
+    except Exception as e:
+        _log("Tool geometry extraction failed", e)
+        return None, f"Error extracting tool: {e}", []
+
+    try:
+        diameter = geo.diameter
+        flutes = geo.flutes
+        flute_length = geo.flute_length
+        corner_radius = geo.corner_radius
         desc = t_dict.get("description", f"{diameter:.3f}in Endmill")
         t_num = extract_tool_number(op, t_dict)
         raw_type = t_dict.get("type", "")
         cutter_type = format_cutter_type(raw_type, desc)
-        
+
         presets = t_dict.get("start-values", {}).get("presets", [])
         preset_names = [p.get("name", "Unnamed Preset") for p in presets if p.get("name")]
-        
-        # Check Length Below Holder (LB) or body length from tool geometry
-        lb_raw = geo.get("LB") or geo.get("bodyLength")
-        if lb_raw:
-            stickout = parse_dim_to_inches(lb_raw, flute_length + diameter * 0.5, tool_unit)
-        else:
-            # Default realistic stickout: flute_length + 0.125" clamped to 3.5xD unless tool has long flutes
-            default_stick = flute_length + min(0.25, diameter * 0.5)
-            stickout = max(flute_length * 1.05, min(default_stick, diameter * 3.5))
 
         desc_lower = desc.lower()
         bmc_lower = str(t_dict.get("BMC", "")).lower()
         grade_lower = str(t_dict.get("GRADE", "")).lower()
         text_all = f"{desc_lower} {bmc_lower} {grade_lower}"
-        
+
         detected_coating = "AlTiN" if ("carbide" in bmc_lower or "carbide" in desc_lower) else "Uncoated"
         if "altin" in text_all:
             detected_coating = "AlTiN"
@@ -323,9 +578,10 @@ def get_op_tool_info(op):
             "diameter": diameter,
             "flutes": flutes,
             "fluteLength": flute_length,
-            "shankDiameter": shank_diameter,
+            "shankDiameter": geo.shank_diameter,
             "cornerRadius": corner_radius,
-            "stickout": stickout,
+            "stickout": geo.stickout,
+            "stickoutSource": geo.stickout_source,
             "coating": detected_coating,
             "is_carbide": is_carbide,
             "geometry": "Square" if corner_radius == 0 else "Bullnose / Radiused",
@@ -334,24 +590,28 @@ def get_op_tool_info(op):
             "tool_type": cutter_type,
             "raw_json": raw_json
         }
-        
+
         dia_mm = diameter * 25.4
         fl_mm = flute_length * 25.4
-        t_label = f"T{t_num}" if t_num > 0 else "T0 (Unassigned)"
-        summary = f"{t_label}: {desc} | {cutter_type} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
+        summary = (
+            f"{tool_label(t_num)}: {desc} | {cutter_type} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), "
+            f"{flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)\n"
+            f"{describe_stickout(geo)}"
+        )
         return geo_payload, summary, preset_names
     except Exception as e:
-        return None, f"Error extracting tool: {str(e)}", []
+        _log("Tool info formatting failed", e)
+        return None, f"Error extracting tool: {e}", []
 
 def apply_param(op, name, expr_str, force=False):
-    """Safely updates a single CAMParameter on an Operation"""
+    """Safely updates a single CAMParameter on an Operation. Returns True if written."""
     try:
         p = op.parameters.itemByName(name)
         if p and (p.isEnabled or force):
             p.expression = str(expr_str)
             return True
-    except:
-        pass
+    except Exception as e:
+        _log(f"Could not set CAM parameter {name!r} = {expr_str!r}", e)
     return False
 
 # ==============================================================================
@@ -436,26 +696,13 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
                 }
 
             # Post to ToolWiz server
-            req = urllib.request.Request("http://127.0.0.1:5000/api/twin/export_receive")
-            req.add_header('Content-Type', 'application/json; charset=utf-8')
-            jsondata = json.dumps(payload).encode('utf-8')
-            
             try:
-                response = urllib.request.urlopen(req, jsondata, timeout=5.0)
-                res_data = json.loads(response.read().decode('utf-8'))
-            except (urllib.error.URLError, ConnectionRefusedError, OSError):
+                res_data = _http_json('/api/twin/export_receive', payload, timeout=30.0)
+            except (urllib.error.URLError, OSError, ValueError):
                 if ui:
-                    ui.messageBox(
-                        "Cannot connect to the Tool Wizard backend at http://127.0.0.1:5000.\n\n"
-                        "Tool Wizard must be running on your machine to export tool libraries.\n\n"
-                        "To start it:\n"
-                        "1. Open a terminal in your Tool Wizard directory.\n"
-                        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
-                        "3. Re-run this command once the server is started.",
-                        "Tool Wizard Server Offline"
-                    )
+                    ui.messageBox(_offline_message("export tool libraries"), "Tool Wizard Server Offline")
                 return
-            
+
             if res_data.get("success"):
                 lib_display_name = res_data.get("library_name", "Master_Shop_Tool_Crib")
                 final_count = res_data.get("tool_count", total_extracted_tools)
@@ -475,7 +722,7 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
                     f"{dedup_info}"
                     f"Backup Snapshot: {backup_name}\n\n"
                     f"Next Steps:\n"
-                    f"1. Open http://127.0.0.1:5000 in your browser.\n"
+                    f"1. Open {SERVER_BASE_URL} in your browser.\n"
                     f"2. Switch to 'Digital Twin Library Manager'.\n"
                     f"3. Select material & tweak aggressiveness per tool or material.\n"
                     f"4. Click 'Import Digital Twin' in Fusion when done."
@@ -485,8 +732,7 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
                 ui.messageBox(f"Export failed: {res_data.get('error')}")
                 
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Digital Twin Export Failed:\n{traceback.format_exc()}")
+            _report_error("Digital Twin Export failed.", e)
 
 class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self):
@@ -519,8 +765,8 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
                         if lib:
                             name = f"Cloud: {u.leafPath if hasattr(u, 'leafPath') else u.toString()}"
                             discovered_libraries_map[name] = {"type": "cloud", "url": u, "obj": lib}
-            except:
-                pass
+            except Exception as e:
+                _log("Cloud tool library discovery failed", e)
                 
             # 2. Local Libraries
             try:
@@ -533,8 +779,8 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
                         if lib:
                             name = f"Local: {u.leafPath if hasattr(u, 'leafPath') else u.toString()}"
                             discovered_libraries_map[name] = {"type": "local", "url": u, "obj": lib}
-            except:
-                pass
+            except Exception as e:
+                _log("Local tool library discovery failed", e)
                 
             # 3. Active Document Tools (Always accessible)
             discovered_libraries_map["Active Document: All Tools in Use"] = {"type": "document", "obj": None}
@@ -550,8 +796,7 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
             info.isFullWidth = True
             
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Command Created Failed:\n{traceback.format_exc()}")
+            _report_error("Command Created failed.", e)
 
 # ==============================================================================
 # COMMAND 2: IMPORT DIGITAL TWIN
@@ -564,20 +809,10 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
         try:
             # Fetch latest mutated library JSON from ToolWiz server
             try:
-                req = urllib.request.Request("http://127.0.0.1:5000/api/twin/get_import_payload")
-                response = urllib.request.urlopen(req, timeout=5.0)
-                res_data = json.loads(response.read().decode('utf-8'))
-            except (urllib.error.URLError, ConnectionRefusedError, OSError):
+                res_data = _http_json('/api/twin/get_import_payload', timeout=30.0)
+            except (urllib.error.URLError, OSError, ValueError):
                 if ui:
-                    ui.messageBox(
-                        "Cannot connect to the Tool Wizard backend at http://127.0.0.1:5000.\n\n"
-                        "Tool Wizard must be running on your machine to import tool libraries.\n\n"
-                        "To start it:\n"
-                        "1. Open a terminal in your Tool Wizard directory.\n"
-                        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
-                        "3. Re-run this command once the server is started.",
-                        "Tool Wizard Server Offline"
-                    )
+                    ui.messageBox(_offline_message("import tool libraries"), "Tool Wizard Server Offline")
                 return
             
             if not res_data.get("success") or not res_data.get("library"):
@@ -613,8 +848,7 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
             ui.messageBox(msg, 'ToolWiz Digital Twin Import')
             
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Digital Twin Import Failed:\n{traceback.format_exc()}")
+            _report_error("Digital Twin Import failed.", e)
 
 class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self):
@@ -629,12 +863,253 @@ class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Command Created Failed:\n{traceback.format_exc()}")
+            _report_error("Command Created failed.", e)
 
 # ==============================================================================
 # COMMAND 3: FAST CAM OPERATION AUTO-SETTER
 # ==============================================================================
+
+def confirm_feasibility(calc_result):
+    """Return True if it is OK to apply the result. When the server reports
+    "feasible": false, ask the user (Yes/No). A missing field counts as feasible."""
+    if not isinstance(calc_result, dict) or calc_result.get("feasible", True) is not False:
+        return True
+    limited = calc_result.get("limited_by") or "an unspecified limit"
+    if isinstance(limited, (list, tuple)):
+        limited = ", ".join(str(x) for x in limited)
+    res = ui.messageBox(
+        f"No safe cut found — limited by {limited}. Apply anyway?",
+        "ToolWiz — No Safe Cut Found",
+        adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+        adsk.core.MessageBoxIconTypes.WarningIconType
+    )
+    return res == adsk.core.DialogResults.DialogYes
+
+
+def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw):
+    """Build the /api/calculate_for_fusion request body (all lengths in inches)."""
+    coat = selected_coating_raw.lower()
+    coating_code = "AlTiN"
+    if "tialn" in coat:
+        coating_code = "TiAlN"
+    elif "altin" in coat:
+        coating_code = "AlTiN"
+    elif "ticn" in coat:
+        coating_code = "TiCN"
+    elif "tin" in coat:
+        coating_code = "TiN"
+    elif "zrn" in coat:
+        coating_code = "ZrN"
+    elif "dlc" in coat or "diamond" in coat:
+        coating_code = "Diamond"
+    elif "uncoated" in coat or "bright" in coat:
+        coating_code = "Uncoated"
+
+    is_bullnose = geo_payload.get("cornerRadius", 0.0) > 0.001
+    grade = selected_grade.lower()
+    if "hp" in grade or "high performance" in grade:
+        tool_category = "HP Carbide Bull Nose Endmill" if is_bullnose else "HP Carbide Endmill"
+    elif "hss" in grade:
+        tool_category = "HSS Endmill"
+    elif "cobalt" in grade:
+        tool_category = "Cobalt Endmill"
+    else:
+        tool_category = "Carbide Bull Nose Endmill" if is_bullnose else "Carbide Endmill"
+
+    return {
+        "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
+        "tool": tool_category, "coating": coating_code,
+        "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
+        "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
+        "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"]
+    }
+
+
+def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
+                target_preset_to_replace, selected_grade, selected_coating_raw):
+    """Calculate cutting data on the server and write it to the operation's tool preset."""
+    geo_payload, summary_str, existing_presets = get_op_tool_info(target_op)
+    if not geo_payload:
+        ui.messageBox(f'Could not read tool geometry: {summary_str}')
+        return False
+
+    t_num = geo_payload.get("number")
+    if t_num is None:
+        ui.messageBox(
+            "The tool used by this operation has no tool number, so ToolWiz cannot tell which tool to update.\n\n"
+            "Assign a tool number in Fusion (Tool dialog > Post Process tab) and run this command again.\n"
+            "ToolWiz never changes tool numbers or offsets.",
+            "ToolWiz CAM Auto-Setter"
+        )
+        return False
+
+    payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw)
+
+    try:
+        calc_result = _http_json('/api/calculate_for_fusion', payload, timeout=10.0)
+    except (urllib.error.URLError, OSError, ValueError):
+        if ui:
+            ui.messageBox(_offline_message("calculate speeds & feeds"), "Tool Wizard Server Offline")
+        return False
+
+    if not calc_result.get("success"):
+        ui.messageBox(f"ToolWiz Calculation Error: {calc_result.get('error')}")
+        return False
+
+    if not confirm_feasibility(calc_result):
+        return False
+
+    material_label = alloy if alloy else family
+    calc_result["name"] = f"{material_label} - {strategy}"
+    calc_result["material_query"] = material_label
+    calc_result["material_category"] = "metal"
+    calc_result["flutes"] = geo_payload.get("flutes", 4)
+
+    rpm = calc_result.get("rpm", 5000)
+    feed = calc_result.get("feed", 30.0)
+    doc = calc_result.get("doc", 0.25)
+    woc = calc_result.get("woc", 0.05)
+    ramp_feed = calc_result.get("ramp_feed", feed * 0.5)
+    plunge_feed = calc_result.get("plunge_feed", feed * 0.25)
+    if plunge_feed <= 0:
+        plunge_feed = ramp_feed if ramp_feed > 0 else (feed * 0.25 if feed > 0 else 5.0)
+    if ramp_feed <= 0:
+        ramp_feed = feed * 0.5 if feed > 0 else 10.0
+    sfm = calc_result.get("sfm", 300)
+    ipt = calc_result.get("ipt", 0.002)
+
+    # Mutate tool JSON (preset injection only; tool number / offsets are never touched)
+    mutated_json, final_preset_name, was_updated = json_mutator.mutate_tool_json(
+        geo_payload["raw_json"], calc_result, target_preset_to_replace=target_preset_to_replace
+    )
+
+    # Re-instantiate Tool with the mutated JSON and assign to operation & library
+    tool_updated = False
+    new_tool = None
+    try:
+        if hasattr(adsk, 'cam') and hasattr(adsk.cam, 'Tool') and hasattr(adsk.cam.Tool, 'createFromJson'):
+            new_tool = adsk.cam.Tool.createFromJson(mutated_json)
+            if new_tool:
+                target_op.tool = new_tool
+                tool_updated = True
+    except Exception as ex_tool:
+        _log("Tool.createFromJson / assigning tool to operation failed", ex_tool)
+
+    # Fallback to direct tool presets collection manipulation if createFromJson was not used
+    if not tool_updated:
+        try:
+            cur_tool = getattr(target_op, 'tool', None)
+            if cur_tool and hasattr(cur_tool, 'presets'):
+                target_preset = None
+                if target_preset_to_replace and target_preset_to_replace != "+ Create New Preset (Auto-Named)":
+                    for pr in cur_tool.presets:
+                        if pr.name == target_preset_to_replace:
+                            target_preset = pr
+                            break
+                if not target_preset:
+                    for pr in cur_tool.presets:
+                        if pr.name == final_preset_name:
+                            target_preset = pr
+                            break
+                if not target_preset:
+                    target_preset = cur_tool.presets.add()
+                if target_preset:
+                    target_preset.name = final_preset_name
+                    if hasattr(target_preset, 'parameters') and target_preset.parameters:
+                        for p_name, p_val in [
+                            ('tool_spindleSpeed', f"{rpm} rpm"),
+                            ('tool_spindleSpeedRamp', f"{rpm} rpm"),
+                            ('tool_feedCutting', f"{feed:.2f} in/min"),
+                            ('tool_feedEntry', f"{feed:.2f} in/min"),
+                            ('tool_feedExit', f"{feed:.2f} in/min"),
+                            ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
+                            ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
+                            ('tool_feedTransition', f"{feed * 1.5:.2f} in/min")
+                        ]:
+                            try:
+                                p_obj = target_preset.parameters.itemByName(p_name)
+                                if p_obj:
+                                    p_obj.expression = p_val
+                            except Exception as ex_p:
+                                _log(f"Could not set preset parameter {p_name!r}", ex_p)
+                    target_op.tool = cur_tool
+                    tool_updated = True
+        except Exception as ex_preset:
+            _log("Direct preset manipulation failed", ex_preset)
+
+    # Activate the newly created / updated preset on the operation
+    preset_linked = False
+    try:
+        active_tool = getattr(target_op, 'tool', None)
+        if active_tool and hasattr(active_tool, 'presets'):
+            for pr in active_tool.presets:
+                if pr.name == final_preset_name:
+                    try:
+                        target_op.toolPreset = pr
+                        preset_linked = True
+                    except Exception as ex_set:
+                        _log("Could not activate preset on operation", ex_set)
+                    break
+    except Exception as ex_link:
+        _log("Preset link step failed", ex_link)
+
+    # Update Document Tool Library if accessible
+    try:
+        cam_prod = app.activeDocument.products.itemByProductType('CAMProductType')
+        if cam_prod:
+            cam_obj = adsk.cam.CAM.cast(cam_prod)
+            if cam_obj and hasattr(cam_obj, 'documentToolLibrary') and cam_obj.documentToolLibrary:
+                doc_lib = cam_obj.documentToolLibrary
+                if hasattr(doc_lib, 'update') and target_op.tool:
+                    doc_lib.update(target_op.tool, False)
+    except Exception as ex_doclib:
+        _log("Document tool library update failed", ex_doclib)
+
+    applied = [
+        f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)",
+        f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)"
+    ]
+
+    # Explicitly apply feeds & speeds as operation parameter values so the active toolpath uses them
+    apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
+    apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
+    apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min")
+    apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
+    apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
+    apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
+    apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
+    apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
+
+    # Apply operation-specific cut step parameters (not stored in tool presets)
+    if "Adaptive" in strategy:
+        if apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"):
+            applied.append(f"Optimal Load (WOC): {woc:.4f} in")
+    else:
+        if apply_param(target_op, 'stepover', f"{woc:.4f} in") or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"):
+            applied.append(f"Stepover (WOC): {woc:.4f} in")
+
+    if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
+        applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
+
+    action_desc = "Updated in-place" if was_updated else "Created new preset"
+    link_desc = "Linked as active preset" if preset_linked else ("Added to tool presets" if tool_updated else "Parameters applied")
+    applied_summary = "\n".join([f" • {item}" for item in applied])
+    t_disp = tool_label(t_num)
+    msg = (
+        f"Tool Cutting Data & Preset Applied!\n"
+        f"====================================\n"
+        f"Tool: {t_disp} ({geo_payload.get('desc', 'Endmill')})\n"
+        f"Material: {material_label}\n"
+        f"Preset: {final_preset_name}\n"
+        f"Status: {action_desc} ({link_desc})\n"
+        f"Target Operation: {op_name}\n\n"
+        f"{applied_summary}\n\n"
+        f"Ramp Feed: {ramp_feed:.2f} in/min | Plunge Feed: {plunge_feed:.2f} in/min\n\n"
+        f"This preset is now attached to Tool {t_disp}'s Cutting Data tab for use across your entire document."
+    )
+    ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
+    return True
+
 
 class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -643,7 +1118,12 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
         try:
             eventArgs = adsk.core.CommandEventArgs.cast(args)
             inputs = eventArgs.command.commandInputs
-            
+
+            if not materials_ready():
+                ui.messageBox(_materials.get("notice") or "Material list unavailable. Calculation is disabled.",
+                              "ToolWiz")
+                return
+
             op_input = inputs.itemById('targetOp')
             preset_action_input = inputs.itemById('presetAction')
             grade_input = inputs.itemById('toolGrade')
@@ -652,246 +1132,36 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             alloy_input = inputs.itemById('matAlloy')
             strat_input = inputs.itemById('strategy')
             agg_input = inputs.itemById('aggressiveness')
-            
+
             if not op_input or not family_input or not strat_input or not agg_input:
                 ui.messageBox('Error: Dialog inputs could not be read.')
                 return
-                
+
             op_name = op_input.selectedItem.name if op_input.selectedItem else ""
             target_op = available_ops_map.get(op_name)
             if not target_op:
                 ui.messageBox('No valid CAM operation selected!')
                 return
-                
-            family = family_input.selectedItem.name if family_input.selectedItem else "Aluminum - Wrought (6061)"
+
+            if not family_input.selectedItem:
+                ui.messageBox('Please select a material family.')
+                return
+            family = family_input.selectedItem.name
             alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
             strategy = strat_input.selectedItem.name if strat_input.selectedItem else "Adaptive Roughing"
             aggressiveness = agg_input.valueOne
-            
+
             preset_choice = preset_action_input.selectedItem.name if (preset_action_input and preset_action_input.selectedItem) else "+ Create New Preset (Auto-Named)"
             target_preset_to_replace = preset_choice.replace("Replace: ", "").strip() if preset_choice.startswith("Replace: ") else None
-                
-            geo_payload, summary_str, existing_presets = get_op_tool_info(target_op)
-            if not geo_payload:
-                ui.messageBox(f'Could not read tool geometry: {summary_str}')
-                return
-                
+
             selected_grade = grade_input.selectedItem.name if (grade_input and grade_input.selectedItem) else "HP High Performance Carbide"
             selected_coating_raw = coat_input.selectedItem.name if (coat_input and coat_input.selectedItem) else "AlTiN (Black)"
 
-            coating_code = "AlTiN"
-            if "tialn" in selected_coating_raw.lower():
-                coating_code = "TiAlN"
-            elif "altin" in selected_coating_raw.lower():
-                coating_code = "AlTiN"
-            elif "ticn" in selected_coating_raw.lower():
-                coating_code = "TiCN"
-            elif "tin" in selected_coating_raw.lower():
-                coating_code = "TiN"
-            elif "zrn" in selected_coating_raw.lower():
-                coating_code = "ZrN"
-            elif "dlc" in selected_coating_raw.lower() or "diamond" in selected_coating_raw.lower():
-                coating_code = "Diamond"
-            elif "uncoated" in selected_coating_raw.lower() or "bright" in selected_coating_raw.lower():
-                coating_code = "Uncoated"
+            run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
+                        target_preset_to_replace, selected_grade, selected_coating_raw)
 
-            corner_radius = geo_payload.get("cornerRadius", 0.0)
-            is_bullnose = corner_radius > 0.001
-            
-            if "hp" in selected_grade.lower() or "high performance" in selected_grade.lower():
-                tool_category = "HP Carbide Bull Nose Endmill" if is_bullnose else "HP Carbide Endmill"
-            elif "hss" in selected_grade.lower():
-                tool_category = "HSS Endmill"
-            elif "cobalt" in selected_grade.lower():
-                tool_category = "Cobalt Endmill"
-            else:
-                tool_category = "Carbide Bull Nose Endmill" if is_bullnose else "Carbide Endmill"
-
-            payload = {
-                "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
-                "tool": tool_category, "coating": coating_code,
-                "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
-                "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
-                "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"]
-            }
-            
-            try:
-                req = urllib.request.Request("http://127.0.0.1:5000/api/calculate_for_fusion")
-                req.add_header('Content-Type', 'application/json; charset=utf-8')
-                response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), timeout=5.0)
-                calc_result = json.loads(response.read().decode('utf-8'))
-            except (urllib.error.URLError, ConnectionRefusedError, OSError):
-                if ui:
-                    ui.messageBox(
-                        "Cannot connect to the Tool Wizard backend at http://127.0.0.1:5000.\n\n"
-                        "Tool Wizard must be running on your machine to calculate speeds & feeds.\n\n"
-                        "To start it:\n"
-                        "1. Open a terminal in your Tool Wizard directory.\n"
-                        "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
-                        "3. Click OK in this dialog once the server is started.",
-                        "Tool Wizard Server Offline"
-                    )
-                return
-            
-            if not calc_result.get("success"):
-                ui.messageBox(f"ToolWiz Calculation Error: {calc_result.get('error')}")
-                return
-                
-            material_label = alloy if alloy else family
-            calc_result["name"] = f"{material_label} - {strategy}"
-            calc_result["material_query"] = material_label
-            calc_result["material_category"] = "metal"
-            calc_result["tool_number"] = geo_payload.get("number", 0)
-            calc_result["flutes"] = geo_payload.get("flutes", 4)
-            
-            rpm = calc_result.get("rpm", 5000)
-            feed = calc_result.get("feed", 30.0)
-            doc = calc_result.get("doc", 0.25)
-            woc = calc_result.get("woc", 0.05)
-            ramp_feed = calc_result.get("ramp_feed", feed * 0.5)
-            plunge_feed = calc_result.get("plunge_feed", feed * 0.25)
-            if plunge_feed <= 0:
-                plunge_feed = ramp_feed if ramp_feed > 0 else (feed * 0.25 if feed > 0 else 5.0)
-            if ramp_feed <= 0:
-                ramp_feed = feed * 0.5 if feed > 0 else 10.0
-            sfm = calc_result.get("sfm", 300)
-            ipt = calc_result.get("ipt", 0.002)
-            
-            # Mutate tool JSON
-            mutated_json, final_preset_name, was_updated = json_mutator.mutate_tool_json(
-                geo_payload["raw_json"], calc_result, target_preset_to_replace=target_preset_to_replace
-            )
-            
-            # Re-instantiate Tool with the mutated JSON and assign to operation & library
-            tool_updated = False
-            new_tool = None
-            try:
-                if hasattr(adsk, 'cam') and hasattr(adsk.cam, 'Tool') and hasattr(adsk.cam.Tool, 'createFromJson'):
-                    new_tool = adsk.cam.Tool.createFromJson(mutated_json)
-                    if new_tool:
-                        target_op.tool = new_tool
-                        tool_updated = True
-            except Exception as ex_tool:
-                pass
-                
-            # Fallback to direct tool presets collection manipulation if createFromJson was not used
-            if not tool_updated:
-                try:
-                    cur_tool = getattr(target_op, 'tool', None)
-                    if cur_tool and hasattr(cur_tool, 'presets'):
-                        target_preset = None
-                        if target_preset_to_replace and target_preset_to_replace != "+ Create New Preset (Auto-Named)":
-                            for pr in cur_tool.presets:
-                                if pr.name == target_preset_to_replace:
-                                    target_preset = pr
-                                    break
-                        if not target_preset:
-                            for pr in cur_tool.presets:
-                                if pr.name == final_preset_name:
-                                    target_preset = pr
-                                    break
-                        if not target_preset:
-                            target_preset = cur_tool.presets.add()
-                        if target_preset:
-                            target_preset.name = final_preset_name
-                            if hasattr(target_preset, 'parameters') and target_preset.parameters:
-                                for p_name, p_val in [
-                                    ('tool_spindleSpeed', f"{rpm} rpm"),
-                                    ('tool_spindleSpeedRamp', f"{rpm} rpm"),
-                                    ('tool_feedCutting', f"{feed:.2f} in/min"),
-                                    ('tool_feedEntry', f"{feed:.2f} in/min"),
-                                    ('tool_feedExit', f"{feed:.2f} in/min"),
-                                    ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
-                                    ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
-                                    ('tool_feedTransition', f"{feed * 1.5:.2f} in/min")
-                                ]:
-                                    try:
-                                        p_obj = target_preset.parameters.itemByName(p_name)
-                                        if p_obj:
-                                            p_obj.expression = p_val
-                                    except:
-                                        pass
-                            target_op.tool = cur_tool
-                            tool_updated = True
-                except Exception as ex_preset:
-                    pass
-
-            # Activate the newly created / updated preset on the operation
-            preset_linked = False
-            try:
-                active_tool = getattr(target_op, 'tool', None)
-                if active_tool and hasattr(active_tool, 'presets'):
-                    for pr in active_tool.presets:
-                        if pr.name == final_preset_name:
-                            try:
-                                target_op.toolPreset = pr
-                                preset_linked = True
-                            except:
-                                pass
-                            break
-            except Exception as ex_link:
-                pass
-
-            # Update Document Tool Library if accessible
-            try:
-                cam_prod = app.activeDocument.products.itemByProductType('CAMProductType')
-                if cam_prod:
-                    cam_obj = adsk.cam.CAM.cast(cam_prod)
-                    if cam_obj and hasattr(cam_obj, 'documentToolLibrary') and cam_obj.documentToolLibrary:
-                        doc_lib = cam_obj.documentToolLibrary
-                        if hasattr(doc_lib, 'update') and target_op.tool:
-                            doc_lib.update(target_op.tool, False)
-            except Exception as ex_doclib:
-                pass
-
-            applied = [
-                f"Spindle Speed: {rpm:,} RPM ({sfm:.1f} SFM)",
-                f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)"
-            ]
-            
-            # Explicitly apply feeds & speeds as operation parameter values so the active toolpath uses them
-            apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
-            apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
-            apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min")
-            apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
-            apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
-            
-            # Apply operation-specific cut step parameters (not stored in tool presets)
-            if "Adaptive" in strategy:
-                if apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"):
-                    applied.append(f"Optimal Load (WOC): {woc:.4f} in")
-            else:
-                if apply_param(target_op, 'stepover', f"{woc:.4f} in") or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"):
-                    applied.append(f"Stepover (WOC): {woc:.4f} in")
-                    
-            if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
-                applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
-                
-            action_desc = "Updated in-place" if was_updated else "Created new preset"
-            link_desc = "Linked as active preset" if preset_linked else ("Added to tool presets" if tool_updated else "Parameters applied")
-            applied_summary = "\n".join([f" • {item}" for item in applied])
-            t_num = geo_payload.get("number", 0)
-            t_disp = f"T{t_num}" if t_num > 0 else "T0 (Unassigned)"
-            msg = (
-                f"Tool Cutting Data & Preset Applied!\n"
-                f"====================================\n"
-                f"Tool: {t_disp} ({geo_payload.get('desc', 'Endmill')})\n"
-                f"Material: {material_label}\n"
-                f"Preset: {final_preset_name}\n"
-                f"Status: {action_desc} ({link_desc})\n"
-                f"Target Operation: {op_name}\n\n"
-                f"{applied_summary}\n\n"
-                f"Ramp Feed: {ramp_feed:.2f} in/min | Plunge Feed: {plunge_feed:.2f} in/min\n\n"
-                f"💡 This preset is now permanently attached to Tool T{t_num}'s Cutting Data tab for use across your entire document."
-            )
-            ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
-            
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Auto-Setter Failed:\n{traceback.format_exc()}")
+            _report_error("Auto-Setter failed.", e)
 
 class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
@@ -957,14 +1227,14 @@ class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
                 alloy_input = inputs.itemById('matAlloy')
                 if alloy_input:
                     alloy_input.listItems.clear()
-                    alloys = alloys_dict.get(family, [])
+                    alloys = alloys_for(family)
                     if not alloys:
                         alloy_input.listItems.add("Standard Grade", True)
                     else:
                         for i, a in enumerate(alloys):
                             alloy_input.listItems.add(a, True if i == 0 else False)
         except Exception as e:
-            pass
+            _log("Speeds & Feeds input-changed handler failed", e)
 
 class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self):
@@ -1022,7 +1292,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 
             initial_op = available_ops_map.get(preselect_op_name)
             initial_geo, initial_summary, existing_presets = get_op_tool_info(initial_op)
-            tool_info_box = inputs.addTextBoxCommandInput('toolInfo', 'Detected Tool', initial_summary, 2, True)
+            tool_info_box = inputs.addTextBoxCommandInput('toolInfo', 'Detected Tool', initial_summary, 3, True)
             tool_info_box.isFullWidth = True
             
             preset_input = inputs.addDropDownCommandInput('presetAction', 'Cutting Data Preset', adsk.core.DropDownStyles.TextListDropDownStyle)
@@ -1051,44 +1321,22 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             for label, code in coating_options:
                 tool_coating_input.listItems.add(label, code.lower() == det_coat.lower())
             
-            global families_list, alloys_dict
-            is_server_online = False
-            try:
-                response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.5)
-                data = json.loads(response.read().decode('utf-8'))
-                if "families" in data and len(data["families"]) > 0: families_list = data["families"]
-                if "alloys" in data:
-                    new_alloys = {}
-                    for a in data["alloys"]:
-                        f = a.get("family", "")
-                        name = f"{a.get('alloy', '')} ({a.get('condition', '')})" if a.get('condition') else a.get('alloy', '')
-                        if f and name:
-                            if f not in new_alloys: new_alloys[f] = []
-                            if name not in new_alloys[f]: new_alloys[f].append(name)
-                    if new_alloys: alloys_dict = new_alloys
-                is_server_online = True
-            except:
-                is_server_online = False
+            # Materials: one shared loader (server, then on-disk cache)
+            load_materials()
+            _add_materials_notice(inputs, 'materialsNotice')
 
-            if not is_server_online:
-                server_warn = inputs.addTextBoxCommandInput(
-                    'serverOfflineNotice', '⚠️ Warning',
-                    'Tool Wizard local server is OFFLINE (http://127.0.0.1:5000).\n'
-                    'Please start Tool Wizard ("py app.py" in terminal) before calculating feeds & speeds.',
-                    2, True
-                )
-                server_warn.isFullWidth = True
-                
-            mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
-            default_family = "Steel - Tool (H13)" if "Steel - Tool (H13)" in families_list else families_list[0]
-            for m in families_list:
-                mat_input.listItems.add(m, m == default_family)
-                
-            alloy_input = inputs.addDropDownCommandInput('matAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
-            init_alloys = alloys_dict.get(default_family, ["Standard Grade"])
-            for i, a in enumerate(init_alloys):
-                alloy_input.listItems.add(a, i == 0)
-                
+            if materials_ready():
+                families = _materials["families"]
+                mat_input = inputs.addDropDownCommandInput('matFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
+                default_family = "Steel - Tool (H13)" if "Steel - Tool (H13)" in families else families[0]
+                for m in families:
+                    mat_input.listItems.add(m, m == default_family)
+
+                alloy_input = inputs.addDropDownCommandInput('matAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
+                init_alloys = alloys_for(default_family) or ["Standard Grade"]
+                for i, a in enumerate(init_alloys):
+                    alloy_input.listItems.add(a, i == 0)
+
             strat_input = inputs.addDropDownCommandInput('strategy', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
             op_strat = str(getattr(initial_op, 'strategy', '')).lower() if initial_op else ""
             default_strat = 'Adaptive Roughing'
@@ -1117,8 +1365,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             agg_input.valueOne = 50
             
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Command Created Failed:\n{traceback.format_exc()}")
+            _report_error("Command Created failed.", e)
 
 # ==============================================================================
 # COMMAND 4: STOCK TO LEAVE & DEFLECTION MANAGER
@@ -1187,55 +1434,47 @@ def get_cam_document_units():
         pass
     return "in"
 
+def _format_stock_value(val, unit):
+    if abs(val) < 1e-6:
+        val = 0.0
+    return f"{val:.3f} mm" if unit == "mm" else f"{val:.4f} in"
+
+
 def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
     """Evaluates dimension expressions like '(-.1) * 1mm', '(.1)*1mm', or '0mm'
     into clean, formatted numeric strings like '-0.100 mm' or '0.000 mm'.
+
+    The unit is taken from an explicit unit token in the expression; only a unit-less
+    expression falls back to `doc_unit`. Arithmetic uses toolwiz_common.safe_eval_length
+    (no eval). Expressions that reference Fusion parameters are evaluated by Fusion's
+    units manager as a last resort.
     """
     if expr_str is None or str(expr_str).strip() == "":
         return "0.000 mm" if doc_unit == "mm" else "0.0000 in"
     s = str(expr_str).strip()
-    
-    unit = doc_unit
-    s_lower = s.lower()
-    if "mm" in s_lower or "milli" in s_lower:
-        unit = "mm"
-    elif "in" in s_lower or '"' in s:
-        unit = "in"
-        
-    # Try Fusion's native unitsManager first if available
-    try:
-        prod = app.activeProduct
-        if prod and hasattr(prod, 'unitsManager') and prod.unitsManager:
-            # evaluateExpression always returns database units (centimeters)
-            val_cm = prod.unitsManager.evaluateExpression(s, unit)
-            if unit == "mm":
-                val = val_cm * 10.0  # cm to mm
-            else:
-                val = val_cm / 2.54  # cm to inches
-            if abs(val) < 1e-6:
-                val = 0.0
-            if unit == "mm":
-                return f"{val:.3f} mm"
-            else:
-                return f"{val:.4f} in"
-    except:
-        pass
 
-    # Regex arithmetic fallback
+    units = _length_units_in(s)
+    if len(units) == 1:
+        unit = next(iter(units))
+    else:
+        unit = "mm" if _is_metric_unit(doc_unit) else "in"
+
+    if len(units) <= 1:
+        try:
+            return _format_stock_value(safe_eval_length(s), unit)
+        except ValueError:
+            pass
+
+    # Expression with parameter references: let Fusion's units manager evaluate it.
     try:
-        math_str = re.sub(r'([0-9\.\)])\s*(?:mm|millimeter|millimetre|inches|inch|in|\")', r'\1 * 1.0', s, flags=re.I)
-        math_str = re.sub(r'(?:mm|millimeter|millimetre|inches|inch|in|\")', r' 1.0 ', math_str, flags=re.I)
-        if re.match(r'^[0-9\.\+\-\*\/\(\)\s]+$', math_str):
-            val = float(safe_eval_expr(math_str))
-            if abs(val) < 1e-6:
-                val = 0.0
-            if unit == "mm":
-                return f"{val:.3f} mm"
-            else:
-                return f"{val:.4f} in"
-    except:
-        pass
-        
+        prod = app.activeProduct if app else None
+        if prod and hasattr(prod, 'unitsManager') and prod.unitsManager:
+            # evaluateExpression returns database units (centimeters)
+            val_cm = float(prod.unitsManager.evaluateExpression(s, unit))
+            return _format_stock_value(val_cm * 10.0 if unit == "mm" else val_cm / 2.54, unit)
+    except Exception as e:
+        _log(f"Could not evaluate stock expression {s!r}", e)
+
     return s
 
 def is_op_stock_to_leave_active(op):
@@ -1305,74 +1544,39 @@ def get_op_stock_values(op, doc_unit="in"):
     return True, rad_val, ax_val
 
 def get_op_cut_params(op, doc_unit="in"):
-    """Extracts feeds, speeds, DOC, and WOC from operation, correctly converting metric values to inches."""
+    """Extracts (rpm, feed_ipm, doc_in, woc_in) from an operation.
+
+    Units come from the explicit unit tokens in each parameter's expression (in/min, mm/min,
+    in, mm, rpm). Only a unit-less expression falls back to `doc_unit`. Values are never
+    rescaled based on their magnitude. Results are always RPM, IPM and inches.
+    """
     rpm = 0.0
     feed = 0.0
     doc = 0.0
     woc = 0.0
     try:
-        # 1. Spindle Speed (RPM)
-        p_rpm = op.parameters.itemByName('tool_spindleSpeed')
-        if p_rpm:
-            try:
-                # Expression has highest priority for user-entered RPM string (e.g. "3500 rpm" or "3500")
-                if p_rpm.expression:
-                    import re
-                    m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_rpm.expression))
-                    if m:
-                        rpm = float(m.group(1))
-                # Fallback to evaluated value
-                if rpm <= 0 and hasattr(p_rpm, 'value') and hasattr(p_rpm.value, 'value'):
-                    val = float(p_rpm.value.value)
-                    # Fusion CAM angular velocity database unit is rad/s (1 rad/s = 9.5493 RPM)
-                    if 0 < val < 2000:
-                        rpm = val * 60.0 / (2.0 * math.pi)
-                    else:
-                        rpm = val
-            except:
-                pass
-                
-        # 2. Cutting Feedrate (IPM)
-        p_feed = op.parameters.itemByName('tool_feedCutting')
-        if p_feed:
-            try:
-                # Primary: parse expression string
-                if p_feed.expression:
-                    import re
-                    m = re.search(r'([0-9]+(?:\.[0-9]+)?)', str(p_feed.expression))
-                    if m:
-                        raw_feed = float(m.group(1))
-                        expr_str = str(p_feed.expression).lower()
-                        # If metric unit detected or document is metric, convert mm/min to IPM
-                        if 'mm' in expr_str or doc_unit == 'mm':
-                            feed = raw_feed / 25.4  # mm/min to IPM
-                        else:
-                            feed = raw_feed
-                # Secondary: evaluated internal value in cm/s (1 cm/s = 60 cm/min = 600 mm/min = 23.622 in/min)
-                if feed <= 0 and hasattr(p_feed, 'value') and hasattr(p_feed.value, 'value') and isinstance(p_feed.value.value, (int, float)):
-                    val_cm_s = float(p_feed.value.value)
-                    if val_cm_s > 0:
-                        feed = val_cm_s * 60.0 / 2.54  # cm/s to in/min (IPM)
-            except:
-                pass
+        # 1. Spindle speed (RPM)
+        rpm = parse_cam_rpm(op.parameters.itemByName('tool_spindleSpeed'))
 
-        # 3. Axial Depth of Cut (DOC) - only if parameter is enabled
+        # 2. Cutting feedrate (IPM)
+        feed = parse_cam_feed_to_ipm(op.parameters.itemByName('tool_feedCutting'), doc_unit)
+
+        # 3. Axial depth of cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:
             p = op.parameters.itemByName(doc_name)
             if p and getattr(p, 'isEnabled', True):
                 doc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                 if doc > 0:
                     break
-                    
-        # 4. Radial Width of Cut (WOC)
-        # Check finishing stepover first (for 2D Contour and finishing ops)
+
+        # 4. Radial width of cut (WOC); finishing stepover first (2D Contour / finishing ops)
         for woc_fin in ['finishingStepover']:
             p = op.parameters.itemByName(woc_fin)
             if p and getattr(p, 'isEnabled', True):
                 woc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                 if woc > 0:
                     break
-                    
+
         if woc <= 0:
             for woc_name in ['stepover', 'optimalLoad', 'maximumStepover']:
                 p = op.parameters.itemByName(woc_name)
@@ -1380,39 +1584,52 @@ def get_op_cut_params(op, doc_unit="in"):
                     woc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                     if woc > 0:
                         break
-    except:
-        pass
-        
+    except Exception as e:
+        _log("Reading operation cut parameters failed", e)
+
     return rpm, feed, doc, woc
 
+def build_stock_ops_payload(ops_cache, doc_unit="in"):
+    """Per-op request bodies for /api/stock_compensation. Lengths are converted to inches and
+    feeds to IPM BEFORE sending, and labelled so with length_unit='in' / feed_unit='ipm'.
+    Operations whose tool geometry could not be read are skipped (never guessed)."""
+    ops_payload = []
+    for op_id, op_info in ops_cache.items():
+        geo = op_info.get("geo")
+        if not geo:
+            continue
+        op_unit = op_info.get("unit", doc_unit)
+        zero_val = "0.000 mm" if op_unit == "mm" else "0.0000 in"
+        ops_payload.append({
+            "id": op_id,
+            "name": op_info["name"],
+            "strategy": op_info["strategy"],
+            "unit": op_unit,  # display unit for the stock-to-leave strings only
+            "length_unit": "in",
+            "feed_unit": "ipm",
+            "diameter": geo["diameter"],
+            "flutes": geo["flutes"],
+            "fluteLength": geo["fluteLength"],
+            "shankDiameter": geo["shankDiameter"],
+            "stickout": geo["stickout"],
+            "coating": geo.get("coating", "Uncoated"),
+            "geometry": geo.get("geometry", "Square"),
+            "rpm": op_info.get("rpm", 0.0),
+            "feedrate": op_info.get("feed", 0.0),
+            "doc": op_info.get("doc", 0.0),
+            "woc": op_info.get("woc", 0.0),
+            "current_radial_stock": op_info.get("current_radial", zero_val),
+            "current_axial_stock": op_info.get("current_axial", zero_val)
+        })
+    return ops_payload
+
+
 def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in", doc_unit="in"):
-    """Queries http://127.0.0.1:5000/api/stock_compensation for all cached operations"""
+    """Queries the server's /api/stock_compensation for all cached operations.
+    Returns the results list, or [] on failure (reason stored in _stock_last_error and logged)."""
+    global _stock_last_error
+    _stock_last_error = None
     try:
-        ops_payload = []
-        for op_id, op_info in stock_ops_cache.items():
-            geo = op_info.get("geo", {})
-            op_unit = op_info.get("unit", doc_unit)
-            zero_val = "0.000 mm" if op_unit == "mm" else "0.0000 in"
-            ops_payload.append({
-                "id": op_id,
-                "name": op_info["name"],
-                "strategy": op_info["strategy"],
-                "unit": op_unit,
-                "diameter": geo.get("diameter", 0.375),
-                "flutes": geo.get("flutes", 4),
-                "fluteLength": geo.get("fluteLength", 0.75),
-                "shankDiameter": geo.get("shankDiameter", 0.375),
-                "stickout": geo.get("stickout", 1.25),
-                "coating": geo.get("coating", "Uncoated"),
-                "geometry": geo.get("geometry", "Square"),
-                "rpm": op_info.get("rpm", 0.0),
-                "feedrate": op_info.get("feed", 0.0),
-                "doc": op_info.get("doc", 0.0),
-                "woc": op_info.get("woc", 0.0),
-                "current_radial_stock": op_info.get("current_radial", zero_val),
-                "current_axial_stock": op_info.get("current_axial", zero_val)
-            })
-            
         payload = {
             "family": family,
             "alloy": alloy,
@@ -1421,17 +1638,16 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
             "unit": doc_unit,
             "custom_radial_offset": custom_rad,
             "custom_axial_offset": custom_ax,
-            "operations": ops_payload
+            "operations": build_stock_ops_payload(stock_ops_cache, doc_unit)
         }
-        
-        req = urllib.request.Request("http://127.0.0.1:5000/api/stock_compensation")
-        req.add_header('Content-Type', 'application/json; charset=utf-8')
-        response = urllib.request.urlopen(req, json.dumps(payload).encode('utf-8'), timeout=2.5)
-        res_data = json.loads(response.read().decode('utf-8'))
+        res_data = _http_json('/api/stock_compensation', payload, timeout=8.0)
         if res_data.get("success"):
             return res_data.get("results", [])
-    except:
-        pass
+        _stock_last_error = str(res_data.get("error") or "server reported failure")
+        _log(f"stock_compensation failed: {_stock_last_error}")
+    except Exception as e:
+        _stock_last_error = str(e)
+        _log("stock_compensation request failed", e)
     return []
 
 def find_table_input(inputs, table, input_id):
@@ -1473,79 +1689,105 @@ def add_cell_text(parent_inputs, item_id, text, num_rows=1, is_read_only=True, b
 
 
 
+def _set_bool_param(op, name, flag):
+    """Set a boolean CAM parameter; log (and return False) if it cannot be written."""
+    p = op.parameters.itemByName(name)
+    if not p:
+        return True
+    try:
+        p.expression = "true" if flag else "false"
+        return True
+    except Exception as e1:
+        try:
+            p.value.value = bool(flag)
+            return True
+        except Exception as e2:
+            _log(f"Could not set boolean CAM parameter {name!r} (expression: {e1}; value: {e2})")
+            return False
+
+
+def apply_stock_to_op(op, rad_val, ax_val):
+    """Write stock-to-leave values to one operation. Returns a list of parameter names that
+    could not be written (empty on success)."""
+    failed = []
+    # 1. Enable Stock to Leave checkbox
+    for chk_name in ['useStockToLeave', 'isStockToLeave']:
+        if not _set_bool_param(op, chk_name, True):
+            failed.append(chk_name)
+    # 2. Unlock independent radial and axial stock
+    if not _set_bool_param(op, 'simpleStockToLeave', False):
+        failed.append('simpleStockToLeave')
+    # 3. Radial stock, 4. Axial stock
+    for names, val in ((['stockToLeave', 'radialStockToLeave'], rad_val),
+                       (['verticalStockToLeave', 'axialStockToLeave'], ax_val)):
+        for name in names:
+            p = op.parameters.itemByName(name)
+            if p:
+                try:
+                    p.expression = str(val)
+                except Exception as e:
+                    _log(f"Could not set {name!r} = {val!r}", e)
+                    failed.append(name)
+                break
+    return failed
+
+
 class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args):
         try:
-            eventArgs = adsk.core.CommandEventArgs.cast(args)
-            inputs = eventArgs.command.commandInputs
-            
+            if not materials_ready():
+                ui.messageBox(_materials.get("notice") or "Material list unavailable. Calculation is disabled.",
+                              "ToolWiz Stock to Leave Manager")
+                return
+
             applied_ops = []
+            failed_ops = []
             for op_id, op_info in stock_ops_cache.items():
                 chk = op_info.get("chk")
                 if chk and chk.value and getattr(chk, 'isVisible', True):
                     inp_rad = op_info.get("inp_rad")
                     inp_ax = op_info.get("inp_ax")
-                    
+
                     rad_raw = inp_rad.value.strip() if inp_rad else op_info["current_radial"]
                     ax_raw = inp_ax.value.strip() if inp_ax else op_info["current_axial"]
-                    
+
                     doc_u = op_info.get("unit", "in")
                     rad_val = clean_and_eval_stock_expr(rad_raw, doc_u)
                     ax_val = clean_and_eval_stock_expr(ax_raw, doc_u)
-                    
-                    op = op_info["op"]
-                    
-                    # 1. Enable Stock to Leave checkbox
-                    for chk_name in ['useStockToLeave', 'isStockToLeave']:
-                        p_chk = op.parameters.itemByName(chk_name)
-                        if p_chk:
-                            try: p_chk.expression = "true"
-                            except:
-                                try: p_chk.value.value = True
-                                except: pass
-                                
-                    # 2. Unlock independent radial and axial stock
-                    p_simple = op.parameters.itemByName('simpleStockToLeave')
-                    if p_simple:
-                        try: p_simple.expression = "false"
-                        except:
-                            try: p_simple.value.value = False
-                            except: pass
-                            
-                    # 3. Set Radial Stock to Leave
-                    for r_name in ['stockToLeave', 'radialStockToLeave']:
-                        p_rad = op.parameters.itemByName(r_name)
-                        if p_rad:
-                            p_rad.expression = str(rad_val)
-                            break
-                            
-                    # 4. Set Axial Stock to Leave
-                    for a_name in ['verticalStockToLeave', 'axialStockToLeave']:
-                        p_ax = op.parameters.itemByName(a_name)
-                        if p_ax:
-                            p_ax.expression = str(ax_val)
-                            break
-                            
-                    applied_ops.append(f" • {op_info['label']}: Radial {rad_val} | Axial {ax_val}")
-                    
-            if applied_ops:
-                summary = "\n".join(applied_ops)
-                msg = (
-                    f"Stock to Leave Compensation Applied!\n"
-                    f"====================================\n"
-                    f"Operations Updated: {len(applied_ops)}\n\n"
-                    f"{summary}\n\n"
-                    f"Deflection and material springback compensation values are now active in your toolpaths."
-                )
-                ui.messageBox(msg, 'ToolWiz Stock to Leave Manager')
+
+                    try:
+                        failed = apply_stock_to_op(op_info["op"], rad_val, ax_val)
+                    except Exception as e:
+                        _log(f"Applying stock to leave to {op_info.get('label')} failed", e)
+                        failed = ['(unexpected error)']
+                    if failed:
+                        failed_ops.append(f" • {op_info['label']}: could not set {', '.join(failed)}")
+                    else:
+                        applied_ops.append(f" • {op_info['label']}: Radial {rad_val} | Axial {ax_val}")
+
+            if applied_ops or failed_ops:
+                msg = ""
+                if applied_ops:
+                    msg += (
+                        f"Stock to Leave Compensation Applied!\n"
+                        f"====================================\n"
+                        f"Operations Updated: {len(applied_ops)}\n\n"
+                        f"{chr(10).join(applied_ops)}\n\n"
+                        f"Deflection and material springback compensation values are now active in your toolpaths."
+                    )
+                if failed_ops:
+                    msg += (
+                        f"\n\nSome parameters could not be written (see {_log_path()}):\n"
+                        f"{chr(10).join(failed_ops)}"
+                    )
+                ui.messageBox(msg.strip(), 'ToolWiz Stock to Leave Manager')
             else:
                 ui.messageBox('No operations were selected to update.', 'ToolWiz Stock to Leave Manager')
-                
+
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Stock Manager Apply Failed:\n{traceback.format_exc()}")
+            _report_error("Stock Manager apply failed.", e)
 
 class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
@@ -1574,7 +1816,7 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
                 if alloy_input:
                     alloy_input.listItems.clear()
-                    alloys = alloys_dict.get(family, [])
+                    alloys = alloys_for(family)
                     if not alloys:
                         alloy_input.listItems.add("Standard Grade", True)
                     else:
@@ -1671,7 +1913,9 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 
             # 4. Handle Material / Aggressiveness / Mode changes
             if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset']:
-                family = mat_family_input.selectedItem.name if (mat_family_input and mat_family_input.selectedItem) else "Aluminum - Wrought (6061)"
+                if not (mat_family_input and mat_family_input.selectedItem) or not materials_ready():
+                    return
+                family = mat_family_input.selectedItem.name
                 alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
                 agg = 50
                 if agg_input:
@@ -1699,6 +1943,10 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 c_ax = custom_ax.value if custom_ax else zero_str
                 
                 calc_results = query_toolwiz_stock_compensation(family, alloy, agg, mode_code, c_rad, c_ax, doc_unit=doc_u)
+                if not calc_results and _stock_last_error:
+                    ui.messageBox(
+                        f"ToolWiz could not calculate stock compensation:\n{_stock_last_error}\n\nDetails: {_log_path()}",
+                        "ToolWiz Stock to Leave Manager")
                 if calc_results:
                     _is_updating_ui = True
                     try:
@@ -1742,12 +1990,7 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                         _is_updating_ui = False
                         
         except Exception as e:
-            try:
-                log_path = os.path.expanduser('~/.gemini/antigravity/scratch/stock_manager_debug.log')
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(f"InputChanged error on {getattr(cmdInput, 'id', 'unknown')}:\n{traceback.format_exc()}\n")
-            except:
-                pass
+            _log(f"Stock Manager input-changed error on {getattr(cmdInput, 'id', 'unknown')}", e)
 
 
 class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
@@ -1792,21 +2035,23 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                             op_label = f"{setup_name} > {op.name}"
                             geo_payload, tool_summary, _ = get_op_tool_info(op)
                             is_active, rad_val, ax_val = get_op_stock_values(op, doc_unit)
+                            # Per-operation display unit: explicit unit of an active stock value, else the document unit
+                            op_unit = doc_unit
                             if is_active and ("mm" in str(rad_val).lower() or "mm" in str(ax_val).lower()):
-                                doc_unit = "mm"
-                            rpm, feed, doc, woc = get_op_cut_params(op, doc_unit)
+                                op_unit = "mm"
+                            rpm, feed, doc, woc = get_op_cut_params(op, op_unit)
                             strat = getattr(op, 'strategy', 'contour2d')
-                            
-                            tool_short = "Tool"
+
                             if geo_payload:
-                                t_num = geo_payload.get('number', 1)
-                                t_dia = geo_payload.get('diameter', 0.25)
-                                t_flutes = geo_payload.get('flutes', 4)
+                                t_num = geo_payload.get('number')
+                                t_dia = geo_payload.get('diameter', 0.0)
+                                t_flutes = geo_payload.get('flutes', 0)
                                 t_type = geo_payload.get('tool_type', 'Flat End Mill')
-                                tool_short = f"T{t_num}: {t_dia:.3f}\" {t_type} ({t_flutes}FL)"
-                            elif tool_summary:
-                                tool_short = tool_summary.split('|')[0].strip()
-                                
+                                t_lbl = f"T{t_num}" if t_num else "T?"
+                                tool_short = f"{t_lbl}: {t_dia:.3f}\" {t_type} ({t_flutes}FL)"
+                            else:
+                                tool_short = (tool_summary or "Tool").split('|')[0].strip()
+
                             if setup_name not in stock_setups_cache:
                                 s_idx = len(stock_setups_cache)
                                 stock_setups_cache[setup_name] = {
@@ -1816,7 +2061,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                                     "idx": s_idx
                                 }
                             stock_setups_cache[setup_name]["ops"].append(op_id)
-                                
+
                             stock_ops_cache[op_id] = {
                                 "op": op,
                                 "op_id": op_id,
@@ -1825,11 +2070,10 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                                 "name": op.name,
                                 "strategy": strat,
                                 "tool_summary": tool_short,
-                                "unit": doc_unit,
-                                "geo": geo_payload or {
-                                    "diameter": 0.375, "flutes": 4, "fluteLength": 0.75,
-                                    "shankDiameter": 0.375, "stickout": 1.25, "coating": "Uncoated"
-                                },
+                                "unit": op_unit,
+                                # None when the tool geometry could not be read: such ops are never sent to the server
+                                "geo": geo_payload,
+                                "geo_error": None if geo_payload else tool_summary,
                                 "stock_active": is_active,
                                 "current_radial": rad_val,
                                 "current_axial": ax_val,
@@ -1838,43 +2082,19 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                                 "doc": doc,
                                 "woc": woc
                             }
-                    except:
-                        pass
-                        
+                    except Exception as e:
+                        _log(f"Scanning operation {getattr(op, 'name', '?')} for stock to leave failed", e)
+
             if not stock_ops_cache:
                 ui.messageBox('No operations supporting Stock to Leave were found in the active document.')
                 return
-                
-            # Populate Materials from Tool Wizard DB
-            global families_list, alloys_dict
-            is_server_online = False
-            try:
-                response = urllib.request.urlopen("http://127.0.0.1:5000/api/data", timeout=1.5)
-                data = json.loads(response.read().decode('utf-8'))
-                if "families" in data and len(data["families"]) > 0:
-                    families_list = data["families"]
-                if "alloys" in data:
-                    new_alloys = {}
-                    for a in data["alloys"]:
-                        f = a.get("family", "")
-                        name = f"{a.get('alloy', '')} ({a.get('condition', '')})" if a.get('condition') else a.get('alloy', '')
-                        if f and name:
-                            if f not in new_alloys: new_alloys[f] = []
-                            if name not in new_alloys[f]: new_alloys[f].append(name)
-                    if new_alloys:
-                        alloys_dict = new_alloys
-                is_server_online = True
-            except:
-                is_server_online = False
 
-            if not is_server_online:
-                server_warn = inputs.addTextBoxCommandInput(
-                    'stockServerOfflineNotice', '⚠️ Warning',
-                    'Tool Wizard local server is OFFLINE (http://127.0.0.1:5000).\n'
-                    'Live deflection physics calculations require Tool Wizard running ("py app.py").',
-                    2, True
-                )
-                server_warn.isFullWidth = True
+            # Materials: one shared loader (server, then on-disk cache)
+            load_materials()
+            _add_materials_notice(inputs, 'stockMaterialsNotice')
+            if not materials_ready():
+                return
+            families = _materials["families"]
 
             # Instructions Header
             intro_box = inputs.addTextBoxCommandInput(
@@ -1888,12 +2108,12 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
 
             # Material Dropdowns
             mat_family_input = inputs.addDropDownCommandInput('stockMatFamily', 'Workpiece Material', adsk.core.DropDownStyles.TextListDropDownStyle)
-            default_family = "Titanium Alloy" if "Titanium Alloy" in families_list else families_list[0]
-            for m in families_list:
+            default_family = "Titanium Alloy" if "Titanium Alloy" in families else families[0]
+            for m in families:
                 mat_family_input.listItems.add(m, m == default_family)
                 
             alloy_input = inputs.addDropDownCommandInput('stockMatAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
-            init_alloys = alloys_dict.get(default_family, ["Standard Grade"])
+            init_alloys = alloys_for(default_family) or ["Standard Grade"]
             for i, a in enumerate(init_alloys):
                 alloy_input.listItems.add(a, i == 0)
                 
@@ -1984,7 +2204,14 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 calc_r = res_map.get(op_id, {})
                 init_rad = clean_and_eval_stock_expr(calc_r.get("recommended_radial_stock", op_info["current_radial"]), doc_unit)
                 init_ax = clean_and_eval_stock_expr(calc_r.get("recommended_axial_stock", op_info["current_axial"]), doc_unit)
-                init_adv = calc_r.get("advisory", "Ready")
+                if calc_r.get("advisory"):
+                    init_adv = calc_r.get("advisory")
+                elif not op_info.get("geo"):
+                    init_adv = f"Not calculated - {op_info.get('geo_error')}"
+                elif _stock_last_error:
+                    init_adv = f"ToolWiz calculation unavailable: {_stock_last_error}"
+                else:
+                    init_adv = "Ready"
                 is_finish_op = calc_r.get("is_finishing", False)
                 op_info["is_finishing"] = is_finish_op
                 op_info["row_idx"] = row_idx
@@ -2046,8 +2273,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
 
                 
         except Exception as e:
-            if ui:
-                ui.messageBox(f"Stock Manager Created Failed:\n{traceback.format_exc()}")
+            _report_error("Stock Manager failed to open.", e)
 
 # ==============================================================================
 # ADD-IN RUN / STOP
@@ -2109,8 +2335,7 @@ def run(context):
                 if not panel.controls.itemById(stockCommandId): panel.controls.addCommand(stockDef)
                     
     except Exception as e:
-        if ui:
-            ui.messageBox(f"Add-in Start Failed:\n{traceback.format_exc()}")
+        _report_error("Add-in start failed.", e)
 
 def stop(context):
     global app, ui
@@ -2128,6 +2353,5 @@ def stop(context):
             if cmdDef: cmdDef.deleteMe()
             
     except Exception as e:
-        if ui:
-            ui.messageBox(f"Add-in Stop Failed:\n{traceback.format_exc()}")
+        _report_error("Add-in stop failed.", e)
 

@@ -108,5 +108,32 @@ class TestToolPresetInjection(unittest.TestCase):
         self.assertEqual(presets[0]["n"], 15000.0)
         self.assertEqual(presets[0]["material"]["query"], "Black Titanium 5545")
 
+    def test_mutator_never_writes_tool_number_or_offsets(self):
+        # Even when the payload carries a tool number, post-process must be untouched.
+        data = {"name": "X", "rpm": 1000, "feed": 10, "tool_number": 99, "number": 99}
+        out, _, _ = json_mutator.mutate_tool_json(self.sample_tool_json, data)
+        pp = json.loads(out)["post-process"]
+        self.assertEqual(pp, {"number": 11, "diameter-offset": 11, "length-offset": 11})
+
+        # A tool with no post-process section must not gain one.
+        bare = json.dumps({"geometry": {"DC": 0.25}})
+        out, _, _ = json_mutator.mutate_tool_json(bare, data)
+        self.assertNotIn("post-process", json.loads(out))
+
+    def test_returns_plain_tuple(self):
+        result = json_mutator.mutate_tool_json(self.sample_tool_json, {"name": "P", "rpm": 1, "feed": 1})
+        self.assertIs(type(result), tuple)
+        self.assertEqual(len(result), 3)
+        self.assertIs(type(result[0]), str)
+        self.assertFalse(hasattr(json_mutator, "MutatedToolResult"))
+
+    def test_root_json_mutator_is_thin_reexport(self):
+        root_path = os.path.join(os.path.dirname(__file__), '..', 'json_mutator.py')
+        with open(root_path, encoding='utf-8') as f:
+            src = f.read()
+        self.assertIn("from ToolWizFusionAddin.json_mutator import", src)
+        self.assertNotIn("def ", src)
+        self.assertLess(len(src.splitlines()), 15)
+
 if __name__ == '__main__':
     unittest.main()

@@ -82,9 +82,16 @@ class TestToolNumberDetection(unittest.TestCase):
         op = DummyOp(tool=DummyTool("{}", num=11))
         self.assertEqual(extract_tool_number(op), 11)
 
-    def test_fallback_default(self):
+    def test_fallback_default_is_none(self):
         op = DummyOp()
-        self.assertEqual(extract_tool_number(op), 0)
+        self.assertIsNone(extract_tool_number(op))
+
+    def test_unknown_number_is_none_not_zero_or_one(self):
+        t_json = json.dumps({"description": "no number", "post-process": {"number": 0}})
+        op = DummyOp(tool=DummyTool(t_json))
+        self.assertIsNone(extract_tool_number(op, json.loads(t_json)))
+        self.assertIsNone(extract_tool_number(DummyOp(params=DummyParams({}))))
+        self.assertIsNone(extract_tool_number(None))
 
 if __name__ == '__main__':
     unittest.main()
