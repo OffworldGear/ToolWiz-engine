@@ -11,50 +11,15 @@ import re
 import uuid
 from typing import Dict, List, Tuple, Any, Optional
 
+from toolwiz_common import to_inches, tool_unit as _tool_unit, UnitError
+
 def parse_dimension_in(val: Any, unit: str = "") -> float:
-    """Normalizes any dimension (float, int, or string with units) into inches."""
-    if val is None:
-        return 0.25
-    if isinstance(val, (int, float)):
-        u = str(unit).strip().lower()
-        if u in ["inches", "in", "inch"]:
-            return float(val)
-        elif u in ["millimeters", "mm", "millimeter"]:
-            return float(val) / 25.4
-        else:
-            # Fallback heuristic: values > 1.5 in default metric context are likely mm
-            return float(val) / 25.4 if float(val) > 1.5 else float(val)
-    if isinstance(val, str):
-        v = val.strip().lower()
-        has_in = "in" in v
-        has_mm = "mm" in v
-        if has_in:
-            v = v.replace("in", "").strip()
-        elif has_mm:
-            v = v.replace("mm", "").strip()
+    """Normalizes a dimension (number, or string with optional unit suffix) into inches.
 
-        if "/" in v:
-            try:
-                n, d = v.split("/")
-                f = float(n) / float(d)
-                u = str(unit).strip().lower()
-                if has_mm or u in ["millimeters", "mm", "millimeter"]:
-                    return f / 25.4
-                return f
-            except Exception:
-                return 0.25
-
-        try:
-            f = float(v)
-            u = str(unit).strip().lower()
-            if has_mm or u in ["millimeters", "mm", "millimeter"]:
-                return f / 25.4
-            elif has_in or u in ["inches", "in", "inch"]:
-                return f
-            return f / 25.4 if f > 1.5 else f
-        except Exception:
-            return 0.25
-    return 0.25
+    Deterministic: raises toolwiz_common.UnitError if the unit cannot be determined
+    (no magnitude heuristics).
+    """
+    return to_inches(val, unit)
 
 
 def compute_tool_signature(tool: Any) -> str:
@@ -79,7 +44,8 @@ def compute_tool_signature(tool: Any) -> str:
     vendor = str(t_dict.get("vendor", "")).strip().lower()
     
     geo = t_dict.get("geometry", {})
-    tool_unit = str(t_dict.get("unit", geo.get("unit", ""))).strip().lower()
+    if not isinstance(geo, dict):
+        geo = {}
     tool_type = str(geo.get("type", t_dict.get("type", "end mill"))).strip().lower()
 
     # Normalize tool type synonyms
@@ -102,11 +68,19 @@ def compute_tool_signature(tool: Any) -> str:
     else:
         norm_type = tool_type.replace(" ", "_")
 
-    dc_in = round(parse_dimension_in(geo.get("DC", 0.25), tool_unit), 4)
-    nof = int(geo.get("NOF", 4))
-    lcf_in = round(parse_dimension_in(geo.get("LCF", 0.75), tool_unit), 3)
-    re_in = round(parse_dimension_in(geo.get("RE", 0.0), tool_unit), 4)
-    sf_in = round(parse_dimension_in(geo.get("SFDM", geo.get("SF", dc_in)), tool_unit), 3)
+    try:
+        unit = _tool_unit(t_dict)
+        dc_in = round(to_inches(geo.get("DC", 0.25), unit), 4)
+        nof = int(geo.get("NOF", 4))
+        lcf_in = round(to_inches(geo.get("LCF", 0.75), unit), 3)
+        re_in = round(to_inches(geo.get("RE", 0.0), unit), 4)
+        sfdm = geo.get("SFDM")
+        if sfdm in (None, ""):
+            sfdm = geo.get("SF", geo.get("DC", 0.25))
+        sf_in = round(to_inches(sfdm, unit), 3)
+    except (UnitError, ValueError, TypeError):
+        # Unit or dimensions unknown: never guess; make the signature unique so it is never merged.
+        return "nosig:" + str(uuid.uuid4())
 
     if prod_id and len(prod_id) > 2:
         return f"id:{vendor}:{prod_id}|{norm_type}|dia:{dc_in:.4f}|fl:{nof}|lcf:{lcf_in:.3f}|re:{re_in:.4f}"
@@ -295,7 +269,7 @@ def deduplicate_tools(tools_list: List[Any], preserve_presets: bool = True) -> T
 def merge_multiple_libraries(
     libraries: List[Dict[str, Any]],
     master_library_name: str = "Master_Shop_Tool_Crib",
-    deduplicate: bool = True
+    deduplicate: bool = False
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Merges multiple library dictionaries (each with 'library_name' and 'tools') into

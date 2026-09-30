@@ -1,0 +1,15 @@
+{
+  "machine": "Brother Speedio S500X2",
+  "source": "https://machinetool.global.brother/en-ap/all-products/sx2/s500x2 (retrieved 2026-09-30)",
+  "taper": "BT30 (7/24 No.30)",
+  "max_cutting_feed_mm_min": 30000,
+  "rapid_m_min": {"x": 50, "y": 50, "z": 56},
+  "spindle_options": {
+    "standard_10k":    {"max_rpm": 10000, "power_kw_10min": 10.1, "power_kw_continuous": 7.1, "max_torque_nm_momentary": 40},
+    "high_torque_10k": {"max_rpm": 10000, "power_kw_10min": 12.8, "power_kw_continuous": 9.2, "max_torque_nm_momentary": 92},
+    "optional_16k":    {"max_rpm": 16000, "power_kw_10min": 7.4,  "power_kw_continuous": 5.1, "max_torque_nm_momentary": null},
+    "optional_27k":    {"max_rpm": 27000, "power_kw_10min": 8.9,  "power_kw_continuous": 6.3, "max_torque_nm_momentary": null}
+  },
+  "active_spindle": "optional_16k",
+  "notes": "Torque for the 16k/27k options is not published on the product page; confirm from the machine's spindle output chart before enabling a torque limit. active_spindle must be confirmed by the owner."
+}

@@ -1,0 +1,21 @@
+{
+  "type": "flat end mill",
+  "unit": "inches",
+  "description": "1/2 4FL Carbide Flat",
+  "guid": "f1",
+  "postProcess": {
+    "number": 1
+  },
+  "geometry": {
+    "DC": 0.5,
+    "NOF": 4,
+    "LCF": 1.0,
+    "SFDM": 0.5,
+    "LB": 1.25,
+    "RE": 0.0,
+    "OAL": 3.0
+  },
+  "start-values": {
+    "presets": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "flat end mill",
+  "unit": "millimeters",
+  "description": "10mm 4FL Carbide Flat",
+  "guid": "f2",
+  "postProcess": {
+    "number": 2
+  },
+  "geometry": {
+    "DC": 10.0,
+    "NOF": 4,
+    "LCF": 22.0,
+    "SFDM": 10.0,
+    "RE": 0.0,
+    "OAL": 75.0
+  },
+  "start-values": {
+    "presets": []
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "type": "tapered mill",
+  "unit": "inches",
+  "description": "1/4 Tapered Ball Mill 3deg",
+  "guid": "f3",
+  "postProcess": {
+    "number": 3
+  },
+  "geometry": {
+    "DC": 0.25,
+    "NOF": 4,
+    "LCF": 0.75,
+    "SFDM": 0.25,
+    "RE": 0.0,
+    "TA": 3.0,
+    "LB": 1.0
+  },
+  "start-values": {
+    "presets": []
+  }
+}

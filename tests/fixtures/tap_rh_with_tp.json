@@ -1,0 +1,20 @@
+{
+  "type": "tap right hand",
+  "unit": "inches",
+  "description": "1/4-20 Form Tap",
+  "guid": "f4",
+  "postProcess": {
+    "number": 4
+  },
+  "geometry": {
+    "DC": 0.25,
+    "NOF": 4,
+    "LCF": 0.5,
+    "SFDM": 0.25,
+    "TP": 0.05,
+    "LB": 1.25
+  },
+  "start-values": {
+    "presets": []
+  }
+}
