@@ -2168,6 +2168,12 @@ class GWizardPhysics:
         target = str(alloy_name or "").strip().lower()
         if not target:
             return None
+        # Optional trailing hardness tag from the UI, e.g. "maraging 200 (annealed) [285 hb]".
+        tag = re.search(r'\[([^\]]+)\]\s*$', target)
+        wanted_hb = None
+        if tag:
+            wanted_hb = re.sub(r'\s*hb\s*$', '', tag.group(1)).strip()
+            target = target[:tag.start()].strip()
 
         def norm(s: str) -> str:
             return " ".join(re.sub(r'[()\[\],;/\-]+', ' ', s).split())
@@ -2186,7 +2192,8 @@ class GWizardPhysics:
             cond_hits = sum(1 for t in tokens
                             if re.search(r'(?<![a-z0-9])' + re.escape(t) + r'(?![a-z0-9])', target))
             hb = ASTMHardnessConverter.parse_hardness(a.get("hardness")) or 0.0
-            key = (len(base), exact, cond_hits, (cond_hits - len(tokens)) if cond_hits else 0, hb)
+            hb_match = wanted_hb is not None and str(a.get("hardness", "")).strip().lower().replace(" hb", "") == wanted_hb
+            key = (len(base), exact, cond_hits, hb_match, (cond_hits - len(tokens)) if cond_hits else 0, hb)
             if best_key is None or key > best_key:
                 best, best_key = a, key
         return best

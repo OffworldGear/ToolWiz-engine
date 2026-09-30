@@ -152,5 +152,25 @@ class TestBullNoseTip(unittest.TestCase):
         self.assertNotIn("Ball Mill Effective Diameter & 3D Contouring Dynamics", titles)
 
 
+class TestHardnessTag(unittest.TestCase):
+    def test_tag_picks_exact_row_among_same_label(self):
+        p = GWizardPhysics(DB)
+        groups = {}
+        for a in p.specific_alloys:
+            groups.setdefault((a["family"], a["alloy"].lower(), a["condition"].lower()), []).append(a)
+        amb = [v for v in groups.values() if len({str(x["hardness"]) for x in v}) > 1]
+        self.assertTrue(amb)
+        for rows in amb:
+            for a in rows:
+                hb = str(a["hardness"]).strip()
+                tag = hb if any(c.isalpha() for c in hb) else hb + " HB"
+                m = p.match_alloy(a["family"], f"{a['alloy']} ({a['condition']}) [{tag}]")
+                self.assertEqual(str(m["hardness"]), str(a["hardness"]))
+
+    def test_untagged_value_still_resolves(self):
+        p = GWizardPhysics(DB)
+        self.assertEqual(p.match_alloy("Aluminum - Wrought (6061)", "6061 (T6, T651)")["condition"], "T6, T651")
+
+
 if __name__ == "__main__":
     unittest.main()

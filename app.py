@@ -523,9 +523,17 @@ def calculate_thread():
             "minor_min_mm": round(min_minor_in * 25.4, 3),
         }
 
+        # Report when the database only had a different class than requested (additive fields).
+        class_used = str(entry.get("class", "")) if entry else th_class
+        class_fallback = bool(entry) and bool(class_used) and class_used.upper() != str(th_class).upper()
+        thread_spec["class_requested"] = th_class
+        thread_spec["class_used"] = class_used or th_class
+
         return jsonify({
             "success": True,
             "thread": thread_spec,
+            "class_used": class_used or th_class,
+            "class_fallback": class_fallback,
             "blind_hole": blind_hole,
             "drills": drills
         })

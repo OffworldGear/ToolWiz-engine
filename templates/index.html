@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToolWiz - Speeds & Feeds & Digital Twin</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="stylesheet" href="/static/style.css?v=3.4">
+    <link rel="stylesheet" href="/static/style.css?v=3.5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Embedded guaranteed auto-set indicator styles & animations */
@@ -32,7 +32,7 @@
             align-items: center;
             gap: 4px;
             padding: 1px 7px;
-            font-size: 0.68rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
             color: #fef08a !important;
             background: rgba(245, 158, 11, 0.20) !important;
@@ -78,7 +78,7 @@
             background-color: rgba(245, 158, 11, 0.04) !important;
         }
         .tool-setup-header-status {
-            font-size: 0.76rem;
+            font-size: var(--fs-xs);
             font-weight: 600;
             margin-left: 0.75rem;
             padding: 2px 10px;
@@ -98,7 +98,7 @@
             padding: 1px 7px;
             border-radius: 4px;
             text-decoration: none;
-            font-size: 0.70rem;
+            font-size: var(--fs-xs);
             cursor: pointer;
             transition: background 0.15s;
             margin-left: 4px;
@@ -136,7 +136,7 @@
         }
         .input-card-title {
             margin: 0 0 0.85rem 0;
-            font-size: 0.92rem;
+            font-size: var(--fs-md);
             font-weight: 700;
             color: #f1f5f9;
             letter-spacing: 0.5px;
@@ -148,7 +148,7 @@
             padding-bottom: 0.5rem;
         }
         .input-card-title .input-card-icon {
-            font-size: 1.05rem;
+            font-size: var(--fs-lg);
         }
     </style>
 </head>
@@ -180,11 +180,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
                 <div class="glass-panel" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem;">
                     <div>
-                        <span style="color: var(--accent); font-weight: 600; font-size: 0.9rem;">Recommended Cut (DOC &times; WOC):</span>
-                        <span id="recOutput" style="font-size: 1.2rem; font-weight: 700; margin-left: 0.5rem;">-- / --</span>
+                        <span style="color: var(--accent); font-weight: 600; font-size: var(--fs-md);">Recommended Cut (DOC &times; WOC):</span>
+                        <span id="recOutput" style="font-size: var(--fs-xl); font-weight: 700; margin-left: 0.5rem;">-- / --</span>
                         <span class="unit-lbl" style="opacity: 0.7;">in</span>
                     </div>
-                    <button onclick="applyRecommendations()" style="background: var(--accent); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Auto-Set Dials</button>
+                    <span class="summary-hint" title="Read-only summary. Use the Auto-Set Dials button next to the DOC/WOC inputs to apply it.">Apply with &#9889; Auto-Set Dials below</span>
                 </div>
                 
                 <div class="unit-toggle" style="margin: 0;">
@@ -202,6 +202,9 @@
                     <!-- 1. WORKPIECE MATERIAL CARD -->
                     <div class="glass-panel input-card">
                         <h3 class="input-card-title"><span class="input-card-icon">🧱</span> Workpiece Material</h3>
+                        <div class="input-group">
+                            <input type="text" id="materialFilter" class="material-filter" placeholder="Type to filter families &amp; alloys..." autocomplete="off" aria-label="Filter material family and alloy lists" oninput="applyMaterialFilter()">
+                        </div>
                         <div class="input-group">
                             <label for="family">Material Family</label>
                             <select id="family" onchange="updateAlloys(); calculate()"></select>
@@ -226,7 +229,7 @@
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="runout">Runout (<span class="unit-lbl">in</span>)</label>
-                                <input type="number" id="runout" class="tool-dialog-input" value="0.0002" step="0.0001" oninput="calculate()">
+                                <input type="number" id="runout" class="tool-dialog-input" value="0.0002" step="0.0001" oninput="onRunoutInput()">
                             </div>
                         </div>
 
@@ -247,18 +250,18 @@
 
                         <div class="slider-group">
                             <div class="slider-header">
-                                <label for="aggressiveness">Tortoise to Hare (Aggressiveness)</label>
+                                <label for="aggressiveness">Aggressiveness</label>
                                 <span id="aggrVol">50%</span>
                             </div>
                             <input type="range" id="aggressiveness" min="0" max="100" step="1" value="50" oninput="document.getElementById('aggrVol').innerText = this.value + '%'; calculate()">
-                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
+                            <div style="display:flex; justify-content:space-between; font-size:var(--fs-xs); color:var(--text-secondary); margin-top:4px;">
                                 <span>Conservative</span>
                                 <span>Aggressive</span>
                             </div>
                         </div>
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0.4rem 0.65rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px;">
-                            <span style="font-size: 0.8rem; color: #cbd5e1;">
+                            <span style="font-size: var(--fs-sm); color: #cbd5e1;">
                                 <strong style="color: var(--accent);">Target Cut:</strong> <span id="subRecOutput">--</span>
                             </span>
                             <button type="button" onclick="applyRecommendations()" class="btn-ratio" style="flex: initial; padding: 3px 8px; background: var(--accent); color: white; border-color: var(--accent); cursor: pointer;" title="Automatically set Axial DOC and Radial WOC to physics recommendations">⚡ Auto-Set Dials</button>
@@ -410,8 +413,8 @@
                         <!-- Tool Stickout -->
                         <div class="input-group" style="margin-bottom:0;">
                             <label for="stickout_val">Tool Stickout (<span class="unit-lbl">in</span>) <span id="badge_stickout" class="auto-set-badge" onclick="confirmAutoSet('stickout')" style="display:none;" title="Currently auto-set proportional to diameter. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                            <input type="number" id="stickout_val" class="tool-dialog-input" step="0.001" value="1.500" oninput="markManualEdit('stickout'); document.getElementById('stickout_range').value = this.value; calculate()">
-                            <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.5" style="margin-top: 6px;" oninput="markManualEdit('stickout'); document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
+                            <input type="number" id="stickout_val" class="tool-dialog-input" step="0.001" value="1.575" oninput="markManualEdit('stickout'); document.getElementById('stickout_range').value = this.value; calculate()">
+                            <input type="range" id="stickout_range" min="0.1" max="6.0" step="0.1" value="1.6" style="margin-top: 6px;" oninput="markManualEdit('stickout'); document.getElementById('stickout_val').value = parseFloat(this.value).toFixed(isMetric ? 1 : 3); calculate()">
                         </div>
                     </div>
                 </div>
@@ -422,11 +425,11 @@
                         <h3>Spindle Speed</h3>
                         <div class="result-val"><span id="rpm">0</span> <span class="unit">RPM</span></div>
                         <div class="sub-val">Surface Speed: <span id="sfm">0</span> <span class="sfm-lbl">SFM</span></div>
-                        <div id="effDiaBadge" style="display:none; margin-top: 8px; padding: 6px 10px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; font-size: 0.75rem; text-align: left;">
+                        <div id="effDiaBadge" style="display:none; margin-top: 8px; padding: 6px 10px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; font-size: var(--fs-xs); text-align: left;">
                             <div style="color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 4px;">
                                 <span>⚡</span> Effective Dia (D<sub>eff</sub>): <span id="effDiaVal" style="color: #ffffff; font-weight: 700; margin-left: 2px;">--</span>
                             </div>
-                            <div style="color: var(--text-secondary); font-size: 0.72rem; margin-top: 2px;">
+                            <div style="color: var(--text-secondary); font-size: var(--fs-xs); margin-top: 2px;">
                                 Contact Speed: <span id="effContactSfm" style="color: #38bdf8; font-weight: 600;">--</span> <span class="sfm-lbl">SFM</span>
                             </div>
                         </div>
@@ -435,23 +438,38 @@
                     <div class="glass-panel result-card primary-card">
                         <h3>Feedrate</h3>
                         <div class="result-val"><span id="feedrate">0.0</span> <span class="feed-lbl">IPM</span></div>
-                        <div class="sub-val"><span id="chipload_title">Chip Load</span>: <span id="adj_ipt" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipt-lbl">in/tooth</span> <span style="opacity:0.75; font-size:0.75rem;">(Base: <span id="base_ipt">0.0000</span>)</span></div>
+                        <div class="sub-val"><span id="chipload_title">Chip Load</span>: <span id="adj_ipt" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipt-lbl">in/tooth</span> <span style="opacity:0.75; font-size:var(--fs-xs);">(Base: <span id="base_ipt">0.0000</span>)</span></div>
                         <div class="sub-val" id="ipr_row" style="margin-top:2px;">Feed / Rev: <span id="feed_ipr" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipr-lbl">in/rev</span></div>
                     </div>
+
+                    <!-- WHY THIS NUMBER? (provenance of the SFM / IPT result) -->
+                    <details id="whyPanel" class="glass-panel why-panel" style="grid-column: span 2;">
+                        <summary id="whySummary"><span class="why-title">Why this number?</span> <span id="whyStatus" class="why-status">Calculating...</span></summary>
+                        <div class="why-body">
+                            <div id="whyHeader" class="why-header"></div>
+                            <label class="why-showall"><input type="checkbox" id="whyShowAll" onchange="renderProvenancePanel(lastCalcResult)"> Show all steps (including &times;1.00)</label>
+                            <div class="why-table-wrap">
+                                <table id="whyTable" class="why-table">
+                                    <thead><tr><th>Step</th><th>SFM &times; multiplier</th><th>IPT &times; multiplier</th><th>Reason</th></tr></thead>
+                                    <tbody id="whyRows"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
 
                     <!-- ENTRY DYNAMICS (Promoted for immediate CNC glance) -->
                     <div class="glass-panel result-card primary-card vertical-card" style="grid-column: span 2; display: flex; flex-direction: row; justify-content: space-around;">
                         <div id="col1_wrap">
                             <h3 id="ramp_col1_title">Ramp Angle</h3>
-                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_angle">0</span><span id="ramp_col1_unit">°</span></div>
+                            <div class="result-val" style="font-size: var(--fs-display);"><span id="ramp_angle">0</span><span id="ramp_col1_unit">°</span></div>
                         </div>
                         <div id="col2_wrap">
                             <h3 id="ramp_col2_title">Ramp Feed</h3>
-                            <div class="result-val" style="font-size: 2rem;"><span id="ramp_feed">0</span> <span class="feed-lbl" id="ramp_col2_unit" style="font-size: 1rem">IPM</span></div>
+                            <div class="result-val" style="font-size: var(--fs-display);"><span id="ramp_feed">0</span> <span class="feed-lbl" id="ramp_col2_unit" style="font-size: var(--fs-lg)">IPM</span></div>
                         </div>
                         <div id="col3_wrap">
                             <h3 id="ramp_col3_title">Plunge Feed</h3>
-                            <div class="result-val" style="font-size: 2rem;"><span id="plunge_feed">0</span> <span class="feed-lbl" id="ramp_col3_unit" style="font-size: 1rem">IPM</span></div>
+                            <div class="result-val" style="font-size: var(--fs-display);"><span id="plunge_feed">0</span> <span class="feed-lbl" id="ramp_col3_unit" style="font-size: var(--fs-lg)">IPM</span></div>
                         </div>
                     </div>
 
@@ -480,32 +498,43 @@
                         </div>
                     </div>
 
-                    <div class="glass-panel result-card metric-card">
+                    <div class="results-stack">
+                    <div class="glass-panel result-card metric-card mrr-card">
                         <h3>Material Removal Rate</h3>
                         <div class="result-val"><span id="mrr">0.00</span> <span class="mrr-lbl">in³/min</span></div>
+                    </div>
+                    <div class="glass-panel result-card cutlog-card" id="cutLogCard">
+                        <div class="cutlog-row">
+                            <div>
+                                <div id="roughingStockNote" class="roughing-note" style="display:none;">Roughing &mdash; keep positive stock (finishing compensation applies to finish passes only).</div>
+                                <div id="calibrationStatus" class="calibration-status" data-state="unknown">Calibration: checking...</div>
+                            </div>
+                            <button type="button" id="logCutBtn" class="btn-log-cut" onclick="openCutLogModal()" title="Record the measured result of this cut to calibrate future predictions">&#128221; Log this cut</button>
+                        </div>
+                    </div>
                     </div>
 
                     <div class="glass-panel result-card metric-card" id="deflectionCard">
                         <h3>Tool Deflection</h3>
                         <div class="result-val">
                             <span id="deflection">0.00000</span> <span class="unit-lbl">in</span>
-                            <span id="deflection_um_wrap" style="display:none; font-size:0.9rem; opacity:0.85; margin-left:4px;">(<span id="deflection_um">0.0</span> µm)</span>
+                            <span id="deflection_um_wrap" style="display:none; font-size:var(--fs-md); opacity:0.85; margin-left:4px;">(<span id="deflection_um">0.0</span> µm)</span>
                         </div>
                         <div class="sub-val" id="deflectionWarning">Safe Limit: < <span id="defLimit">0.0010</span> <span class="unit-lbl">in</span></div>
                         <div id="wearCompBadge" style="display:none; margin-top: 8px; padding: 7px 10px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 6px; text-align: left;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; font-size: 0.82rem; margin-bottom: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; font-size: var(--fs-sm); margin-bottom: 4px;">
                                 <span><i class="fa-solid fa-sliders"></i> <span id="compBadgeTitle">Stock Compensation</span></span>
-                                <a href="#tipsContainer" onclick="focusAdvisorWearComp(event)" style="color:var(--accent); font-size:0.75rem; text-decoration:none; font-weight:600;">Details &rarr;</a>
+                                <a href="#tipsContainer" onclick="focusAdvisorWearComp(event)" style="color:var(--accent); font-size:var(--fs-xs); text-decoration:none; font-weight:600;">Details &rarr;</a>
                             </div>
-                            <div id="dualStockCompRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(15, 23, 42, 0.4); padding: 4px 6px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 4px;">
+                            <div id="dualStockCompRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(15, 23, 42, 0.4); padding: 4px 6px; border-radius: 4px; font-size: var(--fs-xs); margin-bottom: 4px;">
                                 <div><span style="color:#94a3b8;">Rad (Wall):</span> <strong id="radCompVal" style="color:#38bdf8;">-0.0000 in</strong></div>
                                 <div><span style="color:#94a3b8;">Ax (Floor):</span> <strong id="axCompVal" style="color:#38bdf8;">-0.0000 in</strong></div>
                             </div>
-                            <div style="font-size: 0.72rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                            <div style="font-size: var(--fs-xs); color: var(--text-secondary); display: flex; justify-content: space-between;">
                                 <span>Springback: <span id="springbackVal" style="color:#e2e8f0; font-weight:600;">0.0000 in</span></span>
                                 <span><span id="errorValTitle">Wall Error</span>: <span id="totalErrorVal" style="color:#f59e0b; font-weight:600;">+0.0000 in</span></span>
                             </div>
-                            <div id="floorOnlyRadNote" style="display:none; font-size: 0.70rem; color: #fbbf24; margin-top: 4px; border-top: 1px dashed rgba(251, 191, 36, 0.3); padding-top: 3px;">
+                            <div id="floorOnlyRadNote" style="display:none; font-size: var(--fs-xs); color: #fbbf24; margin-top: 4px; border-top: 1px dashed rgba(251, 191, 36, 0.3); padding-top: 3px;">
                                 <i class="fa-solid fa-lightbulb"></i> Floor-Only: Use <strong>+0.005"</strong> (+0.13mm) Radial to stay off walls
                             </div>
                         </div>
@@ -528,21 +557,21 @@
                     </div>
                     <div id="tipsList" class="advisor-tips-list">
                         <div style="padding: 0.85rem 1rem; background: rgba(56, 189, 248, 0.08); border-left: 4px solid var(--accent); border-radius: 6px; display: flex; align-items: center; gap: 0.75rem;">
-                            <i class="fa-solid fa-circle-info" style="color: var(--accent); font-size: 1.2rem;"></i>
+                            <i class="fa-solid fa-circle-info" style="color: var(--accent); font-size: var(--fs-xl);"></i>
                             <div>
-                                <div style="font-weight: 600; color: #38bdf8; font-size: 0.9rem;">Machining Advisor Active</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Continuous monitoring of springback, work-hardening, tool wear compensation, and deflection envelopes.</div>
+                                <div style="font-weight: 600; color: #38bdf8; font-size: var(--fs-md);">Machining Advisor Active</div>
+                                <div style="font-size: var(--fs-sm); color: var(--text-secondary); margin-top: 2px;">Continuous monitoring of springback, work-hardening, tool wear compensation, and deflection envelopes.</div>
                             </div>
                         </div>
                     </div>
                     <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(124,58,237,0.18)); border: 1px solid rgba(124,58,237,0.35); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
                         <div>
-                            <div style="font-weight: 700; color: #e9d5ff; font-size: 0.86rem; display: flex; align-items: center; gap: 5px;">
+                            <div style="font-weight: 700; color: #e9d5ff; font-size: var(--fs-md); display: flex; align-items: center; gap: 5px;">
                                 <span>🤖</span> ToolWiz AI Machinist
                             </div>
-                            <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">Ask strategic CAM & metallurgy questions with live telemetry.</div>
+                            <div style="font-size: var(--fs-xs); color: #94a3b8; margin-top: 2px;">Ask strategic CAM & metallurgy questions with live telemetry.</div>
                         </div>
-                        <button type="button" onclick="toggleAiChatDrawer()" class="btn-ratio" style="background: rgba(124,58,237,0.4); border-color: rgba(168,85,247,0.5); color: #fff; font-size: 0.76rem; padding: 4px 10px; font-weight: 600; white-space: nowrap;">Consult AI &rarr;</button>
+                        <button type="button" onclick="toggleAiChatDrawer()" class="btn-ratio" style="background: rgba(124,58,237,0.4); border-color: rgba(168,85,247,0.5); color: #fff; font-size: var(--fs-xs); padding: 4px 10px; font-weight: 600; white-space: nowrap;">Consult AI &rarr;</button>
                     </div>
                 </aside>
             </main>
@@ -553,10 +582,10 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
                 <div class="glass-panel" style="flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem;">
                     <div>
-                        <span style="color: var(--accent); font-weight: 600; font-size: 0.9rem;">Active Thread:</span>
-                        <span id="activeThreadTitle" style="font-size: 1.15rem; font-weight: 700; margin-left: 0.5rem; color: #38bdf8;">M1.6-0.35 (ISO Coarse) - 6H Internal</span>
+                        <span style="color: var(--accent); font-weight: 600; font-size: var(--fs-md);">Active Thread:</span>
+                        <span id="activeThreadTitle" style="font-size: var(--fs-xl); font-weight: 700; margin-left: 0.5rem; color: #38bdf8;">M1.6-0.35 (ISO Coarse) - 6H Internal</span>
                     </div>
-                    <button type="button" onclick="sendThreadToSpeedsFeeds()" style="background: var(--accent); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">⚡ Send Tap to Speeds & Feeds</button>
+                    <button type="button" onclick="sendThreadToSpeedsFeeds()" style="background: var(--accent); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: var(--fs-md);">⚡ Send Tap to Speeds & Feeds</button>
                 </div>
             </div>
 
@@ -610,9 +639,10 @@
 
                     <!-- THREAD GEOMETRY SPECIFICATIONS -->
                     <section class="glass-panel">
-                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.05rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem;">
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: var(--fs-lg); border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem;">
                             📐 Thread Dimensions
                         </h3>
+                        <div id="threadClassWarning" class="thread-class-warning" style="display:none;" role="status"></div>
                         <table class="thread-spec-table">
                             <tbody>
                                 <tr>
@@ -645,7 +675,7 @@
 
                     <!-- BLIND HOLE DEPTH CLEARANCE (G-Wizard replica) -->
                     <section class="glass-panel">
-                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.05rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem;">
+                        <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: var(--fs-lg); border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem;">
                             🕳️ Blind Hole Clearance
                         </h3>
                         <div class="input-group">
@@ -661,7 +691,7 @@
                             <label for="blindThreadDepth">Usable Thread Depth (<span class="unit-lbl">in</span>)</label>
                             <input type="number" id="blindThreadDepth" step="any" value="0.25" oninput="calculateThread()">
                         </div>
-                        <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 0.6rem 0.8rem; margin-top: 0.5rem; font-size: 0.85rem;">
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 0.6rem 0.8rem; margin-top: 0.5rem; font-size: var(--fs-md);">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                                 <span style="color: var(--text-secondary);">Tip & Lead Clearance:</span>
                                 <span id="blindClearanceVal" style="font-family: monospace; font-weight: 600; color: #38bdf8;">--</span>
@@ -677,10 +707,10 @@
                 <!-- RIGHT COLUMN: TAPPING DRILL GRID (G-Wizard threadPctGrid) -->
                 <section class="glass-panel" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
-                        <h3 style="margin: 0; font-size: 1.15rem;">Tapping Drill DataGrid</h3>
+                        <h3 style="margin: 0; font-size: var(--fs-xl);">Tapping Drill DataGrid</h3>
                         
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Tap Style:</span>
+                            <span style="font-size: var(--fs-md); color: var(--text-secondary); font-weight: 600;">Tap Style:</span>
                             <div class="segmented-control" style="width: 260px;">
                                 <button type="button" class="segmented-btn active" id="btnStyleForm" onclick="setTapStyle(true)">Cold Form Tap</button>
                                 <button type="button" class="segmented-btn" id="btnStyleCut" onclick="setTapStyle(false)">Cutting Tap</button>
@@ -693,7 +723,7 @@
                     </div>
 
                     <div class="twin-filter-bar" style="margin-bottom: 0.75rem;">
-                        <input type="text" id="drillSearchInput" placeholder="🔍 Search drill size or name (e.g. 1.45 mm, #55)..." oninput="filterThreadDrills()" style="flex: 1; padding: 0.4rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white; font-size: 0.85rem;">
+                        <input type="text" id="drillSearchInput" placeholder="🔍 Search drill size or name (e.g. 1.45 mm, #55)..." oninput="filterThreadDrills()" style="flex: 1; padding: 0.4rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white; font-size: var(--fs-md);">
                         <div class="checkbox-group" style="margin: 0; white-space: nowrap;">
                             <input type="checkbox" id="filterRecommendedOnly" onchange="filterThreadDrills()">
                             <label for="filterRecommendedOnly">Recommended Sweet Spot Only</label>
@@ -725,12 +755,12 @@
         <div id="digitalTwinView" style="display: none;">
             <div class="glass-panel twin-header-card">
                 <div>
-                    <h2 style="margin: 0 0 0.25rem 0; font-size: 1.3rem;">Master Shop Tool Crib: <span id="twinLibName" style="color: #38bdf8;">Loading...</span></h2>
+                    <h2 style="margin: 0 0 0.25rem 0; font-size: var(--fs-xl);">Master Shop Tool Crib: <span id="twinLibName" style="color: #38bdf8;">Loading...</span></h2>
                     <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.35rem; flex-wrap: wrap;">
                         <span id="twinToolCountBadge" class="twin-stat-badge">0 Tools</span>
                         <span id="twinPresetsCountBadge" class="twin-stat-badge green">0 Presets</span>
                         <span id="twinDuplicatesBadge" class="twin-stat-badge purple" style="display:none;">0 Duplicates Cleaned</span>
-                        <span id="twinLastSync" style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.25rem;">Synced: --</span>
+                        <span id="twinLastSync" style="font-size: var(--fs-sm); color: var(--text-secondary); margin-left: 0.25rem;">Synced: --</span>
                     </div>
                 </div>
                 
@@ -738,7 +768,7 @@
                     <button onclick="runDeduplicateLibrary()" class="tool-action-btn" style="color: #38bdf8; border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.12); font-weight:600; padding: 0.4rem 0.8rem;" title="Deduplicate identical cutters across libraries and combine presets">
                         ✨ Deduplicate Library
                     </button>
-                    <select id="twinBackupSelect" style="width: auto; min-width: 180px; font-size: 0.85rem;">
+                    <select id="twinBackupSelect" style="width: auto; min-width: 180px; font-size: var(--fs-md);">
                         <option value="">-- Backup History (0) --</option>
                     </select>
                     <button onclick="restoreSelectedBackup()" class="tool-action-btn" style="padding: 0.4rem 0.8rem;" title="Restore to snapshot">🔄 Restore</button>
@@ -751,20 +781,20 @@
             <div id="twinDedupBanner" class="dedup-report-card" style="display: none;">
                 <div>
                     <strong style="color: #34d399;">✨ Library Deduplicated Successfully!</strong>
-                    <div id="twinDedupDetails" style="font-size: 0.85rem; color: #cbd5e1; margin-top: 0.2rem;"></div>
+                    <div id="twinDedupDetails" style="font-size: var(--fs-md); color: #cbd5e1; margin-top: 0.2rem;"></div>
                 </div>
-                <button onclick="document.getElementById('twinDedupBanner').style.display='none'" style="background:transparent; border:none; color:#94a3b8; font-size:1.1rem; cursor:pointer;">✕</button>
+                <button onclick="document.getElementById('twinDedupBanner').style.display='none'" style="background:transparent; border:none; color:#94a3b8; font-size:var(--fs-lg); cursor:pointer;">✕</button>
             </div>
 
             <!-- MULTI-FILE DRAG & DROP ZONE -->
             <div id="dropZone" style="border: 2px dashed rgba(56, 189, 248, 0.5); border-radius: 8px; padding: 1.5rem; text-align: center; margin-bottom: 1.25rem; background: rgba(56, 189, 248, 0.05); transition: all 0.2s; cursor: pointer;">
                 <h3 style="margin: 0 0 0.5rem 0; color: #38bdf8;">📤 Drag & Drop Fusion Tool Libraries Here (.json or .tools)</h3>
-                <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                <p style="margin: 0; color: var(--text-secondary); font-size: var(--fs-md);">
                     Drop single or <strong>MULTIPLE</strong> library files at once. ToolWiz will consolidate your cutters, combine unique cutting presets, and eliminate redundant duplicates.
                 </p>
                 <input type="file" id="twinFileInput" style="display: none;" accept=".json,.tools" multiple>
             </div>
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: -0.5rem 0 1rem 0.25rem; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: -0.5rem 0 1rem 0.25rem; font-size: var(--fs-md); color: var(--text-secondary); cursor: pointer;">
                 <input type="checkbox" id="twinMergeDedup"> Deduplicate identical cutters
             </label>
 
@@ -773,17 +803,17 @@
                 <section class="glass-panel" style="display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <div style="display:flex; align-items:center; gap:0.5rem;">
-                            <h3 style="margin: 0; font-size: 1.1rem;">Shop Cutters</h3>
-                            <span id="selectedCountBadge" style="font-size: 0.85rem; color: var(--accent); font-weight: 600;">0 selected</span>
+                            <h3 style="margin: 0; font-size: var(--fs-lg);">Shop Cutters</h3>
+                            <span id="selectedCountBadge" style="font-size: var(--fs-md); color: var(--accent); font-weight: 600;">0 selected</span>
                         </div>
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <button onclick="selectAllTwinTools(true)" class="tool-action-btn" style="font-size: 0.75rem;">Select All</button>
-                            <button onclick="selectAllTwinTools(false)" class="tool-action-btn" style="font-size: 0.75rem;">Clear Selection</button>
+                            <button onclick="selectAllTwinTools(true)" class="tool-action-btn" style="font-size: var(--fs-xs);">Select All</button>
+                            <button onclick="selectAllTwinTools(false)" class="tool-action-btn" style="font-size: var(--fs-xs);">Clear Selection</button>
                         </div>
                     </div>
 
                     <div class="twin-filter-bar">
-                        <input type="text" id="twinSearchInput" placeholder="🔍 Search tool name, #, or diameter..." oninput="filterTwinTools()" style="flex: 1; padding: 0.4rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white; font-size: 0.85rem;">
+                        <input type="text" id="twinSearchInput" placeholder="🔍 Search tool name, #, or diameter..." oninput="filterTwinTools()" style="flex: 1; padding: 0.4rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: white; font-size: var(--fs-md);">
                         <button class="filter-btn active" onclick="setToolTypeFilter('all', this)">All</button>
                         <button class="filter-btn" onclick="setToolTypeFilter('flat', this)">Flat Endmills</button>
                         <button class="filter-btn" onclick="setToolTypeFilter('ball', this)">Ball</button>
@@ -813,8 +843,8 @@
                 </section>
 
                 <!-- RIGHT COLUMN: BATCH PRESET GENERATOR PANEL -->
-                <section class="glass-panel" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <h3 style="margin: 0; font-size: 1.1rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.5rem;">Material Batch Generator</h3>
+                <section id="twinBatchPanel" class="glass-panel" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <h3 style="margin: 0; font-size: var(--fs-lg); border-bottom: 1px solid var(--panel-border); padding-bottom: 0.5rem;">Material Batch Generator</h3>
                     
                     <div class="input-group">
                         <label for="twinFamily">Workpiece Material Family</label>
@@ -824,7 +854,7 @@
                     <div class="input-group">
                         <label for="twinAlloy">Specific Alloy</label>
                         <select id="twinAlloy" onchange="updateTwinMaterialSuggestion()"></select>
-                        <div id="twinMaterialSuggestionBanner" style="font-size: 0.75rem; color: #38bdf8; background: rgba(56, 189, 248, 0.08); padding: 0.35rem 0.55rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2); margin-top: 0.35rem;">
+                        <div id="twinMaterialSuggestionBanner" style="font-size: var(--fs-xs); color: #38bdf8; background: rgba(56, 189, 248, 0.08); padding: 0.35rem 0.55rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2); margin-top: 0.35rem;">
                             Suggested Aggressiveness: 50%
                         </div>
                     </div>
@@ -832,25 +862,25 @@
                     <div class="input-group">
                         <label style="margin-bottom: 0.5rem;">Operation Strategies to Generate:</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; background: rgba(0,0,0,0.25); padding: 0.65rem; border-radius: 8px; border: 1px solid var(--panel-border);">
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratAdaptive" checked style="accent-color: var(--accent);"> Adaptive Roughing
                             </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratRoughing" checked style="accent-color: var(--accent);"> Standard Roughing
                             </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratSemiFinishing" style="accent-color: var(--accent);"> Semi-Finishing
                             </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratFinishing" checked style="accent-color: var(--accent);"> Wall Finishing (Deep DOC)
                             </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratFloorFinishing" checked style="accent-color: var(--accent);"> Floor Finishing (Skim)
                             </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratSlotting" checked style="accent-color: var(--accent);"> Slotting / Tab Milling
                             </label>
-                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: 0.85rem;">
+                            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: white; font-size: var(--fs-md);">
                                 <input type="checkbox" id="stratHighFeed" style="accent-color: var(--accent);"> High Feed Milling
                             </label>
                         </div>
@@ -861,26 +891,26 @@
                         <div class="input-group" style="margin: 0;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <label for="twinAggressiveness" style="font-weight: 600;">Material Baseline Aggressiveness</label>
-                                <span id="twinAggrVal" style="color:var(--accent); font-weight:bold; font-size: 0.9rem;">50%</span>
+                                <span id="twinAggrVal" style="color:var(--accent); font-weight:bold; font-size: var(--fs-md);">50%</span>
                             </div>
                             <input type="range" id="twinAggressiveness" min="10" max="100" value="50" oninput="document.getElementById('twinAggrVal').innerText = this.value + '%'">
-                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-secondary);">
-                                <span>Safe / Delicate (25%)</span>
-                                <span>Standard Baseline (50%)</span>
-                                <span>High Speed (75%)</span>
-                                <span>Max Production (90%)</span>
+                            <div class="aggr-ticks">
+                                <span><b>25%</b>Safe / Delicate</span>
+                                <span><b>50%</b>Standard Baseline</span>
+                                <span><b>75%</b>High Speed</span>
+                                <span><b>90%</b>Max Production</span>
                             </div>
                         </div>
 
-                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #f1f5f9; cursor: pointer; margin-top: 0.25rem;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); color: #f1f5f9; cursor: pointer; margin-top: 0.25rem;">
                             <input type="checkbox" id="twinUseToolOverrides" checked style="accent-color: var(--accent);">
                             <span>Honor individual tool aggressiveness overrides</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #f1f5f9; cursor: pointer;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); color: #f1f5f9; cursor: pointer;">
                             <input type="checkbox" id="twinCleanMaterial" checked style="accent-color: var(--accent);">
                             <span>Replace older presets for this material using ToolWiz physics</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #f1f5f9; cursor: pointer;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); color: #f1f5f9; cursor: pointer;">
                             <input type="checkbox" id="twinCleanNonToolwiz" style="accent-color: var(--accent);">
                             <span>Clean generic default presets</span>
                         </label>
@@ -900,15 +930,15 @@
                         </div>
                         <div class="input-group" style="margin: 0;">
                             <label for="customPresetName">Custom Name Prefix (Optional)</label>
-                            <input type="text" id="customPresetName" placeholder="Auto: [Alloy] - [Op]" style="background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); color: white; padding: 0.45rem; border-radius: 4px; font-size: 0.85rem;">
+                            <input type="text" id="customPresetName" placeholder="Auto: [Alloy] - [Op]" style="background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); color: white; padding: 0.45rem; border-radius: 4px; font-size: var(--fs-md);">
                         </div>
                     </div>
 
-                    <button class="btn-primary" onclick="runBatchPresetGeneration()" style="margin-top: 0.5rem; padding: 0.65rem 1rem; font-size: 0.95rem; font-weight: 700;">
+                    <button class="btn-primary" onclick="runBatchPresetGeneration()" style="margin-top: 0.5rem; padding: 0.65rem 1rem; font-size: var(--fs-lg); font-weight: 700;">
                         ⚡ Generate & Inject Presets to Selected Tools
                     </button>
 
-                    <div id="twinStatusBox" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.75rem; font-size: 0.85rem; color: #a7f3d0;">
+                    <div id="twinStatusBox" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.75rem; font-size: var(--fs-md); color: #a7f3d0;">
                         <!-- Live Status Log -->
                     </div>
                 </section>
@@ -926,7 +956,7 @@
         <div class="ai-chat-header">
             <div class="ai-header-info">
                 <div class="ai-title-row">
-                    <span style="font-size: 1.2rem;">🤖</span>
+                    <span style="font-size: var(--fs-xl);">🤖</span>
                     <span class="ai-title">ToolWiz AI Machinist</span>
                     <span id="aiModelBadge" class="ai-model-badge auto">Auto</span>
                 </div>
@@ -960,12 +990,12 @@
             <div class="ai-message ai-message-assistant">
                 <div class="ai-bubble">
                     <div class="ai-bubble-header">
-                        <span style="font-size:1rem;">🤖</span>
+                        <span style="font-size:var(--fs-lg);">🤖</span>
                         <strong>ToolWiz Applications Engineer</strong>
                     </div>
                     <div class="ai-bubble-body">
                         <p>Hello! I'm your AI machining co-pilot. I analyze your real-time cutter geometry, materials, deflection, and physics parameters to answer strategy, tooling, and CAM programming questions.</p>
-                        <p style="margin-top: 0.65rem; font-weight: 600; color: #94a3b8; font-size: 0.8rem;">Frequently asked:</p>
+                        <p style="margin-top: 0.65rem; font-weight: 600; color: #94a3b8; font-size: var(--fs-sm);">Frequently asked:</p>
                         <div class="ai-suggestion-chips">
                             <button type="button" class="ai-chip" onclick="askAiQuestion('Should I do negative stock to leave on the flats during finishing since deflection is low but springback may occur?')">🎯 Negative stock on flats / floor finishing?</button>
                             <button type="button" class="ai-chip" onclick="askAiQuestion('What entry ramping angle and strategy is optimal for this cutter in this alloy?')">📐 Optimal entry ramping angle?</button>
@@ -997,13 +1027,13 @@
                 <button type="button" class="ai-action-btn" onclick="closeAiSettingsModal()">✕</button>
             </div>
             <div class="ai-modal-body">
-                <p style="color:#cbd5e1; font-size:0.85rem; margin-top:0; margin-bottom:1rem;">
+                <p style="color:#cbd5e1; font-size:var(--fs-md); margin-top:0; margin-bottom:1rem;">
                     ToolWiz AI Machinist connects directly to Google Gemini (Pro & Flash) for deep CAM reasoning. You can obtain a free API key at <a href="https://aistudio.google.com/" target="_blank" style="color:#38bdf8; text-decoration:underline;">Google AI Studio</a>.
                 </p>
                 <div class="input-group">
                     <label for="geminiApiKeyInput">Google Gemini API Key</label>
                     <input type="password" id="geminiApiKeyInput" class="tool-dialog-input" placeholder="AIzaSy..." autocomplete="off">
-                    <small style="color:#94a3b8; font-size:0.75rem; display:block; margin-top:4px;">Stored safely in your local browser storage (or configure GEMINI_API_KEY in server .env).</small>
+                    <small style="color:#94a3b8; font-size:var(--fs-xs); display:block; margin-top:4px;">Stored safely in your local browser storage (or configure GEMINI_API_KEY in server .env).</small>
                 </div>
                 <div class="input-group" style="margin-top: 1rem;">
                     <label for="aiSettingsModelSelect">Reasoning Model</label>
@@ -1012,7 +1042,7 @@
                         <option value="gemini-2.5-pro">Gemini 2.5 Pro (Deep CAM Reasoning)</option>
                         <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast)</option>
                     </select>
-                    <small style="color:#94a3b8; font-size:0.75rem; display:block; margin-top:4px;">Gemini 2.5 Pro provides deep metallurgical & CAM toolpath physics reasoning; Flash is optimized for speed.</small>
+                    <small style="color:#94a3b8; font-size:var(--fs-xs); display:block; margin-top:4px;">Gemini 2.5 Pro provides deep metallurgical & CAM toolpath physics reasoning; Flash is optimized for speed.</small>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
                     <button type="button" class="btn-ratio" onclick="clearApiKey()" style="color:#ef4444; border-color:rgba(239,68,68,0.4);">Clear Key</button>
@@ -1027,10 +1057,10 @@
         <div class="inspector-modal-card">
             <div class="ai-modal-header" style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <span style="font-size: 1.3rem;">🔧</span>
+                    <span style="font-size: var(--fs-xl);">🔧</span>
                     <div>
-                        <h3 id="inspectorToolTitle" style="margin:0; font-size:1.15rem; color:#f8fafc;">Tool Inspector</h3>
-                        <div id="inspectorToolSubtitle" style="font-size:0.8rem; color:#94a3b8;">Geometry & Preset Manager</div>
+                        <h3 id="inspectorToolTitle" style="margin:0; font-size:var(--fs-xl); color:#f8fafc;">Tool Inspector</h3>
+                        <div id="inspectorToolSubtitle" style="font-size:var(--fs-sm); color:#94a3b8;">Geometry & Preset Manager</div>
                     </div>
                 </div>
                 <button type="button" class="ai-action-btn" onclick="closeToolInspector()">✕</button>
@@ -1039,7 +1069,7 @@
             <div class="inspector-body">
                 <!-- Geometry Grid -->
                 <div>
-                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;">Cutter Physical Geometry</h4>
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: var(--fs-md); color: #94a3b8; text-transform: uppercase;">Cutter Physical Geometry</h4>
                     <div class="inspector-geo-grid" id="inspectorGeoGrid">
                         <!-- Populated by JS -->
                     </div>
@@ -1048,14 +1078,14 @@
                 <!-- Aggressiveness Override -->
                 <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.85rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <strong style="color: #38bdf8; font-size: 0.9rem;">⚡ Tool-Specific Aggressiveness Override</strong>
-                        <span id="inspectorAggrDisplay" style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">Default (Follows Material)</span>
+                        <strong style="color: #38bdf8; font-size: var(--fs-md);">⚡ Tool-Specific Aggressiveness Override</strong>
+                        <span id="inspectorAggrDisplay" style="font-size: var(--fs-md); font-weight: 700; color: var(--accent);">Default (Follows Material)</span>
                     </div>
-                    <p style="margin: 0 0 0.6rem 0; font-size: 0.8rem; color: #94a3b8;">
+                    <p style="margin: 0 0 0.6rem 0; font-size: var(--fs-sm); color: #94a3b8;">
                         Override the baseline material aggressiveness for this specific cutter (e.g., lower for long-reach/fragile tools, higher for rigid roughers).
                     </p>
                     <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                        <select id="inspectorAggrSelect" onchange="onInspectorAggrChange(this.value)" style="background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); color: white; padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                        <select id="inspectorAggrSelect" onchange="onInspectorAggrChange(this.value)" style="background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); color: white; padding: 0.4rem 0.6rem; border-radius: 6px; font-size: var(--fs-md);">
                             <option value="">Default (Follows Material Baseline)</option>
                             <option value="20">20% - Ultra Conservative (Long Reach / Fragile)</option>
                             <option value="30">30% - Conservative</option>
@@ -1074,7 +1104,7 @@
                 <!-- Presets List -->
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <h4 style="margin: 0; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;">Cutting Presets In Cutter (<span id="inspectorPresetCount">0</span>)</h4>
+                        <h4 style="margin: 0; font-size: var(--fs-md); color: #94a3b8; text-transform: uppercase;">Cutting Presets In Cutter (<span id="inspectorPresetCount">0</span>)</h4>
                     </div>
                     <div style="max-height: 260px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
                         <table class="preset-table">
@@ -1103,6 +1133,44 @@
                 <button type="button" onclick="closeToolInspector()" class="tool-action-btn" style="padding: 0.4rem 1rem;">
                     Close
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOG THIS CUT MODAL -->
+    <div id="cutLogModal" class="cutlog-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="cutLogTitle">
+        <div class="cutlog-modal-card">
+            <div class="cutlog-modal-head">
+                <h3 id="cutLogTitle">Log this cut</h3>
+                <button type="button" class="cutlog-close" onclick="closeCutLogModal()" aria-label="Close">&times;</button>
+            </div>
+            <div id="cutLogSummary" class="cutlog-summary"></div>
+            <div class="cutlog-grid">
+                <div class="input-group">
+                    <label for="cutLogMeasured">Measured wall error (<span class="unit-lbl">in</span>, + = oversize)</label>
+                    <input type="number" id="cutLogMeasured" class="tool-dialog-input" step="any" placeholder="optional">
+                </div>
+                <div class="input-group">
+                    <label for="cutLogLoad">Spindle load (%)</label>
+                    <input type="number" id="cutLogLoad" class="tool-dialog-input" min="0" max="200" step="1" placeholder="optional">
+                </div>
+                <div class="input-group">
+                    <label for="cutLogChatter">Chatter?</label>
+                    <select id="cutLogChatter"><option value="">Not recorded</option><option value="no">No</option><option value="yes">Yes</option></select>
+                </div>
+                <div class="input-group">
+                    <label for="cutLogSurface">Surface OK?</label>
+                    <select id="cutLogSurface"><option value="">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="cutLogNotes">Notes</label>
+                <textarea id="cutLogNotes" class="tool-dialog-input" rows="2" maxlength="2000" placeholder="optional"></textarea>
+            </div>
+            <div id="cutLogMsg" class="cutlog-msg" role="status" aria-live="polite"></div>
+            <div class="cutlog-actions">
+                <button type="button" class="btn-ratio" onclick="closeCutLogModal()">Close</button>
+                <button type="button" id="cutLogSubmit" class="btn-log-cut" onclick="submitCutLog()">Save to cut log</button>
             </div>
         </div>
     </div>
@@ -1140,6 +1208,13 @@
             };
         })();
         let fullAlloys = [];
+        let allFamilies = [];
+        let runoutInches = 0.0002;   // precise runout in inches; the input only shows a rounded copy
+        function onRunoutInput() {
+            const v = parseFloat(document.getElementById('runout')?.value);
+            if (Number.isFinite(v) && v >= 0) runoutInches = isMetric ? v / 25.4 : v;
+            calculate();
+        }
         let machineProfile = null;
         let isMetric = false;
         let fluteLengthLocked = false;
@@ -1221,13 +1296,17 @@
             }
         }
 
+        // Backend stickout rule: max(3.0*D*1.05, 1.05*flute_length). Units: any, as long as D and flute match.
+        function autoStickout(dia, fluteLen) {
+            return Math.max(3.0 * dia * 1.05, 1.05 * (fluteLen || 0));
+        }
+
         function setFluteRatio(ratio) {
             let d = parseFloat(document.getElementById('diameter').value);
             if (!isNaN(d) && d > 0) {
                 let fl = (d * ratio).toFixed(isMetric ? 3 : 4);
                 document.getElementById('fluteLength').value = fl;
-                let colletGap = isMetric ? Math.min(Math.max(d * 0.25, 0.4), 2.0) : Math.min(Math.max(d * 0.25, 0.015), 0.080);
-                let st = (d * ratio + colletGap).toFixed(isMetric ? 1 : 3);
+                let st = autoStickout(d, d * ratio).toFixed(isMetric ? 1 : 3);
                 let stRange = document.getElementById('stickout_range');
                 let stVal = document.getElementById('stickout_val');
                 if (stRange) stRange.value = st;
@@ -1432,7 +1511,7 @@
             const isStickAuto = autoSetTracker.stickout;
             const isStickWildlyOut = isStickAuto ? (stIn > (diaIn * 6.5) || (stIn < (diaIn * 0.8) && stIn > 0)) : (stIn > (diaIn * 12.0) || (stIn < (diaIn * 0.4) && stIn > 0));
             if (isStickWildlyOut) {
-                let recStick = diaIn * 3.0;
+                let recStick = autoStickout(diaIn, 0);
                 let recStickDisp = isMetric ? (recStick * 25.4).toFixed(1) : recStick.toFixed(3);
                 if (stNode) stNode.value = recStickDisp;
                 let stRange = document.getElementById('stickout_range');
@@ -1457,8 +1536,7 @@
             let curSt = parseFloat(stNode ? stNode.value : 0);
             let curFl = parseFloat(flNode ? flNode.value : 0);
             if (curFl > curSt) {
-                let colletGap = isMetric ? Math.min(Math.max(newDia * 0.25, 0.4), 2.5) : Math.min(Math.max(diaIn * 0.25, 0.015), 0.100);
-                let safeSt = curFl + colletGap;
+                let safeSt = autoStickout(newDia, curFl);
                 if (stNode) stNode.value = safeSt.toFixed(isMetric ? 1 : 3);
                 let stRange = document.getElementById('stickout_range');
                 if (stRange) stRange.value = stNode.value;
@@ -1682,18 +1760,21 @@
             familySelect.innerHTML = '';
             twinFamilySelect.innerHTML = '';
             
+            allFamilies = data.families.slice();
             data.families.forEach(f => {
-                let opt1 = document.createElement('option'); opt1.value = f; opt1.innerText = f;
                 let opt2 = document.createElement('option'); opt2.value = f; opt2.innerText = f;
-                if(f.includes("Steel - Tool")) { opt1.selected = true; opt2.selected = true; }
-                familySelect.appendChild(opt1);
+                if(f.includes("Steel - Tool")) { opt2.selected = true; }
                 twinFamilySelect.appendChild(opt2);
             });
 
             const toolSelect = document.getElementById('tool');
             toolSelect.innerHTML = '';
-            if (data.tool_groups && data.tool_groups.length > 0) {
-                data.tool_groups.forEach(g => {
+            // Turning tools have no turning physics in this calculator: hide them from the picker.
+            const millingGroups = (data.tool_groups || [])
+                .map(g => ({ group: g.group, tools: (g.tools || []).filter(t => !/^Turning\b/i.test(t)) }))
+                .filter(g => g.tools.length > 0 && !/turning|lathe/i.test(g.group));
+            if (millingGroups.length > 0) {
+                millingGroups.forEach(g => {
                     const optgroup = document.createElement('optgroup');
                     optgroup.label = g.group;
                     g.tools.forEach(t => {
@@ -1706,7 +1787,7 @@
                     toolSelect.appendChild(optgroup);
                 });
             } else {
-                data.tools.forEach(t => {
+                data.tools.filter(t => !/^Turning\b/i.test(t)).forEach(t => {
                     let opt = document.createElement('option');
                     opt.value = t; opt.innerText = t;
                     if(t.includes("Carbide Endmill")) opt.selected = true;
@@ -1714,9 +1795,11 @@
                 });
             }
 
-            fullAlloys = data.alloys;
+            fullAlloys = dedupeAlloys(data.alloys || []);
+            populateFamilies(null);
             updateAlloys();
             updateTwinAlloys();
+            restoreTwinPrefs();
             buildDatalist();
             updateGeometryDisplay('tool');
             loadState(); // load saved preferences
@@ -2102,8 +2185,7 @@
                 let stVal = parseFloat(stNode ? stNode.value : 0);
                 if (autoSetTracker.stickout && flVal > 0 && stVal > (flVal * 1.8)) {
                     let dVal = parseFloat(document.getElementById('diameter')?.value) || (flVal / 2.0);
-                    let colletGap = isMetric ? Math.min(Math.max(dVal * 0.25, 0.4), 2.0) : Math.min(Math.max(dVal * 0.25, 0.015), 0.080);
-                    let recStick = (flVal + colletGap).toFixed(isMetric ? 1 : 3);
+                    let recStick = autoStickout(dVal, flVal).toFixed(isMetric ? 1 : 3);
                     if (stNode) stNode.value = recStick;
                     let stRange = document.getElementById('stickout_range');
                     if (stRange) stRange.value = recStick;
@@ -2163,8 +2245,9 @@
 
             let roInput = document.getElementById('runout');
             if (roInput) {
-                let roVal = parseFloat(roInput.value);
-                if (!isNaN(roVal)) roInput.value = isMetric ? (roVal * 25.4).toFixed(4) : (roVal / 25.4).toFixed(4);
+                // Display rounding only: the precise value lives in runoutInches (canonical inches).
+                roInput.value = isMetric ? (runoutInches * 25.4).toFixed(3) : runoutInches.toFixed(4);
+                roInput.step = isMetric ? '0.001' : '0.0001';
             }
 
             let pitchInput = document.getElementById('pitch');
@@ -2253,19 +2336,99 @@
             }
         }
 
-        function updateAlloys() {
+        // ---- Material pickers: hardness-labelled, de-duplicated, type-to-filter -------------
+        function alloyHardnessSuffix(a) {
+            const h = String(a.hardness == null ? '' : a.hardness).trim();
+            if (!h || /^0+(\.0+)?$/.test(h)) return '';
+            return ' · ' + (/[A-Za-z]/.test(h) ? h : h + ' HB');
+        }
+        function alloyHardnessText(a) {
+            const h = String(a.hardness == null ? '' : a.hardness).trim();
+            if (!h || /^0+(\.0+)?$/.test(h)) return '';
+            return /[A-Za-z]/.test(h) ? h : h + ' HB';
+        }
+        function alloyBase(a) { return a.condition ? `${a.alloy} (${a.condition})` : a.alloy; }
+        function alloyValue(a) {
+            // "<alloy> (<condition>) [<hardness>]": the hardness tag lets the backend pick the exact
+            // DB row when several rows share alloy + condition (e.g. castings, maraging grades).
+            const hb = alloyHardnessText(a);
+            return hb ? `${alloyBase(a)} [${hb}]` : alloyBase(a);
+        }
+        function alloyLabel(a) { return alloyBase(a) + alloyHardnessSuffix(a); }
+        function dedupeAlloys(list) {
+            const seen = new Set();
+            return list.filter(a => {
+                const k = JSON.stringify([a.family, a.alloy, a.condition || '', String(a.hardness == null ? '' : a.hardness).trim()]);
+                if (seen.has(k)) return false;
+                seen.add(k);
+                return true;
+            });
+        }
+        function materialFilterText() {
+            const el = document.getElementById('materialFilter');
+            return el ? el.value.trim().toLowerCase() : '';
+        }
+        function familyMatchesFilter(fam, ft) {
+            if (!ft) return true;
+            if (fam.toLowerCase().includes(ft)) return true;
+            return fullAlloys.some(a => a.family === fam && alloyLabel(a).toLowerCase().includes(ft));
+        }
+        function alloyMatchesFilter(a, ft) {
+            if (!ft) return true;
+            return a.family.toLowerCase().includes(ft) || alloyLabel(a).toLowerCase().includes(ft);
+        }
+        function populateFamilies(keep) {
+            const sel = document.getElementById('family');
+            const ft = materialFilterText();
+            sel.innerHTML = '';
+            allFamilies.filter(f => familyMatchesFilter(f, ft)).forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f; opt.textContent = f;
+                if (keep ? f === keep : f.includes('Steel - Tool')) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            const box = document.getElementById('materialFilter');
+            if (box) box.classList.toggle('no-match', !!ft && sel.options.length === 0);
+        }
+        function applyMaterialFilter() {
+            const fam = document.getElementById('family');
+            const alloy = document.getElementById('alloy');
+            const prevFam = fam.value, prevAlloy = alloy.value;
+            const box = document.getElementById('materialFilter');
+            const ft = materialFilterText();
+            if (ft && !allFamilies.some(f => familyMatchesFilter(f, ft))) {
+                if (box) box.classList.add('no-match');   // leave lists untouched
+                return;
+            }
+            populateFamilies(prevFam);
+            const famChanged = fam.value !== prevFam;
+            updateAlloys(famChanged ? null : prevAlloy);
+            if (famChanged || alloy.value !== prevAlloy) calculate();
+        }
+
+        function updateAlloys(keepValue) {
             const family = document.getElementById('family').value;
             const alloySelect = document.getElementById('alloy');
             alloySelect.innerHTML = '';
-            
-            const filtered = fullAlloys.filter(a => a.family === family);
+            const ft = materialFilterText();
+            let anyShown = false;
+
+            const filtered = fullAlloys.filter(a => a.family === family && alloyMatchesFilter(a, ft));
             filtered.forEach(a => {
                 let opt = document.createElement('option');
-                opt.value = a.condition ? `${a.alloy} (${a.condition})` : a.alloy;
-                opt.innerText = a.condition ? `${a.alloy} (${a.condition})` : a.alloy;
-                if(a.alloy.includes("MagnaCut") || a.alloy.includes("6061")) opt.selected = true;
+                opt.value = alloyValue(a);
+                opt.textContent = alloyLabel(a);
+                if (typeof keepValue === 'string' && keepValue ? opt.value === keepValue : (a.alloy.includes("MagnaCut") || a.alloy.includes("6061"))) opt.selected = true;
                 alloySelect.appendChild(opt);
+                anyShown = true;
             });
+            if (!anyShown) {
+                fullAlloys.filter(a => a.family === family).forEach(a => {
+                    let opt = document.createElement('option');
+                    opt.value = alloyValue(a); opt.textContent = alloyLabel(a);
+                    alloySelect.appendChild(opt);
+                });
+            }
 
             // If flutes is auto-set: Aluminum defaults to 3 flutes, other materials default to 4 flutes
             const flInput = document.getElementById('flutes_val');
@@ -2290,8 +2453,8 @@
             const filtered = fullAlloys.filter(a => a.family === family);
             filtered.forEach(a => {
                 let opt = document.createElement('option');
-                opt.value = a.condition ? `${a.alloy} (${a.condition})` : a.alloy;
-                opt.innerText = a.condition ? `${a.alloy} (${a.condition})` : a.alloy;
+                opt.value = alloyValue(a);
+                opt.textContent = alloyLabel(a);
                 if(a.alloy.includes("MagnaCut") || a.alloy.includes("6061")) opt.selected = true;
                 alloySelect.appendChild(opt);
             });
@@ -2303,6 +2466,184 @@
             await calculate();
             applyRecommendations();
         }
+
+        /* ---- Advisory tips: safe mini-markdown (escape first, then format) ---------------- */
+        function inlineMarkdown(escaped) {
+            return escaped
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(?![\s*])(.+?)\*/g, '<em>$1</em>');
+        }
+        function renderTipMarkup(message) {
+            const lines = String(message == null ? '' : message).split(/\r?\n/);
+            let html = '', items = [];
+            const flush = () => { if (items.length) { html += '<ul class="tip-list">' + items.join('') + '</ul>'; items = []; } };
+            lines.forEach(line => {
+                const segs = line.split('•');
+                const head = segs[0].trim();
+                if (head) { flush(); html += '<p>' + inlineMarkdown(esc(head)) + '</p>'; }
+                for (let i = 1; i < segs.length; i++) {
+                    const t = segs[i].trim();
+                    if (t) items.push('<li>' + inlineMarkdown(esc(t)) + '</li>');
+                }
+            });
+            flush();
+            return html;
+        }
+
+        /* ---- "Why this number?" provenance panel ------------------------------------------- */
+        function fmtProvCell(entry) {
+            if (!entry) return '<span class="why-dim">&mdash;</span>';
+            const m = Number(entry.multiplier);
+            const v = Number(entry.value_after);
+            let val;
+            if (entry.quantity === 'sfm') val = (isMetric ? v * 0.3048 : v).toFixed(isMetric ? 1 : 0) + (isMetric ? ' m/min' : ' SFM');
+            else val = (isMetric ? v * 25.4 : v).toFixed(isMetric ? 4 : 5) + (isMetric ? ' mm/t' : ' in/t');
+            const mult = Number.isFinite(m) ? '&times;' + m.toFixed(3) : '';
+            return `<span class="why-mult${Math.abs(m - 1) < 1e-9 ? ' why-dim' : ''}">${mult}</span> &rarr; <strong>${esc(val)}</strong>`;
+        }
+        function renderProvenancePanel(res) {
+            const rowsEl = document.getElementById('whyRows');
+            if (!rowsEl) return;
+            const statusEl = document.getElementById('whyStatus');
+            const headerEl = document.getElementById('whyHeader');
+            if (!res) { rowsEl.innerHTML = ''; return; }
+            const showAll = !!document.getElementById('whyShowAll')?.checked;
+            const prov = Array.isArray(res.provenance) ? res.provenance : [];
+            const order = [], byStep = {};
+            prov.forEach(e => {
+                if (!byStep[e.step]) { byStep[e.step] = { step: e.step, reasons: [] }; order.push(e.step); }
+                byStep[e.step][e.quantity] = e;
+                if (e.reason && !byStep[e.step].reasons.includes(e.reason)) byStep[e.step].reasons.push(e.reason);
+            });
+            const isNeutral = g => ['sfm', 'ipt'].every(q => !g[q] || Math.abs(Number(g[q].multiplier) - 1) < 1e-9);
+            const rows = order.map(k => byStep[k]).filter(g => showAll || g.step === 'base_lookup' || !isNeutral(g));
+            rowsEl.innerHTML = rows.length ? rows.map(g => `<tr>
+                <td class="why-step">${esc(String(g.step).replace(/_/g, ' '))}</td>
+                <td>${fmtProvCell(g.sfm)}</td>
+                <td>${fmtProvCell(g.ipt)}</td>
+                <td class="why-reason">${esc(g.reasons.join(' / '))}</td></tr>`).join('')
+                : '<tr><td colspan="4" class="why-dim">No provenance steps reported.</td></tr>';
+
+            const feasible = res.feasible !== false;
+            const limited = res.limited_by ? String(res.limited_by) : '';
+            if (statusEl) {
+                statusEl.textContent = !feasible ? 'No safe cut' : (limited ? 'Limited by ' + limited : 'Unconstrained');
+                statusEl.className = 'why-status ' + (!feasible ? 'why-bad' : (limited ? 'why-warn' : 'why-ok'));
+            }
+            if (headerEl) {
+                headerEl.innerHTML = (feasible
+                    ? '<span class="why-ok">&#10003; Feasible</span>'
+                    : '<span class="why-bad">&#10007; Infeasible &mdash; no safe cut found</span>')
+                    + (limited ? ` &middot; Limited by: <strong>${esc(limited)}</strong>` : ' &middot; Not limited by any constraint');
+            }
+        }
+
+        /* ---- Cut log: calibration status + "Log this cut" modal ---------------------------- */
+        let calibRequestSeq = 0;
+        async function refreshCalibrationStatus() {
+            const el = document.getElementById('calibrationStatus');
+            if (!el) return;
+            const family = document.getElementById('family')?.value || '';
+            const seq = ++calibRequestSeq;
+            try {
+                const r = await fetch('/api/calibration?family=' + encodeURIComponent(family));
+                const data = await r.json();
+                if (seq !== calibRequestSeq) return;
+                const rows = (data && data.calibration) || [];
+                const c = rows.find(x => String(x.family).toLowerCase() === family.toLowerCase()) || rows[0] || null;
+                const n = c ? (c.n || 0) : 0;
+                if (c && c.status === 'calibrated') {
+                    const f = c.applied_factor != null ? c.applied_factor : c.error_factor;
+                    el.textContent = `Calibrated from ${n} cuts (×${Number(f).toFixed(2)})`;
+                    el.dataset.state = 'calibrated';
+                } else if (c && c.status === 'provisional') {
+                    el.textContent = `Provisional (${n} cuts)`;
+                    el.dataset.state = 'provisional';
+                } else {
+                    el.textContent = 'Not calibrated — log cuts to improve accuracy';
+                    el.dataset.state = 'none';
+                }
+            } catch (e) {
+                if (seq === calibRequestSeq) { el.textContent = 'Calibration status unavailable'; el.dataset.state = 'unknown'; }
+            }
+        }
+
+        function openCutLogModal() {
+            const res = lastCalcResult;
+            const msg = document.getElementById('cutLogMsg');
+            msg.textContent = ''; msg.className = 'cutlog-msg';
+            if (!res) { msg.textContent = 'Run a calculation first.'; msg.className = 'cutlog-msg err'; }
+            const u = isMetric ? 'mm' : 'in';
+            const conv = v => isMetric ? v * 25.4 : v;
+            const toolName = document.getElementById('tool')?.value || '';
+            const dia = parseFloat(document.getElementById('diameter')?.value) || 0;
+            const summary = res ? [
+                `<strong>${esc(document.getElementById('family')?.value)}</strong> &middot; ${esc(document.getElementById('operation')?.value)}`,
+                `${esc(toolName)} &Oslash;${esc(dia)} ${u} &times; ${esc(document.getElementById('flutes')?.value)}fl`,
+                `${esc(res.rpm)} RPM &middot; ${esc(conv(res.feedrate).toFixed(isMetric ? 0 : 1))} ${isMetric ? 'mm/min' : 'IPM'}`,
+                `Predicted: deflection ${esc(conv(res.deflection).toFixed(isMetric ? 4 : 5))} ${u}, springback ${esc(conv(res.springback).toFixed(isMetric ? 4 : 5))} ${u}, total error ${esc(conv(res.total_error).toFixed(isMetric ? 4 : 5))} ${u}`
+            ].join('<br>') : '';
+            document.getElementById('cutLogSummary').innerHTML = summary;
+            document.querySelectorAll('#cutLogModal .unit-lbl').forEach(e => e.innerText = u);
+            document.getElementById('cutLogSubmit').disabled = !res;
+            document.getElementById('cutLogModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('cutLogMeasured')?.focus(), 0);
+        }
+        function closeCutLogModal() { document.getElementById('cutLogModal').style.display = 'none'; }
+
+        async function submitCutLog() {
+            const res = lastCalcResult;
+            const msg = document.getElementById('cutLogMsg');
+            const btn = document.getElementById('cutLogSubmit');
+            if (!res) return;
+            const toIn = v => isMetric ? v / 25.4 : v;
+            const num = id => { const t = document.getElementById(id)?.value; return (t === '' || t == null) ? null : Number(t); };
+            const tri = id => { const v = document.getElementById(id)?.value; return v === 'yes' ? true : (v === 'no' ? false : null); };
+            const measured = num('cutLogMeasured');
+            const load = num('cutLogLoad');
+            const body = {
+                family: document.getElementById('family')?.value || '',
+                alloy: document.getElementById('alloy')?.value || '',
+                operation: document.getElementById('operation')?.value || '',
+                tool_description: document.getElementById('tool')?.value || '',
+                diameter_in: toIn(parseFloat(document.getElementById('diameter')?.value) || 0),
+                flutes: parseInt(document.getElementById('flutes')?.value) || 1,
+                stickout_in: toIn(parseFloat(document.getElementById('stickout_val')?.value) || 0),
+                rpm: res.rpm,
+                feed_ipm: res.feedrate,
+                doc_in: toIn(parseFloat(document.getElementById('cutDepth_val')?.value) || 0),
+                woc_in: toIn(parseFloat(document.getElementById('cutWidth_val')?.value) || 0),
+                predicted_deflection_in: res.deflection,
+                predicted_springback_in: res.springback,
+                predicted_total_error_in: res.total_error,
+                notes: document.getElementById('cutLogNotes')?.value || '',
+                source: 'web'
+            };
+            if (measured !== null && Number.isFinite(measured)) body.measured_wall_error_in = toIn(measured);
+            if (load !== null && Number.isFinite(load)) body.spindle_load_pct = load;
+            const ch = tri('cutLogChatter'); if (ch !== null) body.chatter = ch;
+            const sf = tri('cutLogSurface'); if (sf !== null) body.surface_ok = sf;
+            btn.disabled = true;
+            msg.textContent = 'Saving...'; msg.className = 'cutlog-msg';
+            try {
+                const r = await fetch('/api/cutlog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const data = await r.json().catch(() => ({}));
+                if (r.ok && data.success) {
+                    msg.textContent = `Saved (cut #${data.id}). Thank you - this improves future predictions.`;
+                    msg.className = 'cutlog-msg ok';
+                    refreshCalibrationStatus();
+                } else {
+                    msg.textContent = 'Could not save: ' + (data.error || ('HTTP ' + r.status));
+                    msg.className = 'cutlog-msg err';
+                }
+            } catch (e) {
+                msg.textContent = 'Could not save: ' + (e && e.message ? e.message : e);
+                msg.className = 'cutlog-msg err';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        document.addEventListener('keydown', ev => { if (ev.key === 'Escape') { const m = document.getElementById('cutLogModal'); if (m && m.style.display !== 'none') closeCutLogModal(); } });
 
         async function calculate() {
             try { saveState(); } catch(e) {}
@@ -2329,19 +2670,20 @@
             let p_neck = hasSteppedShank ? (parseFloat(document.getElementById('neckDiameter')?.value) || p_shank) : p_dia;
             let p_neckLength = parseFloat(document.getElementById('neckLength')?.value) || 0.5;
             
-            // Validate stickout >= flute length
-            if (p_flute > p_stick) {
-                p_stick = p_flute;
+            // Validate stickout clears the flutes (same rule as the backend; flute_length >= stickout triggers
+            // the "collet gripping on flutes" warning). Auto stickout follows max(3.15*D, 1.05*flute).
+            if (p_flute >= p_stick * 0.999 && (autoSetTracker.stickout || p_flute > p_stick)) {
+                p_stick = autoSetTracker.stickout ? autoStickout(p_dia, p_flute) : 1.05 * p_flute;
                 document.getElementById('stickout_val').value = p_stick.toFixed(isMetric ? 1 : 3);
                 document.getElementById('stickout_range').value = p_stick;
             }
             
-            let p_runout = parseFloat(document.getElementById('runout')?.value || 0.0002);
+            let p_runout = runoutInches;   // canonical inches (display value may be rounded mm)
             let p_pitch = parseFloat(document.getElementById('pitch')?.value || (isMetric ? 1.27 : 0.05));
             if(isMetric) {
                 p_dia /= 25.4; p_depth /= 25.4; p_width /= 25.4; p_stick /= 25.4;
                 p_shank /= 25.4; p_cr /= 25.4; p_thick /= 25.4; p_flute /= 25.4;
-                p_neck /= 25.4; p_neckLength /= 25.4; p_runout /= 25.4;
+                p_neck /= 25.4; p_neckLength /= 25.4;
                 p_pitch /= 25.4;
             }
 
@@ -2432,7 +2774,7 @@
                     let mrrStr = out_mrr.toFixed(mrrDecimals);
                     if (isMetric && out_mrr > 0.0 && out_mrr < 0.1) {
                         let mm3 = (out_mrr * 1000).toFixed(1);
-                        document.getElementById('mrr').innerHTML = `${mrrStr} <span style="font-size:0.85rem; font-weight:normal; opacity:0.8;">(${mm3} mm³/min)</span>`;
+                        document.getElementById('mrr').innerHTML = `${mrrStr} <span style="font-size:var(--fs-md); font-weight:normal; opacity:0.8;">(${mm3} mm³/min)</span>`;
                     } else {
                         document.getElementById('mrr').innerText = mrrStr;
                     }
@@ -2583,7 +2925,7 @@
                     
                     const wearCompBadge = document.getElementById('wearCompBadge');
                     if (wearCompBadge) {
-                        if (res.total_error && res.total_error >= 0.0002) {
+                        if (res.total_error && res.total_error >= 0.0002 && res.is_finishing) {
                             wearCompBadge.style.display = 'block';
                             const u = isMetric ? ' mm' : ' in';
                             const radVal = res.radial_comp != null ? (isMetric ? (res.radial_comp * 25.4).toFixed(3) : res.radial_comp.toFixed(4)) : (isMetric ? (res.wear_comp * 25.4).toFixed(3) : res.wear_comp.toFixed(4));
@@ -2620,6 +2962,13 @@
                             wearCompBadge.style.display = 'none';
                         }
                     }
+                    const roughNote = document.getElementById('roughingStockNote');
+                    if (roughNote) {
+                        roughNote.style.display = (res.is_finishing || res.total_error < 0.0002) ? 'none' : 'block';
+                    }
+                    lastCalcResult = res;
+                    renderProvenancePanel(res);
+                    refreshCalibrationStatus();
                     
                     // Render Tips & Machining Advisor
                     const tipsContainer = document.getElementById('tipsContainer');
@@ -2651,10 +3000,10 @@
                                 color = '#ef4444';
                             }
                             return `<div class="tip-card ${isWear ? 'tip-wear-comp' : ''}" style="padding: 0.85rem 1rem; background: rgba(0,0,0,0.25); border-left: 4px solid ${color}; border-radius: 6px; transition: transform 0.2s, box-shadow 0.2s;">
-                                <div style="font-weight:700; color: ${color}; margin-bottom: 0.25rem; font-size: 0.95rem; display:flex; align-items:center; gap: 0.5rem;">
+                                <div style="font-weight:700; color: ${color}; margin-bottom: 0.25rem; font-size: var(--fs-lg); display:flex; align-items:center; gap: 0.5rem;">
                                     <i class="fa-solid ${icon}"></i> ${esc(t.title)}
                                 </div>
-                                <div style="font-size: 0.85rem; color: #cbd5e1; line-height:1.45;">${esc(t.message)}</div>
+                                <div class="tip-body">${renderTipMarkup(t.message)}</div>
                             </div>`;
                         }).join('');
                     } else {
@@ -2664,10 +3013,10 @@
                         }
                         tipsList.innerHTML = `
                             <div style="padding: 0.85rem 1rem; background: rgba(34, 197, 94, 0.08); border-left: 4px solid #22c55e; border-radius: 6px; display: flex; align-items: center; gap: 0.75rem;">
-                                <i class="fa-solid fa-circle-check" style="color: #22c55e; font-size: 1.25rem;"></i>
+                                <i class="fa-solid fa-circle-check" style="color: #22c55e; font-size: var(--fs-xl);"></i>
                                 <div>
-                                    <div style="font-weight: 600; color: #4ade80; font-size: 0.9rem;">Cutting Parameters Fully Optimized</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Speeds, chip loads, and deflection are operating safely within the optimal envelope.</div>
+                                    <div style="font-weight: 600; color: #4ade80; font-size: var(--fs-md);">Cutting Parameters Fully Optimized</div>
+                                    <div style="font-size: var(--fs-sm); color: var(--text-secondary); margin-top: 2px;">Speeds, chip loads, and deflection are operating safely within the optimal envelope.</div>
                                 </div>
                             </div>`;
                     }
@@ -3339,7 +3688,7 @@
                 let presetTags = '';
                 const presets = t.presets || [];
                 if (presets.length === 0) {
-                    presetTags = '<span style="opacity: 0.35; font-size: 0.75rem;">No presets</span>';
+                    presetTags = '<span style="opacity: 0.35; font-size: var(--fs-xs);">No presets</span>';
                 } else {
                     const displayed = presets.slice(0, 3);
                     presetTags = displayed.map(p => {
@@ -3348,7 +3697,7 @@
                         const shortName = pName.length > 22 ? pName.substring(0, 20) + '…' : pName;
                         return `<span class="preset-tag ${isTW ? 'toolwiz' : ''}" title="${esc(pName)}" onclick="openToolInspector(${t.index})">
                             ${esc(shortName)}
-                            <span style="color: #ff5555; cursor: pointer; margin-left: 5px; font-weight: bold; font-size: 13px;" onclick="event.stopPropagation(); deletePreset(${t.index}, ${jsArg(p.guid)})">&times;</span>
+                            <span style="color: #ff5555; cursor: pointer; margin-left: 5px; font-weight: bold; font-size: var(--fs-sm);" onclick="event.stopPropagation(); deletePreset(${t.index}, ${jsArg(p.guid)})">&times;</span>
                         </span>`;
                     }).join(' ');
 
@@ -3377,13 +3726,17 @@
                     <td style="font-weight: 700; color: var(--accent);">${t.number > 0 ? 'T' + esc(t.number) : '<span style="opacity:0.3;">-</span>'}</td>
                     <td>
                         <div style="font-weight: 600; cursor: pointer; color: #f8fafc;" onclick="openToolInspector(${t.index})">${esc(t.description)}</div>
-                        <div style="font-size: 0.72rem; color: var(--text-secondary);">${esc(t.type || 'End Mill')} · Stickout: ${esc(t.stickout_in || '-')}"</div>
+                        <div style="font-size: var(--fs-xs); color: var(--text-secondary);">${esc(t.type || 'End Mill')} · Stickout: ${esc(t.stickout_in || '-')}"</div>
                     </td>
+                    ${t.geometry_error ? `
+                    <td colspan="2" class="twin-geo-error" title="${esc('Presets cannot be generated for this cutter: its geometry could not be read (' + t.geometry_error + '). Fix the tool definition in Fusion and reload the library.')}">
+                        <span>&#9888; ${esc(t.geometry_error)}</span>
+                    </td>` : `
                     <td>
                         <div>${esc(t.diameter_in)}"</div>
-                        <div style="font-size: 0.72rem; color: var(--text-secondary);">${esc(t.diameter_mm)}mm</div>
+                        <div style="font-size: var(--fs-xs); color: var(--text-secondary);">${esc(t.diameter_mm)}mm</div>
                     </td>
-                    <td style="font-weight: 600; text-align: center;">${esc(t.flutes)}</td>
+                    <td style="font-weight: 600; text-align: center;">${esc(t.flutes)}</td>`}
                     <td>${aggrSelectHtml}</td>
                     <td><div class="preset-tag-list">${presetTags}</div></td>
                     <td>
@@ -3470,7 +3823,7 @@
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Vendor Product ID</span>
-                        <span class="inspector-geo-val" style="font-family:monospace; font-size:0.85rem;">${esc(tool.product_id || 'Generic')}</span>
+                        <span class="inspector-geo-val" style="font-family:monospace; font-size:var(--fs-md);">${esc(tool.product_id || 'Generic')}</span>
                     </div>
                 `;
             }
@@ -3553,23 +3906,23 @@
                         tr.innerHTML = `
                             <td>
                                 <div style="font-weight: 600; color: ${isTW ? '#38bdf8' : '#f8fafc'};">
-                                    ${isTW ? '<span style="color:#38bdf8; font-size:0.75rem; border:1px solid rgba(56,189,248,0.3); padding:1px 4px; border-radius:3px; margin-right:4px;">ToolWiz</span>' : ''}
+                                    ${isTW ? '<span style="color:#38bdf8; font-size:var(--fs-xs); border:1px solid rgba(56,189,248,0.3); padding:1px 4px; border-radius:3px; margin-right:4px;">ToolWiz</span>' : ''}
                                     ${esc(p.name || 'Preset')}
                                 </div>
-                                <div style="font-size: 0.72rem; color: #94a3b8;">${esc(p.guid ? p.guid.substring(0, 8) + '...' : '')}</div>
+                                <div style="font-size: var(--fs-xs); color: #94a3b8;">${esc(p.guid ? p.guid.substring(0, 8) + '...' : '')}</div>
                             </td>
                             <td style="color: #cbd5e1;">${esc(p.operation_type || 'Milling')}</td>
                             <td>
                                 <div><strong>${esc(rpm)}</strong> RPM</div>
-                                <div style="font-size:0.72rem; color:#94a3b8;">${esc(sfm)} SFM</div>
+                                <div style="font-size:var(--fs-xs); color:#94a3b8;">${esc(sfm)} SFM</div>
                             </td>
                             <td>
                                 <div><strong>${esc(vfeed_disp)}</strong></div>
-                                <div style="font-size:0.72rem; color:#94a3b8;">${esc(fpt_disp)}</div>
+                                <div style="font-size:var(--fs-xs); color:#94a3b8;">${esc(fpt_disp)}</div>
                             </td>
                             <td>
                                 <div>DOC: ${esc(doc_disp)}</div>
-                                <div style="font-size:0.72rem; color:#94a3b8;">WOC: ${esc(woc_disp)}</div>
+                                <div style="font-size:var(--fs-xs); color:#94a3b8;">WOC: ${esc(woc_disp)}</div>
                             </td>
                             <td style="text-align: center;">
                                 <button class="tool-action-btn delete" onclick="deletePresetFromInspector(${toolIndex}, ${jsArg(p.guid)})" title="Delete Preset">✕</button>
@@ -3693,6 +4046,55 @@
             }
         }
 
+        // ---- Material Batch Generator: remember the last selections (per-browser, best effort) ----
+        const TWIN_PREFS_KEY = 'toolwiz_twin_prefs';
+        const TWIN_STRAT_IDS = ['stratAdaptive', 'stratRoughing', 'stratSemiFinishing', 'stratFinishing', 'stratFloorFinishing', 'stratSlotting', 'stratHighFeed'];
+        function saveTwinPrefs() {
+            try {
+                const prefs = {
+                    family: document.getElementById('twinFamily')?.value || '',
+                    alloy: document.getElementById('twinAlloy')?.value || '',
+                    coating: document.getElementById('twinCoating')?.value || '',
+                    aggressiveness: document.getElementById('twinAggressiveness')?.value || '',
+                    strategies: {}
+                };
+                TWIN_STRAT_IDS.forEach(id => { const el = document.getElementById(id); if (el) prefs.strategies[id] = !!el.checked; });
+                localStorage.setItem(TWIN_PREFS_KEY, JSON.stringify(prefs));
+            } catch (e) { /* storage unavailable: skip */ }
+        }
+        function restoreTwinPrefs() {
+            let prefs = null;
+            try { prefs = JSON.parse(localStorage.getItem(TWIN_PREFS_KEY) || 'null'); } catch (e) { prefs = null; }
+            if (prefs && typeof prefs === 'object') {
+                const famSel = document.getElementById('twinFamily');
+                if (prefs.family && famSel && Array.from(famSel.options).some(o => o.value === prefs.family)) {
+                    famSel.value = prefs.family;
+                    updateTwinAlloys();
+                    const alloySel = document.getElementById('twinAlloy');
+                    if (prefs.alloy && alloySel && Array.from(alloySel.options).some(o => o.value === prefs.alloy)) alloySel.value = prefs.alloy;
+                }
+                const coat = document.getElementById('twinCoating');
+                if (prefs.coating && coat && Array.from(coat.options).some(o => o.value === prefs.coating)) coat.value = prefs.coating;
+                const slider = document.getElementById('twinAggressiveness');
+                const n = parseFloat(prefs.aggressiveness);
+                if (slider && Number.isFinite(n)) {
+                    slider.value = n;
+                    const lbl = document.getElementById('twinAggrVal');
+                    if (lbl) lbl.innerText = slider.value + '%';
+                }
+                if (prefs.strategies) TWIN_STRAT_IDS.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && typeof prefs.strategies[id] === 'boolean') el.checked = prefs.strategies[id];
+                });
+            }
+            updateTwinMaterialSuggestion(false);   // refresh banner only; never override the restored slider
+            const panel = document.getElementById('twinBatchPanel');
+            if (panel) {
+                panel.addEventListener('change', saveTwinPrefs);
+                panel.addEventListener('input', saveTwinPrefs);
+            }
+        }
+
         function updateTwinMaterialSuggestion(autoSetSlider = true) {
             const family = (document.getElementById('twinFamily')?.value || '').toLowerCase();
             const alloy = (document.getElementById('twinAlloy')?.value || '').toLowerCase();
@@ -3767,7 +4169,7 @@
                 coating: document.getElementById('twinCoating').value,
                 maxRpm: parseFloat(document.getElementById('maxRpm')?.value) || (machineProfile && machineProfile.max_rpm) || 16000,
                 maxHp: parseFloat(document.getElementById('maxHp')?.value) || (machineProfile && machineProfile.max_hp) || 10.0,
-                runout: parseFloat(document.getElementById('runout')?.value || 0.0002),
+                runout: runoutInches,
                 custom_preset_name: customPresetName
             };
 
@@ -3793,7 +4195,7 @@
                             return `<li>${esc(label)}${esc(strat)}: ${esc(sk.reason)}</li>`;
                         }).join('');
                         const more = skipped.length > 25 ? `<li>…and ${skipped.length - 25} more</li>` : '';
-                        skippedHtml = `<div style="margin-top:0.5rem; color:#fbbf24;"><strong>⚠️ Skipped (${skipped.length}):</strong><ul style="margin:0.25rem 0 0 1.1rem; padding:0; font-size:0.8rem;">${shown}${more}</ul></div>`;
+                        skippedHtml = `<div style="margin-top:0.5rem; color:#fbbf24;"><strong>⚠️ Skipped (${skipped.length}):</strong><ul style="margin:0.25rem 0 0 1.1rem; padding:0; font-size:var(--fs-sm);">${shown}${more}</ul></div>`;
                     }
                     statusBox.innerHTML = `
                         <strong>✅ Batch Injection Complete!</strong><br>
@@ -4059,6 +4461,20 @@
                 titleNode.innerText = th.name;
             }
 
+            // Class fallback notice: the database may only hold a different class than requested
+            const classWarn = document.getElementById('threadClassWarning');
+            if (classWarn) {
+                const used = data.class_used || th.class_used;
+                const wanted = th.class_requested || th.class;
+                if (data.class_fallback && used) {
+                    classWarn.textContent = `⚠ Class ${wanted} not in database — showing ${used}`;
+                    classWarn.style.display = 'block';
+                } else {
+                    classWarn.style.display = 'none';
+                    classWarn.textContent = '';
+                }
+            }
+
             // Specs
             const specPitch = document.getElementById('specPitch');
             if (specPitch) {
@@ -4168,7 +4584,7 @@
                     <td style="font-family: monospace;">${d.diameter_in.toFixed(4)}"</td>
                     <td style="font-family: monospace;">${d.diameter_mm.toFixed(3)} mm</td>
                     <td><span class="thread-pct-badge ${badgeClass}">${d.pct_thread.toFixed(1)}%</span></td>
-                    <td style="font-size: 0.82rem; color: ${d.is_target ? '#a7f3d0' : 'var(--text-secondary)'};">${esc(d.note)}</td>
+                    <td style="font-size: var(--fs-sm); color: ${d.is_target ? '#a7f3d0' : 'var(--text-secondary)'};">${esc(d.note)}</td>
                     <td style="text-align: right;">
                         <button type="button" class="btn-send-drill" onclick="sendSpecificDrillToSpeedsFeeds(${jsArg(d.name)}, ${Number(d.diameter_in)}, ${Number(d.diameter_mm)})" title="Apply tap & thread parameters to Speeds & Feeds calculator">
                             ⚡ Send Tap
@@ -4434,9 +4850,9 @@
             escaped = escaped.replace(/^## (.*$)/gim, '<h3>$1</h3>');
             escaped = escaped.replace(/^# (.*$)/gim, '<h3>$1</h3>');
 
-            escaped = escaped.replace(/&gt; \[!NOTE\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(56,189,248,0.1); border-left:3px solid #38bdf8; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:0.82rem; color:#bae6fd;">$1</div>');
-            escaped = escaped.replace(/&gt; \[!WARNING\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(239,68,68,0.1); border-left:3px solid #ef4444; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:0.82rem; color:#fca5a5;">$1</div>');
-            escaped = escaped.replace(/&gt; \[!TIP\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(16,185,129,0.1); border-left:3px solid #10b981; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:0.82rem; color:#a7f3d0;">$1</div>');
+            escaped = escaped.replace(/&gt; \[!NOTE\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(56,189,248,0.1); border-left:3px solid #38bdf8; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:var(--fs-sm); color:#bae6fd;">$1</div>');
+            escaped = escaped.replace(/&gt; \[!WARNING\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(239,68,68,0.1); border-left:3px solid #ef4444; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:var(--fs-sm); color:#fca5a5;">$1</div>');
+            escaped = escaped.replace(/&gt; \[!TIP\]\s*([\s\S]*?)(?=\n\n|\n[^\s&]|$)/gim, '<div style="background:rgba(16,185,129,0.1); border-left:3px solid #10b981; padding:8px 12px; border-radius:4px; margin:8px 0; font-size:var(--fs-sm); color:#a7f3d0;">$1</div>');
 
             escaped = escaped.replace(/```([\s\S]*?)```/gim, '<pre><code>$1</code></pre>');
             escaped = escaped.replace(/`([^`]+)`/gim, '<code>$1</code>');
