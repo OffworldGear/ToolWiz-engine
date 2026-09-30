@@ -109,6 +109,29 @@ def hard_milling_factors(hrc: float) -> Tuple[float, float]:
     return 1.0, 1.0
 
 
+# Copper alloys that genuinely work-harden when machined. Pure coppers, brasses, leaded
+# free-machining and bearing bronzes, and tin bell-metal bronzes do not.
+COPPER_WORK_HARDENING_KEYS = (
+    "aluminum bronze", "aluminium bronze", "nickel-aluminum", "ampco", "c62", "c63", "c64", "c95",
+    "beryllium copper", "copper beryllium", "moldmax", "c17",
+    "nickel copper", "cupronickel", "copper-nickel", "c706", "c715",
+    "toughmet", "c729", "silicon bronze", "c655", "nickel silver alloy", "c752",
+)
+WORK_HARDENING_ALLOY_KEYS = ("nitronic", "inconel", "titanium", "316", "304")
+
+
+def alloy_work_hardens(material_family: str, alloy: str, mat_props: Optional[Dict[str, Any]] = None) -> bool:
+    """True only when the selected alloy actually work-hardens.
+
+    Copper is decided per alloy (the family mixes free-machining brass with aluminum bronze);
+    other families use their family flag plus a few alloy keywords.
+    """
+    a = str(alloy or "").lower()
+    if str(material_family or "").lower().startswith("copper"):
+        return any(k in a for k in COPPER_WORK_HARDENING_KEYS)
+    return bool((mat_props or {}).get("work_hardening", False)) or any(k in a for k in WORK_HARDENING_ALLOY_KEYS)
+
+
 class ASTMHardnessConverter:
     """
     Standard hardness conversion utilities based on ASTM E140 (Standard Hardness
@@ -1158,7 +1181,7 @@ class AdvisoryEngine:
             return tips
 
         mat_props = physics.machinability.get(material_family, {})
-        is_work_hardening = mat_props.get("work_hardening", False) or any(w in str(alloy).lower() for w in ["nitronic", "inconel", "titanium", "316", "304"])
+        is_work_hardening = alloy_work_hardens(material_family, alloy, mat_props)
         sb_factor = mat_props.get("springback_factor", 0.0002)
         if "nitronic 60" in str(alloy).lower():
             sb_factor = max(sb_factor, 0.0006)

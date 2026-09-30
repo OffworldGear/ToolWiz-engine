@@ -172,5 +172,32 @@ class TestHardnessTag(unittest.TestCase):
         self.assertEqual(p.match_alloy("Aluminum - Wrought (6061)", "6061 (T6, T651)")["condition"], "T6, T651")
 
 
+class TestWorkHardeningAndThreads(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.p = GWizardPhysics(DB)
+
+    def titles(self, alloy):
+        tips = self.p.generate_advanced_strategies(
+            "Copper Alloy - Wrought", 0.25, 0.25, 0.01, 30, 9000, 4, "Uncoated", 0.0008,
+            stickout=1.0, flute_length=0.75, operation="Wall Finishing (Deep DOC)", alloy=alloy)
+        return " ".join(t["title"] + t["message"] for t in tips).lower()
+
+    def test_bell_metal_bronze_not_flagged(self):
+        self.assertNotIn("work-harden", self.titles("B20 - Bell Metal / Bronze (Cast)"))
+
+    def test_beryllium_copper_flagged(self):
+        self.assertIn("work-harden", self.titles("C17200 - Beryllium Copper (TH04)"))
+
+    def test_iso_threads_are_6h_internal_6g_external(self):
+        classes = {(r["type"], r["class"]) for r in self.p.threads_db if "ISO" in r["family"]}
+        self.assertEqual(classes, {("Internal", "6H"), ("External", "6g")})
+        m16 = self.p.lookup_thread("ISO Coarse", "M1.6-0.35", "6H", "Internal")
+        self.assertEqual(m16["class"], "6H")
+        # Pitch diameter minimum equals basic for 6H (no fundamental deviation).
+        basic = 1.6 - 0.649519 * 0.35
+        self.assertAlmostEqual(m16["min_pitch_in"] * 25.4, basic, places=2)
+
+
 if __name__ == "__main__":
     unittest.main()
