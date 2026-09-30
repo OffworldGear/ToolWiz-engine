@@ -862,8 +862,14 @@ class OptimizationEngine:
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
         neck_diameter: Optional[float] = None,
-        corner_radius: float = 0.0
+        corner_radius: float = 0.0,
+        details: Optional[Dict[str, Any]] = None
     ) -> Tuple[float, float, float]:
+        """Returns (doc, woc, deflection_limit). If `details` is a dict it is filled with
+        {"feasible": bool, "limited_by": "deflection"|"power"|"flute_length"|"geometry_rule"}."""
+        if details is None:
+            details = {}
+        details.update({"feasible": True, "limited_by": "geometry_rule"})
         default_max_deflect = diameter * 0.002
         op_low = operation.lower()
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low
@@ -1033,7 +1039,9 @@ class OptimizationEngine:
             )
 
             if deflect > target_deflection or est_hp > max_hp:
+                details["limited_by"] = "deflection" if deflect > target_deflection else "power"
                 break
+            details["limited_by"] = "flute_length"
 
             found_safe = True
             best_doc = current_doc
@@ -1063,6 +1071,10 @@ class OptimizationEngine:
                 best_woc = cand_woc
                 if deflect <= target_deflection:
                     break
+            else:
+                # Even the lightest candidate cut exceeds the deflection limit: no safe cut exists.
+                details["feasible"] = False
+            details["limited_by"] = "deflection"
 
         return best_doc, best_woc, target_deflection
 
@@ -1719,6 +1731,11 @@ class GWizardPhysics:
         if geometry == "Indexable Mill":
             sfm *= 1.25
 
+        # Pointed chamfer/V-bit tips are fragile: Harvey chamfer-cutter tables top out
+        # at ~1000 SFM in 6061 vs ~1200+ for end mills of the same size (~0.8x).
+        if geometry in ["V-Bit", "Chamfer", "Chamfer Mill", "Engraving"]:
+            sfm *= 0.80
+
         # Small & Micro-Tool thermal dissipation and chip evacuation scaling:
         # Micro-drills (< 1/4") have fragile web cores and restricted hole chip evacuation,
         # requiring conservative SFM scaling to prevent wandering and binding.
@@ -1854,7 +1871,9 @@ class GWizardPhysics:
             return max(best_finish, saw_ipt)
 
         if not is_tap_tool_type(tool_type):
-            if geometry in ["Thread Mill", "Lollipop"]:
+            # Dovetails share the lollipop's narrow neck and angled edge; Harvey dovetail
+            # chiploads run ~50% of an end mill of the same diameter.
+            if geometry in ["Thread Mill", "Lollipop", "Dovetail"]:
                 ipt *= 0.50
             elif geometry in ["Drill", "Spot Drill", "Parabolic"] and not is_drilling_tool_type(tool_type):
                 ipt *= 0.50
@@ -2051,6 +2070,33 @@ class GWizardPhysics:
 
         return angle, ramp_feed, plunge_feed
 
+    def match_alloy(self, material_family: str, alloy_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Resolve a user alloy string ("6061-T6", "6061 (T6, T651)", "4140") to one row of
+        specific_alloys within the given family only.
+
+        Score = alloy-name match + matched condition tokens (word-boundary). Ties, and bare
+        alloy names with several conditions, resolve to the HARDEST row so speeds err low.
+        """
+        target = str(alloy_name or "").strip().lower()
+        if not target:
+            return None
+        best, best_key = None, None
+        for a in self.specific_alloys:
+            if a.get("family") != material_family:
+                continue
+            base = str(a.get("alloy", "")).strip().lower()
+            if not base or not re.search(r'(?<![a-z0-9])' + re.escape(base) + r'(?![a-z0-9])', target):
+                continue
+            tokens = [t.strip() for t in re.split(r'[,/;]', str(a.get("condition", "")).lower()) if t.strip()]
+            cond_hits = sum(1 for t in tokens
+                            if re.search(r'(?<![a-z0-9])' + re.escape(t) + r'(?![a-z0-9])', target))
+            hb = ASTMHardnessConverter.parse_hardness(a.get("hardness")) or 0.0
+            key = (len(base), cond_hits, hb)
+            if best_key is None or key > best_key:
+                best, best_key = a, key
+        return best
+
     def apply_alloy_hardness_scaling(
         self,
         material_family: str,
@@ -2070,46 +2116,7 @@ class GWizardPhysics:
         alloy_hardness = None
         norm_target = alloy_name.strip().lower()
 
-        # Multi-pass matching to prioritize exact condition/temper first
-        matched_alloy = None
-        candidates = [a for a in self.specific_alloys if a.get("family") == material_family]
-        if not candidates:
-            candidates = self.specific_alloys
-
-        # Pass 1: exact match with base_alloy (condition) or base_alloy - condition
-        for a in candidates:
-            base_alloy = str(a.get("alloy", "")).strip().lower()
-            condition = str(a.get("condition", "")).strip().lower()
-            combined = f"{base_alloy} ({condition})".lower()
-            combined_dash = f"{base_alloy}-{condition}".lower()
-            combined_space = f"{base_alloy} {condition}".lower()
-
-            if norm_target in [combined, combined_dash, combined_space]:
-                matched_alloy = a
-                break
-
-        # Pass 2: exact match with base_alloy
-        if not matched_alloy:
-            for a in candidates:
-                base_alloy = str(a.get("alloy", "")).strip().lower()
-                if norm_target == base_alloy:
-                    matched_alloy = a
-                    break
-
-        # Pass 3: Longest substring match scoring base alloy + condition
-        if not matched_alloy:
-            best_score = 0
-            for a in candidates:
-                base_alloy = str(a.get("alloy", "")).strip().lower()
-                condition = str(a.get("condition", "")).strip().lower()
-                if base_alloy and base_alloy in norm_target:
-                    score = len(base_alloy)
-                    if condition and condition in norm_target:
-                        score += len(condition) + 5
-                    if score > best_score:
-                        best_score = score
-                        matched_alloy = a
-
+        matched_alloy = self.match_alloy(material_family, alloy_name)
         if matched_alloy:
             parsed_hb = ASTMHardnessConverter.parse_hardness(matched_alloy.get("hardness"))
             if parsed_hb:
@@ -2318,13 +2325,14 @@ class GWizardPhysics:
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
         neck_diameter: Optional[float] = None,
-        corner_radius: float = 0.0
+        corner_radius: float = 0.0,
+        details: Optional[Dict[str, Any]] = None
     ) -> Tuple[float, float, float]:
         return OptimizationEngine.recommend_cut_parameters(
             self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide,
             operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family,
             helix_angle, neck_length, taper_angle, flute_length, neck_diameter,
-            corner_radius=corner_radius
+            corner_radius=corner_radius, details=details
         )
 
     def calc_deflection_limit(
