@@ -155,18 +155,46 @@ class TestAiMachinist(unittest.TestCase):
         self.assertEqual(names.get("gemini-2.5-pro"), "Gemini 2.5 Pro (Deep CAM Reasoning)")
         self.assertEqual(names.get("gemini-2.5-flash"), "Gemini 2.5 Flash (Fast)")
 
-    def test_api_endpoint_with_model_preference(self):
-        """Verify POST /api/ai_chat accepts preferred model parameter."""
-        payload = {
-            "message": "Should I use climb milling for finishing Nitronic 60?",
-            "model": "gemini-2.5-pro",
-            "context": {"material": "Nitronic 60", "diameter": 0.5}
+    def test_context_formatting_bare_metric_keys(self):
+        """Verify bare metric keys (e.g. from Fusion or external callers) are correctly interpreted in mm/mmpm."""
+        context = {
+            "isMetric": True,
+            "material": "6061-T6",
+            "materialFamily": "Aluminum",
+            "tool": "Flat End Mill",
+            "geometry": "Standard",
+            "diameter": 10.0,  # 10 mm, NOT 10 inches!
+            "fluteLength": 25.0,  # 25 mm
+            "stickout": 35.0,  # 35 mm
+            "cutDepth": 15.0,  # 15 mm
+            "cutWidth": 1.0,  # 1 mm
+            "feedrate": 2000.0,  # 2000 mm/min
+            "ipt": 0.05,  # 0.05 mm/tooth
+            "deflection": 0.02,  # 0.02 mm
+            "mrr": 30.0  # 30 cm3/min
         }
-        resp = self.client.post("/api/ai_chat", json=payload)
+        text = ai_machinist.format_context_for_prompt(context)
+        self.assertIn("10.000 mm (0.3937", text)
+        self.assertIn("2000.0 mm/min (78.74 IPM)", text)
+        self.assertIn("0.0500 mm/tooth (0.00197 IPT)", text)
+        self.assertIn("0.0200 mm / 20.0 µm", text)
+
+    def test_offline_response_metric_diameter(self):
+        """Verify offline expert response displays metric diameter accurately when isMetric is True."""
+        res = ai_machinist.query_ai_machinist(
+            prompt="General advice for this cutter?",
+            context={"material": "Titanium", "diameter": 12.0, "isMetric": True}
+        )
+        self.assertTrue(res["success"])
+        self.assertIn("12.000 mm", res["reply"])
+        self.assertNotIn("304.8 mm", res["reply"])
+
+    def test_api_models_endpoint_header_auth(self):
+        """Verify GET /api/ai_models accepts x-goog-api-key header without error."""
+        resp = self.client.get("/api/ai_models", headers={"x-goog-api-key": ""})
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
         self.assertTrue(data.get("success"))
-        self.assertIn("reply", data)
 
 
 if __name__ == "__main__":

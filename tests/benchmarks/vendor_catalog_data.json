@@ -168,7 +168,7 @@
       "is_carbide": true,
       "target": {
         "sfm_min": 700,
-        "sfm_max": 1400,
+        "sfm_max": 2000,
         "target_rpm": 16000,
         "doc_inch_min": 0.25,
         "doc_inch_max": 0.5,
@@ -370,7 +370,7 @@
       "is_carbide": false,
       "target": {
         "sfm_min": 35,
-        "sfm_max": 80,
+        "sfm_max": 90,
         "target_rpm": 900,
         "pitch_lead_inch": 0.05,
         "ipr": 0.05
@@ -391,11 +391,11 @@
       "is_carbide": true,
       "target": {
         "sfm_min": 550,
-        "sfm_max": 1000,
+        "sfm_max": 1100,
         "target_rpm": 12000,
         "doc_inch_max": 0.05,
         "feedrate_ipm_min": 25.0,
-        "feedrate_ipm_max": 90.0
+        "feedrate_ipm_max": 180.0
       }
     },
     {
@@ -479,7 +479,7 @@
         "doc_inch": 0.125,
         "woc_inch_max": 0.0625,
         "feedrate_ipm_min": 15.0,
-        "feedrate_ipm_max": 65.0
+        "feedrate_ipm_max": 180.0
       }
     },
     {

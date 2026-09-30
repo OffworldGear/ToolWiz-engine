@@ -106,7 +106,7 @@ def compute_tool_signature(tool: Any) -> str:
     nof = int(geo.get("NOF", 4))
     lcf_in = round(parse_dimension_in(geo.get("LCF", 0.75), tool_unit), 3)
     re_in = round(parse_dimension_in(geo.get("RE", 0.0), tool_unit), 4)
-    sf_in = round(parse_dimension_in(geo.get("SF", dc_in), tool_unit), 3)
+    sf_in = round(parse_dimension_in(geo.get("SFDM", geo.get("SF", dc_in)), tool_unit), 3)
 
     if prod_id and len(prod_id) > 2:
         return f"id:{vendor}:{prod_id}|{norm_type}|dia:{dc_in:.4f}|fl:{nof}|lcf:{lcf_in:.3f}|re:{re_in:.4f}"
@@ -178,30 +178,72 @@ def deduplicate_tools(tools_list: List[Any], preserve_presets: bool = True) -> T
     """
     Deduplicates a list of tools based on physical geometry signatures.
     Combines presets from duplicate copies into one master tool.
+    Preserves holder objects and prevents merging distinct positive tool numbers or holders.
     
     Returns:
         (deduplicated_tools_list, summary_report)
     """
-    groups: Dict[str, List[Dict[str, Any]]] = {}
-    order: List[str] = []
+    def _get_t_num(t: dict) -> int:
+        post = t.get("post-process") or t.get("postProcess") or {}
+        if isinstance(post, dict) and post.get("number") is not None:
+            try:
+                val = int(post.get("number"))
+                return val if val > 0 else 0
+            except:
+                pass
+        return 0
+
+    def _get_holder_id(t: dict) -> str:
+        h = t.get("holder", {})
+        if isinstance(h, dict):
+            return str(h.get("guid") or h.get("description") or "").strip()
+        return str(h).strip()
+
+    holders: List[Dict[str, Any]] = []
+    clusters: List[List[Dict[str, Any]]] = []
 
     for raw_t in tools_list:
         t_dict = json.loads(raw_t) if isinstance(raw_t, str) else dict(raw_t)
         if t_dict.get("type") == "holder":
+            holders.append(t_dict)
             continue
+
         sig = compute_tool_signature(t_dict)
-        if sig not in groups:
-            groups[sig] = []
-            order.append(sig)
-        groups[sig].append(t_dict)
+        t_num = _get_t_num(t_dict)
+        h_id = _get_holder_id(t_dict)
+
+        # Find existing cluster with identical signature where can_merge is True
+        matched_cluster = None
+        for cluster in clusters:
+            first_t = cluster[0]
+            if compute_tool_signature(first_t) == sig:
+                # Check compatibility with all members in cluster
+                can_merge = True
+                for member in cluster:
+                    m_num = _get_t_num(member)
+                    m_hid = _get_holder_id(member)
+                    if t_num > 0 and m_num > 0 and t_num != m_num:
+                        can_merge = False
+                        break
+                    if h_id and m_hid and h_id != m_hid:
+                        can_merge = False
+                        break
+                if can_merge:
+                    matched_cluster = cluster
+                    break
+
+        if matched_cluster is not None:
+            matched_cluster.append(t_dict)
+        else:
+            clusters.append([t_dict])
 
     master_tools: List[Dict[str, Any]] = []
     total_duplicates_found = 0
     total_presets_consolidated = 0
     merged_details: List[Dict[str, Any]] = []
 
-    for sig in order:
-        group = groups[sig]
+    for group in clusters:
+        sig = compute_tool_signature(group[0])
         if len(group) == 1:
             master_tools.append(group[0])
         else:
@@ -236,10 +278,14 @@ def deduplicate_tools(tools_list: List[Any], preserve_presets: bool = True) -> T
                 "total_presets": len(all_presets)
             })
 
+    # Append preserved holder objects back into master_tools
+    master_tools.extend(holders)
+
     report = {
         "initial_tool_count": len(tools_list),
         "unique_tools_count": len(master_tools),
         "duplicates_removed": total_duplicates_found,
+        "holders_preserved": len(holders),
         "merged_details": merged_details
     }
 

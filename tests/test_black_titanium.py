@@ -72,10 +72,11 @@ class TestBlackTitanium5545(unittest.TestCase):
         scaled_sfm, scaled_ipt = self.physics.apply_alloy_hardness_scaling(
             'Black Titanium 5545', 'Black Titanium 5545', base_sfm, base_ipt
         )
-        # Because 316.3 HB > 300 minBHN, SFM and IPT should be slightly scaled down for hardness
-        self.assertLess(scaled_sfm, base_sfm)
-        self.assertLess(scaled_ipt, base_ipt)
-        self.assertAlmostEqual(scaled_sfm, 119.87, delta=0.5)
+        # 316.3 HB is below the family midpoint (320 HB), so under GWizard's bounded linear model,
+        # SFM scales up toward the upper boundary of the sfmrange.
+        self.assertGreater(scaled_sfm, base_sfm)
+        self.assertAlmostEqual(scaled_sfm, 126.51, delta=0.5)
+        self.assertEqual(scaled_ipt, base_ipt)
 
     def test_springback_and_deflection(self):
         # Test springback calculation with Black Titanium 5545

@@ -4,9 +4,46 @@ import json
 import math
 import uuid
 import re
+import ast
+import operator
 from flask import Flask, render_template, request, jsonify, send_file
-from gwizard_physics import GWizardPhysics
+from gwizard_physics import GWizardPhysics, is_tap_tool_type, is_drilling_tool_type
 from ai_machinist import query_ai_machinist, get_available_gemini_models
+
+_SAFE_OPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+def safe_eval_expr(expr_str: str) -> float:
+    """Safely evaluates basic arithmetic expressions without eval(). Disallows exponentiation (**) and arbitrary code."""
+    node = ast.parse(expr_str, mode='eval')
+
+    def _eval(n):
+        if isinstance(n, ast.Expression):
+            return _eval(n.body)
+        elif isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+            return float(n.value)
+        elif isinstance(n, ast.BinOp):
+            op_type = type(n.op)
+            if op_type not in _SAFE_OPS:
+                raise ValueError(f"Unsupported operator: {op_type}")
+            left = _eval(n.left)
+            right = _eval(n.right)
+            return _SAFE_OPS[op_type](left, right)
+        elif isinstance(n, ast.UnaryOp):
+            op_type = type(n.op)
+            if op_type not in _SAFE_OPS:
+                raise ValueError(f"Unsupported operator: {op_type}")
+            return _SAFE_OPS[op_type](_eval(n.operand))
+        else:
+            raise ValueError(f"Unsupported syntax: {type(n)}")
+
+    return _eval(node)
 
 app = Flask(__name__)
 
@@ -186,8 +223,8 @@ def calculate():
         alloy = data.get("alloy", "")
         target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
         
-        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore", "annular"]) or any(d in geometry.lower() for d in ["drill", "parabolic", "tap", "form", "spiral_flute", "spiral_point", "straight_flute", "reamer"])
-        is_tapping = "tap" in tool.lower() or "tap" in operation.lower() or "form" in geo_lower or "spiral_flute" in geo_lower or "spiral_point" in geo_lower or "straight_flute" in geo_lower
+        is_hole_tool = is_drilling_tool_type(tool, geometry)
+        is_tapping = is_tap_tool_type(tool) or is_tap_tool_type(operation) or (is_hole_tool and any(t in geo_lower for t in ["form", "spiral_flute", "spiral_point", "straight_flute"]))
 
         # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3.5xD for milling; bypassed for saws/woodruff)
         target_sfm, base_ipt = physics.apply_chatter_penalty(
@@ -213,7 +250,7 @@ def calculate():
         if is_hole_tool:
             cut_width = diameter
             if any(m in operation.lower() for m in ["rough", "adaptive", "trochoidal", "slot", "face", "finish"]):
-                if "tap" in tool.lower():
+                if is_tap_tool_type(tool):
                     operation = "Rigid Tapping"
                 elif "ream" in tool.lower():
                     operation = "Precision Reaming"
@@ -221,7 +258,7 @@ def calculate():
                     operation = "Drilling"
 
         tap_drill_info = None
-        if "tap" in tool.lower() or "tap" in operation.lower():
+        if is_tap_tool_type(tool) or is_tap_tool_type(operation):
             pitch = float(data.get("pitch", 0.05))
             feedrate = round(rpm) * pitch
             adjusted_ipt = pitch
@@ -244,8 +281,9 @@ def calculate():
         ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool)
         
         op_lower = str(operation).lower()
-        is_floor_finish = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"])
-        is_finishing = "finish" in op_lower or is_floor_finish or cut_width <= (diameter * 0.15)
+        is_roughing_op = any(r in op_lower for r in ["rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot"])
+        is_floor_finish = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"]) and not is_roughing_op
+        is_finishing = ("finish" in op_lower or is_floor_finish or (cut_width <= (diameter * 0.15) and not is_roughing_op)) and not is_roughing_op
 
         if is_hole_tool:
             deflection = 0.0
@@ -383,10 +421,15 @@ def calculate_for_fusion():
             cut_depth=cutter_thickness, cut_width=diameter * 0.25, flutes=flutes, is_carbide=is_carbide
         )
         
-        # Alloy-specific hardness adjustment via exponential BHN curve
+        # Alloy-specific hardness adjustment
         alloy = data.get("alloy", "")
         target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-            
+        
+        is_hole_tool = is_drilling_tool_type(tool, geometry)
+        target_sfm, base_ipt = physics.apply_chatter_penalty(
+            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff, flute_length=flute_length
+        )
+
         target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
         target_sfm *= physics.get_coating_multiplier(coating, family)
         
@@ -662,9 +705,10 @@ def twin_load():
             dia_in = parse_dim(geo.get("DC", 6.35), tool_unit)
             flutes = int(geo.get("NOF", 4))
             flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            shank_dia = parse_dim(geo.get("SF", dia_in), tool_unit)
+            shank_dia = parse_dim(geo.get("SFDM", geo.get("SF", dia_in)), tool_unit)
             corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
-            stickout = parse_dim(t_dict.get("stickout", flute_len * 1.5), tool_unit)
+            raw_stick = t_dict.get("stickout") or geo.get("LB") or geo.get("bodyLength")
+            stickout = parse_dim(raw_stick, tool_unit) if raw_stick is not None else (flute_len * 1.5)
             
             t_num = t_dict.get("postProcess", {}).get("number", t_dict.get("post-process", {}).get("number", 0))
             desc = t_dict.get("description", f"{dia_in:.3f}in Tool")
@@ -690,10 +734,14 @@ def twin_load():
                     "name": p_name,
                     "guid": p_guid,
                     "material_query": p_mat,
-                    "rpm": p.get("n", 0),
-                    "feed": p.get("v_f", 0),
-                    "sfm": p.get("v_c", 0),
-                    "ipt": p.get("f_z", 0),
+                    "rpm": p.get("n", p.get("rpm", 0)),
+                    "n": p.get("n", p.get("rpm", 0)),
+                    "feed": p.get("v_f", p.get("feed", 0)),
+                    "v_f": p.get("v_f", p.get("feed", 0)),
+                    "sfm": p.get("v_c", p.get("sfm", 0)),
+                    "v_c": p.get("v_c", p.get("sfm", 0)),
+                    "ipt": p.get("f_z", p.get("ipt", 0)),
+                    "f_z": p.get("f_z", p.get("ipt", 0)),
                     "stepdown": p.get("stepdown", 0),
                     "stepover": p.get("stepover", 0),
                     "ramp_feed": p.get("v_f_ramp", 0),
@@ -921,32 +969,22 @@ def twin_batch_generate():
                 continue
                 
             tool_type = t_dict.get("type", "end mill").lower()
-            valid_milling_types = [
-                "end mill", "flat end mill", "ball end mill", "bull nose end mill", 
-                "chamfer mill", "face mill", "slot mill", "tapered mill", 
-                "dovetail mill", "lollipop mill", "radius mill", "form mill",
-                "engraving chamfer mill", "thread mill"
-            ]
-            valid_drilling_types = [
-                "drill", "spot drill", "center drill", "tap", "tap right hand", "tap left hand", "reamer", "bore", "counterbore", "countersink"
-            ]
-            
-            is_milling = any(m in tool_type for m in ["mill", "end mill", "face", "slot", "fly", "router"])
-            is_drilling = any(d in tool_type for d in ["drill", "tap", "reamer", "bore", "sink"])
-            
-            if not is_milling and not is_drilling:
-                is_milling = True  # Default to milling physics
-                
             geo = t_dict.get("geometry", {})
             tool_unit = t_dict.get("unit", geo.get("unit", ""))
-            
+
+            is_drilling = is_drilling_tool_type(tool_type, geo.get("type", ""))
+            is_tap = is_tap_tool_type(tool_type)
+            is_milling = not is_drilling
+                
             diameter = parse_dim(geo.get("DC", 6.35), tool_unit)
             flutes = int(geo.get("NOF", 4)) if is_milling else int(geo.get("NOF", 2))
             flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            shank_dia = parse_dim(geo.get("SF", diameter), tool_unit)
+            shank_dia = parse_dim(geo.get("SFDM", geo.get("SF", diameter)), tool_unit)
             corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
-            stickout = parse_dim(t_dict.get("stickout", flute_len * 1.5), tool_unit)
-            is_carbide = True
+            raw_stick = t_dict.get("stickout") or geo.get("LB") or geo.get("bodyLength")
+            stickout = parse_dim(raw_stick, tool_unit) if raw_stick is not None else (flute_len * 1.5)
+            mat_str = str(t_dict.get("material") or geo.get("material") or t_dict.get("postProcess", {}).get("material") or t_dict.get("description", "")).lower()
+            is_carbide = not any(h in mat_str for h in ["hss", "high speed steel", "high-speed steel", "carbon steel"])
 
             # Determine tool aggressiveness:
             # 1. Check if an explicit override was passed in tool_aggr_map
@@ -997,7 +1035,6 @@ def twin_batch_generate():
             presets_list = t_dict["start-values"]["presets"]
 
             if is_drilling:
-                is_tap = "tap" in tool_type
                 db_tool_type = "Tapping" if is_tap else ("HP Carbide Twist Drill" if is_carbide else "Carbide Twist Drill")
                 
                 target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
@@ -1012,14 +1049,15 @@ def twin_batch_generate():
                 rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
                 
                 if is_tap:
-                    tp = parse_dim(geo.get("TP", 1.0), tool_unit)
+                    tp = parse_dim(geo.get("TP", 0.05), tool_unit)
                     feedrate = rpm * tp
                     adj_ipt = tp
                 else:
                     feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
                     
                 actual_sfm = physics.calc_sfm(rpm, diameter)
-                final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - Drilling"
+                op_suffix = "Tapping" if is_tap else "Drilling"
+                final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - {op_suffix}"
                 
                 if tool_unit == "inches":
                     p_n = float(rpm)
@@ -1081,6 +1119,10 @@ def twin_batch_generate():
                         diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len,
                         corner_radius=corner_rad
                     )
+                    
+                    hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(rec_woc, diameter, operation=strat)
+                    target_sfm *= hem_sfm_mult
+                    rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
                     
                     eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
                     adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry, corner_radius=corner_rad)
@@ -1326,11 +1368,20 @@ def ai_chat():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route("/api/ai_models", methods=["GET"])
+@app.route("/api/ai_models", methods=["GET", "POST"])
 def ai_models():
     """Returns the list of available Gemini models for the configured or provided API key"""
     try:
-        api_key = request.args.get("apiKey", "").strip() or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
+        data = request.get_json(silent=True) or {}
+        api_key = (
+            request.headers.get("x-goog-api-key")
+            or request.headers.get("x-api-key")
+            or data.get("apiKey")
+            or request.args.get("apiKey", "").strip()
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+            or ""
+        )
         if not api_key:
             return jsonify({
                 "success": True,
@@ -1369,6 +1420,7 @@ def ai_models():
 def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
     """Evaluates dimension expressions like '(-.1) * 1mm', '(.1)*1mm', or '0mm'
     into clean, formatted numeric strings like '-0.100 mm' or '0.000 mm'.
+    Uses safe AST parser without eval().
     """
     if expr_str is None or str(expr_str).strip() == "":
         return "0.000 mm" if doc_unit == "mm" else "0.0000 in"
@@ -1385,7 +1437,7 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
         math_str = re.sub(r'([0-9\.\)])\s*(?:mm|millimeter|millimetre|inches|inch|in|\")', r'\1 * 1.0', s, flags=re.I)
         math_str = re.sub(r'(?:mm|millimeter|millimetre|inches|inch|in|\")', r' 1.0 ', math_str, flags=re.I)
         if re.match(r'^[0-9\.\+\-\*\/\(\)\s]+$', math_str):
-            val = float(eval(math_str, {'__builtins__': None}, {}))
+            val = float(safe_eval_expr(math_str))
             if abs(val) < 1e-6:
                 val = 0.0
             if unit == "mm":
@@ -1484,14 +1536,12 @@ def stock_compensation():
             # If doc/woc or feeds/speeds are missing, use standard finishing or roughing defaults
             # Sanitize inputs for realistic physics against accidental unit confusion (e.g. mm/min sent as IPM)
             if is_metric:
-                if feedrate_ipm > 120 or (rpm > 0 and flutes > 0 and (feedrate_ipm / (rpm * flutes)) > 0.008):
+                if rpm > 0 and flutes > 0 and (feedrate_ipm / (rpm * flutes)) > 0.050:
                     feedrate_ipm = feedrate_ipm / 25.4
-                if doc_in > diameter * 4.0:
+                if doc_in > diameter * 8.0:
                     doc_in = doc_in / 25.4
-                if woc_in > diameter:
+                if woc_in > diameter * 2.0:
                     woc_in = woc_in / 25.4
-            elif feedrate_ipm > 150:
-                feedrate_ipm = feedrate_ipm / 25.4
 
             if is_finishing:
                 if is_floor_finish:

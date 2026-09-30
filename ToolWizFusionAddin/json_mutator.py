@@ -1,6 +1,22 @@
 import json
 import uuid
 
+class MutatedToolResult(str):
+    def __new__(cls, json_str, preset_name=None, was_updated=False):
+        instance = super().__new__(cls, json_str)
+        instance.json_str = json_str
+        instance.preset_name = preset_name
+        instance.was_updated = was_updated
+        return instance
+
+    def __iter__(self):
+        return iter((str(self), self.preset_name, self.was_updated))
+
+    def __getitem__(self, item):
+        if isinstance(item, int) and 0 <= item <= 2:
+            return (str(self), self.preset_name, self.was_updated)[item]
+        return super().__getitem__(item)
+
 def format_unit(value, unit_string):
     """
     Enforces unit concatenation to bypass Fusion's unitless metric default bug.
@@ -88,14 +104,19 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
         "tool-coolant": "flood"
     }
     
-    # Preserve tool number in post-process section if provided
+    # Preserve tool number in post-process section ONLY if a valid positive tool number is provided
     t_num = new_preset_data.get("tool_number") or new_preset_data.get("number")
-    if t_num:
-        if "post-process" not in tool_dict or not isinstance(tool_dict["post-process"], dict):
-            tool_dict["post-process"] = {}
-        tool_dict["post-process"]["number"] = int(t_num)
-        tool_dict["post-process"]["diameter-offset"] = int(t_num)
-        tool_dict["post-process"]["length-offset"] = int(t_num)
+    if t_num is not None:
+        try:
+            t_val = int(t_num)
+            if t_val > 0:
+                if "post-process" not in tool_dict or not isinstance(tool_dict["post-process"], dict):
+                    tool_dict["post-process"] = {}
+                tool_dict["post-process"]["number"] = t_val
+                tool_dict["post-process"]["diameter-offset"] = t_val
+                tool_dict["post-process"]["length-offset"] = t_val
+        except (ValueError, TypeError):
+            pass
 
     was_updated = False
     
@@ -123,4 +144,4 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
     if not was_updated:
         presets.append(mapped_data)
         
-    return json.dumps(tool_dict), preset_name, was_updated
+    return MutatedToolResult(json.dumps(tool_dict), preset_name, was_updated)

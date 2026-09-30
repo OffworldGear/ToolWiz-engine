@@ -1,10 +1,47 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
 import urllib.request, json
 import os, re
+import ast
+import operator
 try:
     from . import json_mutator
 except (ImportError, ValueError):
     import json_mutator
+
+_SAFE_OPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+def safe_eval_expr(expr_str: str) -> float:
+    """Safely evaluates basic arithmetic expressions without eval(). Disallows exponentiation (**) and arbitrary code."""
+    node = ast.parse(expr_str, mode='eval')
+
+    def _eval(n):
+        if isinstance(n, ast.Expression):
+            return _eval(n.body)
+        elif isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+            return float(n.value)
+        elif isinstance(n, ast.BinOp):
+            op_type = type(n.op)
+            if op_type not in _SAFE_OPS:
+                raise ValueError(f"Unsupported operator: {op_type}")
+            left = _eval(n.left)
+            right = _eval(n.right)
+            return _SAFE_OPS[op_type](left, right)
+        elif isinstance(n, ast.UnaryOp):
+            op_type = type(n.op)
+            if op_type not in _SAFE_OPS:
+                raise ValueError(f"Unsupported operator: {op_type}")
+            return _SAFE_OPS[op_type](_eval(n.operand))
+        else:
+            raise ValueError(f"Unsupported syntax: {type(n)}")
+
+    return _eval(node)
 
 app = None
 ui = None
@@ -151,8 +188,54 @@ def format_cutter_type(raw_type, desc=""):
     return "Flat End Mill"
 
 def extract_tool_number(op, t_dict=None):
-    """Accurately extracts tool number from operation CAMParameters, tool object, or tool JSON."""
-    # 1. Operation CAM parameters (authoritative for active CAM toolpath)
+    """Accurately extracts tool number from tool JSON, tool object, or operation CAMParameters."""
+    # 1. Tool JSON dictionary (authoritative definition from library)
+    if t_dict and isinstance(t_dict, dict):
+        post = (
+            t_dict.get("post-process")
+            or t_dict.get("postProcess")
+            or t_dict.get("post_process")
+            or {}
+        )
+        if isinstance(post, dict):
+            num = post.get("number")
+            if num is not None:
+                try:
+                    val = int(num)
+                    if val > 0:
+                        return val
+                except:
+                    pass
+        if "number" in t_dict:
+            try:
+                val = int(t_dict["number"])
+                if val > 0:
+                    return val
+            except:
+                pass
+
+    # 2. Direct property or JSON on tool object
+    if op and hasattr(op, 'tool') and op.tool:
+        try:
+            if hasattr(op.tool, 'number'):
+                val = int(op.tool.number)
+                if val > 0:
+                    return val
+        except:
+            pass
+        if not t_dict and hasattr(op.tool, 'toJson'):
+            try:
+                raw_json = op.tool.toJson()
+                tj = json.loads(raw_json)
+                post = tj.get("post-process") or tj.get("postProcess") or {}
+                if isinstance(post, dict) and post.get("number") is not None:
+                    val = int(post.get("number"))
+                    if val > 0:
+                        return val
+            except:
+                pass
+
+    # 3. Operation CAM parameters (fallback)
     if op and hasattr(op, 'parameters') and op.parameters:
         for p_name in ['tool_number', 'tool_toolNumber', 'toolNumber']:
             try:
@@ -177,43 +260,7 @@ def extract_tool_number(op, t_dict=None):
             except:
                 pass
 
-    # 2. Direct property on tool object
-    if op and hasattr(op, 'tool') and op.tool:
-        try:
-            if hasattr(op.tool, 'number'):
-                val = int(op.tool.number)
-                if val > 0:
-                    return val
-        except:
-            pass
-
-    # 3. Tool JSON dictionary
-    if t_dict and isinstance(t_dict, dict):
-        # Autodesk tool JSON schema uses "post-process" (hyphenated)
-        post = (
-            t_dict.get("post-process")
-            or t_dict.get("postProcess")
-            or t_dict.get("post_process")
-            or {}
-        )
-        if isinstance(post, dict):
-            num = post.get("number")
-            if num is not None:
-                try:
-                    val = int(num)
-                    if val > 0:
-                        return val
-                except:
-                    pass
-        if "number" in t_dict:
-            try:
-                val = int(t_dict["number"])
-                if val > 0:
-                    return val
-            except:
-                pass
-
-    return 1
+    return 0
 
 def get_op_tool_info(op):
     """Extracts tool metadata and geometry formatted in inches with dual unit display"""
@@ -230,7 +277,7 @@ def get_op_tool_info(op):
         diameter = parse_dim_to_inches(geo.get("DC", 6.35), 0.25, tool_unit)
         flutes = int(geo.get("NOF", 4))
         flute_length = parse_dim_to_inches(geo.get("LCF", 25.4), diameter * 3, tool_unit)
-        shank_diameter = parse_dim_to_inches(geo.get("SF", diameter * 25.4), diameter, tool_unit)
+        shank_diameter = parse_dim_to_inches(geo.get("SFDM", geo.get("SF", diameter)), diameter, tool_unit)
         corner_radius = parse_dim_to_inches(geo.get("RE", 0.0), 0.0, tool_unit)
         desc = t_dict.get("description", f"{diameter:.3f}in Endmill")
         t_num = extract_tool_number(op, t_dict)
@@ -290,7 +337,8 @@ def get_op_tool_info(op):
         
         dia_mm = diameter * 25.4
         fl_mm = flute_length * 25.4
-        summary = f"T{t_num}: {desc} | {cutter_type} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
+        t_label = f"T{t_num}" if t_num > 0 else "T0 (Unassigned)"
+        summary = f"{t_label}: {desc} | {cutter_type} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), {flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)"
         return geo_payload, summary, preset_names
     except Exception as e:
         return None, f"Error extracting tool: {str(e)}", []
@@ -693,7 +741,7 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
             calc_result["name"] = f"{material_label} - {strategy}"
             calc_result["material_query"] = material_label
             calc_result["material_category"] = "metal"
-            calc_result["tool_number"] = geo_payload.get("number", 1)
+            calc_result["tool_number"] = geo_payload.get("number", 0)
             calc_result["flutes"] = geo_payload.get("flutes", 4)
             
             rpm = calc_result.get("rpm", 5000)
@@ -746,6 +794,23 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                             target_preset = cur_tool.presets.add()
                         if target_preset:
                             target_preset.name = final_preset_name
+                            if hasattr(target_preset, 'parameters') and target_preset.parameters:
+                                for p_name, p_val in [
+                                    ('tool_spindleSpeed', f"{rpm} rpm"),
+                                    ('tool_spindleSpeedRamp', f"{rpm} rpm"),
+                                    ('tool_feedCutting', f"{feed:.2f} in/min"),
+                                    ('tool_feedEntry', f"{feed:.2f} in/min"),
+                                    ('tool_feedExit', f"{feed:.2f} in/min"),
+                                    ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
+                                    ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
+                                    ('tool_feedTransition', f"{feed * 1.5:.2f} in/min")
+                                ]:
+                                    try:
+                                        p_obj = target_preset.parameters.itemByName(p_name)
+                                        if p_obj:
+                                            p_obj.expression = p_val
+                                    except:
+                                        pass
                             target_op.tool = cur_tool
                             tool_updated = True
                 except Exception as ex_preset:
@@ -784,16 +849,15 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                 f"Cutting Feed: {feed:.2f} in/min ({ipt:.4f} IPT)"
             ]
             
-            # If preset was NOT successfully linked, apply feeds & speeds as manual parameter overrides
-            if not preset_linked:
-                apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
-                apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
-                apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min")
-                apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
-                apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
-                apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
-                apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
-                apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
+            # Explicitly apply feeds & speeds as operation parameter values so the active toolpath uses them
+            apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
+            apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
+            apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min")
+            apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
+            apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
             
             # Apply operation-specific cut step parameters (not stored in tool presets)
             if "Adaptive" in strategy:
@@ -805,37 +869,16 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
                     
             if apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"):
                 applied.append(f"Max Stepdown (DOC): {doc:.4f} in")
-
-            # Guard smoothing tolerance from collapsing to microscopic values (0.001 mm / 1 micron)
-            try:
-                p_smooth = target_op.parameters.itemByName('smoothingTolerance')
-                if p_smooth and p_smooth.isEnabled:
-                    tol_val_mm = None
-                    if hasattr(p_smooth, 'value') and hasattr(p_smooth.value, 'value'):
-                        tol_val_mm = float(p_smooth.value.value) * 10.0  # cm to mm
-                    elif getattr(p_smooth, 'expression', None):
-                        m = re.search(r'([0-9.]+)', str(p_smooth.expression))
-                        if m:
-                            tol_val_mm = float(m.group(1))
-                            if 'in' in str(p_smooth.expression).lower():
-                                tol_val_mm *= 25.4
-                    if tol_val_mm is not None and tol_val_mm <= 0.002:
-                        p_tol = target_op.parameters.itemByName('tolerance')
-                        if p_tol and getattr(p_tol, 'expression', None):
-                            p_smooth.expression = p_tol.expression
-                        else:
-                            p_smooth.expression = "0.001 in"
-            except:
-                pass
                 
             action_desc = "Updated in-place" if was_updated else "Created new preset"
             link_desc = "Linked as active preset" if preset_linked else ("Added to tool presets" if tool_updated else "Parameters applied")
             applied_summary = "\n".join([f" • {item}" for item in applied])
-            t_num = geo_payload.get("number", 1)
+            t_num = geo_payload.get("number", 0)
+            t_disp = f"T{t_num}" if t_num > 0 else "T0 (Unassigned)"
             msg = (
                 f"Tool Cutting Data & Preset Applied!\n"
                 f"====================================\n"
-                f"Tool: T{t_num} ({geo_payload.get('desc', 'Endmill')})\n"
+                f"Tool: {t_disp} ({geo_payload.get('desc', 'Endmill')})\n"
                 f"Material: {material_label}\n"
                 f"Preset: {final_preset_name}\n"
                 f"Status: {action_desc} ({link_desc})\n"
@@ -1183,7 +1226,7 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
         math_str = re.sub(r'([0-9\.\)])\s*(?:mm|millimeter|millimetre|inches|inch|in|\")', r'\1 * 1.0', s, flags=re.I)
         math_str = re.sub(r'(?:mm|millimeter|millimetre|inches|inch|in|\")', r' 1.0 ', math_str, flags=re.I)
         if re.match(r'^[0-9\.\+\-\*\/\(\)\s]+$', math_str):
-            val = float(eval(math_str, {'__builtins__': None}, {}))
+            val = float(safe_eval_expr(math_str))
             if abs(val) < 1e-6:
                 val = 0.0
             if unit == "mm":
@@ -1300,8 +1343,8 @@ def get_op_cut_params(op, doc_unit="in"):
                     if m:
                         raw_feed = float(m.group(1))
                         expr_str = str(p_feed.expression).lower()
-                        # If feed is above 100 or metric unit detected, it is mm/min
-                        if 'mm' in expr_str or doc_unit == 'mm' or raw_feed > 120:
+                        # If metric unit detected or document is metric, convert mm/min to IPM
+                        if 'mm' in expr_str or doc_unit == 'mm':
                             feed = raw_feed / 25.4  # mm/min to IPM
                         else:
                             feed = raw_feed
@@ -1312,10 +1355,6 @@ def get_op_cut_params(op, doc_unit="in"):
                         feed = val_cm_s * 60.0 / 2.54  # cm/s to in/min (IPM)
             except:
                 pass
-                
-        # Sanity check: cutting feedrate in IPM should almost never exceed 150 IPM for precision milling
-        if feed > 150:
-            feed = feed / 25.4
 
         # 3. Axial Depth of Cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:

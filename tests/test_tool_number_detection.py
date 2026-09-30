@@ -84,7 +84,7 @@ class TestToolNumberDetection(unittest.TestCase):
 
     def test_fallback_default(self):
         op = DummyOp()
-        self.assertEqual(extract_tool_number(op), 1)
+        self.assertEqual(extract_tool_number(op), 0)
 
 if __name__ == '__main__':
     unittest.main()

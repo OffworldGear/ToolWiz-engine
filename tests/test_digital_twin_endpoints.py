@@ -2,15 +2,20 @@ import unittest
 import json
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import app as app_module
 from app import app
 from backup_manager import BackupManager
 
 class TestDigitalTwinEndpoints(unittest.TestCase):
     def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.orig_bm = app_module.bm
+        self.bm = BackupManager(base_dir=self.temp_dir.name)
+        app_module.bm = self.bm
         self.client = app.test_client()
-        self.bm = BackupManager()
 
         # Seed mock working library with duplicates and presets
         mock_library = {
@@ -52,6 +57,10 @@ class TestDigitalTwinEndpoints(unittest.TestCase):
             ]
         }
         self.bm.save_working_library(mock_library, "Test_Master_Crib")
+
+    def tearDown(self):
+        app_module.bm = self.orig_bm
+        self.temp_dir.cleanup()
 
     def test_twin_load(self):
         resp = self.client.get('/api/twin/load')

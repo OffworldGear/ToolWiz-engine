@@ -53,6 +53,28 @@ from typing import Dict, List, Tuple, Any, Optional
 logger = logging.getLogger("ToolWizPhysics")
 
 
+def is_tap_tool_type(name: str) -> bool:
+    """Return True if name indicates a tapping tool, strictly excluding tapered mills."""
+    if not name:
+        return False
+    s = str(name).lower()
+    if "taper" in s:
+        return False
+    return bool(re.search(r'\b(tap|taps|tapping)\b', s))
+
+
+def is_drilling_tool_type(tool_type: str, geometry: str = "") -> bool:
+    """Return True if tool_type or geometry represents an axial hole-making tool (drill, tap, reamer, bore)."""
+    t_str = str(tool_type or "").lower()
+    g_str = str(geometry or "").lower()
+    if is_tap_tool_type(t_str) or is_tap_tool_type(g_str):
+        return True
+    combined = f"{t_str} {g_str}"
+    if "taper" in combined and not any(k in combined for k in ["drill", "reamer", "bore", "tap"]):
+        return False
+    return bool(re.search(r'\b(drill|drills|drilling|reamer|reamers|reaming|bore|boring|counterbore|countersink|spot drill|center drill|annular|parabolic)\b', combined))
+
+
 # =============================================================================
 # 1. HARDNESS & METALLURGY CONVERSION (ASTM E140)
 # =============================================================================
@@ -1091,7 +1113,7 @@ class AdvisoryEngine:
         is_highly_elastic = any(m in mat_lower for m in ["plastic", "titanium", "wood", "zirconium", "delrin", "acetal", "nylon", "peek", "teflon", "rubber"])
         has_high_springback = sb_factor >= 0.0004 or is_highly_elastic or any(s in mat_lower for s in ["nitronic", "titanium", "inconel", "316", "304", "plastic", "zirconium", "peek", "delrin", "acetal", "nylon"])
 
-        is_drilling = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "annular", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "parabolic"])
+        is_drilling = is_drilling_tool_type(tool_type, geometry)
         is_saw = geometry in ["T-Slot", "Keyseat", "Woodruff"] or "saw" in str(tool_type).lower() or "woodruff" in str(tool_type).lower()
         ld_ratio = stickout / diameter if diameter > 0.0 else 0.0
         fl_ratio = (flute_length / diameter) if (diameter > 0.0 and flute_length > 0.0) else 0.0
@@ -1126,8 +1148,9 @@ class AdvisoryEngine:
 
             mat_display_name = alloy if (alloy and alloy.strip()) else material_family
             op_lower = str(operation).lower()
-            is_floor_finishing = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"])
-            is_finishing = "finish" in op_lower or is_floor_finishing or cut_width <= (diameter * 0.15)
+            is_roughing_op = any(r in op_lower for r in ["rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot"])
+            is_floor_finishing = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"]) and not is_roughing_op
+            is_finishing = ("finish" in op_lower or is_floor_finishing or (cut_width <= (diameter * 0.15) and not is_roughing_op)) and not is_roughing_op
             should_advise_wear_comp = (
                 total_error >= 0.00025
                 or (has_high_springback and is_finishing)
@@ -1361,7 +1384,7 @@ class AdvisoryEngine:
                     "type": "info"
                 })
 
-        is_tap_tool = "tap" in tool_type.lower() or "tap" in str(operation).lower()
+        is_tap_tool = is_tap_tool_type(tool_type) or is_tap_tool_type(operation)
         if is_tap_tool:
             if str(tap_type).lower() == "form":
                 is_brittle = any(b in material_family.lower() for b in ["cast iron", "graphite"])
@@ -1466,7 +1489,7 @@ class AdvisoryEngine:
                 })
 
         # Geometry Sanity Audits: Stickout Ratio, Aluminum Flute Count, and Collet Grip
-        is_hole_tool = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "tap", "reamer"])
+        is_hole_tool = is_drilling_tool_type(tool_type, geometry)
         if not is_hole_tool and diameter > 0.0:
             l_d = stickout / diameter
             has_relieved_neck = neck_diameter > 0.0 and neck_diameter < (diameter * 0.98)
@@ -1652,11 +1675,11 @@ class GWizardPhysics:
         if lookup_tool not in known_sfm_tools:
             if "thread" in t_low or geometry == "Thread Mill":
                 lookup_tool = "Carbide Thread Mill"
-            elif "drill" in t_low or geometry in ["Drill", "Spot Drill", "Twist Drill", "Parabolic"]:
-                lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
             elif "ream" in t_low or geometry == "Reamer":
                 lookup_tool = "HSS Reamer"
-            elif "tap" in t_low or tool_type == "Tapping":
+            elif is_drilling_tool_type(t_low, geometry) and not is_tap_tool_type(t_low):
+                lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
+            elif is_tap_tool_type(t_low) or tool_type == "Tapping":
                 lookup_tool = "Tapping"
             elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "High Feed", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
                 if "hp" in t_low:
@@ -1667,12 +1690,12 @@ class GWizardPhysics:
         for entry in self.sfm_data:
             if entry["material"] == material and entry["tool"] == lookup_tool:
                 sfm = float(entry["sfm"])
-                if tool_type == "Tapping":
+                if tool_type == "Tapping" or is_tap_tool_type(tool_type):
                     if tap_type == "form":
                         mult_key = "CarbideForm" if is_carbide else "HSSForm"
                         mult = float(entry.get(mult_key, 0.0) or 0.0)
                         if mult <= 0.0:
-                            mult = 2.0  # Modern high-performance form taps (OSG NRT) in tough alloys
+                            mult = 1.0  # Fallback to standard SFM (never 2.0x in tough alloys)
                         sfm *= mult
                     elif tap_type == "spiral_point":
                         sfm *= 1.15  # Through-hole gun tap
@@ -1682,12 +1705,12 @@ class GWizardPhysics:
                         sfm *= 1.00  # Standard blind-hole cut tap
                 break
 
-        if tool_type != "Tapping":
+        if tool_type != "Tapping" and not is_tap_tool_type(tool_type):
             if is_saw:
                 sfm *= 0.75  # G-Wizard GWizFeedSpeedMath.as:522: 25% reduction for Saws & Woodruff
             elif geometry in ["Thread Mill", "Lollipop"]:
                 sfm *= 0.50
-            elif geometry in ["Drill", "Spot Drill"] and "drill" not in str(tool_type).lower():
+            elif geometry in ["Drill", "Spot Drill"] and not is_drilling_tool_type(tool_type):
                 sfm *= 0.50
 
         if geometry == "Rougher":
@@ -1703,11 +1726,11 @@ class GWizardPhysics:
         # exit into open space each revolution and must maintain proper shear velocity (180-250 SFM)
         # to prevent built-up edge (BUE) and chipping.
         if diameter is not None and 0.0 < diameter < 0.250:
-            is_drill_tool = "drill" in tool_type.lower() or "drill" in str(geometry).lower()
+            is_drill_tool = is_drilling_tool_type(tool_type, str(geometry)) and not is_tap_tool_type(tool_type)
             if is_drill_tool:
                 scale = max(0.20, (diameter / 0.250) ** 0.50)
                 sfm *= scale
-            elif diameter < 0.125 and tool_type != "Tapping" and not is_saw:
+            elif diameter < 0.125 and tool_type != "Tapping" and not is_tap_tool_type(tool_type) and not is_saw:
                 mat_lower = str(material).lower()
                 is_gummy = any(g in mat_lower for g in ["plastic", "lead", "gold", "silver"])
                 if is_gummy:
@@ -1752,9 +1775,9 @@ class GWizardPhysics:
         if lookup_tool not in known_ipt_tools:
             if "thread" in t_low or geometry == "Thread Mill":
                 lookup_tool = "Carbide Endmill"
-            elif "drill" in t_low or geometry in ["Drill", "Spot Drill", "Twist Drill", "Parabolic"]:
+            elif is_drilling_tool_type(t_low, geometry) and not is_tap_tool_type(t_low):
                 lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
-            elif "tap" in t_low or tool_type == "Tapping":
+            elif is_tap_tool_type(t_low) or tool_type == "Tapping":
                 lookup_tool = "Carbide Twist Drill"
             elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "High Feed", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
                 if "hp" in t_low:
@@ -1830,10 +1853,10 @@ class GWizardPhysics:
 
             return max(best_finish, saw_ipt)
 
-        if "tap" not in str(tool_type).lower():
+        if not is_tap_tool_type(tool_type):
             if geometry in ["Thread Mill", "Lollipop"]:
                 ipt *= 0.50
-            elif geometry in ["Drill", "Spot Drill", "Parabolic"] and "drill" not in str(tool_type).lower():
+            elif geometry in ["Drill", "Spot Drill", "Parabolic"] and not is_drilling_tool_type(tool_type):
                 ipt *= 0.50
 
         if geometry == "Rougher":
@@ -1999,7 +2022,7 @@ class GWizardPhysics:
         aggr_scalar = 0.70 + (aggressiveness * 0.60)
         angle *= aggr_scalar
 
-        is_hole = any(h in str(geometry).lower() for h in ["drill", "parabolic", "reamer", "tap", "bore"]) or any(h in str(tool_type).lower() for h in ["drill", "reamer", "tap", "bore", "annular"])
+        is_hole = is_drilling_tool_type(tool_type, geometry)
 
         if is_hole:
             angle = 90.0
@@ -2033,11 +2056,13 @@ class GWizardPhysics:
         material_family: str,
         alloy_name: str,
         sfm: float,
-        ipt: float
+        ipt: float,
+        is_carbide: bool = True
     ) -> Tuple[float, float]:
         """
-        Dynamically scale SFM and IPT based on the alloy's Brinell Hardness (HB).
+        Dynamically scale SFM based on the alloy's Brinell Hardness (HB).
         Supports HRC, HB, and range conversions via ASTM E140.
+        Uses G-Wizard's genuine bounded linear adjustment model (adjSFMForHardness).
         """
         if not alloy_name or not material_family:
             return sfm, ipt
@@ -2045,17 +2070,50 @@ class GWizardPhysics:
         alloy_hardness = None
         norm_target = alloy_name.strip().lower()
 
-        for a in self.specific_alloys:
-            if a.get("family") == material_family:
+        # Multi-pass matching to prioritize exact condition/temper first
+        matched_alloy = None
+        candidates = [a for a in self.specific_alloys if a.get("family") == material_family]
+        if not candidates:
+            candidates = self.specific_alloys
+
+        # Pass 1: exact match with base_alloy (condition) or base_alloy - condition
+        for a in candidates:
+            base_alloy = str(a.get("alloy", "")).strip().lower()
+            condition = str(a.get("condition", "")).strip().lower()
+            combined = f"{base_alloy} ({condition})".lower()
+            combined_dash = f"{base_alloy}-{condition}".lower()
+            combined_space = f"{base_alloy} {condition}".lower()
+
+            if norm_target in [combined, combined_dash, combined_space]:
+                matched_alloy = a
+                break
+
+        # Pass 2: exact match with base_alloy
+        if not matched_alloy:
+            for a in candidates:
+                base_alloy = str(a.get("alloy", "")).strip().lower()
+                if norm_target == base_alloy:
+                    matched_alloy = a
+                    break
+
+        # Pass 3: Longest substring match scoring base alloy + condition
+        if not matched_alloy:
+            best_score = 0
+            for a in candidates:
                 base_alloy = str(a.get("alloy", "")).strip().lower()
                 condition = str(a.get("condition", "")).strip().lower()
-                combined = f"{base_alloy} ({condition})".lower()
+                if base_alloy and base_alloy in norm_target:
+                    score = len(base_alloy)
+                    if condition and condition in norm_target:
+                        score += len(condition) + 5
+                    if score > best_score:
+                        best_score = score
+                        matched_alloy = a
 
-                if norm_target in [base_alloy, combined] or base_alloy in norm_target:
-                    parsed_hb = ASTMHardnessConverter.parse_hardness(a.get("hardness"))
-                    if parsed_hb:
-                        alloy_hardness = parsed_hb
-                        break
+        if matched_alloy:
+            parsed_hb = ASTMHardnessConverter.parse_hardness(matched_alloy.get("hardness"))
+            if parsed_hb:
+                alloy_hardness = parsed_hb
 
         if not alloy_hardness:
             if "hrc" in norm_target:
@@ -2069,18 +2127,21 @@ class GWizardPhysics:
             return sfm, ipt
 
         min_bhn = float(mat_props.get("minBHN", 1.0))
-        cexp = float(mat_props.get("cexp", 10.0))
+        max_bhn = float(mat_props.get("maxBHN", 450.0))
+        sfm_range = float(mat_props.get("sfmrange", 0.0) if is_carbide else (mat_props.get("sfmrangehss", 0.0) or mat_props.get("sfmrange", 0.0)))
 
-        if alloy_hardness <= min_bhn:
-            return sfm, ipt
+        # G-Wizard genuine bounded linear adjustment (GWizFeedSpeedMath.as:356-370)
+        # adjSFMForHardness(param1: base_sfm, param2: sfmrange, param3: minBHN, param4: maxBHN, param5: bhn)
+        if sfm_range > 0 and max_bhn > min_bhn:
+            range_adj = sfm_range * 0.7
+            range_adj = min(0.4 * sfm, range_adj)
+            clamped_bhn = min(max_bhn, max(min_bhn, float(alloy_hardness)))
+            bhn_span = max_bhn - min_bhn
+            norm = (clamped_bhn - min_bhn) / bhn_span
+            adj = (0.5 - norm) * range_adj
+            sfm = max(10.0, sfm + adj)
 
-        sfm_mult = (min_bhn / alloy_hardness) ** (cexp / 15.0)
-        ipt_mult = (min_bhn / alloy_hardness) ** (cexp / 25.0)
-
-        sfm_mult = max(0.05, min(1.0, sfm_mult))
-        ipt_mult = max(0.20, min(1.0, ipt_mult))
-
-        return sfm * sfm_mult, ipt * ipt_mult
+        return sfm, ipt
 
     def apply_chatter_penalty(
         self,

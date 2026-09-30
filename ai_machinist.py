@@ -31,6 +31,207 @@ CRITICAL MACHINING PRINCIPLES TO APPLY:
 """
 
 
+def _parse_dual_dimension(context: dict, key_base: str, default_in: float, is_metric: bool) -> tuple[float, float]:
+    """
+    Parses a linear dimension (in, mm) from context supporting:
+    - {key_base}_in and {key_base}_mm explicit keys
+    - bare {key_base} with is_metric awareness
+    - fallback default (given in inches)
+    Returns (val_in, val_mm).
+    """
+    in_key = f"{key_base}_in"
+    mm_key = f"{key_base}_mm"
+
+    if in_key in context and context[in_key] is not None:
+        try:
+            val_in = float(context[in_key])
+            val_mm = float(context.get(mm_key, val_in * 25.4))
+            return val_in, val_mm
+        except (ValueError, TypeError):
+            pass
+
+    if mm_key in context and context[mm_key] is not None:
+        try:
+            val_mm = float(context[mm_key])
+            val_in = float(context.get(in_key, val_mm / 25.4))
+            return val_in, val_mm
+        except (ValueError, TypeError):
+            pass
+
+    if key_base in context and context[key_base] is not None:
+        try:
+            raw = float(context[key_base])
+            if is_metric:
+                return raw / 25.4, raw
+            else:
+                return raw, raw * 25.4
+        except (ValueError, TypeError):
+            pass
+
+    return default_in, default_in * 25.4
+
+
+def _parse_dual_feed(context: dict, key_base: str, default_ipm: float, is_metric: bool) -> tuple[float, float]:
+    """
+    Parses feedrate (ipm, mm/min) supporting:
+    - {key_base}_ipm and {key_base}_mmpm explicit keys
+    - bare {key_base} with is_metric awareness
+    - fallback default (given in ipm)
+    Returns (feed_ipm, feed_mmpm).
+    """
+    ipm_key = f"{key_base}_ipm"
+    mmpm_key = f"{key_base}_mmpm"
+
+    if ipm_key in context and context[ipm_key] is not None:
+        try:
+            feed_ipm = float(context[ipm_key])
+            feed_mmpm = float(context.get(mmpm_key, feed_ipm * 25.4))
+            return feed_ipm, feed_mmpm
+        except (ValueError, TypeError):
+            pass
+
+    if mmpm_key in context and context[mmpm_key] is not None:
+        try:
+            feed_mmpm = float(context[mmpm_key])
+            feed_ipm = float(context.get(ipm_key, feed_mmpm / 25.4))
+            return feed_ipm, feed_mmpm
+        except (ValueError, TypeError):
+            pass
+
+    if key_base in context and context[key_base] is not None:
+        try:
+            raw = float(context[key_base])
+            if is_metric:
+                return raw / 25.4, raw
+            else:
+                return raw, raw * 25.4
+        except (ValueError, TypeError):
+            pass
+
+    return default_ipm, default_ipm * 25.4
+
+
+def _parse_dual_chipload(context: dict, default_ipt: float, is_metric: bool) -> tuple[float, float]:
+    """Parses chip load (in/tooth, mm/tooth) returning (ipt_in, ipt_mm)."""
+    if "ipt_in" in context and context["ipt_in"] is not None:
+        try:
+            ipt_in = float(context["ipt_in"])
+            ipt_mm = float(context.get("ipt_mm", ipt_in * 25.4))
+            return ipt_in, ipt_mm
+        except (ValueError, TypeError):
+            pass
+    if "ipt_mm" in context and context["ipt_mm"] is not None:
+        try:
+            ipt_mm = float(context["ipt_mm"])
+            ipt_in = float(context.get("ipt_in", ipt_mm / 25.4))
+            return ipt_in, ipt_mm
+        except (ValueError, TypeError):
+            pass
+    if "ipt" in context and context["ipt"] is not None:
+        try:
+            raw = float(context["ipt"])
+            if is_metric:
+                return raw / 25.4, raw
+            else:
+                return raw, raw * 25.4
+        except (ValueError, TypeError):
+            pass
+    return default_ipt, default_ipt * 25.4
+
+
+def _parse_dual_speed(context: dict, default_sfm: float, is_metric: bool) -> tuple[float, float]:
+    """Parses surface speed returning (sfm, smm)."""
+    if "sfm" in context and "smm" in context and context["sfm"] is not None and context["smm"] is not None:
+        try:
+            return float(context["sfm"]), float(context["smm"])
+        except (ValueError, TypeError):
+            pass
+    if "sfm" in context and context["sfm"] is not None:
+        try:
+            sfm = float(context["sfm"])
+            return sfm, sfm * 0.3048
+        except (ValueError, TypeError):
+            pass
+    if "smm" in context and context["smm"] is not None:
+        try:
+            smm = float(context["smm"])
+            return smm / 0.3048, smm
+        except (ValueError, TypeError):
+            pass
+    if "speed" in context and context["speed"] is not None:
+        try:
+            raw = float(context["speed"])
+            if is_metric:
+                return raw / 0.3048, raw
+            else:
+                return raw, raw * 0.3048
+        except (ValueError, TypeError):
+            pass
+    return default_sfm, default_sfm * 0.3048
+
+
+def _parse_dual_deflection(context: dict, is_metric: bool) -> tuple[float, float, float]:
+    """Parses deflection returning (def_in, def_mm, def_um)."""
+    if "deflection_in" in context and context["deflection_in"] is not None:
+        try:
+            def_in = float(context["deflection_in"])
+            def_mm = float(context.get("deflection_mm", def_in * 25.4))
+            def_um = float(context.get("deflection_um", def_mm * 1000.0))
+            return def_in, def_mm, def_um
+        except (ValueError, TypeError):
+            pass
+    if "deflection_mm" in context and context["deflection_mm"] is not None:
+        try:
+            def_mm = float(context["deflection_mm"])
+            def_in = float(context.get("deflection_in", def_mm / 25.4))
+            def_um = float(context.get("deflection_um", def_mm * 1000.0))
+            return def_in, def_mm, def_um
+        except (ValueError, TypeError):
+            pass
+    if "deflection" in context and context["deflection"] is not None:
+        try:
+            raw = float(context["deflection"])
+            if is_metric:
+                def_mm = raw
+                def_in = raw / 25.4
+            else:
+                def_in = raw
+                def_mm = raw * 25.4
+            def_um = def_mm * 1000.0
+            return def_in, def_mm, def_um
+        except (ValueError, TypeError):
+            pass
+    return 0.0, 0.0, 0.0
+
+
+def _parse_dual_mrr(context: dict, is_metric: bool) -> tuple[float, float]:
+    """Parses material removal rate returning (mrr_in3, mrr_cm3)."""
+    if "mrr_in3" in context and context["mrr_in3"] is not None:
+        try:
+            in3 = float(context["mrr_in3"])
+            cm3 = float(context.get("mrr_cm3", in3 * 16.387))
+            return in3, cm3
+        except (ValueError, TypeError):
+            pass
+    if "mrr_cm3" in context and context["mrr_cm3"] is not None:
+        try:
+            cm3 = float(context["mrr_cm3"])
+            in3 = float(context.get("mrr_in3", cm3 / 16.387))
+            return in3, cm3
+        except (ValueError, TypeError):
+            pass
+    if "mrr" in context and context["mrr"] is not None:
+        try:
+            raw = float(context["mrr"])
+            if is_metric:
+                return raw / 16.387, raw
+            else:
+                return raw, raw * 16.387
+        except (ValueError, TypeError):
+            pass
+    return 0.0, 0.0
+
+
 def format_context_for_prompt(context: dict) -> str:
     """Format the active machining context dictionary into a readable markdown block with explicit dual units."""
     if not context:
@@ -47,160 +248,40 @@ def format_context_for_prompt(context: dict) -> str:
 
     is_metric = bool(context.get("isMetric", False) or "metric" in str(context.get("unitSystem", "")).lower())
 
-    # Safely parse numeric parameters supporting dual-unit keys and legacy keys
-    try:
-        dia_in = float(context.get("diameter_in", context.get("diameter", 0.5)))
-    except (ValueError, TypeError):
-        dia_in = 0.5
-    try:
-        dia_mm = float(context.get("diameter_mm", dia_in * 25.4))
-    except (ValueError, TypeError):
-        dia_mm = dia_in * 25.4
-
-    try:
-        flute_in = float(context.get("fluteLength_in", context.get("fluteLength", 1.0)))
-    except (ValueError, TypeError):
-        flute_in = 1.0
-    try:
-        flute_mm = float(context.get("fluteLength_mm", flute_in * 25.4))
-    except (ValueError, TypeError):
-        flute_mm = flute_in * 25.4
-
-    try:
-        stick_in = float(context.get("stickout_in", context.get("stickout", 1.5)))
-    except (ValueError, TypeError):
-        stick_in = 1.5
-    try:
-        stick_mm = float(context.get("stickout_mm", stick_in * 25.4))
-    except (ValueError, TypeError):
-        stick_mm = stick_in * 25.4
-
-    try:
-        doc_in = float(context.get("cutDepth_in", context.get("cutDepth", 0.25)))
-    except (ValueError, TypeError):
-        doc_in = 0.25
-    try:
-        doc_mm = float(context.get("cutDepth_mm", doc_in * 25.4))
-    except (ValueError, TypeError):
-        doc_mm = doc_in * 25.4
-
-    try:
-        woc_in = float(context.get("cutWidth_in", context.get("cutWidth", 0.10)))
-    except (ValueError, TypeError):
-        woc_in = 0.10
-    try:
-        woc_mm = float(context.get("cutWidth_mm", woc_in * 25.4))
-    except (ValueError, TypeError):
-        woc_mm = woc_in * 25.4
+    # Safely parse numeric parameters supporting dual-unit keys and legacy bare keys
+    dia_in, dia_mm = _parse_dual_dimension(context, "diameter", 0.5, is_metric)
+    flute_in, flute_mm = _parse_dual_dimension(context, "fluteLength", 1.0, is_metric)
+    stick_in, stick_mm = _parse_dual_dimension(context, "stickout", 1.5, is_metric)
+    doc_in, doc_mm = _parse_dual_dimension(context, "cutDepth", 0.25, is_metric)
+    woc_in, woc_mm = _parse_dual_dimension(context, "cutWidth", 0.10, is_metric)
 
     try:
         rpm = int(float(context.get("rpm", 0)))
     except (ValueError, TypeError):
         rpm = 0
 
-    try:
-        feed_ipm = float(context.get("feedrate_ipm", context.get("feedrate", 0)))
-    except (ValueError, TypeError):
-        feed_ipm = 0.0
-    try:
-        feed_mmpm = float(context.get("feedrate_mmpm", feed_ipm * 25.4))
-    except (ValueError, TypeError):
-        feed_mmpm = feed_ipm * 25.4
-
-    try:
-        sfm = float(context.get("sfm", 0))
-    except (ValueError, TypeError):
-        sfm = 0.0
-    try:
-        smm = float(context.get("smm", sfm * 0.3048))
-    except (ValueError, TypeError):
-        smm = sfm * 0.3048
-
-    try:
-        ipt_in = float(context.get("ipt_in", context.get("ipt", 0)))
-    except (ValueError, TypeError):
-        ipt_in = 0.0
-    try:
-        ipt_mm = float(context.get("ipt_mm", ipt_in * 25.4))
-    except (ValueError, TypeError):
-        ipt_mm = ipt_in * 25.4
-
-    try:
-        plunge_ipm = float(context.get("plungeFeed_ipm", context.get("plungeFeed", 0)))
-    except (ValueError, TypeError):
-        plunge_ipm = 0.0
-    try:
-        plunge_mmpm = float(context.get("plungeFeed_mmpm", plunge_ipm * 25.4))
-    except (ValueError, TypeError):
-        plunge_mmpm = plunge_ipm * 25.4
-
-    try:
-        ramp_ipm = float(context.get("rampFeed_ipm", context.get("rampFeed", 0)))
-    except (ValueError, TypeError):
-        ramp_ipm = 0.0
-    try:
-        ramp_mmpm = float(context.get("rampFeed_mmpm", ramp_ipm * 25.4))
-    except (ValueError, TypeError):
-        ramp_mmpm = ramp_ipm * 25.4
+    feed_ipm, feed_mmpm = _parse_dual_feed(context, "feedrate", 0.0, is_metric)
+    sfm, smm = _parse_dual_speed(context, 0.0, is_metric)
+    ipt_in, ipt_mm = _parse_dual_chipload(context, 0.0, is_metric)
+    plunge_ipm, plunge_mmpm = _parse_dual_feed(context, "plungeFeed", 0.0, is_metric)
+    ramp_ipm, ramp_mmpm = _parse_dual_feed(context, "rampFeed", 0.0, is_metric)
 
     try:
         ramp_angle = float(context.get("rampAngle", 0))
     except (ValueError, TypeError):
         ramp_angle = 0.0
 
-    try:
-        def_in = float(context.get("deflection_in", context.get("deflection", 0)))
-    except (ValueError, TypeError):
-        def_in = 0.0
-    try:
-        def_mm = float(context.get("deflection_mm", def_in * 25.4))
-    except (ValueError, TypeError):
-        def_mm = def_in * 25.4
-    try:
-        def_um = float(context.get("deflection_um", def_mm * 1000.0))
-    except (ValueError, TypeError):
-        def_um = def_mm * 1000.0
-
-    try:
-        spring_in = float(context.get("springback_in", 0))
-    except (ValueError, TypeError):
-        spring_in = 0.0
-    try:
-        spring_mm = float(context.get("springback_mm", spring_in * 25.4))
-    except (ValueError, TypeError):
-        spring_mm = spring_in * 25.4
-
-    try:
-        rad_comp_in = float(context.get("radialComp_in", 0))
-    except (ValueError, TypeError):
-        rad_comp_in = 0.0
-    try:
-        rad_comp_mm = float(context.get("radialComp_mm", rad_comp_in * 25.4))
-    except (ValueError, TypeError):
-        rad_comp_mm = rad_comp_in * 25.4
-
-    try:
-        ax_comp_in = float(context.get("axialComp_in", 0))
-    except (ValueError, TypeError):
-        ax_comp_in = 0.0
-    try:
-        ax_comp_mm = float(context.get("axialComp_mm", ax_comp_in * 25.4))
-    except (ValueError, TypeError):
-        ax_comp_mm = ax_comp_in * 25.4
+    def_in, def_mm, def_um = _parse_dual_deflection(context, is_metric)
+    spring_in, spring_mm = _parse_dual_dimension(context, "springback", 0.0, is_metric)
+    rad_comp_in, rad_comp_mm = _parse_dual_dimension(context, "radialComp", 0.0, is_metric)
+    ax_comp_in, ax_comp_mm = _parse_dual_dimension(context, "axialComp", 0.0, is_metric)
 
     try:
         spindle_load = float(context.get("spindleLoadPct", 0))
     except (ValueError, TypeError):
         spindle_load = 0.0
 
-    try:
-        mrr_in3 = float(context.get("mrr_in3", context.get("mrr", 0)))
-    except (ValueError, TypeError):
-        mrr_in3 = 0.0
-    try:
-        mrr_cm3 = float(context.get("mrr_cm3", mrr_in3 * 16.387))
-    except (ValueError, TypeError):
-        mrr_cm3 = mrr_in3 * 16.387
+    mrr_in3, mrr_cm3 = _parse_dual_mrr(context, is_metric)
 
     tips = context.get("tips", [])
     tips_str = ", ".join(tips) if tips else "None active"
@@ -261,11 +342,7 @@ def get_offline_expert_response(prompt: str, context: dict) -> str:
     op = context.get("operation", "Finishing") if context else "Finishing"
     is_metric = bool(context.get("isMetric", False) or "metric" in str(context.get("unitSystem", "")).lower()) if context else False
     
-    try:
-        dia_in = float(context.get("diameter_in", context.get("diameter", 0.5)))
-    except (ValueError, TypeError):
-        dia_in = 0.5
-    dia_mm = dia_in * 25.4
+    dia_in, dia_mm = _parse_dual_dimension(context or {}, "diameter", 0.5, is_metric)
     dia_label = f"{dia_mm:.3f} mm ({dia_in:g}\")" if is_metric else f"{dia_in:g}\" ({dia_mm:.2f} mm)"
     
     if any(k in p_lower for k in ["negative stock", "stock to leave", "flat", "spring back", "springback", "floor"]):
@@ -356,10 +433,11 @@ def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
     if api_key in _MODEL_CACHE:
         return _MODEL_CACHE[api_key], None
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
+    headers = {"x-goog-api-key": api_key}
     try:
         with httpx.Client(timeout=10.0) as client:
-            resp = client.get(url)
+            resp = client.get(url, headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
                 models_data = data.get("models", [])
@@ -470,7 +548,8 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, p
     # 2. Query Gemini with the candidate models
     for model in candidate_models:
         clean_model = model.replace("models/", "").strip()
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent"
+        headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
         payload = {
             "system_instruction": {
                 "parts": [{"text": SYSTEM_INSTRUCTION}]
@@ -489,7 +568,7 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, p
 
         try:
             with httpx.Client(timeout=30.0) as client:
-                resp = client.post(url, json=payload)
+                resp = client.post(url, json=payload, headers=headers)
                 if resp.status_code == 200:
                     data = resp.json()
                     candidates_list = data.get("candidates", [])
