@@ -375,9 +375,18 @@ def parse_cam_feed_to_ipm(p, doc_unit="in"):
             pass
     v = _numeric_param_value(p)
     if v is not None and v > 0:
-        _log(f"Feed expression {expr!r} not a plain number; using evaluated cm/s value")
-        return v * 60.0 / 2.54
+        ipm = v * 60.0 / 2.54  # assumes Fusion's internal feed unit is cm/s (unconfirmed)
+        if ipm > MAX_PLAUSIBLE_IPM:
+            _log(f"Feed expression {expr!r}: evaluated {v!r} -> {ipm:.1f} IPM is implausible; ignoring (server will compute)")
+            return 0.0
+        _log(f"Feed expression {expr!r}: evaluated {v!r} (assumed cm/s) -> {ipm:.1f} IPM")
+        return ipm
     return 0.0
+
+
+# Guards for Fusion evaluated values whose internal units are not confirmed.
+MAX_PLAUSIBLE_RPM = 60000.0
+MAX_PLAUSIBLE_IPM = 2000.0
 
 
 def parse_cam_rpm(p):
@@ -393,8 +402,12 @@ def parse_cam_rpm(p):
             pass
     v = _numeric_param_value(p)
     if v is not None and v > 0:
-        _log(f"Spindle expression {expr!r} not a plain number; using evaluated rad/s value")
-        return v * 60.0 / (2.0 * math.pi)
+        rpm = v * 60.0 / (2.0 * math.pi)  # assumes Fusion's internal spindle unit is rad/s (unconfirmed)
+        if not (1.0 <= rpm <= MAX_PLAUSIBLE_RPM):
+            _log(f"Spindle expression {expr!r}: evaluated {v!r} -> {rpm:.0f} RPM is implausible; ignoring (server will compute)")
+            return 0.0
+        _log(f"Spindle expression {expr!r}: evaluated {v!r} (assumed rad/s) -> {rpm:.0f} RPM")
+        return rpm
     return 0.0
 
 
@@ -2279,79 +2292,62 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
 # ADD-IN RUN / STOP
 # ==============================================================================
 
+COMMAND_SPECS = [
+    (exportCommandId, 'Export Digital Twin',
+     'Exports selected Hub / Cloud / Local library to ToolWiz with automated backup.', 'ToolWizExportCreatedHandler'),
+    (importCommandId, 'Import Digital Twin',
+     'Imports modified Digital Twin library from ToolWiz into Fusion with presets.', 'ToolWizImportCreatedHandler'),
+    (calcCommandId, 'ToolWiz Speeds & Feeds',
+     'Calculates and injects cutting parameters directly into selected CAM operation.', 'ToolWizCreatedHandler'),
+    (stockCommandId, 'Stock to Leave Manager',
+     'Batch inspect and apply Stock to Leave with automatic ToolWiz deflection & springback compensation.',
+     'ToolWizStockCreatedHandler'),
+]
+
+
+def _remove_ui():
+    """Delete this add-in's toolbar controls and command definitions (if present)."""
+    workSpace = ui.workspaces.itemById(workspaceToUse)
+    panel = workSpace.toolbarPanels.itemById(panelToUse) if workSpace else None
+    for cid, _, _, _ in COMMAND_SPECS:
+        if panel:
+            ctrl = panel.controls.itemById(cid)
+            if ctrl:
+                ctrl.deleteMe()
+        cmdDef = ui.commandDefinitions.itemById(cid)
+        if cmdDef:
+            cmdDef.deleteMe()
+
+
 def run(context):
     global app, ui
     app = adsk.core.Application.get()
     ui = app.userInterface
-    
+
     try:
-        # 1. Export Digital Twin Command
-        exportDef = ui.commandDefinitions.itemById(exportCommandId)
-        if not exportDef:
-            exportDef = ui.commandDefinitions.addButtonDefinition(
-                exportCommandId, 'Export Digital Twin', 'Exports selected Hub / Cloud / Local library to ToolWiz with automated backup.'
-            )
-        onExportCreated = ToolWizExportCreatedHandler()
-        exportDef.commandCreated.add(onExportCreated)
-        handlers.append(onExportCreated)
-        
-        # 2. Import Digital Twin Command
-        importDef = ui.commandDefinitions.itemById(importCommandId)
-        if not importDef:
-            importDef = ui.commandDefinitions.addButtonDefinition(
-                importCommandId, 'Import Digital Twin', 'Imports modified Digital Twin library from ToolWiz into Fusion with presets.'
-            )
-        onImportCreated = ToolWizImportCreatedHandler()
-        importDef.commandCreated.add(onImportCreated)
-        handlers.append(onImportCreated)
-        
-        # 3. Speeds & Feeds Fast Calculator Command
-        calcDef = ui.commandDefinitions.itemById(calcCommandId)
-        if not calcDef:
-            calcDef = ui.commandDefinitions.addButtonDefinition(
-                calcCommandId, 'ToolWiz Speeds & Feeds', 'Calculates and injects cutting parameters directly into selected CAM operation.'
-            )
-        onCalcCreated = ToolWizCreatedHandler()
-        calcDef.commandCreated.add(onCalcCreated)
-        handlers.append(onCalcCreated)
-        
-        # 4. Stock to Leave & Deflection Manager Command
-        stockDef = ui.commandDefinitions.itemById(stockCommandId)
-        if not stockDef:
-            stockDef = ui.commandDefinitions.addButtonDefinition(
-                stockCommandId, 'Stock to Leave Manager', 'Batch inspect and apply Stock to Leave with automatic ToolWiz deflection & springback compensation.'
-            )
-        onStockCreated = ToolWizStockCreatedHandler()
-        stockDef.commandCreated.add(onStockCreated)
-        handlers.append(onStockCreated)
-        
+        # Always rebuild the command definitions. Reusing an existing definition would keep
+        # commandCreated handlers from a previously loaded copy of this add-in (e.g. an old
+        # install still in memory), and every dialog would then be built twice.
+        _remove_ui()
+        handlers.clear()
+
         workSpace = ui.workspaces.itemById(workspaceToUse)
-        if workSpace:
-            panel = workSpace.toolbarPanels.itemById(panelToUse)
+        panel = workSpace.toolbarPanels.itemById(panelToUse) if workSpace else None
+        for cid, name, tooltip, handler_cls in COMMAND_SPECS:
+            cmdDef = ui.commandDefinitions.addButtonDefinition(cid, name, tooltip)
+            on_created = globals()[handler_cls]()
+            cmdDef.commandCreated.add(on_created)
+            handlers.append(on_created)
             if panel:
-                if not panel.controls.itemById(exportCommandId): panel.controls.addCommand(exportDef)
-                if not panel.controls.itemById(importCommandId): panel.controls.addCommand(importDef)
-                if not panel.controls.itemById(calcCommandId): panel.controls.addCommand(calcDef)
-                if not panel.controls.itemById(stockCommandId): panel.controls.addCommand(stockDef)
-                    
+                panel.controls.addCommand(cmdDef)
+
     except Exception as e:
         _report_error("Add-in start failed.", e)
 
 def stop(context):
-    global app, ui
     try:
-        workSpace = ui.workspaces.itemById(workspaceToUse)
-        if workSpace:
-            panel = workSpace.toolbarPanels.itemById(panelToUse)
-            if panel:
-                for cid in [exportCommandId, importCommandId, calcCommandId, stockCommandId]:
-                    ctrl = panel.controls.itemById(cid)
-                    if ctrl: ctrl.deleteMe()
-                    
-        for cid in [exportCommandId, importCommandId, calcCommandId, stockCommandId]:
-            cmdDef = ui.commandDefinitions.itemById(cid)
-            if cmdDef: cmdDef.deleteMe()
-            
+        _remove_ui()
+        handlers.clear()
     except Exception as e:
         _report_error("Add-in stop failed.", e)
 
