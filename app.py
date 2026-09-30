@@ -60,8 +60,41 @@ def load_machine_profile(path=MACHINE_PROFILE_PATH):
 
 
 MACHINE = load_machine_profile()
-DEFAULT_MAX_RPM = MACHINE["max_rpm"]
-DEFAULT_MAX_HP = MACHINE["max_hp"]
+
+# User overrides for machine limits live on the server so the web UI and the Fusion add-in
+# share them. Profile values are the defaults; data/machine_settings.json holds overrides.
+MACHINE_SETTINGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "machine_settings.json")
+MACHINE_LIMIT_BOUNDS = {"max_rpm": (100.0, 60000.0), "max_hp": (0.1, 100.0)}
+
+
+def load_machine_overrides(path=None):
+    """Return validated user overrides {max_rpm?, max_hp?} ({} when absent or invalid)."""
+    try:
+        with open(path or MACHINE_SETTINGS_PATH, "r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for key, (lo, hi) in MACHINE_LIMIT_BOUNDS.items():
+        try:
+            val = float(raw.get(key))
+        except (TypeError, ValueError, AttributeError):
+            continue
+        if lo <= val <= hi:
+            out[key] = val
+    return out
+
+
+def machine_limits():
+    """Effective limits: user override if set, else the active spindle's profile value."""
+    ov = load_machine_overrides()
+    return {
+        "max_rpm": ov.get("max_rpm", MACHINE["max_rpm"]),
+        "max_hp": ov.get("max_hp", MACHINE["max_hp"]),
+        "profile_max_rpm": MACHINE["max_rpm"],
+        "profile_max_hp": MACHINE["max_hp"],
+        "overridden": sorted(ov.keys()),
+    }
 
 ALLOWED_ORIGINS = ("http://127.0.0.1:5000", "http://localhost:5000")
 CLIENT_HEADER = "X-ToolWiz-Client"
@@ -198,8 +231,38 @@ def get_data():
         "tools": ordered_tools,
         "tool_groups": TOOL_GROUPS,
         "alloys": physics.specific_alloys,
-        "machine": MACHINE
+        "machine": {**MACHINE, **machine_limits()}
     })
+
+
+@app.route("/api/machine_limits", methods=["GET", "POST"])
+def api_machine_limits():
+    """GET effective limits; POST {maxRpm?, maxHp?} to override (null/"" clears back to the profile)."""
+    if request.method == "GET":
+        return jsonify({"success": True, **machine_limits()})
+    body = _json_body()
+    overrides = load_machine_overrides()
+    for field, key in (("maxRpm", "max_rpm"), ("maxHp", "max_hp")):
+        if field not in body:
+            continue
+        val = body[field]
+        if val is None or str(val).strip() == "":
+            overrides.pop(key, None)
+            continue
+        try:
+            num = float(val)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": f"{field} must be a number"}), 400
+        lo, hi = MACHINE_LIMIT_BOUNDS[key]
+        if not lo <= num <= hi:
+            return jsonify({"success": False, "error": f"{field} must be between {lo:g} and {hi:g}"}), 400
+        overrides[key] = num
+    os.makedirs(os.path.dirname(MACHINE_SETTINGS_PATH), exist_ok=True)
+    tmp = MACHINE_SETTINGS_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(overrides, fh, indent=2)
+    os.replace(tmp, MACHINE_SETTINGS_PATH)
+    return jsonify({"success": True, **machine_limits()})
 
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
@@ -230,8 +293,8 @@ def calculate():
         taper_angle = float(data.get("taperAngle", 0.0))
         helix_angle = float(data.get("helixAngle", 30.0))
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
-        max_rpm = float(data.get("maxRpm", DEFAULT_MAX_RPM))
-        max_hp = float(data.get("maxHp", DEFAULT_MAX_HP))
+        max_rpm = float(data.get("maxRpm") or machine_limits()["max_rpm"])
+        max_hp = float(data.get("maxHp") or machine_limits()["max_hp"])
         runout = float(data.get("runout", 0.0002))
         tap_type = data.get("tapType", "")
         is_metric = bool(data.get("isMetric", False))
@@ -457,8 +520,8 @@ def calculate_for_fusion():
         tool = data.get("tool", "Carbide Endmill") # default fallback
         operation = data.get("operation", "Roughing")
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0
-        max_rpm = float(data.get("maxRpm", DEFAULT_MAX_RPM))
-        max_hp = float(data.get("maxHp", DEFAULT_MAX_HP))
+        max_rpm = float(data.get("maxRpm") or machine_limits()["max_rpm"])
+        max_hp = float(data.get("maxHp") or machine_limits()["max_hp"])
         runout = float(data.get("runout", 0.0002))
         
         # Tool Geometry from Fusion JSON payload
@@ -1044,8 +1107,8 @@ def twin_batch_generate():
         clean_all_non_toolwiz = bool(req_data.get("clean_all_non_toolwiz", False))
         
         coating = req_data.get("coating", "AlTiN")
-        max_rpm = float(req_data.get("maxRpm", DEFAULT_MAX_RPM))
-        max_hp = float(req_data.get("maxHp", DEFAULT_MAX_HP))
+        max_rpm = float(req_data.get("maxRpm") or machine_limits()["max_rpm"])
+        max_hp = float(req_data.get("maxHp") or machine_limits()["max_hp"])
         runout = float(req_data.get("runout", 0.0002))
         
         library_data = bm.load_working_library()

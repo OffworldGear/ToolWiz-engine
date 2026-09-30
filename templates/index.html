@@ -1644,23 +1644,31 @@
                 const nameEl = document.getElementById('machineProfileName');
                 if (nameEl) nameEl.innerText = machineProfile.machine || '';
             }
-            try {
-                const saved = JSON.parse(localStorage.getItem('toolwiz_machine_limits') || 'null');
-                if (saved && typeof saved === 'object') {
-                    if (rpmEl && saved.maxRpm) rpmEl.value = saved.maxRpm;
-                    if (hpEl && saved.maxHp) hpEl.value = saved.maxHp;
-                }
-            } catch (e) { /* storage unavailable or corrupt: keep profile defaults */ }
         }
 
+        // Machine limit edits are saved on the server (data/machine_settings.json) so the Fusion
+        // add-in uses the same values. Clearing a field reverts it to the machine profile.
+        let machineLimitSaveTimer = null;
         function onMachineLimitInput(field) {
-            // Remember only the field the user actually edited; the other keeps following the profile.
-            try {
-                let saved = {};
-                try { saved = JSON.parse(localStorage.getItem('toolwiz_machine_limits') || '{}') || {}; } catch (e) { saved = {}; }
-                saved[field] = document.getElementById(field)?.value || '';
-                localStorage.setItem('toolwiz_machine_limits', JSON.stringify(saved));
-            } catch (e) { /* ignore */ }
+            clearTimeout(machineLimitSaveTimer);
+            machineLimitSaveTimer = setTimeout(async () => {
+                const raw = document.getElementById(field)?.value ?? '';
+                try {
+                    const res = await fetch('/api/machine_limits', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ [field]: raw.trim() === '' ? null : raw })
+                    });
+                    const data = await res.json();
+                    if (data.success && machineProfile) {
+                        machineProfile.max_rpm = data.max_rpm;
+                        machineProfile.max_hp = data.max_hp;
+                        if (raw.trim() === '') applyMachineDefaults();
+                    } else if (!data.success) {
+                        alert('Machine limit not saved: ' + data.error);
+                    }
+                } catch (e) { console.warn('Machine limit save failed', e); }
+            }, 600);
             calculate();
         }
 

@@ -147,8 +147,8 @@ class TestMachineProfileAndErrors(unittest.TestCase):
         self.assertEqual(m["active_spindle"], "optional_16k")
 
     def test_default_max_rpm_comes_from_profile(self):
-        self.assertEqual(app_module.DEFAULT_MAX_RPM, 16000.0)
-        self.assertAlmostEqual(app_module.DEFAULT_MAX_HP, 6.84, places=1)
+        self.assertEqual(app_module.MACHINE["max_rpm"], 16000.0)
+        self.assertAlmostEqual(app_module.MACHINE["max_hp"], 6.84, places=1)
 
     def test_bad_input_is_400(self):
         r = self.client.post("/api/calculate", json=dict(FEASIBLE, diameter="abc"))
