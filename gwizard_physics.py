@@ -1206,10 +1206,11 @@ class AdvisoryEngine:
             is_roughing_op = any(r in op_lower for r in ["rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot"])
             is_floor_finishing = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"]) and not is_roughing_op
             is_finishing = ("finish" in op_lower or is_floor_finishing or (cut_width <= (diameter * 0.15) and not is_roughing_op)) and not is_roughing_op
-            should_advise_wear_comp = (
+            # Negative stock-to-leave only makes sense on finishing passes; roughing must keep stock.
+            should_advise_wear_comp = is_finishing and (
                 total_error >= 0.00025
-                or (has_high_springback and is_finishing)
-                or (has_high_springback and springback_inches >= 0.0003)
+                or has_high_springback
+                or springback_inches >= 0.0003
             )
 
             if should_advise_wear_comp:

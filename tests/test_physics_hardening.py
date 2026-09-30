@@ -120,5 +120,25 @@ class TestHardMillingCorrection(unittest.TestCase):
         self.assertIn("Hardness Beyond Vendor Data", [t["title"] for t in tips])
 
 
+
+class TestWearCompOnlyOnFinishing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.p = GWizardPhysics(DB)
+
+    def titles(self, op):
+        tips = self.p.generate_advanced_strategies(
+            "Steel - Tool (H13)", 0.5, 0.25, 0.1, 15, 1700, 4, "AlTiN", 0.0015,
+            stickout=1.5, flute_length=1.0, operation=op, alloy="CPM MagnaCut (Hardened ~62 HRC)")
+        return [t["title"] for t in tips]
+
+    def test_roughing_gets_no_negative_stock_advice(self):
+        for op in ("Adaptive Roughing", "Standard Roughing", "Slotting / Tab Milling"):
+            self.assertNotIn("Tool Wear Compensation (Wall Deflection & Axial Springback)", self.titles(op), op)
+
+    def test_finishing_still_gets_it(self):
+        self.assertIn("Tool Wear Compensation (Wall Deflection & Axial Springback)", self.titles("Wall Finishing (Deep DOC)"))
+
+
 if __name__ == "__main__":
     unittest.main()
