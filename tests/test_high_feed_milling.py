@@ -9,6 +9,7 @@ class TestHighFeedMilling(unittest.TestCase):
     def setUpClass(cls):
         cls.physics = GWizardPhysics("materials_database_clean.json")
         cls.client = flask_app.app.test_client()
+        cls.client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
 
     def test_axial_chip_thinning_factor(self):
         """Verify Axial Chip Thinning Factor (ACTF) calculations for high feed and bullnose."""

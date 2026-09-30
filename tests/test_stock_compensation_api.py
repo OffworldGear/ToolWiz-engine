@@ -9,6 +9,7 @@ from app import app
 class TestStockCompensationAPI(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
+        self.client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
 
     def test_finishing_contour_titanium(self):
         payload = {

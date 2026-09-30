@@ -22,11 +22,11 @@ ToolWiz Engine is a high-performance, web-based CNC Speeds and Feeds Optimizatio
    ```
 
 2. **Install Dependencies**:
-   Ensure you have Python installed, then install the Flask backend requirements:
+   Ensure you have Python installed, then install the backend requirements (`flask` for the server, `httpx` for the optional Gemini AI Machinist):
    ```bash
-   pip install flask
+   pip install -r requirements.txt
    ```
-   *(Note: No other external libraries are strictly required for the core physics engine as it relies on standard Python math modules).*
+   *(The core physics engine itself only uses the Python standard library.)*
 
 3. **Run the Engine**:
    Start the local Flask development server:
@@ -39,6 +39,31 @@ ToolWiz Engine is a high-performance, web-based CNC Speeds and Feeds Optimizatio
    ```
    http://127.0.0.1:5000/
    ```
+
+5. **Install the Fusion 360 Add-in** (optional, for Digital Twin sync):
+   ```bash
+   python install_addin.py
+   ```
+   This copies `ToolWizFusionAddin/` and the shared `toolwiz_common/` package into Fusion's AddIns folder (`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns`). Restart Fusion 360 and enable the add-in.
+
+## 🧪 Running the Tests
+
+From the repository root:
+```bash
+PYTHONPATH=. python -m unittest discover -s tests
+```
+(`tests/test_stock_manager_mock.py` talks to a live server and may error if none is running.)
+
+## 🔒 API Security (`X-ToolWiz-Client` header)
+
+The server binds to `127.0.0.1` only. To stop drive-by requests from other web pages, every state-changing request (`POST`/`PUT`/`PATCH`/`DELETE` under `/api/`) **must** send a non-empty `X-ToolWiz-Client` header (the web UI sends `web`, the Fusion add-in sends `fusion-addin`). If an `Origin` header is present it must be `http://127.0.0.1:5000` or `http://localhost:5000`. Anything else gets `403` JSON. Request bodies are capped at 50 MB. Example:
+```bash
+curl -X POST http://127.0.0.1:5000/api/calculate -H "Content-Type: application/json" -H "X-ToolWiz-Client: curl" -d '{"family":"Steel - Tool (H13)","diameter":0.5}'
+```
+
+## ⚙️ Machine Profile
+
+`machines/speedio_s500x2.json` describes the machine. The active spindle supplies the default Max RPM and Max HP (continuous kW x 1.341), which the UI pre-fills unless you have typed your own values. Calculation responses also include `feasible` and `limited_by`; infeasible setups get a critical tip and are skipped by the batch preset generator.
 
 ## 🧠 How to Use
 

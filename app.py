@@ -4,7 +4,9 @@ import json
 import math
 import uuid
 import re
+import logging
 from flask import Flask, render_template, request, jsonify, send_file
+from werkzeug.exceptions import HTTPException
 from gwizard_physics import GWizardPhysics, is_tap_tool_type, is_drilling_tool_type
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 from toolwiz_common import (
@@ -16,10 +18,94 @@ from toolwiz_common import (
 safe_eval_expr = safe_eval_length  # backwards-compatible alias
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB upload/request cap
 
 # Initialize physics engine
 db_path = os.path.join(os.path.dirname(__file__), "materials_database_clean.json")
 physics = GWizardPhysics(db_path)
+
+# ---------------------------------------------------------------------------
+# Machine profile (defaults for max RPM / max HP)
+# ---------------------------------------------------------------------------
+MACHINE_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "machines", "speedio_s500x2.json")
+KW_TO_HP = 1.341
+FALLBACK_MAX_RPM = 16000.0
+FALLBACK_MAX_HP = 10.0
+
+
+def load_machine_profile(path=MACHINE_PROFILE_PATH):
+    """Load the machine profile and derive default max RPM / HP from the active spindle."""
+    profile = {}
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            profile = json.load(fh)
+    except (OSError, ValueError) as exc:
+        logging.getLogger(__name__).warning("Machine profile %s unavailable: %s", path, exc)
+        profile = {}
+    max_rpm, max_hp, active = FALLBACK_MAX_RPM, FALLBACK_MAX_HP, None
+    try:
+        active = profile.get("active_spindle")
+        spindle = (profile.get("spindle_options") or {}).get(active) or {}
+        if spindle.get("max_rpm"):
+            max_rpm = float(spindle["max_rpm"])
+        if spindle.get("power_kw_continuous"):
+            max_hp = round(float(spindle["power_kw_continuous"]) * KW_TO_HP, 2)
+    except (TypeError, ValueError):
+        max_rpm, max_hp = FALLBACK_MAX_RPM, FALLBACK_MAX_HP
+    profile = dict(profile)
+    profile["active_spindle"] = active
+    profile["max_rpm"] = max_rpm
+    profile["max_hp"] = max_hp
+    return profile
+
+
+MACHINE = load_machine_profile()
+DEFAULT_MAX_RPM = MACHINE["max_rpm"]
+DEFAULT_MAX_HP = MACHINE["max_hp"]
+
+ALLOWED_ORIGINS = ("http://127.0.0.1:5000", "http://localhost:5000")
+CLIENT_HEADER = "X-ToolWiz-Client"
+
+
+@app.before_request
+def csrf_guard():
+    """Drive-by / CSRF protection for state-changing API calls.
+
+    Browsers cannot attach a custom header cross-origin without a CORS preflight
+    (which this server never grants), so requiring X-ToolWiz-Client blocks drive-by
+    form posts. A present Origin header must additionally be our own origin.
+    """
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path.startswith("/api/"):
+        if not (request.headers.get(CLIENT_HEADER) or "").strip():
+            return jsonify({"success": False, "error": f"Missing {CLIENT_HEADER} header"}), 403
+        origin = request.headers.get("Origin")
+        if origin is not None and origin.rstrip("/") not in ALLOWED_ORIGINS:
+            return jsonify({"success": False, "error": "Cross-origin request rejected"}), 403
+    return None
+
+
+def _json_body():
+    """Request JSON body as a dict ({} when missing/invalid)."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def _api_error(exc):
+    """Map an exception from an API handler to a JSON error response."""
+    if isinstance(exc, HTTPException):
+        return jsonify({"success": False, "error": exc.description or exc.name}), (exc.code or 500)
+    if isinstance(exc, KeyError):
+        key = exc.args[0] if exc.args else ""
+        return jsonify({"success": False, "error": f"Missing required field: {key}"}), 400
+    if isinstance(exc, (ValueError, TypeError)):
+        return jsonify({"success": False, "error": f"Invalid input: {exc}"[:300]}), 400
+    app.logger.error("Unhandled error in %s %s", request.method, request.path, exc_info=exc)
+    return jsonify({"success": False, "error": "Internal server error"}), 500
+
+
+@app.errorhandler(413)
+def _too_large(_e):
+    return jsonify({"success": False, "error": "Request too large (limit 50 MB)"}), 413
 
 @app.route("/")
 def index():
@@ -111,14 +197,15 @@ def get_data():
         "families": families,
         "tools": ordered_tools,
         "tool_groups": TOOL_GROUPS,
-        "alloys": physics.specific_alloys
+        "alloys": physics.specific_alloys,
+        "machine": MACHINE
     })
 
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
     """Calculate physics engine parameters from incoming JSON data"""
     try:
-        data = request.json
+        data = _json_body()
         family = data.get("family", "")
         tool = data.get("tool", "")
         diameter = float(data.get("diameter", 0.5))
@@ -143,8 +230,8 @@ def calculate():
         taper_angle = float(data.get("taperAngle", 0.0))
         helix_angle = float(data.get("helixAngle", 30.0))
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
-        max_rpm = float(data.get("maxRpm", 16000))
-        max_hp = float(data.get("maxHp", 10.0))
+        max_rpm = float(data.get("maxRpm", DEFAULT_MAX_RPM))
+        max_hp = float(data.get("maxHp", DEFAULT_MAX_HP))
         runout = float(data.get("runout", 0.0002))
         tap_type = data.get("tapType", "")
         is_metric = bool(data.get("isMetric", False))
@@ -295,11 +382,24 @@ def calculate():
                 "type": "info"
             })
         
+        rec_details = {}
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
             diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
             helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-            corner_radius=corner_radius
+            corner_radius=corner_radius, details=rec_details
         )
+        feasible = bool(rec_details.get("feasible", True))
+        limited_by = rec_details.get("limited_by")
+        if not feasible:
+            tips.insert(0, {
+                "title": "Infeasible Setup",
+                "message": (
+                    f"No safe cut was found for this tool/material/stickout (limited by: {limited_by or 'unknown'}). "
+                    "The numbers shown are a minimum-engagement fallback and should NOT be run as-is. "
+                    "Reduce stickout, use a larger or shorter tool, or lower aggressiveness."
+                ),
+                "type": "critical"
+            })
         
         ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
         max_radial_reach = (diameter - neck_diameter) / 2.0 if (neck_diameter > 0.0 and neck_diameter < diameter) else diameter
@@ -336,6 +436,8 @@ def calculate():
             "is_spindle_limited": is_spindle_limited,
             "ideal_rpm": round(ideal_rpm),
             "target_sfm": round(target_sfm, 1),
+            "feasible": feasible,
+            "limited_by": limited_by,
             "tips": tips
         }
         if tap_drill_info:
@@ -344,19 +446,19 @@ def calculate():
         return jsonify(resp)
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
 
 @app.route("/api/calculate_for_fusion", methods=["POST"])
 def calculate_for_fusion():
     """Endpoint specifically designed for the Fusion 360 Add-in"""
     try:
-        data = request.json
+        data = _json_body()
         family = data.get("family", "")
         tool = data.get("tool", "Carbide Endmill") # default fallback
         operation = data.get("operation", "Roughing")
         aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0
-        max_rpm = float(data.get("maxRpm", 16000))
-        max_hp = float(data.get("maxHp", 10.0))
+        max_rpm = float(data.get("maxRpm", DEFAULT_MAX_RPM))
+        max_hp = float(data.get("maxHp", DEFAULT_MAX_HP))
         runout = float(data.get("runout", 0.0002))
         
         # Tool Geometry from Fusion JSON payload
@@ -409,10 +511,11 @@ def calculate_for_fusion():
         # 2. Physics Equations
         rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
         # Using recommended DOC and WOC for the final feedrate
+        rec_details = {}
         rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
             diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
             helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-            corner_radius=corner_radius
+            corner_radius=corner_radius, details=rec_details
         )
         
         # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
@@ -448,11 +551,13 @@ def calculate_for_fusion():
             "ramp_feed": round(ramp_feed, 2),
             "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
             "is_spindle_limited": is_spindle_limited,
-            "ideal_rpm": round(ideal_rpm)
+            "ideal_rpm": round(ideal_rpm),
+            "feasible": bool(rec_details.get("feasible", True)),
+            "limited_by": rec_details.get("limited_by")
         })
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
 
 @app.route("/api/threads/standards", methods=["GET"])
 def get_thread_standards():
@@ -461,13 +566,13 @@ def get_thread_standards():
         data = physics.get_thread_standards()
         return jsonify({"success": True, **data})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
 
 @app.route("/api/threads/calculate", methods=["POST"])
 def calculate_thread():
     """Calculate thread specifications, G-Wizard tapping drill table, and blind hole clearance."""
     try:
-        data = request.json or {}
+        data = _json_body()
         family = data.get("family", "ISO Coarse")
         size = data.get("size", "M1.6-0.35")
         th_class = data.get("class", "6H")
@@ -558,7 +663,7 @@ def calculate_thread():
             "drills": drills
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
 
 import zipfile
 import io
@@ -595,7 +700,7 @@ def parse_dim(val, tool_unit=""):
 def twin_export_receive():
     """Receives exported tool library (or multiple libraries) JSON from Fusion 360 Add-in"""
     try:
-        data = request.json
+        data = _json_body()
         if not data:
             return jsonify({"success": False, "error": "No JSON payload received"}), 400
             
@@ -631,7 +736,7 @@ def twin_export_receive():
                 "backup": backup_info
             })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/deduplicate", methods=["POST"])
 def twin_deduplicate():
@@ -658,7 +763,7 @@ def twin_deduplicate():
             "backup": backup_info
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/load", methods=["GET"])
 def twin_load():
@@ -687,6 +792,10 @@ def twin_load():
             geo = t_dict.get("geometry", {})
             kind = classify(t_dict.get("type"))
             geo_error = None
+            try:
+                unit_label = tool_unit_of(t_dict)
+            except (UnitError, ValueError, TypeError):
+                unit_label = None
             try:
                 g = ToolGeometry.from_fusion(t_dict, stickout_override=t_dict.get("stickout"))
                 dia_in, flutes, flute_len = g.diameter, g.flutes, g.flute_length
@@ -720,6 +829,8 @@ def twin_load():
                 preset_list.append({
                     "name": p_name,
                     "guid": p_guid,
+                    "operation_type": p.get("operation_type", ""),
+                    "is_toolwiz": bool(p.get("operation_type")) or " - " in p_name,
                     "material_query": p_mat,
                     "rpm": p.get("n", p.get("rpm", 0)),
                     "n": p.get("n", p.get("rpm", 0)),
@@ -754,6 +865,8 @@ def twin_load():
                 "stickout_in": round(stickout, 4),
                 "stickout_source": stickout_source,
                 "tool_kind": kind.value,
+                "unit": unit_label,
+                "is_metric": unit_label == "millimeters",
                 "geometry_error": geo_error,
                 "custom_aggressiveness": custom_aggr,
                 "signature": signature,
@@ -773,14 +886,14 @@ def twin_load():
             "backups": backups
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/backups", methods=["GET", "POST"])
 def twin_backups():
     """List or restore backups"""
     try:
         if request.method == "POST":
-            filename = request.json.get("filename")
+            filename = _json_body().get("filename")
             if not filename:
                 return jsonify({"success": False, "error": "Filename required"}), 400
             restored = bm.restore_backup(filename)
@@ -788,13 +901,13 @@ def twin_backups():
         else:
             return jsonify({"backups": bm.list_backups()})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/update_tool", methods=["POST"])
 def twin_update_tool():
     """Updates a single tool's metadata, custom aggressiveness override, or dimensions"""
     try:
-        payload = request.json
+        payload = _json_body()
         tool_idx = payload.get("tool_index")
         if tool_idx is None:
             return jsonify({"success": False, "error": "tool_index is required."}), 400
@@ -838,13 +951,13 @@ def twin_update_tool():
 
         return jsonify({"success": True, "tool_index": tool_idx})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/delete_tool", methods=["POST"])
 def twin_delete_tool():
     """Safely deletes a tool from the working library and creates a backup snapshot"""
     try:
-        payload = request.json
+        payload = _json_body()
         tool_idx = payload.get("tool_index")
         if tool_idx is None:
             return jsonify({"success": False, "error": "tool_index is required."}), 400
@@ -867,12 +980,12 @@ def twin_delete_tool():
             "backup": backup_info
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/delete_preset", methods=["POST"])
 def twin_delete_preset():
     try:
-        payload = request.json
+        payload = _json_body()
         tool_idx = payload.get("tool_index")
         preset_guid = payload.get("preset_guid")
         
@@ -907,7 +1020,7 @@ def twin_delete_preset():
         return jsonify({"success": True})
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/batch_generate", methods=["POST"])
 def twin_batch_generate():
@@ -917,7 +1030,7 @@ def twin_batch_generate():
     and automatic springback & wear compensation calculations.
     """
     try:
-        req_data = request.json
+        req_data = _json_body()
         tool_indices = req_data.get("tool_indices", []) # list of integer indices or "all"
         family = req_data.get("family", "Steel - Tool (H13)")
         alloy = req_data.get("alloy", "CPM MagnaCut (Hardened ~62 HRC)")
@@ -931,8 +1044,8 @@ def twin_batch_generate():
         clean_all_non_toolwiz = bool(req_data.get("clean_all_non_toolwiz", False))
         
         coating = req_data.get("coating", "AlTiN")
-        max_rpm = float(req_data.get("maxRpm", 16000))
-        max_hp = float(req_data.get("maxHp", 10.0))
+        max_rpm = float(req_data.get("maxRpm", DEFAULT_MAX_RPM))
+        max_hp = float(req_data.get("maxHp", DEFAULT_MAX_HP))
         runout = float(req_data.get("runout", 0.0002))
         
         library_data = bm.load_working_library()
@@ -1122,10 +1235,21 @@ def twin_batch_generate():
                     target_sfm *= physics.get_coating_multiplier(coating, family)
                     
                     rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
+                    rec_details = {}
                     rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
                         diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len,
-                        corner_radius=corner_rad
+                        corner_radius=corner_rad, details=rec_details
                     )
+                    if not rec_details.get("feasible", True):
+                        skipped.append({
+                            "tool_index": idx,
+                            "number": tool_number,
+                            "description": t_dict.get("description", ""),
+                            "type": t_dict.get("type", ""),
+                            "strategy": strat,
+                            "reason": f"infeasible strategy {strat!r}: no safe cut (limited by {rec_details.get('limited_by') or 'unknown'}); preset not written",
+                        })
+                        continue
                     
                     hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(rec_woc, diameter, operation=strat)
                     target_sfm *= hem_sfm_mult
@@ -1239,7 +1363,7 @@ def twin_batch_generate():
         })
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/get_import_payload", methods=["GET"])
 def twin_get_import_payload():
@@ -1250,7 +1374,7 @@ def twin_get_import_payload():
             return jsonify({"success": False, "error": "No working library found."}), 404
         return jsonify({"success": True, "library": data})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/upload", methods=["POST"])
 def twin_upload():
@@ -1260,9 +1384,7 @@ def twin_upload():
     automatic library merging and deduplication.
     """
     try:
-        uploaded_files = request.files.getlist('files')
-        if not uploaded_files and 'file' in request.files:
-            uploaded_files = [request.files['file']]
+        uploaded_files = request.files.getlist('files') + request.files.getlist('file')
             
         if not uploaded_files or uploaded_files[0].filename == '':
             return jsonify({"success": False, "error": "No file uploaded"}), 400
@@ -1328,7 +1450,7 @@ def twin_upload():
         })
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/download", methods=["GET"])
 def twin_download():
@@ -1356,13 +1478,14 @@ def twin_download():
             download_name=f"{lib_name}.json"
         )
     except Exception as e:
-        return str(e), 500
+        app.logger.error("Library download failed", exc_info=e)
+        return "Internal server error", 500
 
 @app.route("/api/ai_chat", methods=["POST"])
 def ai_chat():
     """Handles conversational AI Machinist inquiries with live ToolWiz telemetry"""
     try:
-        data = request.get_json() or {}
+        data = _json_body()
         message = data.get("message", "").strip()
         if not message:
             return jsonify({"success": False, "error": "Message is required"}), 400
@@ -1374,18 +1497,17 @@ def ai_chat():
         result = query_ai_machinist(message, context=context, api_key=api_key, preferred_model=preferred_model)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/ai_models", methods=["GET", "POST"])
 def ai_models():
     """Returns the list of available Gemini models for the configured or provided API key"""
     try:
-        data = request.get_json(silent=True) or {}
+        data = _json_body()
         api_key = (
             request.headers.get("x-goog-api-key")
             or request.headers.get("x-api-key")
             or data.get("apiKey")
-            or request.args.get("apiKey", "").strip()
             or os.environ.get("GEMINI_API_KEY")
             or os.environ.get("GOOGLE_API_KEY")
             or ""
@@ -1423,7 +1545,7 @@ def ai_models():
             
         return jsonify({"success": True, "models": result_list})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
     """Evaluates dimension expressions like '(-.1) * 1mm', '(.1)*1mm', or '0mm'
@@ -1462,7 +1584,7 @@ def stock_compensation():
     for a batch of Fusion 360 CAM operations.
     """
     try:
-        data = request.get_json() or {}
+        data = _json_body()
         family = data.get("family", "Aluminum - Wrought (6061)")
         alloy = data.get("alloy", "")
         agg_raw = data.get("aggressiveness", 50)
@@ -1690,7 +1812,7 @@ def stock_compensation():
             "results": results
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"

@@ -218,11 +218,11 @@
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="maxRpm">Max RPM</label>
-                                <input type="number" id="maxRpm" class="tool-dialog-input" value="16000" oninput="calculate()">
+                                <input type="number" id="maxRpm" class="tool-dialog-input" value="16000" oninput="onMachineLimitInput('maxRpm')">
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="maxHp">Max HP</label>
-                                <input type="number" id="maxHp" class="tool-dialog-input" value="10.0" step="0.5" oninput="calculate()">
+                                <input type="number" id="maxHp" class="tool-dialog-input" value="10.0" step="0.01" oninput="onMachineLimitInput('maxHp')">
                             </div>
                             <div class="input-group" style="margin:0;">
                                 <label for="runout">Runout (<span class="unit-lbl">in</span>)</label>
@@ -764,6 +764,9 @@
                 </p>
                 <input type="file" id="twinFileInput" style="display: none;" accept=".json,.tools" multiple>
             </div>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: -0.5rem 0 1rem 0.25rem; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="twinMergeDedup"> Deduplicate identical cutters
+            </label>
 
             <main class="grid-layout" style="grid-template-columns: 1.35fr 0.65fr; gap: 1.25rem;">
                 <!-- LEFT COLUMN: INTERACTIVE MASTER TOOL TABLE -->
@@ -1105,16 +1108,39 @@
     </div>
 
     <script>
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text)
+        // Single HTML escaper for text and attribute contexts. Use esc() on EVERY value that
+        // comes from tool libraries, presets, backups, filenames, server errors or model names.
+        function esc(v) {
+            if (v === null || v === undefined) return '';
+            return String(v)
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
+        // Safe JS string-literal argument for inline handlers: onclick="fn(${jsArg(x)})"
+        function jsArg(v) { return esc(JSON.stringify(v === undefined ? null : v)); }
+
+        // CSRF / drive-by protection: every same-origin /api/ call carries X-ToolWiz-Client.
+        (function installApiFetchWrapper() {
+            const nativeFetch = window.fetch.bind(window);
+            window.fetch = function(input, init) {
+                try {
+                    const rawUrl = (typeof input === 'string') ? input : ((input && input.url) || String(input));
+                    const u = new URL(rawUrl, window.location.href);
+                    if (u.origin === window.location.origin && u.pathname.indexOf('/api/') === 0) {
+                        init = Object.assign({}, init || {});
+                        const headers = new Headers(init.headers || (typeof input !== 'string' && input && input.headers) || undefined);
+                        headers.set('X-ToolWiz-Client', 'web');
+                        init.headers = headers;
+                    }
+                } catch (e) { /* fall through to a plain fetch */ }
+                return nativeFetch(input, init);
+            };
+        })();
         let fullAlloys = [];
+        let machineProfile = null;
         let isMetric = false;
         let fluteLengthLocked = false;
         let activeTwinTools = [];
@@ -1607,9 +1633,41 @@
             return "milling";
         }
 
+        // Machine limits: prefill from the server's machine profile (active spindle), but never
+        // override a value the user typed themselves (remembered under its own localStorage key).
+        function applyMachineDefaults() {
+            const rpmEl = document.getElementById('maxRpm');
+            const hpEl = document.getElementById('maxHp');
+            if (machineProfile) {
+                if (rpmEl && machineProfile.max_rpm) rpmEl.value = machineProfile.max_rpm;
+                if (hpEl && machineProfile.max_hp) hpEl.value = Number(machineProfile.max_hp).toFixed(2);
+                const nameEl = document.getElementById('machineProfileName');
+                if (nameEl) nameEl.innerText = machineProfile.machine || '';
+            }
+            try {
+                const saved = JSON.parse(localStorage.getItem('toolwiz_machine_limits') || 'null');
+                if (saved && typeof saved === 'object') {
+                    if (rpmEl && saved.maxRpm) rpmEl.value = saved.maxRpm;
+                    if (hpEl && saved.maxHp) hpEl.value = saved.maxHp;
+                }
+            } catch (e) { /* storage unavailable or corrupt: keep profile defaults */ }
+        }
+
+        function onMachineLimitInput(field) {
+            // Remember only the field the user actually edited; the other keeps following the profile.
+            try {
+                let saved = {};
+                try { saved = JSON.parse(localStorage.getItem('toolwiz_machine_limits') || '{}') || {}; } catch (e) { saved = {}; }
+                saved[field] = document.getElementById(field)?.value || '';
+                localStorage.setItem('toolwiz_machine_limits', JSON.stringify(saved));
+            } catch (e) { /* ignore */ }
+            calculate();
+        }
+
         async function init() {
             const response = await fetch('/api/data');
             const data = await response.json();
+            machineProfile = data.machine || null;
             
             const familySelect = document.getElementById('family');
             const twinFamilySelect = document.getElementById('twinFamily');
@@ -1654,6 +1712,7 @@
             buildDatalist();
             updateGeometryDisplay('tool');
             loadState(); // load saved preferences
+            applyMachineDefaults();
             updateGeometryDisplay('tool');
             let initDia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
             lastHandledDiaInches = isMetric ? (initDia / 25.4) : initDia;
@@ -2585,9 +2644,9 @@
                             }
                             return `<div class="tip-card ${isWear ? 'tip-wear-comp' : ''}" style="padding: 0.85rem 1rem; background: rgba(0,0,0,0.25); border-left: 4px solid ${color}; border-radius: 6px; transition: transform 0.2s, box-shadow 0.2s;">
                                 <div style="font-weight:700; color: ${color}; margin-bottom: 0.25rem; font-size: 0.95rem; display:flex; align-items:center; gap: 0.5rem;">
-                                    <i class="fa-solid ${icon}"></i> ${t.title}
+                                    <i class="fa-solid ${icon}"></i> ${esc(t.title)}
                                 </div>
-                                <div style="font-size: 0.85rem; color: #cbd5e1; line-height:1.45;">${t.message}</div>
+                                <div style="font-size: 0.85rem; color: #cbd5e1; line-height:1.45;">${esc(t.message)}</div>
                             </div>`;
                         }).join('');
                     } else {
@@ -3279,9 +3338,9 @@
                         const pName = p.name || "Preset";
                         const isTW = p.is_toolwiz;
                         const shortName = pName.length > 22 ? pName.substring(0, 20) + '…' : pName;
-                        return `<span class="preset-tag ${isTW ? 'toolwiz' : ''}" title="${pName}" onclick="openToolInspector(${t.index})">
-                            ${shortName}
-                            <span style="color: #ff5555; cursor: pointer; margin-left: 5px; font-weight: bold; font-size: 13px;" onclick="event.stopPropagation(); deletePreset(${t.index}, '${p.guid}')">&times;</span>
+                        return `<span class="preset-tag ${isTW ? 'toolwiz' : ''}" title="${esc(pName)}" onclick="openToolInspector(${t.index})">
+                            ${esc(shortName)}
+                            <span style="color: #ff5555; cursor: pointer; margin-left: 5px; font-weight: bold; font-size: 13px;" onclick="event.stopPropagation(); deletePreset(${t.index}, ${jsArg(p.guid)})">&times;</span>
                         </span>`;
                     }).join(' ');
 
@@ -3307,16 +3366,16 @@
 
                 tr.innerHTML = `
                     <td><input type="checkbox" class="twin-tool-chk" value="${t.index}" onchange="updateTwinSelectionCount()"></td>
-                    <td style="font-weight: 700; color: var(--accent);">${t.number > 0 ? 'T' + t.number : '<span style="opacity:0.3;">-</span>'}</td>
+                    <td style="font-weight: 700; color: var(--accent);">${t.number > 0 ? 'T' + esc(t.number) : '<span style="opacity:0.3;">-</span>'}</td>
                     <td>
-                        <div style="font-weight: 600; cursor: pointer; color: #f8fafc;" onclick="openToolInspector(${t.index})">${escapeHtml(t.description)}</div>
-                        <div style="font-size: 0.72rem; color: var(--text-secondary);">${escapeHtml(t.type || 'End Mill')} · Stickout: ${escapeHtml(t.stickout_in || '-')}"</div>
+                        <div style="font-weight: 600; cursor: pointer; color: #f8fafc;" onclick="openToolInspector(${t.index})">${esc(t.description)}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-secondary);">${esc(t.type || 'End Mill')} · Stickout: ${esc(t.stickout_in || '-')}"</div>
                     </td>
                     <td>
-                        <div>${t.diameter_in}"</div>
-                        <div style="font-size: 0.72rem; color: var(--text-secondary);">${t.diameter_mm}mm</div>
+                        <div>${esc(t.diameter_in)}"</div>
+                        <div style="font-size: 0.72rem; color: var(--text-secondary);">${esc(t.diameter_mm)}mm</div>
                     </td>
-                    <td style="font-weight: 600; text-align: center;">${t.flutes}</td>
+                    <td style="font-weight: 600; text-align: center;">${esc(t.flutes)}</td>
                     <td>${aggrSelectHtml}</td>
                     <td><div class="preset-tag-list">${presetTags}</div></td>
                     <td>
@@ -3379,31 +3438,31 @@
                 geoGrid.innerHTML = `
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Diameter</span>
-                        <span class="inspector-geo-val">${tool.diameter_in}" <small style="font-weight:normal; color:#94a3b8;">(${tool.diameter_mm}mm)</small></span>
+                        <span class="inspector-geo-val">${esc(tool.diameter_in)}" <small style="font-weight:normal; color:#94a3b8;">(${esc(tool.diameter_mm)}mm)</small></span>
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Flutes</span>
-                        <span class="inspector-geo-val">${tool.flutes}</span>
+                        <span class="inspector-geo-val">${esc(tool.flutes)}</span>
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Flute Length</span>
-                        <span class="inspector-geo-val">${tool.flute_length_in || '-'} "</span>
+                        <span class="inspector-geo-val">${esc(tool.flute_length_in || '-')} "</span>
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Stickout</span>
-                        <span class="inspector-geo-val">${tool.stickout_in || '-'} "</span>
+                        <span class="inspector-geo-val">${esc(tool.stickout_in || '-')} "</span>
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Corner Radius</span>
-                        <span class="inspector-geo-val">${tool.corner_radius_in ? tool.corner_radius_in + '"' : '0.00"'}</span>
+                        <span class="inspector-geo-val">${tool.corner_radius_in ? esc(tool.corner_radius_in) + '"' : '0.00"'}</span>
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Shank Dia</span>
-                        <span class="inspector-geo-val">${tool.shank_diameter_in || tool.diameter_in}"</span>
+                        <span class="inspector-geo-val">${esc(tool.shank_diameter_in || tool.diameter_in)}"</span>
                     </div>
                     <div class="inspector-geo-item">
                         <span class="inspector-geo-label">Vendor Product ID</span>
-                        <span class="inspector-geo-val" style="font-family:monospace; font-size:0.85rem;">${tool.product_id || 'Generic'}</span>
+                        <span class="inspector-geo-val" style="font-family:monospace; font-size:0.85rem;">${esc(tool.product_id || 'Generic')}</span>
                     </div>
                 `;
             }
@@ -3435,10 +3494,12 @@
                     presets.forEach(p => {
                         const tr = document.createElement('tr');
                         const isTW = p.is_toolwiz;
-                        const sfm = (p.sfm || p.v_c) ? Math.round(p.sfm || p.v_c) : '-';
-                        const rpm = (p.rpm || p.n) ? Math.round(p.rpm || p.n) : '-';
-
-                        const isCutterMetric = (tool.unit && tool.unit.toLowerCase().includes('m')) || Boolean(tool.is_metric);
+                        const isCutterMetric = Boolean(tool.is_metric) || (typeof tool.unit === 'string' && tool.unit.toLowerCase().startsWith('mill'));
+                        // Preset v_c is m/min on metric cutters; the inspector always shows SFM.
+                        const rawSfm = parseFloat(p.sfm || p.v_c);
+                        const sfm = isNaN(rawSfm) || rawSfm <= 0 ? '-' : Math.round(isCutterMetric ? rawSfm / 0.3048 : rawSfm);
+                        const rpmNum = parseFloat(p.rpm || p.n);
+                        const rpm = isNaN(rpmNum) || rpmNum <= 0 ? '-' : Math.round(rpmNum);
                         const rawFeed = (p.feed != null) ? p.feed : p.v_f;
                         const rawFz = (p.ipt != null) ? p.ipt : p.f_z;
                         const rawDoc = p.stepdown;
@@ -3485,25 +3546,25 @@
                             <td>
                                 <div style="font-weight: 600; color: ${isTW ? '#38bdf8' : '#f8fafc'};">
                                     ${isTW ? '<span style="color:#38bdf8; font-size:0.75rem; border:1px solid rgba(56,189,248,0.3); padding:1px 4px; border-radius:3px; margin-right:4px;">ToolWiz</span>' : ''}
-                                    ${escapeHtml(p.name || 'Preset')}
+                                    ${esc(p.name || 'Preset')}
                                 </div>
-                                <div style="font-size: 0.72rem; color: #94a3b8;">${escapeHtml(p.guid ? p.guid.substring(0, 8) + '...' : '')}</div>
+                                <div style="font-size: 0.72rem; color: #94a3b8;">${esc(p.guid ? p.guid.substring(0, 8) + '...' : '')}</div>
                             </td>
-                            <td style="color: #cbd5e1;">${escapeHtml(p.operation_type || 'Milling')}</td>
+                            <td style="color: #cbd5e1;">${esc(p.operation_type || 'Milling')}</td>
                             <td>
-                                <div><strong>${rpm}</strong> RPM</div>
-                                <div style="font-size:0.72rem; color:#94a3b8;">${sfm} SFM</div>
-                            </td>
-                            <td>
-                                <div><strong>${vfeed_disp}</strong></div>
-                                <div style="font-size:0.72rem; color:#94a3b8;">${fpt_disp}</div>
+                                <div><strong>${esc(rpm)}</strong> RPM</div>
+                                <div style="font-size:0.72rem; color:#94a3b8;">${esc(sfm)} SFM</div>
                             </td>
                             <td>
-                                <div>DOC: ${doc_disp}</div>
-                                <div style="font-size:0.72rem; color:#94a3b8;">WOC: ${woc_disp}</div>
+                                <div><strong>${esc(vfeed_disp)}</strong></div>
+                                <div style="font-size:0.72rem; color:#94a3b8;">${esc(fpt_disp)}</div>
+                            </td>
+                            <td>
+                                <div>DOC: ${esc(doc_disp)}</div>
+                                <div style="font-size:0.72rem; color:#94a3b8;">WOC: ${esc(woc_disp)}</div>
                             </td>
                             <td style="text-align: center;">
-                                <button class="tool-action-btn delete" onclick="deletePresetFromInspector(${toolIndex}, '${escapeHtml(p.guid)}')" title="Delete Preset">✕</button>
+                                <button class="tool-action-btn delete" onclick="deletePresetFromInspector(${toolIndex}, ${jsArg(p.guid)})" title="Delete Preset">✕</button>
                             </td>
                         `;
                         tbody.appendChild(tr);
@@ -3613,7 +3674,7 @@
                     const details = document.getElementById('twinDedupDetails');
                     if (banner && details) {
                         banner.style.display = 'flex';
-                        details.innerHTML = `Merged <strong>${data.report.duplicates_removed}</strong> duplicate cutters. Consolidated library now contains <strong>${data.report.unique_tools}</strong> unique cutters with <strong>${data.report.total_presets}</strong> unified presets.<br><small>Safety snapshot saved: <code>${data.backup.filename}</code></small>`;
+                        details.innerHTML = `Merged <strong>${esc(data.report.duplicates_removed)}</strong> duplicate cutters. Consolidated library now contains <strong>${esc(data.tool_count)}</strong> unique cutters.<br><small>Safety snapshot saved: <code>${esc(data.backup && data.backup.filename)}</code></small>`;
                     }
                     loadDigitalTwin();
                 } else {
@@ -3696,8 +3757,8 @@
                 clean_existing_for_material: cleanMaterial,
                 clean_all_non_toolwiz: cleanNonToolwiz,
                 coating: document.getElementById('twinCoating').value,
-                maxRpm: parseFloat(document.getElementById('maxRpm')?.value) || 16000,
-                maxHp: parseFloat(document.getElementById('maxHp')?.value) || 10.0,
+                maxRpm: parseFloat(document.getElementById('maxRpm')?.value) || (machineProfile && machineProfile.max_rpm) || 16000,
+                maxHp: parseFloat(document.getElementById('maxHp')?.value) || (machineProfile && machineProfile.max_hp) || 10.0,
                 runout: parseFloat(document.getElementById('runout')?.value || 0.0002),
                 custom_preset_name: customPresetName
             };
@@ -3715,20 +3776,32 @@
                 const data = await res.json();
                 
                 if (data.success) {
+                    const skipped = Array.isArray(data.skipped) ? data.skipped : [];
+                    let skippedHtml = '';
+                    if (skipped.length > 0) {
+                        const shown = skipped.slice(0, 25).map(sk => {
+                            const label = (sk.number ? 'T' + sk.number + ' ' : '') + (sk.description || ('tool #' + sk.tool_index));
+                            const strat = sk.strategy ? ' [' + sk.strategy + ']' : '';
+                            return `<li>${esc(label)}${esc(strat)}: ${esc(sk.reason)}</li>`;
+                        }).join('');
+                        const more = skipped.length > 25 ? `<li>…and ${skipped.length - 25} more</li>` : '';
+                        skippedHtml = `<div style="margin-top:0.5rem; color:#fbbf24;"><strong>⚠️ Skipped (${skipped.length}):</strong><ul style="margin:0.25rem 0 0 1.1rem; padding:0; font-size:0.8rem;">${shown}${more}</ul></div>`;
+                    }
                     statusBox.innerHTML = `
                         <strong>✅ Batch Injection Complete!</strong><br>
-                        • Updated Cutters: <strong>${data.updated_tools_count}</strong><br>
-                        • Total Presets Injected: <strong>${data.total_presets_injected}</strong><br>
-                        • Workpiece Material: <strong>${payload.alloy}</strong><br>
-                        • Safety Snapshot: <code>${data.backup.filename}</code><br><br>
+                        • Updated Cutters: <strong>${esc(data.updated_tools_count)}</strong><br>
+                        • Total Presets Injected: <strong>${esc(data.total_presets_injected)}</strong><br>
+                        • Workpiece Material: <strong>${esc(payload.alloy)}</strong><br>
+                        • Safety Snapshot: <code>${esc(data.backup && data.backup.filename)}</code>
+                        ${skippedHtml}<br>
                         <em>Click 'Download Master Crib' above or sync directly in Fusion 360 using 'Import Digital Twin'!</em>
                     `;
                     loadDigitalTwin();
                 } else {
-                    statusBox.innerHTML = `❌ Error: ${data.error}`;
+                    statusBox.innerHTML = `❌ Error: ${esc(data.error)}`;
                 }
             } catch (e) {
-                statusBox.innerHTML = `❌ Network Error: ${e}`;
+                statusBox.innerHTML = `❌ Network Error: ${esc(e)}`;
             }
         }
 
@@ -3784,9 +3857,10 @@
 
             const formData = new FormData();
             validFiles.forEach(f => {
-                formData.append('file', f);
+                formData.append('files', f);
             });
-            formData.append('merge_mode', 'true');
+            // "merge" keeps every cutter; "merge_deduplicate" collapses identical cutters (opt-in).
+            formData.append('merge_mode', document.getElementById('twinMergeDedup')?.checked ? 'merge_deduplicate' : 'merge');
 
             if (dropZone) {
                 dropZone.querySelector('h3').innerHTML = `⏳ Uploading and Merging ${validFiles.length} Librar${validFiles.length > 1 ? 'ies' : 'y'}...`;
@@ -3801,23 +3875,24 @@
                 
                 if (data.success) {
                     if (dropZone) {
-                        dropZone.querySelector('h3').innerHTML = `✅ Successfully imported ${data.total_tools_merged || data.tool_count || validFiles.length} cutters!`;
+                        dropZone.querySelector('h3').innerHTML = `✅ Successfully imported ${esc(data.tool_count || validFiles.length)} cutters!`;
                         setTimeout(() => {
                             dropZone.querySelector('h3').innerHTML = '📤 Drag & Drop Fusion Tool Libraries Here (.json or .tools)';
                         }, 3000);
                     }
 
-                    if (data.duplicates_removed > 0) {
+                    const dupsRemoved = (data.summary && data.summary.duplicates_removed) || data.duplicates_removed || 0;
+                    if (dupsRemoved > 0) {
                         const banner = document.getElementById('twinDedupBanner');
                         const details = document.getElementById('twinDedupDetails');
                         if (banner && details) {
                             banner.style.display = 'flex';
-                            details.innerHTML = `Merged <strong>${data.duplicates_removed}</strong> duplicate cutters during multi-library import. Consolidated Master Crib now contains <strong>${data.tool_count}</strong> unique cutters with combined presets.`;
+                            details.innerHTML = `Merged <strong>${esc(dupsRemoved)}</strong> duplicate cutters during multi-library import. Consolidated Master Crib now contains <strong>${esc(data.tool_count)}</strong> unique cutters with combined presets.`;
                         }
                     }
                     loadDigitalTwin();
                 } else {
-                    alert('Upload error: ' + data.error);
+                    alert('Upload error: ' + (data.error || 'Unknown error'));
                     if (dropZone) dropZone.querySelector('h3').innerHTML = '📤 Drag & Drop Fusion Tool Libraries Here (.json or .tools)';
                 }
             } catch (e) {
@@ -4080,14 +4155,14 @@
 
                 tr.innerHTML = `
                     <td style="font-weight: 700; color: ${d.is_target ? '#34d399' : 'var(--text-primary)'};">
-                        ${d.is_target ? '★ ' : ''}${d.name}
+                        ${d.is_target ? '★ ' : ''}${esc(d.name)}
                     </td>
                     <td style="font-family: monospace;">${d.diameter_in.toFixed(4)}"</td>
                     <td style="font-family: monospace;">${d.diameter_mm.toFixed(3)} mm</td>
                     <td><span class="thread-pct-badge ${badgeClass}">${d.pct_thread.toFixed(1)}%</span></td>
-                    <td style="font-size: 0.82rem; color: ${d.is_target ? '#a7f3d0' : 'var(--text-secondary)'};">${d.note}</td>
+                    <td style="font-size: 0.82rem; color: ${d.is_target ? '#a7f3d0' : 'var(--text-secondary)'};">${esc(d.note)}</td>
                     <td style="text-align: right;">
-                        <button type="button" class="btn-send-drill" onclick="sendSpecificDrillToSpeedsFeeds('${d.name}', ${d.diameter_in}, ${d.diameter_mm})" title="Apply tap & thread parameters to Speeds & Feeds calculator">
+                        <button type="button" class="btn-send-drill" onclick="sendSpecificDrillToSpeedsFeeds(${jsArg(d.name)}, ${Number(d.diameter_in)}, ${Number(d.diameter_mm)})" title="Apply tap & thread parameters to Speeds & Feeds calculator">
                             ⚡ Send Tap
                         </button>
                     </td>
@@ -4470,7 +4545,7 @@
                             <div class="ai-bubble-header">
                                 <span class="ai-avatar">🤖</span> 
                                 <strong>ToolWiz Co-Pilot</strong>
-                                <span class="${modelTagClass}">${displayModel}</span>
+                                <span class="${modelTagClass}">${esc(displayModel)}</span>
                             </div>
                             <div class="ai-bubble-body">
                                 ${renderAiMarkdown(data.reply)}
@@ -4483,7 +4558,7 @@
                     errDiv.innerHTML = `
                         <div class="ai-bubble" style="border-color: rgba(239, 68, 68, 0.4);">
                             <div class="ai-bubble-header" style="color:#ef4444;"><span class="ai-avatar">⚠️</span> <strong>Inquiry Failed</strong></div>
-                            <div class="ai-bubble-body"><p style="color:#fca5a5;">${data.error || 'Unknown error occurred.'}</p></div>
+                            <div class="ai-bubble-body"><p style="color:#fca5a5;">${esc(data.error || 'Unknown error occurred.')}</p></div>
                         </div>`;
                     messagesContainer.appendChild(errDiv);
                 }
@@ -4496,7 +4571,7 @@
                 errDiv.innerHTML = `
                     <div class="ai-bubble" style="border-color: rgba(239, 68, 68, 0.4);">
                         <div class="ai-bubble-header" style="color:#ef4444;"><span class="ai-avatar">⚠️</span> <strong>Network Error</strong></div>
-                        <div class="ai-bubble-body"><p style="color:#fca5a5;">${err.message || 'Unable to communicate with backend.'}</p></div>
+                        <div class="ai-bubble-body"><p style="color:#fca5a5;">${esc(err.message || 'Unable to communicate with backend.')}</p></div>
                     </div>`;
                 messagesContainer.appendChild(errDiv);
             } finally {

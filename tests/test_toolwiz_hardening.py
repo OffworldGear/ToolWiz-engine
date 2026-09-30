@@ -170,6 +170,7 @@ class SandboxedAppCase(unittest.TestCase):
         self.bm = BackupManager(base_dir=self.temp_dir.name)
         app_module.bm = self.bm
         self.client = app.test_client()
+        self.client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
 
     def tearDown(self):
         app_module.bm = self.orig_bm

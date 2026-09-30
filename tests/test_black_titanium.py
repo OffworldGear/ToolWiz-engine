@@ -15,6 +15,7 @@ class TestBlackTitanium5545(unittest.TestCase):
             cls.db = json.load(f)
         cls.physics = GWizardPhysics(cls.db_path)
         cls.client = app.test_client()
+        cls.client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
 
     def test_materials_database_entry(self):
         # 1. Family check

@@ -7,6 +7,7 @@ class TestAiMachinist(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = app.test_client()
+        cls.client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
 
     def test_context_formatting(self):
         """Verify format_context_for_prompt serializes live telemetry."""

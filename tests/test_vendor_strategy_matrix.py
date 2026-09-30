@@ -17,6 +17,7 @@ class TestVendorStrategyMatrix(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = app.test_client()
+        cls.client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
         db_path = os.path.join(os.path.dirname(__file__), '..', 'materials_database_clean.json')
         cls.physics = GWizardPhysics(db_path)
         
