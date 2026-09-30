@@ -1567,6 +1567,42 @@ def get_op_stock_values(op, doc_unit="in"):
         
     return True, rad_val, ax_val
 
+def _param(params, name):
+    try:
+        return params.itemByName(name) if params else None
+    except Exception:
+        return None
+
+
+def _speed_param_sources(op):
+    """Parameter collections to read speeds from, in priority order: linked preset, then op."""
+    sources = []
+    preset = getattr(op, 'toolPreset', None)
+    preset_params = getattr(preset, 'parameters', None) if preset else None
+    if preset_params:
+        sources.append(preset_params)
+    if getattr(op, 'parameters', None):
+        sources.append(op.parameters)
+    return sources
+
+
+def _log_speed_sources(op):
+    """Diagnostic: record where spindle/feed values come from for this operation."""
+    try:
+        preset = getattr(op, 'toolPreset', None)
+        lines = [f"Speed sources for op {getattr(op, 'name', '?')!r}: preset={getattr(preset, 'name', None)!r}"]
+        for label, params in (("preset", getattr(preset, 'parameters', None) if preset else None),
+                              ("op", getattr(op, 'parameters', None))):
+            for name in ('tool_spindleSpeed', 'tool_feedCutting'):
+                p = _param(params, name)
+                if p is not None:
+                    val = getattr(getattr(p, 'value', None), 'value', None)
+                    lines.append(f"  {label}.{name}: expr={getattr(p, 'expression', None)!r} value={val!r}")
+        _log("\n".join(lines))
+    except Exception as e:
+        _log("Speed source diagnostic failed", e)
+
+
 def get_op_cut_params(op, doc_unit="in"):
     """Extracts (rpm, feed_ipm, doc_in, woc_in) from an operation.
 
@@ -1579,11 +1615,15 @@ def get_op_cut_params(op, doc_unit="in"):
     doc = 0.0
     woc = 0.0
     try:
-        # 1. Spindle speed (RPM)
-        rpm = parse_cam_rpm(op.parameters.itemByName('tool_spindleSpeed'))
-
-        # 2. Cutting feedrate (IPM)
-        feed = parse_cam_feed_to_ipm(op.parameters.itemByName('tool_feedCutting'), doc_unit)
+        # 1-2. Spindle speed (RPM) and cutting feed (IPM). When the operation is linked to a tool
+        # preset (Cutting Data), the toolpath runs at the preset's values while the operation's
+        # own parameters can still hold Fusion's default formula, so the preset is read first.
+        _log_speed_sources(op)
+        for params in _speed_param_sources(op):
+            if rpm <= 0:
+                rpm = parse_cam_rpm(_param(params, 'tool_spindleSpeed'))
+            if feed <= 0:
+                feed = parse_cam_feed_to_ipm(_param(params, 'tool_feedCutting'), doc_unit)
 
         # 3. Axial depth of cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:
