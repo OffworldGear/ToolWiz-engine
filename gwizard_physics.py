@@ -79,6 +79,36 @@ def is_drilling_tool_type(tool_type: str, geometry: str = "") -> bool:
 # 1. HARDNESS & METALLURGY CONVERSION (ASTM E140)
 # =============================================================================
 
+# Vendor-fitted hard-milling correction, relative to the same tool at 45 HRC.
+# Sources (manufacturer PDFs, retrieved 2026-09-30):
+#   OSG AE-CPR4-H 6 mm, up to 45 / 45-55 / 55-65 HRC: SFM 1.00 / 0.90 / 0.70-0.82, IPT 1.00 / 0.83-0.90 / 0.68-0.70
+#   Harvey hardened-steel finishers, 56-68 vs 45-55 Rc: SFM 0.857, IPT 0.80
+# GWizard's bounded linear model gives ~0.90 SFM and no IPT reduction at 60 HRC, which is too aggressive.
+# Band midpoints are used as knots; beyond 65 HRC the last value is held and a critical tip is raised.
+HARD_MILL_ONSET_HRC = 45.0
+HARD_MILL_FACTORS: List[Tuple[float, float, float]] = [
+    # (HRC, SFM factor, IPT factor)
+    (45.0, 1.00, 1.00),
+    (50.0, 0.90, 0.87),
+    (60.0, 0.75, 0.70),
+    (65.0, 0.68, 0.65),
+]
+
+
+def hard_milling_factors(hrc: float) -> Tuple[float, float]:
+    """Piecewise-linear (SFM, IPT) multipliers for hardened work above 45 HRC."""
+    pts = HARD_MILL_FACTORS
+    if hrc <= pts[0][0]:
+        return 1.0, 1.0
+    if hrc >= pts[-1][0]:
+        return pts[-1][1], pts[-1][2]
+    for (h0, s0, i0), (h1, s1, i1) in zip(pts, pts[1:]):
+        if h0 <= hrc <= h1:
+            t = (hrc - h0) / (h1 - h0)
+            return s0 + (s1 - s0) * t, i0 + (i1 - i0) * t
+    return 1.0, 1.0
+
+
 class ASTMHardnessConverter:
     """
     Standard hardness conversion utilities based on ASTM E140 (Standard Hardness
@@ -111,6 +141,19 @@ class ASTMHardnessConverter:
                 return y0 + (y1 - y0) * ((hrc - x0) / (x1 - x0))
                 
         return hrc
+
+    @classmethod
+    def brinell_to_hrc(cls, hb: float) -> Optional[float]:
+        """Inverse of hrc_to_brinell. Returns None below the HRC scale (< ~226 HB)."""
+        table = cls._HRC_TO_HB_TABLE
+        if hb < table[0][1]:
+            return None
+        if hb >= table[-1][1]:
+            return table[-1][0]
+        for (h0, b0), (h1, b1) in zip(table, table[1:]):
+            if b0 <= hb <= b1:
+                return h0 + (h1 - h0) * ((hb - b0) / (b1 - b0))
+        return None
 
     @classmethod
     def parse_hardness(cls, hardness_val: Any) -> Optional[float]:
@@ -1545,6 +1588,31 @@ class AdvisoryEngine:
                 "type": "warning"
             })
 
+        hb = physics.resolve_alloy_hardness(material_family, alloy) if alloy else None
+        hrc = ASTMHardnessConverter.brinell_to_hrc(hb) if hb else None
+        if hrc is not None and hrc > HARD_MILL_ONSET_HRC and not is_drilling:
+            sfm_f, ipt_f = hard_milling_factors(hrc)
+            if hrc > HARD_MILL_FACTORS[-1][0]:
+                tips.append({
+                    "title": "Hardness Beyond Vendor Data",
+                    "message": (
+                        f"~{hrc:.0f} HRC is above the highest hardness in the vendor data behind the hard-milling "
+                        f"correction (65 HRC). Speeds are held at the 65 HRC values (SFM x{sfm_f:.2f}, IPT x{ipt_f:.2f}); "
+                        "confirm with the tool manufacturer before cutting."
+                    ),
+                    "type": "critical"
+                })
+            else:
+                tips.append({
+                    "title": "Hard Milling Correction Applied",
+                    "message": (
+                        f"Workpiece ~{hrc:.0f} HRC: speeds scaled SFM x{sfm_f:.2f} and chipload x{ipt_f:.2f} relative to 45 HRC "
+                        "(fitted to OSG AE-H and Harvey hardened-steel data). Use a hard-milling grade end mill; "
+                        "generic carbide drops far more steeply above 40 HRC."
+                    ),
+                    "type": "info"
+                })
+
         if not tips:
             tips.append({
                 "title": "Optimal Parameters",
@@ -2104,6 +2172,14 @@ class GWizardPhysics:
                 best, best_key = a, key
         return best
 
+    def resolve_alloy_hardness(self, material_family: str, alloy_name: str) -> Optional[float]:
+        """Brinell hardness for an alloy string: DB row first, else an explicit 'NN HRC' in the text."""
+        row = self.match_alloy(material_family, alloy_name)
+        hb = ASTMHardnessConverter.parse_hardness(row.get("hardness")) if row else None
+        if not hb and "hrc" in str(alloy_name).lower():
+            hb = ASTMHardnessConverter.parse_hardness(alloy_name)
+        return hb
+
     def apply_alloy_hardness_scaling(
         self,
         material_family: str,
@@ -2123,16 +2199,7 @@ class GWizardPhysics:
         alloy_hardness = None
         norm_target = alloy_name.strip().lower()
 
-        matched_alloy = self.match_alloy(material_family, alloy_name)
-        if matched_alloy:
-            parsed_hb = ASTMHardnessConverter.parse_hardness(matched_alloy.get("hardness"))
-            if parsed_hb:
-                alloy_hardness = parsed_hb
-
-        if not alloy_hardness:
-            if "hrc" in norm_target:
-                alloy_hardness = ASTMHardnessConverter.parse_hardness(norm_target)
-
+        alloy_hardness = self.resolve_alloy_hardness(material_family, alloy_name)
         if not alloy_hardness:
             return sfm, ipt
 
@@ -2146,14 +2213,25 @@ class GWizardPhysics:
 
         # G-Wizard genuine bounded linear adjustment (GWizFeedSpeedMath.as:356-370)
         # adjSFMForHardness(param1: base_sfm, param2: sfmrange, param3: minBHN, param4: maxBHN, param5: bhn)
+        # Above HARD_MILL_ONSET_HRC, GWizard's linear model is used only up to the onset and the
+        # vendor-fitted curve takes over for both SFM and IPT (see HARD_MILL_FACTORS).
+        hrc = ASTMHardnessConverter.brinell_to_hrc(float(alloy_hardness))
+        is_hard_milling = hrc is not None and hrc > HARD_MILL_ONSET_HRC
+        gw_bhn = ASTMHardnessConverter.hrc_to_brinell(HARD_MILL_ONSET_HRC) if is_hard_milling else float(alloy_hardness)
+
         if sfm_range > 0 and max_bhn > min_bhn:
             range_adj = sfm_range * 0.7
             range_adj = min(0.4 * sfm, range_adj)
-            clamped_bhn = min(max_bhn, max(min_bhn, float(alloy_hardness)))
+            clamped_bhn = min(max_bhn, max(min_bhn, gw_bhn))
             bhn_span = max_bhn - min_bhn
             norm = (clamped_bhn - min_bhn) / bhn_span
             adj = (0.5 - norm) * range_adj
             sfm = max(10.0, sfm + adj)
+
+        if is_hard_milling:
+            sfm_f, ipt_f = hard_milling_factors(hrc)
+            sfm *= sfm_f
+            ipt *= ipt_f
 
         return sfm, ipt
 

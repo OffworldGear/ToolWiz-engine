@@ -79,5 +79,46 @@ class TestFormToolFactors(unittest.TestCase):
         self.assertAlmostEqual(ch, em * 0.8, places=3)
 
 
+class TestHardMillingCorrection(unittest.TestCase):
+    """Vendor-fitted correction above 45 HRC (OSG AE-CPR4-H, Harvey hardened-steel finishers)."""
+    FAM = "Steel - Tool (H13)"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.p = GWizardPhysics(DB)
+
+    def ratio(self, hrc):
+        s45, i45 = self.p.apply_alloy_hardness_scaling(self.FAM, "x 45 HRC", 200.0, 0.002)
+        s, i = self.p.apply_alloy_hardness_scaling(self.FAM, f"x {hrc} HRC", 200.0, 0.002)
+        return s / s45, i / i45
+
+    def test_below_onset_is_pure_gwizard(self):
+        s, i = self.p.apply_alloy_hardness_scaling(self.FAM, "x 30 HRC", 200.0, 0.002)
+        self.assertEqual(i, 0.002)
+        self.assertGreater(s, 200.0)  # below family mid-hardness GWizard speeds up
+
+    def test_55_65_band_matches_vendor_ratios(self):
+        s, i = self.ratio(60)
+        self.assertTrue(0.70 <= s <= 0.82, s)   # OSG 0.70-0.82
+        self.assertTrue(0.65 <= i <= 0.72, i)   # OSG 0.68-0.70
+
+    def test_45_55_band_matches_vendor_ratios(self):
+        s, i = self.ratio(50)
+        self.assertAlmostEqual(s, 0.90, delta=0.02)
+        self.assertTrue(0.83 <= i <= 0.90, i)
+
+    def test_monotonic_and_held_beyond_data(self):
+        vals = [self.ratio(h) for h in (46, 50, 55, 60, 65, 68)]
+        for a, b in zip(vals, vals[1:]):
+            self.assertLessEqual(b[0], a[0])
+            self.assertLessEqual(b[1], a[1])
+        self.assertEqual(vals[-1], vals[-2])
+
+    def test_tip_flags_hardness_beyond_data(self):
+        tips = self.p.generate_advanced_strategies(
+            self.FAM, 0.25, 0.1, 0.025, 20, 5000, 4, "AlTiN", 0.0001, alloy="x 68 HRC")
+        self.assertIn("Hardness Beyond Vendor Data", [t["title"] for t in tips])
+
+
 if __name__ == "__main__":
     unittest.main()
