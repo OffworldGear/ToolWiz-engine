@@ -380,11 +380,11 @@ def parse_cam_feed_to_ipm(p, doc_unit="in"):
             pass
     v = _numeric_param_value(p)
     if v is not None and v > 0:
-        ipm = v * 60.0 / 2.54  # assumes Fusion's internal feed unit is cm/s (unconfirmed)
+        ipm = v / 25.4  # Fusion's evaluated feed is mm/min (confirmed: '19.2774in/min' -> 489.647)
         if ipm > MAX_PLAUSIBLE_IPM:
             _log(f"Feed expression {expr!r}: evaluated {v!r} -> {ipm:.1f} IPM is implausible; ignoring (server will compute)")
             return 0.0
-        _log(f"Feed expression {expr!r}: evaluated {v!r} (assumed cm/s) -> {ipm:.1f} IPM")
+        _log(f"Feed expression {expr!r}: evaluated {v!r} mm/min -> {ipm:.1f} IPM")
         return ipm
     return 0.0
 
@@ -1575,15 +1575,21 @@ def _param(params, name):
 
 
 def _speed_param_sources(op):
-    """Parameter collections to read speeds from, in priority order: linked preset, then op."""
+    """Parameter collections to read speeds from, in priority order: operation, then linked preset."""
     sources = []
+    if getattr(op, 'parameters', None):
+        sources.append(op.parameters)
     preset = getattr(op, 'toolPreset', None)
     preset_params = getattr(preset, 'parameters', None) if preset else None
     if preset_params:
         sources.append(preset_params)
-    if getattr(op, 'parameters', None):
-        sources.append(op.parameters)
     return sources
+
+
+def _is_fusion_default_formula(p):
+    """True for Fusion's placeholder speed/feed formula (e.g. "tool_type == 'probe' ? 0 : ... 5000rpm")."""
+    expr = str(getattr(p, 'expression', '') or '') if p is not None else ''
+    return 'tool_type' in expr
 
 
 def _log_speed_sources(op):
@@ -1615,15 +1621,21 @@ def get_op_cut_params(op, doc_unit="in"):
     doc = 0.0
     woc = 0.0
     try:
-        # 1-2. Spindle speed (RPM) and cutting feed (IPM). When the operation is linked to a tool
-        # preset (Cutting Data), the toolpath runs at the preset's values while the operation's
-        # own parameters can still hold Fusion's default formula, so the preset is read first.
+        # 1-2. Spindle speed (RPM) and cutting feed (IPM). The operation's own parameters are
+        # authoritative (they are what gets posted; in real documents they often differ from the
+        # linked preset). The preset is used only when the op still holds Fusion's default formula.
         _log_speed_sources(op)
         for params in _speed_param_sources(op):
-            if rpm <= 0:
-                rpm = parse_cam_rpm(_param(params, 'tool_spindleSpeed'))
-            if feed <= 0:
-                feed = parse_cam_feed_to_ipm(_param(params, 'tool_feedCutting'), doc_unit)
+            p_rpm = _param(params, 'tool_spindleSpeed')
+            if rpm <= 0 and not _is_fusion_default_formula(p_rpm):
+                rpm = parse_cam_rpm(p_rpm)
+            p_feed = _param(params, 'tool_feedCutting')
+            if feed <= 0 and not _is_fusion_default_formula(p_feed):
+                feed = parse_cam_feed_to_ipm(p_feed, doc_unit)
+        if rpm <= 0:  # nothing but the default formula anywhere: use its evaluated value
+            rpm = parse_cam_rpm(_param(getattr(op, 'parameters', None), 'tool_spindleSpeed'))
+        if feed <= 0:
+            feed = parse_cam_feed_to_ipm(_param(getattr(op, 'parameters', None), 'tool_feedCutting'), doc_unit)
 
         # 3. Axial depth of cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:

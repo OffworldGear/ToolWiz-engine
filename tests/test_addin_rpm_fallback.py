@@ -53,14 +53,26 @@ class TestPresetSpeedSource(unittest.TestCase):
             op.toolPreset.parameters.itemByName.side_effect = lambda n: pp.get(n)
         return op
 
-    def test_linked_preset_speeds_win_over_op_default_formula(self):
+    def test_op_default_formula_falls_back_to_linked_preset(self):
         rpm, feed, _, _ = self.addin.get_op_cut_params(self.op(preset_rpm=12500, preset_feed=180), "in")
-        self.assertEqual((rpm, feed), (12500.0, 180.0))
+        self.assertEqual(rpm, 12500.0)          # op held only Fusion's placeholder formula
+        self.assertEqual(feed, 40.0)            # op feed is a real value, so it wins
 
-    def test_without_preset_op_parameters_are_used(self):
+    def test_op_values_win_over_differing_preset(self):
+        # Real document: preset 9500 rpm, operation edited to 14250 rpm -> the op is what posts.
+        op = self.op(preset_rpm=9500, preset_feed=20)
+        op_params = {"tool_spindleSpeed": param("14250.", 14250.0), "tool_feedCutting": param("30 in/min", 0)}
+        op.parameters.itemByName.side_effect = lambda n: op_params.get(n)
+        rpm, feed, _, _ = self.addin.get_op_cut_params(op, "in")
+        self.assertEqual((rpm, feed), (14250.0, 30.0))
+
+    def test_without_preset_default_formula_uses_evaluated_rpm(self):
         rpm, feed, _, _ = self.addin.get_op_cut_params(self.op(), "in")
         self.assertEqual((rpm, feed), (5000.0, 40.0))
 
+    def test_evaluated_feed_is_mm_per_min(self):
+        p = param("tool_type == 'probe' ? 0 : 20in/min", 489.6471438263792)
+        self.assertAlmostEqual(self.addin.parse_cam_feed_to_ipm(p, "in"), 19.2774, places=3)
 
 if __name__ == "__main__":
     unittest.main()
