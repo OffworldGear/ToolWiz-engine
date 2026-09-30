@@ -374,7 +374,12 @@ def apply_calibration(family, predicted_total_error, db_path=None):
             or not isinstance(predicted_total_error, (int, float))
             or not math.isfinite(predicted_total_error) or not family):
         return predicted_total_error, info
-    cal = calibration_for_family(family, db_path=db_path)
+    try:
+        cal = calibration_for_family(family, db_path=db_path)
+    except (sqlite3.Error, OSError) as exc:
+        # Calibration is optional; a missing/locked database must never break a calculation.
+        info["status"] = f"unavailable: {exc}"
+        return predicted_total_error, info
     info["status"] = cal["status"]
     info["n"] = cal["n"]
     if cal["error_factor"] is None:

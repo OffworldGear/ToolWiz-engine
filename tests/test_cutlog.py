@@ -273,3 +273,8 @@ class TestSuggestionNeedsEvidence(unittest.TestCase):
 
     def test_three_rows_with_chatter_back_off(self):
         self.assertEqual(cutlog.suggest_aggressiveness_delta(0, 0.67, None, n_outcomes=3), -10)
+
+
+def tearDownModule():
+    # register() stores the temp db path module-wide; don't leak it into other test modules.
+    cutlog._configured_db_path = None

@@ -8,6 +8,7 @@ import logging
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.exceptions import HTTPException
 from gwizard_physics import GWizardPhysics, is_tap_tool_type, is_drilling_tool_type
+from pipeline import CutRequest, run_cut
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 from toolwiz_common import (
     ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
@@ -19,6 +20,9 @@ safe_eval_expr = safe_eval_length  # backwards-compatible alias
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB upload/request cap
+
+import cutlog
+cutlog.register(app)
 
 # Initialize physics engine
 db_path = os.path.join(os.path.dirname(__file__), "materials_database_clean.json")
@@ -269,358 +273,158 @@ def calculate():
     """Calculate physics engine parameters from incoming JSON data"""
     try:
         data = _json_body()
-        family = data.get("family", "")
-        tool = data.get("tool", "")
         diameter = float(data.get("diameter", 0.5))
-        flutes = int(data.get("flutes", 4))
         cut_depth = float(data.get("cutDepth", 0.25))
         cut_width = float(data.get("cutWidth", 0.25))
-        stickout = float(data.get("stickout", 1.5))
-        is_carbide = bool(data.get("isCarbide", True))
-        geometry = data.get("geometry", "Square")
-        operation = data.get("operation", "Roughing")
-        coating = data.get("coating", "Uncoated")
-        
-        # Normalize legacy baked-in coating tool names so coatings are not double-multiplied
-        if "tialn" in tool.lower() or "altin" in tool.lower():
-            tool = "Carbide Endmill"
-            if coating == "Uncoated" or not coating:
-                coating = "AlTiN"
-        corner_radius = float(data.get("cornerRadius", 0.0))
-        cutter_thickness = float(data.get("cutterThickness", 0.125))
-        flute_length = float(data.get("fluteLength", 1.0))
-        neck_length = float(data.get("neckLength", 0.5))
-        taper_angle = float(data.get("taperAngle", 0.0))
-        helix_angle = float(data.get("helixAngle", 30.0))
-        aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
-        max_rpm = float(data.get("maxRpm") or machine_limits()["max_rpm"])
-        max_hp = float(data.get("maxHp") or machine_limits()["max_hp"])
-        runout = float(data.get("runout", 0.0002))
-        tap_type = data.get("tapType", "")
         is_metric = bool(data.get("isMetric", False))
-
-        # Contextual resolution: extract tap style directly from geometry when tapping
-        geo_lower = geometry.lower()
-        if "form" in geo_lower or "roll" in geo_lower:
-            tap_type = "form"
-        elif "spiral_point" in geo_lower or "gun" in geo_lower:
-            tap_type = "spiral_point"
-        elif "straight" in geo_lower or "hand" in geo_lower:
-            tap_type = "straight_flute"
-        elif "spiral_flute" in geo_lower or ("spiral" in geo_lower and "point" not in geo_lower):
-            tap_type = "spiral_flute"
-        elif not tap_type:
-            tap_type = "form"
-        
-        # Identify saw/woodruff tools
-        is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
-        if is_saw_woodruff:
-            if "t-slot" not in geometry.lower() and "keyseat" not in geometry.lower() and "woodruff" not in geometry.lower():
-                geometry = "T-Slot"
-            if cutter_thickness > 0.0:
-                flute_length = cutter_thickness
-
-        # Determine sizes
-        has_relieved_neck = bool(data.get("hasRelievedNeck", False))
-        is_form_stepped = is_saw_woodruff or any(s in geometry.lower() for s in ["lollipop", "dovetail"])
         shank_size = float(data.get("shankDiameter", diameter))
-        if has_relieved_neck or is_form_stepped:
-            neck_diameter = float(data.get("neckDiameter", shank_size))
-        else:
-            neck_diameter = diameter
-        
-        # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(
-            family, tool, geometry=geometry, diameter=diameter,
-            tap_type=tap_type, is_carbide=is_carbide
-        )
-        base_ipt = physics.get_base_ipt(
-            family, tool, diameter, geometry=geometry, runout=runout,
-            cut_depth=cut_depth, cut_width=cut_width, flutes=flutes, is_carbide=is_carbide
-        )
-        
-        # Alloy-specific hardness adjustment via exponential BHN curve
-        alloy = data.get("alloy", "")
-        target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-        
-        is_hole_tool = is_drilling_tool_type(tool, geometry)
-        is_tapping = is_tap_tool_type(tool) or is_tap_tool_type(operation) or (is_hole_tool and any(t in geo_lower for t in ["form", "spiral_flute", "spiral_point", "straight_flute"]))
 
-        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3.5xD for milling; bypassed for saws/woodruff)
-        target_sfm, base_ipt = physics.apply_chatter_penalty(
-            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff, flute_length=flute_length
+        req = CutRequest(
+            family=data.get("family", ""),
+            alloy=data.get("alloy", ""),
+            tool=data.get("tool", ""),
+            geometry=data.get("geometry", "Square"),
+            operation=data.get("operation", "Roughing"),
+            coating=data.get("coating", "Uncoated"),
+            diameter=diameter,
+            flutes=int(data.get("flutes", 4)),
+            flute_length=float(data.get("fluteLength", 1.0)),
+            shank_diameter=shank_size,
+            neck_diameter=float(data.get("neckDiameter", shank_size)),
+            neck_length=float(data.get("neckLength", 0.5)),
+            has_relieved_neck=bool(data.get("hasRelievedNeck", False)),
+            corner_radius=float(data.get("cornerRadius", 0.0)),
+            taper_angle=float(data.get("taperAngle", 0.0)),
+            helix_angle=float(data.get("helixAngle", 30.0)),
+            stickout=float(data.get("stickout", 1.5)),
+            cutter_thickness=float(data.get("cutterThickness", 0.125)),
+            is_carbide=bool(data.get("isCarbide", True)),
+            aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,  # Scale 0-100 to 0.0-1.0
+            max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
+            max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
+            runout=float(data.get("runout", 0.0002)),
+            cut_depth=cut_depth,
+            cut_width=cut_width,
+            tap_type=data.get("tapType", ""),
+            pitch=float(data.get("pitch", 0.05)),
+            is_metric=is_metric,
         )
-        
-        if not is_tapping:
-            target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-            # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
-            hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(cut_width, diameter, operation=operation)
-            target_sfm *= hem_sfm_mult
-        
-        # Apply Coating Modifier (never for taps: tapping SFM already includes the form/cut factor)
-        if not is_tapping:
-            target_sfm *= physics.get_coating_multiplier(coating, family)
-        
-        effective_diameter = physics.calc_effective_diameter(diameter, cut_depth, geometry, corner_radius)
-        
-        # 2. Physics Equations
-        ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
-        is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
-        rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
-        
-        if is_hole_tool:
-            cut_width = diameter
-            if any(m in operation.lower() for m in ["rough", "adaptive", "trochoidal", "slot", "face", "finish"]):
-                if is_tap_tool_type(tool):
-                    operation = "Rigid Tapping"
-                elif "ream" in tool.lower():
-                    operation = "Precision Reaming"
-                else:
-                    operation = "Drilling"
+        res = run_cut(physics, req)
 
-        tap_drill_info = None
-        if is_tap_tool_type(tool) or is_tap_tool_type(operation):
-            pitch = float(data.get("pitch", 0.05))
-            feedrate = round(rpm) * pitch
-            adjusted_ipt = pitch
-            tap_drill_info = physics.calc_tap_drill(
-                major_dia=diameter,
-                pitch=pitch,
-                tap_type=tap_type,
-                material_family=family,
-                is_metric=is_metric
-            )
-        else:
-            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool, corner_radius=corner_radius)
-            feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
-            
-        mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=geometry, diameter=diameter)
-        
-        actual_sfm = physics.calc_sfm(rpm, diameter)
-        contact_sfm = physics.calc_sfm(rpm, effective_diameter)
-        # 3. Ramping Params
-        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool)
-        
-        op_lower = str(operation).lower()
-        is_roughing_op = any(r in op_lower for r in ["rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot"])
-        is_floor_finish = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"]) and not is_roughing_op
-        is_finishing = ("finish" in op_lower or is_floor_finish or (cut_width <= (diameter * 0.15) and not is_roughing_op)) and not is_roughing_op
-
-        if is_hole_tool:
-            deflection = 0.0
-            springback = 0.0
-            total_error = 0.0
-            wear_comp = 0.0
-            radial_comp = 0.0
-            axial_comp = 0.0
-        else:
-            deflection = physics.tool_deflection(
-                diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
-                helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-                operation=operation, geometry=geometry, corner_radius=corner_radius
-            )
-            springback, total_error, wear_comp = physics.calc_springback_and_deflection(
-                family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=alloy
-            )
-            radial_comp = wear_comp
-            axial_comp = -springback
-        
-        tips = physics.generate_advanced_strategies(
-            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
-            tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length,
-            operation=operation, tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy,
-            corner_radius=corner_radius
-        )
-        
-        if is_spindle_limited:
-            feed_val = feedrate if not is_metric else feedrate * 25.4
-            feed_unit = "IPM" if not is_metric else "mm/min"
-            tips.append({
-                "title": "Spindle RPM Limited",
-                "message": (
-                    f"Your machine's spindle speed cap ({max_rpm:,.0f} RPM) limits surface speed to {actual_sfm:.1f} SFM "
-                    f"(ideal: {target_sfm:.0f} SFM at {ideal_rpm:,.0f} RPM). Tool Wizard has synchronized your feedrate "
-                    f"to {feed_val:.1f} {feed_unit} to maintain optimal chipload ({adjusted_ipt:.5f}\" IPT) and prevent tool rubbing."
-                ),
-                "type": "info"
-            })
-        
-        rec_details = {}
-        rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
-            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-            corner_radius=corner_radius, details=rec_details
-        )
-        feasible = bool(rec_details.get("feasible", True))
-        limited_by = rec_details.get("limited_by")
-        if not feasible:
-            tips.insert(0, {
-                "title": "Infeasible Setup",
-                "message": (
-                    f"No safe cut was found for this tool/material/stickout (limited by: {limited_by or 'unknown'}). "
-                    "The numbers shown are a minimum-engagement fallback and should NOT be run as-is. "
-                    "Reduce stickout, use a larger or shorter tool, or lower aggressiveness."
-                ),
-                "type": "critical"
-            })
-        
-        ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
+        neck_diameter = res.neck_diameter
         max_radial_reach = (diameter - neck_diameter) / 2.0 if (neck_diameter > 0.0 and neck_diameter < diameter) else diameter
 
         resp = {
             "success": True,
-            "rpm": round(rpm),
-            "feedrate": round(feedrate, 2),
-            "mrr": round(mrr, 6),
-            "deflection": round(deflection, 6),
-            "springback": round(springback, 6),
-            "total_error": round(total_error, 6),
-            "wear_comp": round(wear_comp, 6),
-            "radial_comp": round(radial_comp, 6),
-            "axial_comp": round(axial_comp, 6),
-            "is_floor_finish": is_floor_finish,
-            "is_finishing": is_finishing,
-            "sfm": round(actual_sfm, 1),
-            "effective_diameter": round(effective_diameter, 5),
-            "contact_sfm": round(contact_sfm, 1),
-            "base_ipt": round(base_ipt, 6),
-            "adj_ipt": round(adjusted_ipt, 6),
-            "ipr": round(ipr, 6),
-            "ramp_angle": round(ramp_angle, 1),
-            "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
-            "rec_doc": round(rec_doc, 4),
-            "rec_woc": round(rec_woc, 4),
-            "rec_limit": round(rec_limit, 5),
+            "rpm": round(res.rpm),
+            "feedrate": round(res.feed_ipm, 2),
+            "mrr": round(res.mrr, 6),
+            "deflection": round(res.deflection, 6),
+            "springback": round(res.springback, 6),
+            "total_error": round(res.total_error, 6),
+            "wear_comp": round(res.wear_comp, 6),
+            "radial_comp": round(res.wear_comp, 6),
+            "axial_comp": round(-res.springback, 6),
+            "is_floor_finish": res.is_floor_finish,
+            "is_finishing": res.is_finishing,
+            "sfm": round(res.sfm, 1),
+            "effective_diameter": round(res.effective_diameter, 5),
+            "contact_sfm": round(res.contact_sfm, 1),
+            "base_ipt": round(res.base_ipt, 6),
+            "adj_ipt": round(res.adj_ipt, 6),
+            "ipr": round(res.ipr, 6),
+            "ramp_angle": round(res.ramp_angle, 1),
+            "ramp_feed": round(res.ramp_feed, 2),
+            "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
+            "rec_doc": round(res.rec_doc, 4),
+            "rec_woc": round(res.rec_woc, 4),
+            "rec_limit": round(res.rec_limit, 5),
             "max_radial_reach": round(max_radial_reach, 5),
             "neck_diameter": round(neck_diameter, 5),
-            "shank_diameter": round(shank_size, 5),
-            "flute_length": round(flute_length, 5),
-            "is_spindle_limited": is_spindle_limited,
-            "ideal_rpm": round(ideal_rpm),
-            "target_sfm": round(target_sfm, 1),
-            "feasible": feasible,
-            "limited_by": limited_by,
-            "tips": tips
+            "shank_diameter": round(res.shank_diameter, 5),
+            "flute_length": round(res.flute_length, 5),
+            "is_spindle_limited": res.is_spindle_limited,
+            "ideal_rpm": round(res.ideal_rpm),
+            "target_sfm": round(res.target_sfm, 1),
+            "feasible": res.feasible,
+            "limited_by": res.limited_by,
+            "tips": res.tips,
+            "provenance": res.provenance,
         }
-        if tap_drill_info:
-            resp["tap_drill"] = tap_drill_info
-            resp["tap_type"] = tap_type
+        if res.tap_drill:
+            resp["tap_drill"] = res.tap_drill
+            resp["tap_type"] = res.tap_type
         return jsonify(resp)
-        
+
     except Exception as e:
         return _api_error(e)
+
 
 @app.route("/api/calculate_for_fusion", methods=["POST"])
 def calculate_for_fusion():
     """Endpoint specifically designed for the Fusion 360 Add-in"""
     try:
         data = _json_body()
-        family = data.get("family", "")
-        tool = data.get("tool", "Carbide Endmill") # default fallback
-        operation = data.get("operation", "Roughing")
-        aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0
-        max_rpm = float(data.get("maxRpm") or machine_limits()["max_rpm"])
-        max_hp = float(data.get("maxHp") or machine_limits()["max_hp"])
-        runout = float(data.get("runout", 0.0002))
-        
-        # Tool Geometry from Fusion JSON payload
         diameter = float(data.get("diameter", 0.25))
-        flutes = int(data.get("flutes", 4))
-        coating = data.get("coating", "Uncoated")
-        geometry = data.get("geometry", "Square")
-        corner_radius = float(data.get("cornerRadius", 0.0))
-        cutter_thickness = float(data.get("cutterThickness", 0.125))
-        flute_length = float(data.get("fluteLength", 1.0))
-        neck_length = float(data.get("neckLength", 0.5))
         shank_size = float(data.get("shankDiameter", diameter))
-        taper_angle = float(data.get("taperAngle", 0.0))
-        helix_angle = float(data.get("helixAngle", 30.0))
-        stickout = float(data.get("stickout", 1.5))
-        is_carbide = True  # Assuming Fusion tool implies carbide if not specified
-        
-        is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
-        if is_saw_woodruff and cutter_thickness > 0.0:
-            flute_length = cutter_thickness
+        pitch = data.get("pitch")
 
-        has_relieved_neck = bool(data.get("hasRelievedNeck", False))
-        is_form_stepped = is_saw_woodruff or any(s in geometry.lower() for s in ["lollipop", "dovetail"])
-        if has_relieved_neck or is_form_stepped:
-            neck_diameter = float(data.get("neckDiameter", shank_size))
-        else:
-            neck_diameter = diameter
+        # cut_depth / cut_width are left unset: the pipeline uses the recommended DOC/WOC
+        req = CutRequest(
+            family=data.get("family", ""),
+            alloy=data.get("alloy", ""),
+            tool=data.get("tool", "Carbide Endmill"),  # default fallback
+            geometry=data.get("geometry", "Square"),
+            operation=data.get("operation", "Roughing"),
+            coating=data.get("coating", "Uncoated"),
+            diameter=diameter,
+            flutes=int(data.get("flutes", 4)),
+            flute_length=float(data.get("fluteLength", 1.0)),
+            shank_diameter=shank_size,
+            neck_diameter=float(data.get("neckDiameter", shank_size)),
+            neck_length=float(data.get("neckLength", 0.5)),
+            has_relieved_neck=bool(data.get("hasRelievedNeck", False)),
+            corner_radius=float(data.get("cornerRadius", 0.0)),
+            taper_angle=float(data.get("taperAngle", 0.0)),
+            helix_angle=float(data.get("helixAngle", 30.0)),
+            stickout=float(data.get("stickout", 1.5)),
+            cutter_thickness=float(data.get("cutterThickness", 0.125)),
+            is_carbide=bool(data.get("isCarbide", True)),  # Fusion tool implies carbide if not specified
+            aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,
+            max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
+            max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
+            runout=float(data.get("runout", 0.0002)),
+            cut_depth=None,
+            cut_width=None,
+            tap_type=data.get("tapType", ""),
+            pitch=float(pitch) if pitch is not None else None,
+            is_metric=bool(data.get("isMetric", False)),
+        )
+        res = run_cut(physics, req)
 
-        # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter, is_carbide=is_carbide)
-        base_ipt = physics.get_base_ipt(
-            family, tool, diameter, geometry=geometry, runout=runout,
-            cut_depth=cutter_thickness, cut_width=diameter * 0.25, flutes=flutes, is_carbide=is_carbide
-        )
-        
-        # Alloy-specific hardness adjustment
-        alloy = data.get("alloy", "")
-        target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-        
-        is_hole_tool = is_drilling_tool_type(tool, geometry)
-        is_tapping = is_tap_tool_type(tool) or is_tap_tool_type(geometry)
-        target_sfm, base_ipt = physics.apply_chatter_penalty(
-            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff, flute_length=flute_length
-        )
-
-        target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-        if not is_tapping:
-            target_sfm *= physics.get_coating_multiplier(coating, family)
-        
-        # 2. Physics Equations
-        rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-        # Using recommended DOC and WOC for the final feedrate
-        rec_details = {}
-        rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
-            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-            corner_radius=corner_radius, details=rec_details
-        )
-        
-        # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
-        hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(rec_woc, diameter, operation=operation)
-        target_sfm *= hem_sfm_mult
-        rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-        
-        effective_diameter = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_radius)
-        ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
-        is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
-        rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
-        
-        adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius)
-        feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
-        actual_sfm = physics.calc_sfm(rpm, diameter)
-        contact_sfm = physics.calc_sfm(rpm, effective_diameter)
-        
-        # 3. Ramping Params
-        tool_val = data.get("tool", "")
-        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_val)
-        
         return jsonify({
             "success": True,
-            "name": f"ToolWiz: {family} - {operation}",
-            "rpm": round(rpm),
-            "feed": round(feedrate, 2),
-            "sfm": round(actual_sfm, 1),
-            "effective_diameter": round(effective_diameter, 5),
-            "contact_sfm": round(contact_sfm, 1),
-            "ipt": round(adjusted_ipt, 6),
-            "doc": round(rec_doc, 3),
-            "woc": round(rec_woc, 3),
-            "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
-            "is_spindle_limited": is_spindle_limited,
-            "ideal_rpm": round(ideal_rpm),
-            "feasible": bool(rec_details.get("feasible", True)),
-            "limited_by": rec_details.get("limited_by")
+            "name": f"ToolWiz: {req.family} - {req.operation}",
+            "rpm": round(res.rpm),
+            "feed": round(res.feed_ipm, 2),
+            "sfm": round(res.sfm, 1),
+            "effective_diameter": round(res.effective_diameter, 5),
+            "contact_sfm": round(res.contact_sfm, 1),
+            "ipt": round(res.adj_ipt, 6),
+            "doc": round(res.rec_doc, 3),
+            "woc": round(res.rec_woc, 3),
+            "ramp_feed": round(res.ramp_feed, 2),
+            "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
+            "is_spindle_limited": res.is_spindle_limited,
+            "ideal_rpm": round(res.ideal_rpm),
+            "feasible": res.feasible,
+            "limited_by": res.limited_by,
+            "provenance": res.provenance,
         })
-        
+
     except Exception as e:
         return _api_error(e)
+
 
 @app.route("/api/threads/standards", methods=["GET"])
 def get_thread_standards():
@@ -1220,25 +1024,20 @@ def twin_batch_generate():
             if is_drilling:
                 db_tool_type = "Tapping" if is_tap else ("HP Carbide Twist Drill" if is_carbide else "Carbide Twist Drill")
                 
-                target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
-                adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)
-                
-                target_sfm, adj_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, adj_ipt)
-                target_sfm, adj_ipt = physics.apply_chatter_penalty(target_sfm, adj_ipt, diameter, stickout, is_drilling=True)
-                
-                if not is_tap:
-                    target_sfm, adj_ipt = physics.apply_aggressiveness(target_sfm, adj_ipt, aggressiveness)
-                
-                rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-                
-                if is_tap:
-                    tp = g.thread_pitch
-                    feedrate = rpm * tp
-                    adj_ipt = tp
-                else:
-                    feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
-                    
-                actual_sfm = physics.calc_sfm(rpm, diameter)
+                res = run_cut(physics, CutRequest(
+                    family=family, alloy=alloy, tool=db_tool_type, geometry="Square",
+                    operation="Tapping" if is_tap else "Drilling", coating=coating,
+                    diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
+                    corner_radius=corner_rad, stickout=stickout,
+                    is_carbide=is_carbide,
+                    aggressiveness=aggressiveness, max_rpm=max_rpm, max_hp=max_hp, runout=runout,
+                    # Form-tap speed multipliers only when the tool says it's a form/roll tap.
+                    tap_type=("form" if any(k in str(t_dict.get("description", "")).lower() for k in ("form", "roll"))
+                              else "spiral_flute"),
+                    pitch=g.thread_pitch if is_tap else None,
+                    apply_coating=False,  # the batch-wide coating choice isn't known to match hole tools
+                ))
+                rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
                 op_suffix = "Tapping" if is_tap else "Drilling"
                 final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - {op_suffix}"
                 
@@ -1286,53 +1085,32 @@ def twin_batch_generate():
                 total_presets_injected += 1
                 
             elif is_milling:
-                is_saw = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool_type.lower() for s in ["woodruff", "saw"])
                 for strat in strategies:
-                    target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
-                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout, flutes=flutes, is_carbide=is_carbide)
-                    
-                    target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-                    target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=False, is_saw_woodruff=is_saw)
-                    
-                    target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-                    target_sfm *= physics.get_coating_multiplier(coating, family)
-                    
-                    rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-                    rec_details = {}
-                    rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
-                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len,
-                        corner_radius=corner_rad, details=rec_details
-                    )
-                    if not rec_details.get("feasible", True):
+                    res = run_cut(physics, CutRequest(
+                        family=family, alloy=alloy, tool="Carbide Endmill", geometry=geometry, operation=strat,
+                        coating=coating, diameter=diameter, flutes=flutes, flute_length=flute_len,
+                        shank_diameter=shank_dia, corner_radius=corner_rad, stickout=stickout,
+                        cutter_thickness=flute_len, is_carbide=is_carbide, aggressiveness=aggressiveness,
+                        max_rpm=max_rpm, max_hp=max_hp, runout=runout,
+                    ))
+                    if not res.feasible:
                         skipped.append({
                             "tool_index": idx,
                             "number": tool_number,
                             "description": t_dict.get("description", ""),
                             "type": t_dict.get("type", ""),
                             "strategy": strat,
-                            "reason": f"infeasible strategy {strat!r}: no safe cut (limited by {rec_details.get('limited_by') or 'unknown'}); preset not written",
+                            "reason": f"infeasible strategy {strat!r}: no safe cut (limited by {res.limited_by or 'unknown'}); preset not written",
                         })
                         continue
-                    
-                    hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(rec_woc, diameter, operation=strat)
-                    target_sfm *= hem_sfm_mult
-                    rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-                    
-                    eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
-                    adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry, corner_radius=corner_rad)
-                    feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
-                    actual_sfm = physics.calc_sfm(rpm, diameter)
-                    ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_type)
-                    
+
+                    rec_doc, rec_woc = res.doc, res.woc
+                    rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
+                    ramp_angle, ramp_feed, plunge_feed = res.ramp_angle, res.ramp_feed, res.plunge_feed
+
                     wear_comp_note = ""
                     if "finish" in strat.lower():
-                        deflection = physics.tool_deflection(
-                            diameter, shank_dia, stickout, rec_doc, rec_woc, feedrate, rpm, flutes,
-                            is_carbide=is_carbide, material_family=family, flute_length=flute_len
-                        )
-                        sb, total_err, wear_comp = physics.calc_springback_and_deflection(
-                            family, diameter, rec_doc, rec_woc, feedrate, rpm, flutes, deflection, alloy=alloy
-                        )
+                        wear_comp = res.wear_comp
                         if abs(wear_comp) > 0.0002:
                             wear_comp_note = f" | Wear Comp: {wear_comp:+.4f}\""
 
@@ -1772,15 +1550,19 @@ def stock_compensation():
                     woc_in = diameter * 0.40  # 40% D roughing
                     
             if rpm <= 0 or feedrate_ipm <= 0:
-                target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
-                base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, flutes=flutes, is_carbide=True)
-                target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-                target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-                target_sfm *= physics.get_coating_multiplier(coating, family)
+                limits = machine_limits()
+                res = run_cut(physics, CutRequest(
+                    family=family, alloy=alloy, tool="Carbide Endmill", geometry=geometry,
+                    operation="Finishing" if is_finishing else "Roughing", coating=coating,
+                    diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
+                    stickout=stickout, is_carbide=True, aggressiveness=aggressiveness,
+                    max_rpm=limits["max_rpm"], max_hp=limits["max_hp"],
+                    cut_depth=doc_in, cut_width=woc_in,
+                ))
                 if rpm <= 0:
-                    rpm = physics.calc_rpm(target_sfm, diameter)
+                    rpm = res.rpm
                 if feedrate_ipm <= 0:
-                    feedrate_ipm = physics.calc_feedrate(rpm, flutes, base_ipt)
+                    feedrate_ipm = physics.calc_feedrate(rpm, flutes, res.adj_ipt)
                     
             defl = physics.tool_deflection(
                 diameter=diameter, shank_size=shank_dia, stickout=stickout, cut_depth=doc_in, cut_width=woc_in,
@@ -1796,6 +1578,12 @@ def stock_compensation():
             agg_scalar = 0.60 + (aggressiveness * 0.80)
             defl *= agg_scalar
             sb *= agg_scalar
+            # Learned correction from logged real cuts for this material (no-op below 3 samples).
+            corrected, calib = cutlog.apply_calibration(family, defl + sb)
+            if calib.get("applied") and (defl + sb) > 0:
+                scale = corrected / (defl + sb)
+                defl *= scale
+                sb *= scale
             total_err = defl + sb
             wear_comp = -total_err
             
@@ -1865,7 +1653,8 @@ def stock_compensation():
                 "wear_comp_offset_in": round(wear_comp, 6),
                 "recommended_radial_stock": rec_rad,
                 "recommended_axial_stock": rec_ax,
-                "advisory": advisory
+                "advisory": advisory,
+                "calibration": calib
             })
             
         return jsonify({

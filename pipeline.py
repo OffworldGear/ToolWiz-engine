@@ -1,0 +1,466 @@
+"""Single calculation pipeline for every speeds-and-feeds endpoint.
+
+All endpoints (/api/calculate, /api/calculate_for_fusion, /api/twin/batch_generate,
+/api/stock_compensation) build a :class:`CutRequest` and call :func:`run_cut`, so the
+physics is applied in ONE canonical order and every SFM / IPT change is recorded in
+``CutResult.provenance``.
+
+Canonical order (the order /api/calculate has always used):
+
+    base SFM / IPT lookup
+      -> alloy hardness scaling (incl. the >45 HRC hard-milling correction)
+      -> chatter / stickout penalty
+      -> aggressiveness            (not taps)
+      -> HEM thermal SFM boost     (not taps)
+      -> coating multiplier        (not taps)
+      -> effective diameter -> ideal RPM -> spindle cap -> RPM
+      -> chip thinning / adjusted chipload (or tap lead) -> feed
+      -> ramping -> deflection / springback -> tips -> recommended DOC/WOC
+
+``cut_depth`` / ``cut_width`` may be ``None``: the pipeline then runs a recommendation
+pre-pass (speed chain at a provisional engagement, plain-diameter RPM, then
+``recommend_cut_parameters``) and uses the recommended DOC/WOC as the cut.
+
+Provenance entries: ``{"step", "quantity": "sfm"|"ipt", "multiplier", "value_after", "reason"}``.
+Each multiplier is ``after / before`` of that step, so::
+
+    base_sfm * prod(sfm multipliers except "spindle_cap") == target_sfm
+    base_ipt * prod(ipt multipliers)                      == adj_ipt
+"""
+from __future__ import annotations
+
+import dataclasses
+import math
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+from gwizard_physics import (
+    ASTMHardnessConverter,
+    HARD_MILL_ONSET_HRC,
+    is_drilling_tool_type,
+    is_tap_tool_type,
+)
+
+
+@dataclass
+class CutRequest:
+    """Every input the endpoints feed into the physics. Lengths in inches, feeds in IPM."""
+    family: str = ""
+    alloy: str = ""
+    tool: str = "Carbide Endmill"          # tool category (DB lookup key / tool type text)
+    geometry: str = "Square"
+    operation: str = "Roughing"
+    coating: str = "Uncoated"
+    diameter: float = 0.5
+    flutes: int = 4
+    flute_length: float = 1.0
+    shank_diameter: Optional[float] = None  # None -> diameter
+    neck_diameter: Optional[float] = None   # None -> shank diameter (when relieved/form-stepped)
+    neck_length: float = 0.5
+    has_relieved_neck: bool = False
+    corner_radius: float = 0.0
+    taper_angle: float = 0.0
+    helix_angle: float = 30.0
+    stickout: float = 1.5
+    cutter_thickness: float = 0.125
+    is_carbide: bool = True
+    aggressiveness: float = 0.5             # 0.0 - 1.0
+    max_rpm: float = 16000.0
+    max_hp: float = 10.0
+    runout: float = 0.0002
+    cut_depth: Optional[float] = None       # None -> use the recommended DOC
+    cut_width: Optional[float] = None       # None -> use the recommended WOC
+    tap_type: str = ""
+    pitch: Optional[float] = 0.05           # thread pitch (in); taps only
+    is_metric: bool = False                 # only affects tip text units
+    apply_coating: bool = True              # False when the coating isn't known for this tool (batch hole tools)
+
+
+@dataclass
+class CutResult:
+    rpm: float = 0.0
+    sfm: float = 0.0                # actual SFM at the nominal diameter
+    contact_sfm: float = 0.0        # SFM at the effective (contact) diameter
+    ideal_rpm: float = 0.0
+    is_spindle_limited: bool = False
+    effective_diameter: float = 0.0
+    base_ipt: float = 0.0           # chipload after hardness/chatter/aggressiveness
+    adj_ipt: float = 0.0            # chipload after chip thinning / tap lead
+    feed_ipm: float = 0.0
+    doc: float = 0.0                # depth of cut the feed was computed for
+    woc: float = 0.0                # width of cut the feed was computed for
+    rec_doc: float = 0.0
+    rec_woc: float = 0.0
+    rec_limit: float = 0.0
+    feasible: bool = True
+    limited_by: Optional[str] = None
+    ramp_angle: float = 0.0
+    ramp_feed: float = 0.0
+    plunge_feed: float = 0.0
+    mrr: float = 0.0
+    deflection: float = 0.0
+    springback: float = 0.0
+    total_error: float = 0.0
+    wear_comp: float = 0.0
+    tips: List[Dict[str, Any]] = field(default_factory=list)
+    provenance: List[Dict[str, Any]] = field(default_factory=list)
+    # Extras the endpoints echo back
+    base_sfm: float = 0.0           # raw DB lookup, before any multiplier
+    base_ipt_lookup: float = 0.0    # raw DB lookup, before any multiplier
+    target_sfm: float = 0.0         # SFM target before the spindle cap
+    ipr: float = 0.0
+    is_floor_finish: bool = False
+    is_finishing: bool = False
+    is_hole_tool: bool = False
+    is_tapping: bool = False
+    operation: str = ""             # operation after hole-tool remapping
+    geometry: str = ""
+    tool: str = ""
+    coating: str = ""
+    tap_type: str = ""
+    tap_drill: Optional[Dict[str, Any]] = None
+    flute_length: float = 0.0
+    shank_diameter: float = 0.0
+    neck_diameter: float = 0.0
+
+
+def _ratio(after: float, before: float) -> float:
+    return (after / before) if before else 1.0
+
+
+class _Prov:
+    """Collects provenance steps for one SFM chain and one IPT chain."""
+
+    def __init__(self):
+        self.steps: List[Dict[str, Any]] = []
+
+    def add(self, step: str, quantity: str, before: float, after: float, reason: str):
+        self.steps.append({
+            "step": step,
+            "quantity": quantity,
+            "multiplier": float(_ratio(after, before)),
+            "value_after": float(after),
+            "reason": reason,
+        })
+
+
+def _normalize(req: CutRequest) -> CutRequest:
+    """Contextual resolution shared by all endpoints (copy; never mutates the caller's request)."""
+    r = dataclasses.replace(req)
+    r.tool = str(r.tool or "")
+    r.geometry = str(r.geometry or "Square")
+    r.operation = str(r.operation or "Roughing")
+    r.coating = r.coating or "Uncoated"
+    r.family = r.family or ""
+    r.alloy = r.alloy or ""
+
+    # Legacy baked-in coating tool names: don't double-multiply the coating
+    if "tialn" in r.tool.lower() or "altin" in r.tool.lower():
+        r.tool = "Carbide Endmill"
+        if r.coating == "Uncoated" or not r.coating:
+            r.coating = "AlTiN"
+
+    # Tap style: explicit geometry wins, then the requested tap type, then "form"
+    geo_lower = r.geometry.lower()
+    if "form" in geo_lower or "roll" in geo_lower:
+        r.tap_type = "form"
+    elif "spiral_point" in geo_lower or "gun" in geo_lower:
+        r.tap_type = "spiral_point"
+    elif "straight" in geo_lower or "hand" in geo_lower:
+        r.tap_type = "straight_flute"
+    elif "spiral_flute" in geo_lower or ("spiral" in geo_lower and "point" not in geo_lower):
+        r.tap_type = "spiral_flute"
+    elif not r.tap_type:
+        r.tap_type = "form"
+
+    # Saw / woodruff / keyseat cutters: chatter penalty bypassed, flute length = cutter thickness
+    is_saw = (any(s in geo_lower for s in ["t-slot", "woodruff", "keyseat"])
+              or any(s in r.tool.lower() for s in ["woodruff", "saw"]))
+    if is_saw:
+        if not any(s in geo_lower for s in ["t-slot", "keyseat", "woodruff"]):
+            r.geometry = "T-Slot"
+        if r.cutter_thickness > 0.0:
+            r.flute_length = r.cutter_thickness
+
+    shank = r.shank_diameter if r.shank_diameter is not None else r.diameter
+    r.shank_diameter = float(shank)
+    is_form_stepped = is_saw or any(s in r.geometry.lower() for s in ["lollipop", "dovetail"])
+    if r.has_relieved_neck or is_form_stepped:
+        r.neck_diameter = float(r.neck_diameter) if r.neck_diameter is not None else r.shank_diameter
+    else:
+        r.neck_diameter = r.diameter
+    return r
+
+
+class _Ctx:
+    """Derived flags computed once from the normalized request."""
+
+    def __init__(self, r: CutRequest, geo_lower_original: str):
+        self.is_saw = (any(s in geo_lower_original for s in ["t-slot", "woodruff", "keyseat"])
+                       or any(s in r.tool.lower() for s in ["woodruff", "saw"]))
+        self.is_hole_tool = is_drilling_tool_type(r.tool, r.geometry)
+        self.is_tapping = (
+            is_tap_tool_type(r.tool) or is_tap_tool_type(r.operation)
+            or (self.is_hole_tool and any(t in geo_lower_original
+                                          for t in ["form", "spiral_flute", "spiral_point", "straight_flute"]))
+        )
+
+
+def _hardness_reason(physics, family: str, alloy: str) -> str:
+    if not alloy:
+        return "no alloy specified; no hardness scaling"
+    hb = None
+    try:
+        hb = physics.resolve_alloy_hardness(family, alloy)
+    except Exception:
+        hb = None
+    if not hb:
+        return f"alloy {alloy!r} hardness unresolved; no scaling"
+    txt = f"alloy {alloy!r} hardness scaling ({float(hb):.0f} HB)"
+    try:
+        hrc = ASTMHardnessConverter.brinell_to_hrc(float(hb))
+        if hrc is not None and hrc > HARD_MILL_ONSET_HRC:
+            txt += f"; includes hard-milling correction at {hrc:.0f} HRC"
+    except Exception:
+        pass
+    return txt
+
+
+def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width: float,
+                 prov: Optional[_Prov] = None):
+    """Base lookup -> hardness -> chatter -> aggressiveness -> HEM -> coating.
+
+    Returns (base_sfm, base_ipt_lookup, target_sfm, ipt).
+    """
+    p = prov if prov is not None else _Prov()
+
+    sfm = physics.get_base_sfm(
+        r.family, r.tool, geometry=r.geometry, diameter=r.diameter,
+        tap_type=r.tap_type, is_carbide=r.is_carbide
+    )
+    ipt = physics.get_base_ipt(
+        r.family, r.tool, r.diameter, geometry=r.geometry, runout=r.runout,
+        cut_depth=cut_depth, cut_width=cut_width, flutes=r.flutes, is_carbide=r.is_carbide
+    )
+    base_sfm, base_ipt_lookup = sfm, ipt
+    p.add("base_lookup", "sfm", sfm, sfm, f"database SFM for {r.family} / {r.tool}")
+    p.add("base_lookup", "ipt", ipt, ipt, f"database chipload for {r.family} / {r.tool}")
+
+    b_sfm, b_ipt = sfm, ipt
+    sfm, ipt = physics.apply_alloy_hardness_scaling(r.family, r.alloy, sfm, ipt)
+    reason = _hardness_reason(physics, r.family, r.alloy)
+    p.add("hardness", "sfm", b_sfm, sfm, reason)
+    p.add("hardness", "ipt", b_ipt, ipt, reason)
+
+    b_sfm, b_ipt = sfm, ipt
+    sfm, ipt = physics.apply_chatter_penalty(
+        sfm, ipt, r.diameter, r.stickout, is_drilling=ctx.is_hole_tool,
+        is_saw_woodruff=ctx.is_saw, flute_length=r.flute_length
+    )
+    if ctx.is_saw:
+        reason = "saw/woodruff: stickout penalty bypassed"
+    elif sfm != b_sfm or ipt != b_ipt:
+        reason = f"stickout/chatter penalty (L/D = {r.stickout / r.diameter:.1f})" if r.diameter > 0 else "stickout penalty"
+    else:
+        reason = "stickout within limit; no penalty"
+    p.add("chatter", "sfm", b_sfm, sfm, reason)
+    p.add("chatter", "ipt", b_ipt, ipt, reason)
+
+    if not ctx.is_tapping:
+        b_sfm, b_ipt = sfm, ipt
+        sfm, ipt = physics.apply_aggressiveness(sfm, ipt, r.aggressiveness)
+        reason = f"aggressiveness {r.aggressiveness * 100:.0f}%"
+        p.add("aggressiveness", "sfm", b_sfm, sfm, reason)
+        p.add("aggressiveness", "ipt", b_ipt, ipt, reason)
+
+        b_sfm = sfm
+        hem = physics.calc_hem_thermal_sfm_multiplier(cut_width, r.diameter, operation=r.operation)
+        sfm *= hem
+        reason = (f"HEM thermal boost at {cut_width / r.diameter * 100:.0f}% radial immersion"
+                  if hem != 1.0 and r.diameter > 0 else "no HEM low-immersion boost")
+        p.add("hem_thermal", "sfm", b_sfm, sfm, reason)
+
+        b_sfm = sfm
+        if r.apply_coating:
+            sfm *= physics.get_coating_multiplier(r.coating, r.family)
+            p.add("coating", "sfm", b_sfm, sfm, f"{r.coating} coating on {r.family}")
+        else:
+            p.add("coating", "sfm", b_sfm, sfm, "coating not applied (tool coating unknown)")
+    else:
+        for step in ("aggressiveness", "hem_thermal", "coating"):
+            p.add(step, "sfm", sfm, sfm, "skipped for taps")
+        p.add("aggressiveness", "ipt", ipt, ipt, "skipped for taps")
+
+    return base_sfm, base_ipt_lookup, sfm, ipt
+
+
+def _recommend(physics, r: CutRequest, rpm: float, base_ipt: float, details: Dict[str, Any]):
+    return physics.recommend_cut_parameters(
+        r.diameter, r.shank_diameter, r.stickout, r.flutes, rpm, base_ipt, r.is_carbide,
+        r.operation, r.aggressiveness, r.geometry, r.cutter_thickness, r.max_hp,
+        material_family=r.family, helix_angle=r.helix_angle, neck_length=r.neck_length,
+        taper_angle=r.taper_angle, flute_length=r.flute_length, neck_diameter=r.neck_diameter,
+        corner_radius=r.corner_radius, details=details
+    )
+
+
+def run_cut(physics, req: CutRequest) -> CutResult:
+    """Run the canonical speeds-and-feeds pipeline for one cut and record provenance."""
+    geo_lower_original = str(req.geometry or "Square").lower()
+    r = _normalize(req)
+    ctx = _Ctx(r, geo_lower_original)
+
+    diameter, flutes = r.diameter, r.flutes
+    cut_depth, cut_width = r.cut_depth, r.cut_width
+    rec_doc = rec_woc = rec_limit = None
+    rec_details: Dict[str, Any] = {}
+
+    if cut_depth is None or cut_width is None:
+        # Recommendation pre-pass: provisional engagement, plain-diameter RPM, then recommend.
+        prov_depth = cut_depth if cut_depth is not None else r.cutter_thickness
+        prov_width = cut_width if cut_width is not None else diameter * 0.25
+        _, _, pre_sfm, pre_ipt = _speed_chain(physics, r, ctx, prov_depth, prov_width)
+        pre_rpm = physics.calc_rpm(pre_sfm, diameter, max_rpm=r.max_rpm)
+        rec_doc, rec_woc, rec_limit = _recommend(physics, r, pre_rpm, pre_ipt, rec_details)
+        if cut_depth is None:
+            cut_depth = rec_doc
+        if cut_width is None:
+            cut_width = rec_woc
+
+    prov = _Prov()
+    base_sfm, base_ipt_lookup, target_sfm, base_ipt = _speed_chain(physics, r, ctx, cut_depth, cut_width, prov)
+
+    effective_diameter = physics.calc_effective_diameter(diameter, cut_depth, r.geometry, r.corner_radius)
+    # Chamfer/V-bit/engraving: vendors (Harvey chamfer cutters) size RPM on the major diameter;
+    # the smaller contact diameter only feeds chip thinning. Ball/bull nose use the contact diameter.
+    is_pointed = any(k in str(r.geometry).lower() for k in ("chamfer", "v-bit", "engrav"))
+    rpm_diameter = diameter if is_pointed else effective_diameter
+    ideal_rpm = (target_sfm * 12.0) / (math.pi * rpm_diameter) if rpm_diameter > 0 else 0.0
+    max_rpm = r.max_rpm
+    is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
+    rpm = physics.calc_rpm(target_sfm, rpm_diameter, max_rpm=max_rpm)
+    cap_sfm = physics.calc_sfm(rpm, rpm_diameter)
+    prov.add("spindle_cap", "sfm", target_sfm, cap_sfm if ideal_rpm > 0 else target_sfm,
+             (f"spindle capped at {max_rpm:,.0f} RPM (ideal {ideal_rpm:,.0f})" if is_spindle_limited
+              else "spindle speed not limiting"))
+
+    operation = r.operation
+    if ctx.is_hole_tool:
+        cut_width = diameter
+        if any(m in operation.lower() for m in ["rough", "adaptive", "trochoidal", "slot", "face", "finish"]):
+            if is_tap_tool_type(r.tool):
+                operation = "Rigid Tapping"
+            elif "ream" in r.tool.lower():
+                operation = "Precision Reaming"
+            else:
+                operation = "Drilling"
+
+    tap_drill_info = None
+    pitch = r.pitch
+    if (is_tap_tool_type(r.tool) or is_tap_tool_type(operation)) and pitch is not None and pitch > 0:
+        feedrate = round(rpm) * pitch
+        adjusted_ipt = pitch
+        tap_drill_info = physics.calc_tap_drill(
+            major_dia=diameter, pitch=pitch, tap_type=r.tap_type,
+            material_family=r.family, is_metric=r.is_metric
+        )
+        prov.add("chip_thinning", "ipt", base_ipt, adjusted_ipt, f"tap feed = thread lead ({pitch:g} in/rev)")
+    else:
+        adjusted_ipt = physics.calc_adjusted_chipload(
+            base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation,
+            geometry=r.geometry, tool_type=r.tool, corner_radius=r.corner_radius
+        )
+        feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
+        prov.add("chip_thinning", "ipt", base_ipt, adjusted_ipt,
+                 "chip thinning / engagement adjustment (adjusted chipload / base)")
+
+    mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=r.geometry, diameter=diameter)
+    actual_sfm = physics.calc_sfm(rpm, diameter)
+    contact_sfm = physics.calc_sfm(rpm, effective_diameter)
+
+    ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(
+        r.family, diameter, feedrate, r.geometry, flutes, r.aggressiveness, tool_type=r.tool
+    )
+
+    op_lower = str(operation).lower()
+    is_roughing_op = any(x in op_lower for x in ["rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot"])
+    is_floor_finish = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"]) and not is_roughing_op
+    is_finishing = ("finish" in op_lower or is_floor_finish
+                    or (cut_width <= (diameter * 0.15) and not is_roughing_op)) and not is_roughing_op
+
+    if ctx.is_hole_tool:
+        deflection = springback = total_error = wear_comp = 0.0
+    else:
+        deflection = physics.tool_deflection(
+            diameter, r.shank_diameter, r.stickout, cut_depth, cut_width, feedrate, rpm, flutes, r.is_carbide,
+            material_family=r.family, helix_angle=r.helix_angle, neck_length=r.neck_length,
+            taper_angle=r.taper_angle, flute_length=r.flute_length, neck_diameter=r.neck_diameter,
+            operation=operation, geometry=r.geometry, corner_radius=r.corner_radius
+        )
+        springback, total_error, wear_comp = physics.calc_springback_and_deflection(
+            r.family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=r.alloy
+        )
+
+    tips = physics.generate_advanced_strategies(
+        r.family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, r.coating, deflection,
+        tool_type=r.tool, stickout=r.stickout, geometry=r.geometry, flute_length=r.flute_length,
+        operation=operation, tap_type=r.tap_type, neck_diameter=r.neck_diameter, alloy=r.alloy,
+        corner_radius=r.corner_radius
+    )
+
+    if is_spindle_limited:
+        feed_val = feedrate if not r.is_metric else feedrate * 25.4
+        feed_unit = "IPM" if not r.is_metric else "mm/min"
+        tips.append({
+            "title": "Spindle RPM Limited",
+            "message": (
+                f"Your machine's spindle speed cap ({max_rpm:,.0f} RPM) limits surface speed to {actual_sfm:.1f} SFM "
+                f"(ideal: {target_sfm:.0f} SFM at {ideal_rpm:,.0f} RPM). Tool Wizard has synchronized your feedrate "
+                f"to {feed_val:.1f} {feed_unit} to maintain optimal chipload ({adjusted_ipt:.5f}\" IPT) and prevent tool rubbing."
+            ),
+            "type": "info"
+        })
+
+    if rec_doc is None:
+        rec_details = {}
+        rec_doc, rec_woc, rec_limit = _recommend(physics, r, rpm, base_ipt, rec_details)
+    feasible = bool(rec_details.get("feasible", True))
+    limited_by = rec_details.get("limited_by")
+    if not feasible:
+        tips.insert(0, {
+            "title": "Infeasible Setup",
+            "message": (
+                f"No safe cut was found for this tool/material/stickout (limited by: {limited_by or 'unknown'}). "
+                "The numbers shown are a minimum-engagement fallback and should NOT be run as-is. "
+                "Reduce stickout, use a larger or shorter tool, or lower aggressiveness."
+            ),
+            "type": "critical"
+        })
+
+    ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
+
+    return CutResult(
+        rpm=rpm, sfm=actual_sfm, contact_sfm=contact_sfm, ideal_rpm=ideal_rpm,
+        is_spindle_limited=is_spindle_limited, effective_diameter=effective_diameter,
+        base_ipt=base_ipt, adj_ipt=adjusted_ipt, feed_ipm=feedrate,
+        doc=cut_depth, woc=cut_width, rec_doc=rec_doc, rec_woc=rec_woc, rec_limit=rec_limit,
+        feasible=feasible, limited_by=limited_by,
+        ramp_angle=ramp_angle, ramp_feed=ramp_feed, plunge_feed=plunge_feed, mrr=mrr,
+        deflection=deflection, springback=springback, total_error=total_error, wear_comp=wear_comp,
+        tips=tips, provenance=prov.steps,
+        base_sfm=base_sfm, base_ipt_lookup=base_ipt_lookup, target_sfm=target_sfm, ipr=ipr,
+        is_floor_finish=is_floor_finish, is_finishing=is_finishing,
+        is_hole_tool=ctx.is_hole_tool, is_tapping=ctx.is_tapping,
+        operation=operation, geometry=r.geometry, tool=r.tool, coating=r.coating,
+        tap_type=r.tap_type, tap_drill=tap_drill_info, flute_length=r.flute_length,
+        shank_diameter=r.shank_diameter, neck_diameter=r.neck_diameter,
+    )
+
+
+def provenance_product(result: CutResult, quantity: str, exclude=("spindle_cap",)) -> float:
+    """Product of the recorded multipliers for ``quantity`` (spindle cap excluded by default)."""
+    prod = 1.0
+    for s in result.provenance:
+        if s["quantity"] == quantity and s["step"] not in exclude:
+            prod *= s["multiplier"]
+    return prod
