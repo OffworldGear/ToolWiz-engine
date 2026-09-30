@@ -240,6 +240,11 @@ def load_materials():
         alloys_raw = data.get("alloys") or []
         fams, alloys = _build_materials(families, alloys_raw)
         _save_materials_cache(families, alloys_raw)
+        global _machine_max_rpm
+        try:
+            _machine_max_rpm = float((data.get("machine") or {}).get("max_rpm") or 0) or None
+        except (TypeError, ValueError):
+            _machine_max_rpm = None
         _materials = {"families": fams, "alloys": alloys, "status": "online", "cached_at": None, "notice": None}
         return _materials
     except Exception as e:
@@ -385,13 +390,19 @@ def parse_cam_feed_to_ipm(p, doc_unit="in"):
 
 
 # Guards for Fusion evaluated values whose internal units are not confirmed.
-MAX_PLAUSIBLE_RPM = 60000.0
+MAX_PLAUSIBLE_RPM = 30000.0   # used only when the server's machine max RPM is unknown
+_machine_max_rpm = None       # set from /api/data "machine.max_rpm" by load_materials()
+
+
+def _rpm_ceiling():
+    return _machine_max_rpm * 1.05 if _machine_max_rpm else MAX_PLAUSIBLE_RPM
 MAX_PLAUSIBLE_IPM = 2000.0
 
 
 def parse_cam_rpm(p):
     """Spindle-speed CAM parameter -> RPM using the expression. Falls back to the evaluated
-    value (Fusion database unit rad/s) only when the expression is not a plain number."""
+    value (plain RPM - confirmed in Fusion 2026-09-30: the default formula resolving to 5000rpm
+    evaluates to 5000.0) only when the expression is not a plain number."""
     if not p:
         return 0.0
     expr = getattr(p, 'expression', None)
@@ -402,11 +413,11 @@ def parse_cam_rpm(p):
             pass
     v = _numeric_param_value(p)
     if v is not None and v > 0:
-        rpm = v * 60.0 / (2.0 * math.pi)  # assumes Fusion's internal spindle unit is rad/s (unconfirmed)
-        if not (1.0 <= rpm <= MAX_PLAUSIBLE_RPM):
+        rpm = v
+        if not (1.0 <= rpm <= _rpm_ceiling()):
             _log(f"Spindle expression {expr!r}: evaluated {v!r} -> {rpm:.0f} RPM is implausible; ignoring (server will compute)")
             return 0.0
-        _log(f"Spindle expression {expr!r}: evaluated {v!r} (assumed rad/s) -> {rpm:.0f} RPM")
+        _log(f"Spindle expression {expr!r}: evaluated {v!r} RPM")
         return rpm
     return 0.0
 
