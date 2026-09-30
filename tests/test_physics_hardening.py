@@ -140,5 +140,17 @@ class TestWearCompOnlyOnFinishing(unittest.TestCase):
         self.assertIn("Tool Wear Compensation (Wall Deflection & Axial Springback)", self.titles("Wall Finishing (Deep DOC)"))
 
 
+class TestBullNoseTip(unittest.TestCase):
+    def test_bull_nose_floor_finish_gets_corner_radius_tip_not_ball_tip(self):
+        p = GWizardPhysics(DB)
+        tips = p.generate_advanced_strategies(
+            "Copper Alloy - Wrought", 0.126, 0.005, 0.082, 84, 16000, 4, "AlTiN", 0.00003,
+            geometry="Bullnose / Radiused", tool_type="HP Carbide Bull Nose Endmill",
+            flute_length=0.378, stickout=0.41, operation="Floor Finishing (Skim)", corner_radius=0.03)
+        titles = [t["title"] for t in tips]
+        self.assertIn("Corner Radius Effective Diameter", titles)
+        self.assertNotIn("Ball Mill Effective Diameter & 3D Contouring Dynamics", titles)
+
+
 if __name__ == "__main__":
     unittest.main()
