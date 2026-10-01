@@ -356,9 +356,17 @@ def _selected_name(dropdown):
 # RESULT MESSAGES
 # ==============================================================================
 
+LIMIT_LABELS = {
+    "deflection": "tool deflection", "power": "spindle power", "flute_length": "flute length",
+    "geometry_rule": "tool geometry", "operation_depth_rule": "operation depth rule",
+}
+
+
 def _limited_by_text(limited):
     if isinstance(limited, (list, tuple)):
-        limited = ", ".join(str(x) for x in limited if x)
+        limited = ", ".join(LIMIT_LABELS.get(str(x), str(x)) for x in limited if x)
+    elif limited:
+        limited = LIMIT_LABELS.get(str(limited).strip(), str(limited))
     return str(limited).strip() if limited else ""
 
 

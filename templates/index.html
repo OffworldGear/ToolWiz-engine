@@ -2540,7 +2540,11 @@
                 : '<tr><td colspan="4" class="why-dim">No provenance steps reported.</td></tr>';
 
             const feasible = res.feasible !== false;
-            const limited = res.limited_by ? String(res.limited_by) : '';
+            const LIMIT_LABELS = {
+                deflection: 'tool deflection', power: 'spindle power', flute_length: 'flute length',
+                geometry_rule: 'tool geometry', operation_depth_rule: 'operation depth rule'
+            };
+            const limited = res.limited_by ? (LIMIT_LABELS[res.limited_by] || String(res.limited_by)) : '';
             if (statusEl) {
                 statusEl.textContent = !feasible ? 'No safe cut' : (limited ? 'Limited by ' + limited : 'Unconstrained');
                 statusEl.className = 'why-status ' + (!feasible ? 'why-bad' : (limited ? 'why-warn' : 'why-ok'));

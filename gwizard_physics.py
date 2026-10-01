@@ -1170,6 +1170,11 @@ class OptimizationEngine:
                 details["feasible"] = False
             details["limited_by"] = "deflection"
 
+        # The DOC loop can also stop at the operation's depth rule (e.g. adaptive micro-tool
+        # depth), which is not the flute length; report which one actually capped it.
+        if details.get("limited_by") == "flute_length" and flute_length > 0 and best_doc < flute_length * 0.999:
+            details["limited_by"] = "operation_depth_rule"
+
         return best_doc, best_woc, target_deflection
 
 
@@ -1350,17 +1355,29 @@ class AdvisoryEngine:
                     "message": (
                         f"Tool stickout is {ld_ratio:.1f}xD ({stickout:.3f}\" / {stickout*25.4:.1f} mm), which is "
                         f"{stickout/flute_length:.1f}x longer than the flutes ({flute_length:.3f}\" / {flute_length*25.4:.1f} mm). "
-                        f"This extreme overhang forces severe speed and feed reductions to avoid chatter. Choking the tool up in the collet "
-                        f"(~{rec_st:.3f}\" / {rec_st*25.4:.1f} mm) will eliminate chatter penalties and dramatically boost performance."
+                        f"Deflection grows with the cube of overhang, so the safe depth and width of cut are much smaller. "
+                        f"Choking the tool up in the collet (~{rec_st:.3f}\" / {rec_st*25.4:.1f} mm) allows a far larger cut."
                     ),
                     "type": "warning"
                 })
-            elif ld_ratio > critical_ld:
+            elif is_drilling and ld_ratio > critical_ld:
                 tips.append({
                     "title": "Resonance & Chatter Penalty",
                     "message": (
-                        f"Tool stickout is {ld_ratio:.1f}x diameter. For {'drilling' if is_drilling else 'milling'}, overhangs over {critical_ld:.1f}xD "
+                        f"Tool stickout is {ld_ratio:.1f}x diameter. For drilling, overhangs over {critical_ld:.1f}xD "
                         f"induce self-excited chatter. Feeds and speeds have been scaled down to stabilize the cut."
+                    ),
+                    "type": "warning"
+                })
+            elif not is_drilling and ld_ratio > (4.0 if "hss" in str(tool_type).lower() else 7.0):
+                # G-Wizard's milling stickout warning (GWizFeedSpeedMath.as ~2614)
+                lim = 4.0 if "hss" in str(tool_type).lower() else 7.0
+                tips.append({
+                    "title": "Excessive Stickout",
+                    "message": (
+                        f"Tool stickout is {ld_ratio:.1f}x diameter. Keep it under {lim:.0f}xD for "
+                        f"{'HSS' if lim == 4.0 else 'carbide'} tooling where possible. Feeds and speeds are not reduced; "
+                        f"the depth and width of cut are limited by tool deflection instead."
                     ),
                     "type": "warning"
                 })
@@ -2325,6 +2342,11 @@ class GWizardPhysics:
         """Scales SFM and IPT based on Length-to-Diameter (L/D) ratio."""
         if is_saw_woodruff:
             # G-Wizard GWizFeedsSpeeds2.as:1604: this.fsm.adjustSFMForLength = false
+            return sfm, ipt
+        if not is_drilling:
+            # G-Wizard only length-adjusts drills (GWizFeedsSpeeds2.as:1540, adjustSFMForLength).
+            # Milling stickout is handled by the deflection-limited DOC/WOC, as in long-reach
+            # vendor practice (reduce engagement, keep chipload); a warning tip covers > 7xD.
             return sfm, ipt
 
         if diameter <= 0.0 or stickout <= 0.0:
