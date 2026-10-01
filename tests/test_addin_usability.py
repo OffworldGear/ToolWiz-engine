@@ -96,8 +96,8 @@ class TestMessages(AddinTmpBase):
         lines = msg.split("\n")
         self.assertEqual(lines[0], 'T12 \u00b7 0.500" 4FL \u00b7 Nitronic 60 \u2014 Wall Finishing')
         self.assertEqual(lines[1], "12,500 RPM \u00b7 48.0 IPM \u00b7 0.0019 IPT")
-        self.assertEqual(lines[2], 'DOC 0.250" \u00b7 WOC 0.020"')
-        self.assertEqual(lines[3], "Limited by: deflection")
+        self.assertEqual(lines[2], 'DOC 0.2500" \u00b7 WOC 0.0200"')
+        self.assertEqual(lines[3], "Limited by: tool deflection")
         self.assertTrue(lines[4].startswith("SFM: coating"))
         self.assertEqual(len(lines), 5)
 
@@ -107,13 +107,13 @@ class TestMessages(AddinTmpBase):
         self.assertEqual(msg.split("\n"), [
             'T3 \u00b7 0.500" 4FL \u00b7 Brass \u2014 Roughing',
             "9,000 RPM \u00b7 30.0 IPM \u00b7 0.0020 IPT",
-            'WOC 0.050"',
+            'WOC 0.0500"',
         ])
 
     def test_limited_by_list(self):
         msg = self.addin.format_autoset_message("T1", self.GEO, "m", "s", 1, 1, 0.001,
                                                 limited_by=["deflection", "power"])
-        self.assertIn("Limited by: deflection, power", msg)
+        self.assertIn("Limited by: tool deflection, spindle power", msg)
 
     def test_stock_summary(self):
         msg = self.addin.format_stock_summary(

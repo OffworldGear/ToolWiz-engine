@@ -405,9 +405,9 @@ def format_autoset_message(t_label, geo, material_label, strategy, rpm, feed, ip
     ]
     cuts = []
     if doc is not None:
-        cuts.append(f"DOC {doc:.3f}\"")
+        cuts.append(f"DOC {doc:.4f}\"")
     if woc is not None:
-        cuts.append(f"WOC {woc:.3f}\"")
+        cuts.append(f"WOC {woc:.4f}\"")
     if cuts:
         lines.append(" · ".join(cuts))
     lim = _limited_by_text(limited_by)
