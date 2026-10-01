@@ -156,16 +156,13 @@ def add_header(response):
     response.headers["Expires"] = "0"
     return response
 
-# Tool categories grouped by type, ordered HP -> Carbide -> HSS
+# Tool categories grouped by type, ordered HP -> Carbide -> HSS.
+# Geometry variants (bull nose, high feed) are NOT categories: they are Geometry selections.
 TOOL_GROUPS = [
     {
         "group": "End Mills",
         "tools": [
-            "HP Carbide High Feed Endmill",
-            "HP Carbide Bull Nose Endmill",
             "HP Carbide Endmill",
-            "Carbide High Feed Endmill",
-            "Carbide Bull Nose Endmill",
             "Carbide Endmill",
             "Indexable End Or Face Mill",
             "HP HSS Endmill",
@@ -230,10 +227,18 @@ def get_data():
             if t not in ordered_tools:
                 ordered_tools.append(t)
         
+    # Real DB category names (the Tool Material dropdown is derived from these).
+    tool_categories = sorted(
+        {e["tool"] for e in physics.sfm_data}
+        - {"TiAlN Carbide Endmill"}
+        - {e["tool"] for e in physics.sfm_data if str(e["tool"]).startswith("Turning:")}
+    )
+
     return jsonify({
         "families": families,
         "tools": ordered_tools,
         "tool_groups": TOOL_GROUPS,
+        "tool_categories": tool_categories,
         "alloys": physics.specific_alloys,
         "machine": {**MACHINE, **machine_limits()}
     })

@@ -210,16 +210,17 @@ class TestHighFeedMilling(unittest.TestCase):
         self.assertGreater(data["mrr"], 0.0)
 
     def test_api_data_tool_groups(self):
-        """Verify /api/data returns tool_groups containing the new high feed tools."""
+        """High feed / bull nose are Geometry selections now: no legacy geometry-in-category entries."""
         res = self.client.get("/api/data")
         data = res.get_json()
         end_mill_group = next((g for g in data["tool_groups"] if g["group"] == "End Mills"), None)
         self.assertIsNotNone(end_mill_group)
         tools = end_mill_group["tools"]
-        self.assertIn("HP Carbide High Feed Endmill", tools)
-        self.assertIn("Carbide High Feed Endmill", tools)
-        self.assertIn("HP Carbide Bull Nose Endmill", tools)
-        self.assertIn("Carbide Bull Nose Endmill", tools)
+        self.assertIn("HP Carbide Endmill", tools)
+        self.assertNotIn("HP Carbide High Feed Endmill", tools)
+        self.assertNotIn("Carbide High Feed Endmill", tools)
+        self.assertNotIn("HP Carbide Bull Nose Endmill", tools)
+        self.assertNotIn("Carbide Bull Nose Endmill", tools)
 
 
 if __name__ == "__main__":

@@ -292,9 +292,18 @@
                         </div>
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
-                                <label for="tool">Tool Category</label>
-                                <select id="tool" onchange="updateGeometryDisplay('tool'); calculate()"></select>
+                                <label for="toolType">Tool Type</label>
+                                <select id="toolType" onchange="updateGeometryDisplay('type'); calculate()"></select>
                             </div>
+                            <div class="input-group" style="margin:0;">
+                                <label for="toolMaterial">Tool Material</label>
+                                <select id="toolMaterial" onchange="updateGeometryDisplay('material'); calculate()"></select>
+                                <!-- Composed DB category (type + material); this is the "tool" the calculate() payload sends. -->
+                                <input type="hidden" id="tool" value="Carbide Endmill">
+                            </div>
+                        </div>
+
+                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="coating">Tool Coating</label>
                                 <select id="coating" onchange="calculate()">
@@ -307,29 +316,9 @@
                                     <option value="Diamond">Diamond / DLC</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div class="grid-layout" style="gap: 1rem; margin-bottom: 1.5rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="geometry">Geometry</label>
-                                <select id="geometry" onchange="updateGeometryDisplay('geometry'); calculate()">
-                                    <option value="Square">Square Endmill</option>
-                                    <option value="Ball">Ball Endmill</option>
-                                    <option value="Radiused">Bullnose / Radiused</option>
-                                    <option value="High Feed">High Feed Mill</option>
-                                    <option value="Rougher">Rougher (Corncob)</option>
-                                    <option value="Indexable Mill">Indexable Mill</option>
-                                    <option value="Lollipop">Lollipop</option>
-                                    <option value="V-Bit">V-Bit / Chamfer</option>
-                                    <option value="Engraving">Engraving Tool</option>
-                                    <option value="T-Slot">T-Slot / Woodruff</option>
-                                    <option value="Keyseat">Keyseat Cutter</option>
-                                    <option value="Dovetail">Dovetail Cutter</option>
-                                </select>
-                            </div>
-                            <div class="checkbox-group" style="margin:0; align-self:center;">
-                                <input type="checkbox" id="isCarbide" checked onchange="calculate()">
-                                <label for="isCarbide" style="display:inline-block;">Tool is Solid Carbide (Stiffer)</label>
+                                <select id="geometry" onchange="updateGeometryDisplay('geometry'); calculate()"></select>
                             </div>
                         </div>
 
@@ -1571,6 +1560,8 @@
                     family: document.getElementById('family')?.value || "",
                     alloy: document.getElementById('alloy')?.value || "",
                     tool: document.getElementById('tool')?.value || "",
+                    toolType: document.getElementById('toolType')?.value || "",
+                    toolMaterial: document.getElementById('toolMaterial')?.value || "",
                     coating: document.getElementById('coating')?.value || "",
                     geometry: document.getElementById('geometry')?.value || "",
                     diameter: document.getElementById('diameter')?.value || "",
@@ -1582,7 +1573,7 @@
                     stickout_val: document.getElementById('stickout_val')?.value || "1.5",
                     operation: document.getElementById('operation')?.value || "Standard Roughing",
                     aggressiveness: document.getElementById('aggressiveness')?.value || "50",
-                    isCarbide: document.getElementById('isCarbide')?.checked ?? true,
+                    isCarbide: isToolCarbide(),
                     isMetric: isMetric,
                     userEdited: userEdited
                 };
@@ -1603,13 +1594,16 @@
                     if(state.family && document.getElementById('family')) document.getElementById('family').value = state.family;
                     updateAlloys(); // Repopulate alloy list based on loaded family
                     if(state.alloy && document.getElementById('alloy')) selectAlloyOption(document.getElementById('alloy'), state.alloy);
-                    if(state.tool && document.getElementById('tool')) document.getElementById('tool').value = state.tool;
-                    updateGeometryDisplay('tool');
+                    // Migrate: new state has toolType/toolMaterial; old state holds a category name
+                    // (possibly a legacy bull-nose / high-feed one that now lives in Geometry).
+                    const migrated = migrateSavedTool(state);
+                    setToolSelection(migrated.type, migrated.material);
+                    if (migrated.geometry && (!state.geometry || state.geometry === 'Square')) state.geometry = migrated.geometry;
+                    updateGeometryDisplay('type');
                     if(state.coating && document.getElementById('coating')) document.getElementById('coating').value = state.coating;
                     if(state.geometry && document.getElementById('geometry')) document.getElementById('geometry').value = state.geometry;
                     if(state.diameter && document.getElementById('diameter')) document.getElementById('diameter').value = state.diameter;
                     if(state.pitch && document.getElementById('pitch')) document.getElementById('pitch').value = state.pitch;
-                    if(state.isCarbide !== undefined && document.getElementById('isCarbide')) document.getElementById('isCarbide').checked = state.isCarbide;
                     if(state.flutes_val && document.getElementById('flutes_val')) {
                         document.getElementById('flutes_val').value = state.flutes_val;
                         if(document.getElementById('flutes')) document.getElementById('flutes').value = state.flutes_val;
@@ -1667,8 +1661,16 @@
             ],
             drill: [
                 { value: "Drill", text: "Standard Twist Drill" },
-                { value: "Spot Drill", text: "Spot Drill (90/120 Degree)" },
                 { value: "Parabolic", text: "Parabolic Deep Drill" }
+            ],
+            drillPlain: [
+                { value: "Drill", text: "Standard Drill" }
+            ],
+            spot: [
+                { value: "Spot Drill", text: "Spot Drill (90/120 Degree)" }
+            ],
+            indexmill: [
+                { value: "Indexable Mill", text: "Indexable Mill" }
             ],
             reamer: [
                 { value: "Reamer", text: "Precision Reamer" }
@@ -1685,7 +1687,6 @@
                 { value: "Radiused", text: "Bullnose / Radiused" },
                 { value: "High Feed", text: "High Feed Mill" },
                 { value: "Rougher", text: "Rougher (Corncob)" },
-                { value: "Indexable Mill", text: "Indexable Mill" },
                 { value: "Lollipop", text: "Lollipop" },
                 { value: "V-Bit", text: "V-Bit / Chamfer" },
                 { value: "Engraving", text: "Engraving Tool" },
@@ -1694,13 +1695,124 @@
                 { value: "Dovetail", text: "Dovetail Cutter" }
             ],
             saw: [
-                { value: "T-Slot", text: "T-Slot / Woodruff" },
-                { value: "Keyseat", text: "Keyseat Cutter" },
-                { value: "Dovetail", text: "Dovetail Cutter" }
+                { value: "T-Slot", text: "T-Slot Cutter" },
+                { value: "Woodruff", text: "Woodruff Cutter" },
+                { value: "Keyseat", text: "Keyseat Cutter" }
             ]
         };
 
+        // Tool taxonomy: Tool Type x Tool Material -> real DB category (composed into hidden #tool).
+        // m = [label shown in Tool Material, DB category, isCarbide]. group = behaviour group used by
+        // updateGeometryDisplay, geo = key into GEOMETRY_OPTIONS_BY_TOOL. Materials are filtered to
+        // categories the DB has (/api/data tool_categories); if none exist for a type the full list is kept.
+        const TOOL_TAXONOMY = {
+            "End Mill": { group: "milling", geo: "milling", def: "Carbide", materials: [
+                ["HP Carbide", "HP Carbide Endmill", true], ["Carbide", "Carbide Endmill", true],
+                ["HP HSS (HSS-E/PM)", "HP HSS Endmill", false], ["HSS", "HSS Endmill", false], ["PCD", "PCD Endmill", true]] },
+            "Drill": { group: "drill", geo: "drill", def: "Carbide", materials: [
+                ["HP Carbide", "HP Carbide Twist Drill", true], ["Carbide", "Carbide Twist Drill", true],
+                ["Cobalt", "Cobalt Twist Drill", false], ["HP HSS (HSS-E/PM)", "HP HSS Twist Drill", false],
+                ["HSS", "HSS Twist Drill", false], ["PCD", "PCD Twist Drill", true]] },
+            "Reamer": { group: "reamer", geo: "reamer", def: "Carbide", materials: [
+                ["Carbide", "Carbide Reamer", true], ["HSS", "HSS Reamer", false]] },
+            "Thread Mill": { group: "threadmill", geo: "threadmill", def: "Carbide", materials: [
+                ["Carbide", "Carbide Thread Mill", true]] },
+            "Tap": { group: "tap", geo: "tap", def: "Carbide", materials: [
+                ["Carbide", "Tapping", true], ["HSS", "Tapping", false]] },
+            "Saw / Woodruff": { group: "saw", geo: "saw", def: "Carbide", materials: [
+                ["Carbide", "Carbide Saws & Woodruff Cutters", true], ["HSS", "HSS Saws & Woodruff Cutters", false]] },
+            "Indexable Mill": { group: "milling", geo: "indexmill", def: "Indexable Carbide", materials: [
+                ["Indexable Carbide", "Indexable End Or Face Mill", true]] },
+            "Indexable Drill": { group: "drill", geo: "drillPlain", def: "Indexable Carbide", materials: [
+                ["Indexable Carbide", "Indexable Drill", true]] },
+            "Gun Drill": { group: "drill", geo: "drillPlain", def: "Carbide", materials: [
+                ["Carbide", "Gun Drill", true]] },
+            "Spade Drill": { group: "drill", geo: "drillPlain", def: "HSS", materials: [
+                ["HSS", "HSS Spade Drill", false]] },
+            "Spot Drill": { group: "drill", geo: "spot", def: "HSS", materials: [
+                ["HSS", "HSS Spot Drill", false]] }
+        };
+        const DEFAULT_TOOL_TYPE = "End Mill";
+        // Legacy categories that baked a geometry into the name -> [type, material, geometry]
+        const LEGACY_TOOL_CATEGORIES = {
+            "HP Carbide Bull Nose Endmill": ["End Mill", "HP Carbide", "Radiused"],
+            "HP Carbide High Feed Endmill": ["End Mill", "HP Carbide", "High Feed"],
+            "Carbide Bull Nose Endmill": ["End Mill", "Carbide", "Radiused"],
+            "Carbide High Feed Endmill": ["End Mill", "Carbide", "High Feed"]
+        };
+        let toolCategoriesAvailable = null;   // Set of DB category names from /api/data
+
+        function materialsForType(type) {
+            const tax = TOOL_TAXONOMY[type];
+            if (!tax) return [];
+            if (toolCategoriesAvailable) {
+                const present = tax.materials.filter(m => toolCategoriesAvailable.has(m[1]));
+                if (present.length) return present;
+            }
+            return tax.materials;
+        }
+
+        // Fill Tool Material for the current Tool Type (keeping the current/preferred label if offered).
+        function populateToolMaterials(preferred) {
+            const type = document.getElementById('toolType').value;
+            const matSel = document.getElementById('toolMaterial');
+            const mats = materialsForType(type);
+            const keep = preferred || matSel.value;
+            matSel.innerHTML = '';
+            mats.forEach(m => {
+                const o = document.createElement('option');
+                o.value = m[0]; o.text = m[0];
+                matSel.appendChild(o);
+            });
+            const def = (TOOL_TAXONOMY[type] || {}).def;
+            if (mats.some(m => m[0] === keep)) matSel.value = keep;
+            else if (mats.some(m => m[0] === def)) matSel.value = def;
+        }
+
+        // Compose type + material into the hidden #tool category and its carbide flag.
+        function composeToolCategory() {
+            const type = document.getElementById('toolType').value;
+            const mats = materialsForType(type);
+            const label = document.getElementById('toolMaterial').value;
+            const m = mats.find(x => x[0] === label) || mats[0];
+            const hidden = document.getElementById('tool');
+            if (m) { hidden.value = m[1]; hidden.dataset.carbide = m[2] ? '1' : '0'; }
+        }
+
+        function isToolCarbide() {
+            const t = document.getElementById('tool');
+            return !t || t.dataset.carbide !== '0';
+        }
+
+        function setToolSelection(type, material) {
+            const typeSel = document.getElementById('toolType');
+            typeSel.value = TOOL_TAXONOMY[type] ? type : DEFAULT_TOOL_TYPE;
+            populateToolMaterials(material);
+            composeToolCategory();
+        }
+
+        // Saved state -> {type, material, geometry?}; handles pre-taxonomy states that only held a category.
+        function migrateSavedTool(state) {
+            if (state.toolType && TOOL_TAXONOMY[state.toolType]) {
+                return { type: state.toolType, material: state.toolMaterial };
+            }
+            const cat = state.tool || "";
+            const legacy = LEGACY_TOOL_CATEGORIES[cat];
+            if (legacy) return { type: legacy[0], material: legacy[1], geometry: legacy[2] };
+            for (const [type, tax] of Object.entries(TOOL_TAXONOMY)) {
+                const hits = tax.materials.filter(m => m[1] === cat);
+                if (hits.length) {
+                    // Tapping is shared by carbide and HSS: the old isCarbide checkbox decides.
+                    const hit = hits.find(m => m[2] === (state.isCarbide !== false)) || hits[0];
+                    return { type: type, material: hit[0] };
+                }
+            }
+            return { type: DEFAULT_TOOL_TYPE, material: "Carbide" };
+        }
+
         function getToolCategoryGroup(toolType) {
+            const tx = TOOL_TAXONOMY[document.getElementById('toolType')?.value];
+            if (tx) return tx.group;
             const t = (toolType || "").toLowerCase();
             if (t.includes("tap")) return "tap";
             if (t.includes("drill") || t.includes("annular") || t.includes("spade")) return "drill";
@@ -1767,33 +1879,16 @@
                 twinFamilySelect.appendChild(opt2);
             });
 
-            const toolSelect = document.getElementById('tool');
-            toolSelect.innerHTML = '';
-            // Turning tools have no turning physics in this calculator: hide them from the picker.
-            const millingGroups = (data.tool_groups || [])
-                .map(g => ({ group: g.group, tools: (g.tools || []).filter(t => !/^Turning\b/i.test(t)) }))
-                .filter(g => g.tools.length > 0 && !/turning|lathe/i.test(g.group));
-            if (millingGroups.length > 0) {
-                millingGroups.forEach(g => {
-                    const optgroup = document.createElement('optgroup');
-                    optgroup.label = g.group;
-                    g.tools.forEach(t => {
-                        let opt = document.createElement('option');
-                        opt.value = t;
-                        opt.innerText = t;
-                        if (t === "Carbide Endmill") opt.selected = true;
-                        optgroup.appendChild(opt);
-                    });
-                    toolSelect.appendChild(optgroup);
-                });
-            } else {
-                data.tools.filter(t => !/^Turning\b/i.test(t)).forEach(t => {
-                    let opt = document.createElement('option');
-                    opt.value = t; opt.innerText = t;
-                    if(t.includes("Carbide Endmill")) opt.selected = true;
-                    toolSelect.appendChild(opt);
-                });
-            }
+            // Tool Type / Tool Material: materials are limited to categories that exist in the DB.
+            toolCategoriesAvailable = Array.isArray(data.tool_categories) ? new Set(data.tool_categories) : null;
+            const typeSelect = document.getElementById('toolType');
+            typeSelect.innerHTML = '';
+            Object.keys(TOOL_TAXONOMY).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t; opt.innerText = t;
+                typeSelect.appendChild(opt);
+            });
+            setToolSelection(DEFAULT_TOOL_TYPE, "Carbide");
 
             fullAlloys = dedupeAlloys(data.alloys || []);
             populateFamilies(null);
@@ -1816,67 +1911,22 @@
 
         function updateGeometryDisplay(source) {
             const geoSelect = document.getElementById('geometry');
-            const toolSelect = document.getElementById('tool');
-            let toolType = toolSelect.value || "";
+            const typeSel = document.getElementById('toolType');
+            if (typeSel && !typeSel.options.length) return;   // taxonomy not built yet (init() fills it)
 
-            // Smart bidirectional synchronization
-            if (source === 'geometry') {
-                let geoVal = geoSelect.value;
-                if ((geoVal === 'Drill' || geoVal === 'Parabolic') && (toolType.includes('Endmill') || toolType.includes('Spot') || toolType === '')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide Twist Drill')) {
-                        toolSelect.value = 'HP Carbide Twist Drill';
-                        toolType = 'HP Carbide Twist Drill';
-                    } else if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Twist Drill')) {
-                        toolSelect.value = 'Carbide Twist Drill';
-                        toolType = 'Carbide Twist Drill';
-                    }
-                } else if (geoVal === 'Spot Drill' && !toolType.includes('Spot')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'HSS Spot Drill')) {
-                        toolSelect.value = 'HSS Spot Drill';
-                        toolType = 'HSS Spot Drill';
-                    }
-                } else if (geoVal === 'Thread Mill' && !toolType.includes('Thread Mill')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Thread Mill')) {
-                        toolSelect.value = 'Carbide Thread Mill';
-                        toolType = 'Carbide Thread Mill';
-                    }
-                } else if (['form', 'spiral_flute', 'spiral_point', 'straight_flute'].includes(geoVal) && !toolType.includes('Tapping')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'Tapping')) {
-                        toolSelect.value = 'Tapping';
-                        toolType = 'Tapping';
-                    }
-                } else if (geoVal === 'Reamer' && !toolType.includes('Reamer')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'HSS Reamer')) {
-                        toolSelect.value = 'HSS Reamer';
-                        toolType = 'HSS Reamer';
-                    }
-                } else if (geoVal === 'High Feed' && !toolType.includes('High Feed')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide High Feed Endmill')) {
-                        toolSelect.value = 'HP Carbide High Feed Endmill';
-                        toolType = 'HP Carbide High Feed Endmill';
-                    } else if (Array.from(toolSelect.options).some(o => o.value === 'Carbide High Feed Endmill')) {
-                        toolSelect.value = 'Carbide High Feed Endmill';
-                        toolType = 'Carbide High Feed Endmill';
-                    }
-                } else if (geoVal === 'Radiused' && !toolType.includes('Bull Nose')) {
-                    if (Array.from(toolSelect.options).some(o => o.value === 'HP Carbide Bull Nose Endmill')) {
-                        toolSelect.value = 'HP Carbide Bull Nose Endmill';
-                        toolType = 'HP Carbide Bull Nose Endmill';
-                    } else if (Array.from(toolSelect.options).some(o => o.value === 'Carbide Bull Nose Endmill')) {
-                        toolSelect.value = 'Carbide Bull Nose Endmill';
-                        toolType = 'Carbide Bull Nose Endmill';
-                    }
-                }
-            }
+            // Type change repopulates the material list; either change recomposes the DB category.
+            if (source === 'type') populateToolMaterials();
+            composeToolCategory();
+            const toolType = document.getElementById('tool').value || "";
 
-            // Determine target tool category group and dynamically populate Geometry dropdown
+            // Geometry options depend only on the Tool Type
             const targetGroup = getToolCategoryGroup(toolType);
-            const currentGroup = geoSelect.dataset.toolGroup;
-            let currentGeo = geoSelect.value;
+            const geoKey = (TOOL_TAXONOMY[typeSel.value] || {}).geo || 'milling';
+            const currentGeo = geoSelect.value;
 
-            if (currentGroup !== targetGroup) {
-                geoSelect.dataset.toolGroup = targetGroup;
-                const options = GEOMETRY_OPTIONS_BY_TOOL[targetGroup] || GEOMETRY_OPTIONS_BY_TOOL.milling;
+            if (geoSelect.dataset.geoKey !== geoKey) {
+                geoSelect.dataset.geoKey = geoKey;
+                const options = GEOMETRY_OPTIONS_BY_TOOL[geoKey] || GEOMETRY_OPTIONS_BY_TOOL.milling;
                 geoSelect.innerHTML = "";
                 options.forEach(opt => {
                     let o = document.createElement("option");
@@ -1884,57 +1934,12 @@
                     o.text = opt.text;
                     geoSelect.appendChild(o);
                 });
-
-                // Retain geometry if it exists in the new options list, else select intuitive group default
-                const hasExisting = options.some(opt => opt.value === currentGeo);
-                if (hasExisting) {
-                    geoSelect.value = currentGeo;
-                } else {
-                    if (targetGroup === 'drill') {
-                        geoSelect.value = toolType.includes('Spot') ? 'Spot Drill' : 'Drill';
-                    } else if (targetGroup === 'tap') {
-                        geoSelect.value = 'form';
-                    } else if (targetGroup === 'milling') {
-                        if (toolType.includes('High Feed')) {
-                            geoSelect.value = 'High Feed';
-                        } else if (toolType.includes('Bull Nose')) {
-                            geoSelect.value = 'Radiused';
-                        } else {
-                            geoSelect.value = 'Square';
-                        }
-                    } else if (targetGroup === 'reamer') {
-                        geoSelect.value = 'Reamer';
-                    } else if (targetGroup === 'threadmill') {
-                        geoSelect.value = 'Thread Mill';
-                    } else if (targetGroup === 'turning') {
-                        geoSelect.value = 'Turning';
-                    }
-                }
-            } else if (source === 'tool') {
+                // Keep the geometry if still valid, else the type's default (first option; form for taps)
+                geoSelect.value = options.some(opt => opt.value === currentGeo) ? currentGeo : options[0].value;
+            } else if (source === 'type' || source === 'material' || source === 'tool') {
                 autoSetTracker.fluteLength = true;
                 autoSetTracker.stickout = true;
                 autoSetTracker.flutes = true;
-                if (targetGroup === 'drill') {
-                    if (toolType.includes('Spot') && geoSelect.value !== 'Spot Drill') {
-                        geoSelect.value = 'Spot Drill';
-                    } else if (!toolType.includes('Spot') && geoSelect.value === 'Spot Drill') {
-                        geoSelect.value = 'Drill';
-                    }
-                } else if (targetGroup === 'milling') {
-                    if (toolType.includes('High Feed') && geoSelect.value !== 'High Feed') {
-                        geoSelect.value = 'High Feed';
-                    } else if (toolType.includes('Bull Nose') && geoSelect.value !== 'Radiused') {
-                        geoSelect.value = 'Radiused';
-                    }
-                }
-                const carbideCb = document.getElementById('isCarbide');
-                if (carbideCb) {
-                    if (toolType.includes('Carbide')) {
-                        carbideCb.checked = true;
-                    } else if (toolType.includes('HSS')) {
-                        carbideCb.checked = false;
-                    }
-                }
             }
 
             let geo = geoSelect.value;
@@ -1945,7 +1950,7 @@
             const isFormTool = targetGroup === 'saw' || geo === 'T-Slot' || geo === 'Keyseat' || geo === 'Dovetail' || geo === 'Woodruff' || toolType.includes('Woodruff') || toolType.includes('Saws');
             const isChamferEngrave = geo === 'V-Bit' || geo === 'Engraving';
             const is3DContour = geo === 'Ball' || geo === 'Radiused' || geo === 'Lollipop';
-            const isHighFeedCapable = (geo === 'High Feed' || geo === 'Radiused' || toolType.toLowerCase().includes('high feed') || toolType.toLowerCase().includes('bull nose'));
+            const isHighFeedCapable = (geo === 'High Feed' || geo === 'Radiused');
             const isTurning = targetGroup === 'turning' || toolType.includes('Turning') || toolType.includes('Parting') || (toolType.includes('Threading') && !isThreadMill) || geo === 'Turning';
             const isHoleTool = isDrill || isTap || isReamer || toolType.includes('Bore');
             
@@ -2730,7 +2735,7 @@
                 cutDepth: p_depth,
                 cutWidth: p_width,
                 stickout: p_stick,
-                isCarbide: document.getElementById('isCarbide').checked
+                isCarbide: isToolCarbide()
             };
 
             try {
@@ -4627,11 +4632,8 @@
             // Set tool category to Tapping
             const toolSelect = document.getElementById('tool');
             if (toolSelect) {
-                let hasTapping = Array.from(toolSelect.options).some(o => o.value === 'Tapping');
-                if (hasTapping) {
-                    toolSelect.value = 'Tapping';
-                }
-                updateGeometryDisplay('tool');
+                setToolSelection('Tap', document.getElementById('toolMaterial')?.value);
+                updateGeometryDisplay('type');
             }
 
             // Set geometry to tap style
@@ -4796,7 +4798,7 @@
                 tool: document.getElementById('tool')?.value || '',
                 geometry: document.getElementById('geometry')?.value || '',
                 coating: document.getElementById('coating')?.value || '',
-                isCarbide: document.getElementById('isCarbide')?.checked ?? true,
+                isCarbide: isToolCarbide(),
                 flutes: parseInt(document.getElementById('flutes_val')?.value || 4),
                 operation: document.getElementById('operation')?.value || 'Standard Roughing',
 

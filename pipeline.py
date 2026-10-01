@@ -144,6 +144,16 @@ class _Prov:
         })
 
 
+# Legacy tool categories that baked a geometry into the category name. They map to the base
+# endmill category plus a Geometry selection ("Radiused" is the Bullnose / Radiused option value).
+_LEGACY_GEOMETRY_TOOLS = {
+    "hp carbide bull nose endmill": ("HP Carbide Endmill", "Radiused"),
+    "hp carbide high feed endmill": ("HP Carbide Endmill", "High Feed"),
+    "carbide bull nose endmill": ("Carbide Endmill", "Radiused"),
+    "carbide high feed endmill": ("Carbide Endmill", "High Feed"),
+}
+
+
 def _normalize(req: CutRequest) -> CutRequest:
     """Contextual resolution shared by all endpoints (copy; never mutates the caller's request)."""
     r = dataclasses.replace(req)
@@ -153,6 +163,13 @@ def _normalize(req: CutRequest) -> CutRequest:
     r.coating = r.coating or "Uncoated"
     r.family = r.family or ""
     r.alloy = r.alloy or ""
+
+    # Legacy geometry-in-category names -> base category + geometry (only when none was chosen)
+    legacy = _LEGACY_GEOMETRY_TOOLS.get(r.tool.strip().lower())
+    if legacy:
+        r.tool = legacy[0]
+        if r.geometry.strip().lower() in ("", "square"):
+            r.geometry = legacy[1]
 
     # Legacy baked-in coating tool names: don't double-multiply the coating
     if "tialn" in r.tool.lower() or "altin" in r.tool.lower():

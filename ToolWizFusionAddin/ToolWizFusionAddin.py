@@ -1128,16 +1128,15 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
     elif "uncoated" in coat or "bright" in coat:
         coating_code = "Uncoated"
 
-    is_bullnose = geo_payload.get("cornerRadius", 0.0) > 0.001
     grade = selected_grade.lower()
     if "hp" in grade or "high performance" in grade:
-        tool_category = "HP Carbide Bull Nose Endmill" if is_bullnose else "HP Carbide Endmill"
+        tool_category = "HP Carbide Endmill"  # bull nose / high feed is carried by "geometry"
     elif "hss" in grade:
         tool_category = "HSS Endmill"
     elif "cobalt" in grade:
         tool_category = "Cobalt Endmill"
     else:
-        tool_category = "Carbide Bull Nose Endmill" if is_bullnose else "Carbide Endmill"
+        tool_category = "Carbide Endmill"
 
     return {
         "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
