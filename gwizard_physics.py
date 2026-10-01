@@ -122,6 +122,7 @@ COPPER_WORK_HARDENING_KEYS = (
     "beryllium copper", "copper beryllium", "moldmax", "c17",
     "nickel copper", "cupronickel", "copper-nickel", "c706", "c715",
     "toughmet", "c729", "silicon bronze", "c655", "nickel silver alloy", "c752",
+    "c510", "c519", "c521",  # unleaded phosphor bronzes (C54400 is leaded, free-machining)
 )
 WORK_HARDENING_ALLOY_KEYS = ("nitronic", "inconel", "titanium", "316", "304")
 
@@ -171,6 +172,25 @@ class ASTMHardnessConverter:
                 
         return hrc
 
+    # ASTM E140 Table 1: Rockwell B (HRB) to Brinell (HB, 500 kgf below ~HRB 80, 3000 kgf above).
+    _HRB_TO_HB_TABLE: List[Tuple[float, float]] = [
+        (40.0, 70.0), (50.0, 82.0), (60.0, 107.0), (65.0, 116.0), (70.0, 125.0), (75.0, 137.0),
+        (80.0, 150.0), (85.0, 165.0), (90.0, 185.0), (95.0, 207.0), (100.0, 240.0),
+    ]
+
+    @classmethod
+    def hrb_to_brinell(cls, hrb: float) -> float:
+        """Convert Rockwell B (HRB) to approximate Brinell (HB) by linear interpolation."""
+        t = cls._HRB_TO_HB_TABLE
+        if hrb <= t[0][0]:
+            return t[0][1]
+        if hrb >= t[-1][0]:
+            return t[-1][1]
+        for (x0, y0), (x1, y1) in zip(t, t[1:]):
+            if x0 <= hrb <= x1:
+                return y0 + (y1 - y0) * (hrb - x0) / (x1 - x0)
+        return hrb
+
     @classmethod
     def brinell_to_hrc(cls, hb: float) -> Optional[float]:
         """Inverse of hrc_to_brinell. Returns None below the HRC scale (< ~226 HB)."""
@@ -215,7 +235,9 @@ class ASTMHardnessConverter:
         
         if is_hrc:
             return cls.hrc_to_brinell(raw_val)
-            
+        if "hrb" in h_str.lower():
+            return cls.hrb_to_brinell(raw_val)
+
         return raw_val
 
 

@@ -211,5 +211,18 @@ class TestHardMillingOnlyFerrous(unittest.TestCase):
         self.assertNotIn("Hard Milling Correction Applied", [t["title"] for t in tips])
 
 
+class TestPhosphorBronzeC510(unittest.TestCase):
+    def test_c510_tempers_present_and_parsed_from_hrb(self):
+        p = GWizardPhysics(DB)
+        fam = "Copper Alloy - Wrought"
+        h02 = p.resolve_alloy_hardness(fam, "C51000 - Phosphor Bronze 5% Sn (H02 (1/2 Hard))")
+        h04 = p.resolve_alloy_hardness(fam, "C51000 - Phosphor Bronze 5% Sn (H04 (Hard))")
+        self.assertAlmostEqual(h02, 145, delta=3)   # HRB 78 (MatWeb typ.) per ASTM E140
+        self.assertAlmostEqual(h04, 173, delta=3)   # HRB 87
+        from gwizard_physics import alloy_work_hardens
+        self.assertTrue(alloy_work_hardens(fam, "C51000 - Phosphor Bronze 5% Sn"))
+        self.assertFalse(alloy_work_hardens(fam, "C54400 - Phosphor Bronze"))  # leaded, free-machining
+
+
 if __name__ == "__main__":
     unittest.main()
