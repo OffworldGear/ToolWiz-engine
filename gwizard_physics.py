@@ -737,7 +737,9 @@ class CuttingMechanics:
         elif is_adaptive:
             # High Efficiency Milling (HEM) uses roughing-grade allowable deflection (0.001" - 0.003" based on aggressiveness)
             lim = diameter * 0.006 * (0.35 + aggressiveness * 0.65)
-            return max(0.0004, min(0.0030, lim))
+            # Floor scales with diameter: a fixed 0.0004" floor allowed 1.3% of D on a 1/32" tool
+            # (vs ~0.5% on larger tools), letting micro HEM run 2xD deep unchecked.
+            return max(min(0.0004, diameter * 0.004), min(0.0030, lim))
         else:
             # Traditional roughing / 3D roughing / slotting / facing:
             lim = diameter * 0.002 * (0.2 + aggressiveness)
@@ -1015,8 +1017,11 @@ class OptimizationEngine:
             else:
                 macro_woc_ratio = 0.10
 
-            t = max(0.0, min(1.0, (diameter - 0.03125) / (0.250 - 0.03125)))
-            woc_ratio = 0.45 * (1.0 - t) + macro_woc_ratio * t
+            # Harvey/Helical HEM Guidebook: 7-30% radial for HEM, widening to 10-35% for micro tools
+            # (< 1/8") so chips stay above the minimum chip thickness. Blend from 25% at <= 1/16"
+            # to the macro ratio at 1/8".
+            t = max(0.0, min(1.0, (diameter - 0.0625) / (0.125 - 0.0625)))
+            woc_ratio = max(macro_woc_ratio, 0.25 * (1.0 - t) + macro_woc_ratio * t)
             target_woc = diameter * woc_ratio
         elif "face" in op_low:
             target_woc = diameter * 0.75
@@ -1081,10 +1086,10 @@ class OptimizationEngine:
             else:
                 macro_doc_mult = 1.5
 
-            t = max(0.0, min(1.0, (diameter - 0.03125) / (0.250 - 0.03125)))
-            s_doc = t ** 2.305
-            doc_ratio = 0.08 * (1.0 - s_doc) + macro_doc_mult * s_doc
-            target_adaptive_doc = diameter * doc_ratio
+            # Harvey/Helical HEM Guidebook: "up to twice the cutter diameter axially" at every size.
+            # (A former micro-tool rule shrank this to ~0.1xD; no manufacturer data supports that.)
+            # The deflection loop below caps the depth for long or slender tools.
+            target_adaptive_doc = diameter * macro_doc_mult
 
             avail_flute = flute_length if flute_length > 0.0 else target_adaptive_doc
             max_doc = min(avail_flute, target_adaptive_doc)
@@ -1464,6 +1469,22 @@ class AdvisoryEngine:
                         ),
                         "type": tip_type
                     })
+
+        if not is_drilling and diameter > 0.0 and any(k in str(operation).lower() for k in ("adaptive", "trochoidal", "hem")):
+            if diameter < 0.031:
+                tips.append({
+                    "title": "HEM Not Recommended Below 0.031\"",
+                    "message": ("Harvey/Helical's HEM Guidebook advises against high-efficiency milling with cutters under "
+                                "0.031\" (0.8 mm). Use conventional light-radial profiling or slotting instead."),
+                    "type": "critical"
+                })
+            elif diameter < 0.062:
+                tips.append({
+                    "title": "Micro HEM Risk",
+                    "message": ("HEM below 0.062\" (1.6 mm) is possible but risky (Harvey/Helical HEM Guidebook). Keep runout "
+                                "minimal, use a rigid holder and verify the first cuts at reduced aggressiveness."),
+                    "type": "warning"
+                })
 
         if diameter < 0.125:
             if is_drilling:

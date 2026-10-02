@@ -41,12 +41,14 @@
         "sfm_min": 500,
         "sfm_max": 900,
         "target_rpm": 24000,
-        "doc_inch_max": 0.005,
-        "woc_inch_min": 0.01,
-        "woc_inch_max": 0.016,
         "feedrate_ipm_min": 15.0,
-        "feedrate_ipm_max": 60.0
-      }
+        "feedrate_ipm_max": 60.0,
+        "doc_inch_max": 0.0625,
+        "woc_inch_min": 0.00313,
+        "woc_inch_max": 0.01094
+      },
+      "source": "https://www.basstool.com/pdf/promos/HEM_Guidebook.pdf (Harvey/Helical HEM Guidebook: up to 2xD axial; 10-35% radial for micro tools)",
+      "note": "DOC/WOC targets replaced 2026-10-01: the original rows had no source, a reused Harvey part number and ranges fitted to the code. SFM/feed targets are legacy and unverified."
     },
     {
       "id": "harvey_micro_adaptive_1_16_h13",
@@ -67,13 +69,14 @@
         "sfm_min": 140,
         "sfm_max": 220,
         "target_rpm": 12000,
-        "doc_inch_min": 0.0055,
-        "doc_inch_max": 0.0065,
-        "woc_inch_min": 0.022,
-        "woc_inch_max": 0.027,
         "feedrate_ipm_min": 20.0,
-        "feedrate_ipm_max": 70.0
-      }
+        "feedrate_ipm_max": 70.0,
+        "doc_inch_max": 0.125,
+        "woc_inch_min": 0.00625,
+        "woc_inch_max": 0.02187
+      },
+      "source": "https://www.basstool.com/pdf/promos/HEM_Guidebook.pdf (Harvey/Helical HEM Guidebook: up to 2xD axial; 10-35% radial for micro tools)",
+      "note": "DOC/WOC targets replaced 2026-10-01: the original rows had no source, a reused Harvey part number and ranges fitted to the code. SFM/feed targets are legacy and unverified."
     },
     {
       "id": "harvey_micro_slotting_1_16",
@@ -118,13 +121,14 @@
         "sfm_min": 180,
         "sfm_max": 290,
         "target_rpm": 9000,
-        "doc_inch_min": 0.01,
-        "doc_inch_max": 0.025,
-        "woc_inch_min": 0.025,
-        "woc_inch_max": 0.04,
         "feedrate_ipm_min": 15.0,
-        "feedrate_ipm_max": 75.0
-      }
+        "feedrate_ipm_max": 75.0,
+        "doc_inch_max": 0.1875,
+        "woc_inch_min": 0.00938,
+        "woc_inch_max": 0.03281
+      },
+      "source": "https://www.basstool.com/pdf/promos/HEM_Guidebook.pdf (Harvey/Helical HEM Guidebook: up to 2xD axial; 10-35% radial for micro tools)",
+      "note": "DOC/WOC targets replaced 2026-10-01: the original rows had no source, a reused Harvey part number and ranges fitted to the code. SFM/feed targets are legacy and unverified."
     },
     {
       "id": "harvey_intermediate_adaptive_1_8",
@@ -144,13 +148,14 @@
         "sfm_min": 200,
         "sfm_max": 380,
         "target_rpm": 9000,
-        "doc_inch_min": 0.025,
-        "doc_inch_max": 0.06,
-        "woc_inch_min": 0.028,
-        "woc_inch_max": 0.045,
         "feedrate_ipm_min": 15.0,
-        "feedrate_ipm_max": 65.0
-      }
+        "feedrate_ipm_max": 65.0,
+        "doc_inch_max": 0.25,
+        "woc_inch_min": 0.0125,
+        "woc_inch_max": 0.04375
+      },
+      "source": "https://www.basstool.com/pdf/promos/HEM_Guidebook.pdf (Harvey/Helical HEM Guidebook: up to 2xD axial; 10-35% radial for micro tools)",
+      "note": "DOC/WOC targets replaced 2026-10-01: the original rows had no source, a reused Harvey part number and ranges fitted to the code. SFM/feed targets are legacy and unverified."
     },
     {
       "id": "helical_hem_medium_1_4_aluminum",
@@ -550,8 +555,8 @@
         "sfm_min": 250,
         "sfm_max": 450,
         "target_rpm": 6000,
-        "doc_inch_min": 0.20,
-        "doc_inch_max": 0.40,
+        "doc_inch_min": 0.2,
+        "doc_inch_max": 0.4,
         "woc_inch_min": 0.015,
         "woc_inch_max": 0.035,
         "feedrate_ipm_min": 15.0,
@@ -627,7 +632,7 @@
       "diameter": 0.125,
       "flutes": 4,
       "stickout": 0.375,
-      "flute_length": 0.20,
+      "flute_length": 0.2,
       "cut_depth": 0.0044,
       "cut_width": 0.0813,
       "is_carbide": true,
@@ -638,7 +643,7 @@
         "doc_inch_min": 0.003,
         "doc_inch_max": 0.006,
         "woc_inch_min": 0.065,
-        "woc_inch_max": 0.10,
+        "woc_inch_max": 0.1,
         "feedrate_ipm_min": 150.0,
         "feedrate_ipm_max": 450.0
       }
@@ -658,7 +663,7 @@
       "stickout": 1.5,
       "flute_length": 0.5,
       "cut_depth": 0.0175,
-      "cut_width": 0.500,
+      "cut_width": 0.5,
       "is_carbide": true,
       "target": {
         "sfm_min": 250,

@@ -224,5 +224,43 @@ class TestPhosphorBronzeC510(unittest.TestCase):
         self.assertFalse(alloy_work_hardens(fam, "C54400 - Phosphor Bronze"))  # leaded, free-machining
 
 
+class TestMicroHem(unittest.TestCase):
+    """Micro-tool adaptive follows the Harvey/Helical HEM envelope; deflection sets the depth."""
+    @classmethod
+    def setUpClass(cls):
+        cls.p = GWizardPhysics(DB)
+
+    def rec(self, d, stickout, family="Copper Alloy - Wrought"):
+        det = {}
+        doc, woc, lim = self.p.recommend_cut_parameters(
+            d, d, stickout, 4, 16000, 0.0008, True, "Adaptive Roughing", 0.5, "Square", d, 6.84,
+            material_family=family, flute_length=3 * d, details=det)
+        return doc, woc, lim, det
+
+    def test_engagement_inside_hem_envelope(self):
+        for d in (0.03125, 0.0625, 0.09375, 0.125, 0.25):
+            doc, woc, lim, det = self.rec(d, 3.2 * d)
+            self.assertLessEqual(doc, 2.0 * d + 1e-9, d)
+            self.assertTrue(0.07 * d - 1e-9 <= woc <= 0.35 * d + 1e-9, (d, woc / d))
+
+    def test_short_micro_tool_gets_deep_axial_not_shallow_wide(self):
+        doc, woc, lim, det = self.rec(0.0625, 0.2)
+        self.assertGreater(doc, 0.3 * 0.0625)          # old rule gave ~0.1xD
+        self.assertLessEqual(woc, 0.35 * 0.0625 + 1e-9)
+
+    def test_deflection_floor_scales_with_diameter(self):
+        _, _, lim, _ = self.rec(0.03125, 0.1)
+        self.assertLess(lim / 0.03125, 0.006)            # was 1.3% of D with the fixed 0.0004" floor
+
+    def test_micro_hem_tips(self):
+        def titles(d):
+            return [t["title"] for t in self.p.generate_advanced_strategies(
+                "Aluminum - Wrought (6061)", d, d, 0.25 * d, 20, 16000, 3, "Uncoated", 0.0001,
+                stickout=3 * d, flute_length=3 * d, operation="Adaptive Roughing")]
+        self.assertIn("Micro HEM Risk", titles(0.04))
+        self.assertIn("HEM Not Recommended Below 0.031\"", titles(0.02))
+        self.assertNotIn("Micro HEM Risk", titles(0.125))
+
+
 if __name__ == "__main__":
     unittest.main()
