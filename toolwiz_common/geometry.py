@@ -23,6 +23,10 @@ class ToolGeometry:
     taper_angle: float = 0.0
     thread_pitch: Optional[float] = None
     kind: ToolKind = ToolKind.UNKNOWN
+    # Reduced neck between flutes and shank (Fusion 'shoulder-length' / 'shoulder-diameter');
+    # None when the tool steps straight from flutes to shank.
+    neck_length: Optional[float] = None
+    neck_diameter: Optional[float] = None
 
     @classmethod
     def from_fusion(cls, tool: dict, stickout_override=None) -> "ToolGeometry":
@@ -93,6 +97,12 @@ class ToolGeometry:
         if stick is None:
             stick, src = default_stickout(dia, flute_len), "default"
 
+        neck_len = neck_dia = None
+        sl, sd = length("shoulder-length"), length("shoulder-diameter")
+        if sl and sd and sl > flute_len * 1.01 and 0.0 < sd < shank * 0.999:
+            neck_len, neck_dia = sl, sd
+
         return cls(diameter=dia, flutes=flutes, flute_length=flute_len, shank_diameter=shank,
                    corner_radius=rad, stickout=stick, stickout_source=src,
-                   taper_angle=taper, thread_pitch=tp, kind=kind)
+                   taper_angle=taper, thread_pitch=tp, kind=kind,
+                   neck_length=neck_len, neck_diameter=neck_dia)

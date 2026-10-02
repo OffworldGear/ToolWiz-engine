@@ -205,7 +205,11 @@ def _normalize(req: CutRequest) -> CutRequest:
     if r.has_relieved_neck or is_form_stepped:
         r.neck_diameter = float(r.neck_diameter) if r.neck_diameter is not None else r.shank_diameter
     else:
+        # No relieved neck: the shank starts right after the flutes. (Previously a default
+        # 0.5" neck at the CUTTING diameter was assumed, so a 1/16" tool on a 1/8" shank was
+        # modelled as a 1/16" rod out to 0.5" and the shank never counted.)
         r.neck_diameter = r.diameter
+        r.neck_length = r.flute_length
     return r
 
 

@@ -810,6 +810,8 @@ def get_op_tool_info(op):
             "flutes": flutes,
             "fluteLength": flute_length,
             "shankDiameter": geo.shank_diameter,
+            "neckLength": geo.neck_length,
+            "neckDiameter": geo.neck_diameter,
             "cornerRadius": corner_radius,
             "stickout": geo.stickout,
             "stickoutSource": geo.stickout_source,
@@ -1151,7 +1153,9 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
         "tool": tool_category, "coating": coating_code,
         "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
         "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
-        "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"]
+        "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"],
+        **({"hasRelievedNeck": True, "neckLength": geo_payload["neckLength"],
+            "neckDiameter": geo_payload["neckDiameter"]} if geo_payload.get("neckLength") else {}),
     }
 
 
