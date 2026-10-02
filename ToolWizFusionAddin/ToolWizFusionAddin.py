@@ -1486,10 +1486,11 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         _log(f"DOC from preset not in effect (op {op_doc:.4f} vs {doc:.4f} in); writing operation parameter")
         doc_applied = bool(apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"))
 
-    preset_note = f"Preset: {final_preset_name} ({'updated' if was_updated else 'created'}"
-    if not (tool_updated or preset_linked):
-        preset_note += ", parameters only"
-    preset_note += ")"
+    preset_note = f"Preset: {final_preset_name} ({'replaced' if was_updated else 'added'} on the existing tool)"
+    if not preset_ok:
+        preset_note = (f"Preset: {final_preset_name} could not be updated in place, so the values were applied "
+                       f"to this operation only (Fusion shows it as custom). No tool was created. "
+                       f"Details: {_log_path()}")
     msg = format_autoset_message(
         tool_label(t_num), geo_payload, material_label, strategy, rpm, feed, ipt,
         doc=doc if doc_applied else None, woc=woc if woc_applied else None,
