@@ -1635,7 +1635,10 @@ class AdvisoryEngine:
         if not is_hole_tool and diameter > 0.0:
             l_d = stickout / diameter
             has_relieved_neck = neck_diameter > 0.0 and neck_diameter < (diameter * 0.98)
-            if l_d > 4.5 and not has_relieved_neck:
+            already_warned = any(t.get("title") in ("Excessive Stickout", "Excessive Stickout Overhang") for t in tips)
+            if already_warned:
+                pass  # one stickout warning is enough
+            elif l_d > 4.5 and not has_relieved_neck:
                 tips.append({
                     "title": "Severe Tool Stickout Warning",
                     "message": (
