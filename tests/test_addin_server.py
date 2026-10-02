@@ -396,3 +396,31 @@ class TestNeverAssignsToolCopy(ServerTestBase):
                                                                           ("tool_feedCutting", "30.00 in/min")])
         self.assertEqual(assigned, [])          # assigning an edited copy adds a document tool
         lib.update.assert_called_once()        # in-place update is the only write-back
+
+
+class TestLinkedFormulas(ServerTestBase):
+    def _params(self, values):
+        store = {}
+        for k, v in values.items():
+            p = MagicMock(); p.name = k; p.expression = v; store[k] = p
+        coll = MagicMock()
+        coll.itemByName.side_effect = lambda n: store.get(n)
+        return coll, store
+
+    def test_numbers_in_linked_fields_become_formulas(self):
+        preset, pstore = self._params({"tool_feedEntry": "120.14 in/min", "tool_rampSpindleSpeed": "16000 rpm",
+                                       "tool_feedCutting": "120.14 in/min"})
+        op_params, _ = self._params({"tool_feedEntry": "tool_type == 'probe' ? 1000mmpm : tool_feedCutting",
+                                     "tool_rampSpindleSpeed": "tool_spindleSpeed"})
+        op = MagicMock(); op.parameters = op_params
+        self.addin._restore_linked_formulas(preset, op)
+        self.assertEqual(pstore["tool_feedEntry"].expression, "tool_type == 'probe' ? 1000mmpm : tool_feedCutting")
+        self.assertEqual(pstore["tool_rampSpindleSpeed"].expression, "tool_spindleSpeed")
+        self.assertEqual(pstore["tool_feedCutting"].expression, "120.14 in/min")   # independent field untouched
+
+    def test_standard_formula_when_operation_has_a_number(self):
+        preset, pstore = self._params({"tool_feedExit": "50 in/min"})
+        op_params, _ = self._params({"tool_feedExit": "50 in/min"})
+        op = MagicMock(); op.parameters = op_params
+        self.addin._restore_linked_formulas(preset, op)
+        self.assertEqual(pstore["tool_feedExit"].expression, "tool_feedCutting")

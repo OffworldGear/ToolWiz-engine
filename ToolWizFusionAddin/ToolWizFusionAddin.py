@@ -1193,6 +1193,49 @@ def _iter_params(params):
             return []
 
 
+# Preset fields Fusion links to other fields by formula. Writing numbers into them (as earlier
+# versions did) made the preset's expressions differ from the operation's formulas, and Fusion
+# flags that as '(custom)' even when the values are equal. The operation's own formula is used
+# when it has one; otherwise Fusion's standard link.
+LINKED_PRESET_FORMULAS = {
+    'tool_rampSpindleSpeed': 'tool_spindleSpeed',
+    'tool_feedEntry': 'tool_feedCutting',
+    'tool_feedExit': 'tool_feedCutting',
+    'tool_feedPerTooth': 'tool_spindleSpeed > 0 ? tool_feedCutting/(tool_spindleSpeed * tool_numberOfFlutes) : 0.0',
+    'tool_feedPerRevolution': 'tool_spindleSpeed > 0 ? tool_feedPlunge/tool_spindleSpeed : 0.0',
+    'tool_surfaceSpeed': 'tool_diameter * Math.PI * tool_spindleSpeed',
+}
+OP_NAME_FOR_PRESET = {'tool_rampSpindleSpeed': ('tool_rampSpindleSpeed', 'tool_spindleSpeedRamp')}
+
+
+def _is_formula(expr):
+    return isinstance(expr, str) and 'tool_' in expr
+
+
+def _restore_linked_formulas(params, target_op):
+    """Put formulas (not numbers) back into the preset's linked fields."""
+    op_params = getattr(target_op, 'parameters', None) if target_op is not None else None
+    restored = []
+    for name, standard in LINKED_PRESET_FORMULAS.items():
+        p_obj = _param(params, name)
+        if p_obj is None:
+            continue
+        formula = standard
+        for op_name in OP_NAME_FOR_PRESET.get(name, (name,)):
+            o_obj = _param(op_params, op_name)
+            if o_obj is not None and _is_formula(getattr(o_obj, 'expression', None)):
+                formula = o_obj.expression
+                break
+        try:
+            if getattr(p_obj, 'expression', None) != formula:
+                p_obj.expression = formula
+                restored.append(name)
+        except Exception as ex:
+            _log(f"Could not restore formula for preset field {name!r}", ex)
+    if restored:
+        _log("Restored linked formulas in preset: " + ", ".join(restored))
+
+
 def _set_preset_steps(params, doc_in, woc_in):
     """Write stepdown/stepover into a preset by matching parameter names (Fusion doesn't document
     the preset parameter ids), enabling their 'use' flags. Logs the preset's parameter names."""
@@ -1365,6 +1408,7 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
                     _log(f"Preset has no parameter {p_name!r}")
             except Exception as ex_p:
                 _log(f"Could not set preset parameter {p_name!r}", ex_p)
+        _restore_linked_formulas(params, target_op)
         steps = _set_preset_steps(params, doc_in, woc_in)
         if not steps:
             _log("Preset has no stepdown/stepover parameters; DOC/WOC will be written to the operation")
@@ -1454,10 +1498,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     final_preset_name = calc_result["name"]
     speed_values = [
         ('tool_spindleSpeed', f"{rpm} rpm"),
-        ('tool_rampSpindleSpeed', f"{rpm} rpm"),   # preset id (operation id is tool_spindleSpeedRamp)
         ('tool_feedCutting', f"{feed:.2f} in/min"),
-        ('tool_feedEntry', f"{feed:.2f} in/min"),
-        ('tool_feedExit', f"{feed:.2f} in/min"),
         ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
         ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
         ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
@@ -2086,6 +2127,9 @@ def _log_custom_diff(op, label="after auto-set"):
             pv = getattr(getattr(p_obj, 'value', None), 'value', None)
             ov = getattr(getattr(o_obj, 'value', None), 'value', None)
             same = (pv == ov) if not (isinstance(pv, float) and isinstance(ov, float)) else abs(pv - ov) <= max(abs(pv) * 1e-6, 1e-9)
+            pe, oe = getattr(p_obj, 'expression', None), getattr(o_obj, 'expression', None)
+            if same and (_is_formula(pe) or _is_formula(oe)) and pe != oe:
+                same = False   # same value but a number in one and a formula in the other
             if not same:
                 diffs.append(f"{name}: preset {getattr(p_obj, 'expression', None)!r} vs op {getattr(o_obj, 'expression', None)!r}")
         _log(f"Preset vs operation differences {label} (cause of '(custom)'): " + ("; ".join(diffs) if diffs else "none")
