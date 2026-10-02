@@ -877,6 +877,57 @@ class BeamDeflectionEngine:
 
         return total * half_len
 
+    _PANELS_TAPER: int = 4
+
+    @classmethod
+    def _segment_integral(cls, seg: Any, flutes: int, helix_angle: float) -> float:
+        """Integral_{start}^{end} x^2 / I(x) dx for one segment (x from the tip)."""
+        x0, x1 = float(seg.start), float(seg.end)
+        if x1 <= x0:
+            return 0.0
+        fluted = bool(seg.fluted)
+
+        def inertia(d: float) -> float:
+            d = max(0.001, d)
+            return cls.fluted_core_inertia(d, flutes, helix_angle) if fluted else cls.solid_circular_inertia(d)
+
+        d0, d1 = float(seg.d0), float(seg.d1)
+        if abs(d1 - d0) <= 1e-12 * max(d0, d1, 1.0):
+            i_c = inertia(d0)
+            return (x1 ** 3 - x0 ** 3) / (3.0 * i_c) if i_c > 0.0 else 0.0
+
+        # Tapered: d(x) is linear in x; 5-point Gauss-Legendre (on a few panels for steep tapers).
+        total = 0.0
+        panels = cls._PANELS_TAPER
+        for k in range(panels):
+            a = x0 + (x1 - x0) * k / panels
+            b = x0 + (x1 - x0) * (k + 1) / panels
+            mid, half = 0.5 * (a + b), 0.5 * (b - a)
+            for xi, wi in zip(cls._GAUSS_X, cls._GAUSS_W):
+                x = mid + half * xi
+                d_x = d0 + (d1 - d0) * (x - x0) / (x1 - x0)
+                i_x = inertia(d_x)
+                if i_x > 0.0:
+                    total += wi * half * (x ** 2) / i_x
+        return total
+
+    @classmethod
+    def deflection_from_segments(
+        cls,
+        force_lbs: float,
+        segments: Any,
+        flutes: int = 4,
+        helix_angle: float = 30.0,
+        is_carbide: bool = True
+    ) -> float:
+        """Tip deflection (inches) of a cantilever described by profile segments:
+        delta = F/E * sum_i Integral_seg x^2 / I(x) dx, with x measured from the tip."""
+        if force_lbs <= 0.0 or not segments:
+            return 0.0
+        E = 90000000.0 if is_carbide else 30000000.0
+        integral_sum = sum(cls._segment_integral(sg, flutes, helix_angle) for sg in segments)
+        return max(0.0, (force_lbs / E) * integral_sum)
+
     @classmethod
     def calculate_deflection(
         cls,
@@ -890,41 +941,25 @@ class BeamDeflectionEngine:
         taper_angle: float = 0.0,
         flutes: int = 4,
         helix_angle: float = 30.0,
-        is_carbide: bool = True
+        is_carbide: bool = True,
+        segments: Optional[Any] = None
     ) -> float:
         """
         Calculates tool tip deflection (inches) for a stepped cantilever beam.
+        When `segments` is given it is used as-is; otherwise segments are built from the
+        legacy arguments via ToolProfile.from_legacy so every caller shares the segment code.
         """
         if cutting_force_lbs <= 0.0 or stickout <= 0.0 or diameter <= 0.0:
             return 0.0
 
-        E = 90000000.0 if is_carbide else 30000000.0
-        shank_dia = shank_diameter if shank_diameter > 0.0 else diameter
-        neck_dia = neck_diameter if (neck_diameter is not None and neck_diameter > 0.0) else shank_dia
-
-        L1 = max(0.0, min(flute_length, stickout))
-        L2 = max(0.0, min(neck_length, stickout) - L1)
-        L3 = max(0.0, stickout - L1 - L2)
-
-        integral_sum = 0.0
-
-        if L1 > 0.0:
-            i_flute = cls.fluted_core_inertia(diameter, flutes, helix_angle)
-            if i_flute > 0.0:
-                integral_sum += (L1 ** 3) / (3.0 * i_flute)
-
-        if L2 > 0.0:
-            integral_sum += cls.calc_tapered_neck_integral(L1, L1 + L2, neck_dia, taper_angle)
-
-        if L3 > 0.0:
-            x_start = L1 + L2
-            x_end = stickout
-            i_shank = cls.solid_circular_inertia(shank_dia)
-            if i_shank > 0.0:
-                integral_sum += (x_end**3 - x_start**3) / (3.0 * i_shank)
-
-        tip_deflection = (cutting_force_lbs / E) * integral_sum
-        return max(0.0, tip_deflection)
+        if segments is None:
+            from toolwiz_common.tool_profile import ToolProfile
+            segments = ToolProfile.from_legacy(
+                diameter, flutes, flute_length, shank_diameter, stickout,
+                has_relieved_neck=True, neck_diameter=neck_diameter, neck_length=neck_length,
+                taper_angle=taper_angle,
+            ).segments
+        return cls.deflection_from_segments(cutting_force_lbs, segments, flutes, helix_angle, is_carbide)
 
 
 # =============================================================================
@@ -959,13 +994,20 @@ class OptimizationEngine:
         flute_length: float = 1.0,
         neck_diameter: Optional[float] = None,
         corner_radius: float = 0.0,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
+        profile: Optional[Any] = None
     ) -> Tuple[float, float, float]:
         """Returns (doc, woc, deflection_limit). If `details` is a dict it is filled with
         {"feasible": bool, "limited_by": "deflection"|"power"|"flute_length"|"geometry_rule"}."""
         if details is None:
             details = {}
         details.update({"feasible": True, "limited_by": "geometry_rule"})
+        if profile is None and stickout > 0.0 and diameter > 0.0:
+            # Build the segment model once instead of on every deflection evaluation.
+            from toolwiz_common.tool_profile import ToolProfile
+            profile = ToolProfile.from_legacy(
+                diameter, flutes, flute_length, shank_size, stickout, has_relieved_neck=True,
+                neck_diameter=neck_diameter, neck_length=neck_length, taper_angle=taper_angle)
         default_max_deflect = diameter * 0.002
         op_low = operation.lower()
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low
@@ -1129,7 +1171,8 @@ class OptimizationEngine:
                 diameter, shank_size, stickout, current_doc, target_woc, feed, eval_rpm, flutes,
                 is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
                 neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
-                neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
+                neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius,
+                profile=profile
             )
 
             _, _, _, est_hp = CuttingMechanics.calc_cutting_forces(
@@ -1165,7 +1208,8 @@ class OptimizationEngine:
                     diameter, shank_size, stickout, min_doc, cand_woc, feed, eval_rpm, flutes,
                     is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
                     neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
-                    neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
+                    neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius,
+                    profile=profile
                 )
                 best_woc = cand_woc
                 if deflect <= target_deflection:
@@ -2478,11 +2522,14 @@ class GWizardPhysics:
         neck_diameter: Optional[float] = None,
         operation: str = "Roughing",
         geometry: str = "Square",
-        corner_radius: float = 0.0
+        corner_radius: float = 0.0,
+        profile: Optional[Any] = None,
+        segments: Optional[Any] = None
     ) -> float:
         """
         Calculates tool tip deflection (inches) from cutting forces and stepped
-        cantilever beam mechanics.
+        cantilever beam mechanics. `profile` (a ToolProfile) or `segments` take precedence
+        over the legacy geometry arguments.
         """
         if rpm <= 0.0 or diameter <= 0.0 or cut_depth <= 0.0 or cut_width <= 0.0 or feedrate <= 0.0:
             return 0.0
@@ -2510,7 +2557,8 @@ class GWizardPhysics:
             taper_angle=taper_angle,
             flutes=flutes,
             helix_angle=helix_angle,
-            is_carbide=is_carbide
+            is_carbide=is_carbide,
+            segments=segments if segments is not None else (profile.segments if profile is not None else None)
         )
 
     def recommend_cut_parameters(
@@ -2534,13 +2582,14 @@ class GWizardPhysics:
         flute_length: float = 1.0,
         neck_diameter: Optional[float] = None,
         corner_radius: float = 0.0,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
+        profile: Optional[Any] = None
     ) -> Tuple[float, float, float]:
         return OptimizationEngine.recommend_cut_parameters(
             self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide,
             operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family,
             helix_angle, neck_length, taper_angle, flute_length, neck_diameter,
-            corner_radius=corner_radius, details=details
+            corner_radius=corner_radius, details=details, profile=profile
         )
 
     def calc_deflection_limit(

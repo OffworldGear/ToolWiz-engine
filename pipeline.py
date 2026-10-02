@@ -34,6 +34,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from toolwiz_common import ToolProfile, default_stickout
 from gwizard_physics import (
     ASTMHardnessConverter,
     HARD_MILL_ONSET_HRC,
@@ -61,7 +62,7 @@ class CutRequest:
     corner_radius: float = 0.0
     taper_angle: float = 0.0
     helix_angle: float = 30.0
-    stickout: float = 1.5
+    stickout: Optional[float] = 1.5         # None -> Fusion LB (with fusion_tool) / default 3.15xD
     cutter_thickness: float = 0.125
     is_carbide: bool = True
     aggressiveness: float = 0.5             # 0.0 - 1.0
@@ -74,11 +75,16 @@ class CutRequest:
     pitch: Optional[float] = 0.05           # thread pitch (in); taps only
     is_metric: bool = False                 # only affects tip text units
     apply_coating: bool = True              # False when the coating isn't known for this tool (batch hole tools)
+    # Fusion tool dict ({"type","unit","geometry"}): when given it is the single authoritative
+    # source of diameter / flutes / flute length / shank / stickout / corner radius / neck.
+    fusion_tool: Optional[Dict[str, Any]] = None
+    profile: Optional[ToolProfile] = None   # built in _normalize
 
 
 @dataclass
 class CutResult:
     rpm: float = 0.0
+    diameter: float = 0.0           # nominal cutting diameter actually used (from the profile when fusion_tool is given)
     sfm: float = 0.0                # actual SFM at the nominal diameter
     contact_sfm: float = 0.0        # SFM at the effective (contact) diameter
     ideal_rpm: float = 0.0
@@ -122,6 +128,7 @@ class CutResult:
     flute_length: float = 0.0
     shank_diameter: float = 0.0
     neck_diameter: float = 0.0
+    profile: Optional[Dict[str, Any]] = None   # ToolProfile.to_dict()
 
 
 def _ratio(after: float, before: float) -> float:
@@ -210,6 +217,30 @@ def _normalize(req: CutRequest) -> CutRequest:
         # modelled as a 1/16" rod out to 0.5" and the shank never counted.)
         r.neck_diameter = r.diameter
         r.neck_length = r.flute_length
+
+    if r.fusion_tool:
+        # Fusion's own fields are authoritative; stickout only overrides when explicitly set.
+        ov = r.stickout if (r.stickout is not None and r.stickout > 0) else None
+        prof = ToolProfile.from_fusion(r.fusion_tool, stickout_override=ov)
+        g = prof.geometry
+        r.diameter, r.flutes, r.flute_length = g.diameter, g.flutes, g.flute_length
+        r.shank_diameter, r.corner_radius, r.stickout = g.shank_diameter, g.corner_radius, prof.stickout
+        neck = next((sg for sg in prof.segments if sg.kind == "neck"), None)
+        if neck is not None:
+            r.has_relieved_neck = True
+            r.neck_diameter, r.neck_length = neck.d0, neck.end
+        else:
+            r.has_relieved_neck = False
+            r.neck_diameter, r.neck_length = r.diameter, r.flute_length
+    else:
+        if r.stickout is None or r.stickout <= 0:
+            r.stickout = default_stickout(r.diameter, r.flute_length)
+        prof = ToolProfile.from_legacy(
+            r.diameter, r.flutes, r.flute_length, r.shank_diameter, r.stickout,
+            has_relieved_neck=bool(r.has_relieved_neck or is_form_stepped),
+            neck_diameter=r.neck_diameter, neck_length=r.neck_length,
+            taper_angle=r.taper_angle, corner_radius=r.corner_radius)
+    r.profile = prof
     return r
 
 
@@ -321,7 +352,7 @@ def _recommend(physics, r: CutRequest, rpm: float, base_ipt: float, details: Dic
         r.operation, r.aggressiveness, r.geometry, r.cutter_thickness, r.max_hp,
         material_family=r.family, helix_angle=r.helix_angle, neck_length=r.neck_length,
         taper_angle=r.taper_angle, flute_length=r.flute_length, neck_diameter=r.neck_diameter,
-        corner_radius=r.corner_radius, details=details
+        corner_radius=r.corner_radius, details=details, profile=r.profile
     )
 
 
@@ -416,7 +447,8 @@ def run_cut(physics, req: CutRequest) -> CutResult:
             diameter, r.shank_diameter, r.stickout, cut_depth, cut_width, feedrate, rpm, flutes, r.is_carbide,
             material_family=r.family, helix_angle=r.helix_angle, neck_length=r.neck_length,
             taper_angle=r.taper_angle, flute_length=r.flute_length, neck_diameter=r.neck_diameter,
-            operation=operation, geometry=r.geometry, corner_radius=r.corner_radius
+            operation=operation, geometry=r.geometry, corner_radius=r.corner_radius,
+            profile=r.profile
         )
         springback, total_error, wear_comp = physics.calc_springback_and_deflection(
             r.family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=r.alloy
@@ -461,7 +493,7 @@ def run_cut(physics, req: CutRequest) -> CutResult:
     ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
 
     return CutResult(
-        rpm=rpm, sfm=actual_sfm, contact_sfm=contact_sfm, ideal_rpm=ideal_rpm,
+        rpm=rpm, diameter=diameter, sfm=actual_sfm, contact_sfm=contact_sfm, ideal_rpm=ideal_rpm,
         is_spindle_limited=is_spindle_limited, effective_diameter=effective_diameter,
         base_ipt=base_ipt, adj_ipt=adjusted_ipt, feed_ipm=feedrate,
         doc=cut_depth, woc=cut_width, rec_doc=rec_doc, rec_woc=rec_woc, rec_limit=rec_limit,
@@ -475,6 +507,7 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         operation=operation, geometry=r.geometry, tool=r.tool, coating=r.coating,
         tap_type=r.tap_type, tap_drill=tap_drill_info, flute_length=r.flute_length,
         shank_diameter=r.shank_diameter, neck_diameter=r.neck_diameter,
+        profile=r.profile.to_dict() if r.profile is not None else None,
     )
 
 

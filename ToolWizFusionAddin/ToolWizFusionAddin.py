@@ -1119,6 +1119,19 @@ def confirm_feasibility(calc_result):
     return res == adsk.core.DialogResults.DialogYes
 
 
+def fusion_tool_payload(geo_payload):
+    """Canonical {"type","unit","geometry"} slice of the op's raw Fusion tool JSON, or None when
+    the raw JSON is unavailable/unparseable. The server builds ONE tool profile from it."""
+    try:
+        raw = (geo_payload or {}).get("raw_json")
+        t = json.loads(raw) if isinstance(raw, str) else raw
+        if isinstance(t, dict) and isinstance(t.get("geometry"), dict):
+            return {"type": t.get("type"), "unit": t.get("unit"), "geometry": t["geometry"]}
+    except Exception:
+        pass
+    return None
+
+
 def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw):
     """Build the /api/calculate_for_fusion request body (all lengths in inches)."""
     coat = selected_coating_raw.lower()
@@ -1148,9 +1161,11 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
     else:
         tool_category = "Carbide Endmill"
 
+    ft = fusion_tool_payload(geo_payload)
     return {
         "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
         "tool": tool_category, "coating": coating_code,
+        **({"fusion_tool": ft} if ft else {}),
         "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
         "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
         "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"],
@@ -2019,6 +2034,9 @@ def build_stock_ops_payload(ops_cache, doc_unit="in"):
             "current_radial_stock": op_info.get("current_radial", zero_val),
             "current_axial_stock": op_info.get("current_axial", zero_val)
         })
+        ft = fusion_tool_payload(geo)
+        if ft:
+            ops_payload[-1]["fusion_tool"] = ft
     return ops_payload
 
 

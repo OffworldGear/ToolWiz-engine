@@ -27,6 +27,11 @@ class ToolGeometry:
     # None when the tool steps straight from flutes to shank.
     neck_length: Optional[float] = None
     neck_diameter: Optional[float] = None
+    # Raw Fusion fields (inches) kept so ToolProfile can tile the tool exactly as Fusion defines it.
+    shoulder_length: Optional[float] = None    # tip -> end of the reduced neck ("shoulder-length")
+    shoulder_diameter: Optional[float] = None  # neck diameter ("shoulder-diameter")
+    tip_diameter: Optional[float] = None       # "tip-diameter" (tapered mills)
+    overall_length: Optional[float] = None     # OAL
 
     @classmethod
     def from_fusion(cls, tool: dict, stickout_override=None) -> "ToolGeometry":
@@ -102,7 +107,13 @@ class ToolGeometry:
         if sl and sd and sl > flute_len * 1.01 and 0.0 < sd < shank * 0.999:
             neck_len, neck_dia = sl, sd
 
+        def pos(key):
+            v = length(key)
+            return v if (v is not None and v > 0) else None
+
         return cls(diameter=dia, flutes=flutes, flute_length=flute_len, shank_diameter=shank,
                    corner_radius=rad, stickout=stick, stickout_source=src,
                    taper_angle=taper, thread_pitch=tp, kind=kind,
-                   neck_length=neck_len, neck_diameter=neck_dia)
+                   neck_length=neck_len, neck_diameter=neck_dia,
+                   shoulder_length=pos("shoulder-length"), shoulder_diameter=pos("shoulder-diameter"),
+                   tip_diameter=pos("tip-diameter"), overall_length=pos("OAL"))
