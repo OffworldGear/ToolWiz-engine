@@ -1505,6 +1505,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_speed_sources(target_op)
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
+    _regenerate_toolpath(target_op)
     tools_at_end = _doc_tool_count()
     _log(f"Auto-set {op_name!r}: T{t_num}, document tools {tools_at_start} -> {tools_at_end}"
          + ("  (WARNING: a tool was added)" if tools_at_start is not None and tools_at_end != tools_at_start else ""))
@@ -2025,11 +2026,23 @@ def _is_fusion_default_formula(p):
 
 # Preset parameter id -> operation parameter id(s) where Fusion uses a different name.
 PRESET_TO_OP_PARAMS = {
-    'tool_rampSpindleSpeed': ('tool_spindleSpeedRamp',),
+    'tool_rampSpindleSpeed': ('tool_rampSpindleSpeed', 'tool_spindleSpeedRamp'),
     'tool_stepdown': ('tool_stepdown', 'maximumStepdown', 'stepdown'),
     'tool_stepover': ('tool_stepover', 'optimalLoad', 'stepover', 'maximumStepover', 'finishingStepover'),
     'tool_rampAngle': ('tool_rampAngle', 'rampAngle', 'rampTaperAngle', 'helicalRampAngle'),
 }
+
+
+def _regenerate_toolpath(op):
+    """Regenerate the target operation's toolpath so Fusion's machining time reflects the new
+    values (a stale toolpath kept showing the old time: 2:08 vs 2:25 after regenerating)."""
+    try:
+        cam = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+        if cam is not None and hasattr(cam, 'generateToolpath'):
+            cam.generateToolpath(op)
+            _log(f"Regenerating toolpath for {getattr(op, 'name', '?')!r}")
+    except Exception as ex:
+        _log("Toolpath regeneration request failed (regenerate manually)", ex)
 
 
 def _log_custom_diff(op, label="after auto-set"):
