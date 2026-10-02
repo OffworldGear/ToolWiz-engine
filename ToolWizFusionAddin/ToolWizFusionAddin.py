@@ -2022,6 +2022,15 @@ def _is_fusion_default_formula(p):
     return 'tool_type' in expr
 
 
+# Preset parameter id -> operation parameter id(s) where Fusion uses a different name.
+PRESET_TO_OP_PARAMS = {
+    'tool_rampSpindleSpeed': ('tool_spindleSpeedRamp',),
+    'tool_stepdown': ('tool_stepdown', 'maximumStepdown', 'stepdown'),
+    'tool_stepover': ('tool_stepover', 'optimalLoad', 'stepover', 'maximumStepover', 'finishingStepover'),
+    'tool_rampAngle': ('tool_rampAngle', 'rampAngle', 'rampTaperAngle', 'helicalRampAngle'),
+}
+
+
 def _log_custom_diff(op):
     """Diagnostic: list every preset field whose value differs from the operation's own
     parameter of the same name. Fusion marks the operation '(custom)' when any differ."""
@@ -2030,19 +2039,25 @@ def _log_custom_diff(op):
         params = getattr(preset, 'parameters', None) if preset else None
         if params is None:
             return
-        diffs = []
+        diffs, unmatched = [], []
         for p_obj in _iter_params(params):
             name = getattr(p_obj, 'name', '')
-            op_name = 'tool_spindleSpeedRamp' if name == 'tool_rampSpindleSpeed' else name
-            o_obj = _param(getattr(op, 'parameters', None), op_name)
+            o_obj = None
+            for op_name in PRESET_TO_OP_PARAMS.get(name, (name,)):
+                o_obj = _param(getattr(op, 'parameters', None), op_name)
+                if o_obj is not None and getattr(o_obj, 'isEnabled', True):
+                    break
+                o_obj = None
             if o_obj is None:
+                unmatched.append(name)
                 continue
             pv = getattr(getattr(p_obj, 'value', None), 'value', None)
             ov = getattr(getattr(o_obj, 'value', None), 'value', None)
             same = (pv == ov) if not (isinstance(pv, float) and isinstance(ov, float)) else abs(pv - ov) <= max(abs(pv) * 1e-6, 1e-9)
             if not same:
                 diffs.append(f"{name}: preset {getattr(p_obj, 'expression', None)!r} vs op {getattr(o_obj, 'expression', None)!r}")
-        _log("Preset vs operation differences (cause of '(custom)'): " + ("; ".join(diffs) if diffs else "none"))
+        _log("Preset vs operation differences (cause of '(custom)'): " + ("; ".join(diffs) if diffs else "none")
+             + (f"  [preset fields with no matching operation parameter: {', '.join(unmatched)}]" if unmatched else ""))
     except Exception as e:
         _log("custom diff diagnostic failed", e)
 
