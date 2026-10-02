@@ -1261,6 +1261,26 @@ def _preset_matches(tool, preset_name, speed_values):
     return True
 
 
+def _refresh_operations_from_preset(target_op, preset_name=None):
+    """Re-apply the (already updated) preset to THIS operation only, by re-linking it to the
+    preset object read fresh from the operation's tool. Other operations are untouched."""
+    try:
+        tool = getattr(target_op, 'tool', None)
+        name = preset_name or getattr(getattr(target_op, 'toolPreset', None), 'name', None)
+        fresh = next((pr for pr in (getattr(tool, 'presets', []) or []) if getattr(pr, 'name', None) == name), None)
+        if fresh is None:
+            return False
+        before = _doc_tool_count()
+        target_op.toolPreset = fresh
+        after = _doc_tool_count()
+        _log(f"Re-applied preset {name!r} to this operation; document tools {before} -> {after}"
+             + ("  (WARNING: tool count changed)" if before is not None and after != before else ""))
+        return True
+    except Exception as ex:
+        _log("Re-applying preset to the operation failed", ex)
+        return False
+
+
 def _write_tool_back(target_op, tool, preset_name, speed_values):
     """Persist edits made on the operation.tool copy by updating the EXISTING document tool in
     place (documentToolLibrary.update). The copy is never assigned to the operation: Fusion
@@ -1272,6 +1292,10 @@ def _write_tool_back(target_op, tool, preset_name, speed_values):
         if lib is None or not hasattr(lib, 'update'):
             _log("documentToolLibrary.update not available in this Fusion version")
             return "none (no documentToolLibrary.update)"
+        # updateFeedAndSpeed stays False: True would push preset values into EVERY operation using
+        # this tool, silently overwriting toolpaths the user deliberately customised (64 ops in the
+        # user's document differ from their presets). Only the target operation is refreshed,
+        # by re-linking it below.
         result = lib.update(tool, False)
         _log(f"documentToolLibrary.update returned {result!r}")
         if _preset_matches(getattr(target_op, 'tool', None), preset_name, speed_values):
@@ -1465,6 +1489,11 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     #    calculated values. Writing them unconditionally is what made Fusion show a second
     #    'Preset (custom)' entry next to the real preset.
     op_rpm, op_feed, _, _ = get_op_cut_params(target_op, "in")
+    if preset_linked and not (_close(op_rpm, rpm, 0.01) and _close(op_feed, feed, 0.01)):
+        # The preset may already hold the new values (nothing to write back) while the operation
+        # still has old ones: ask Fusion to re-apply the tool's presets to its operations.
+        if _refresh_operations_from_preset(target_op, final_preset_name):
+            op_rpm, op_feed, _, _ = get_op_cut_params(target_op, "in")
     preset_ok = preset_linked and _close(op_rpm, rpm, 0.01) and _close(op_feed, feed, 0.01)
     if not preset_ok:
         _log(f"Preset values not in effect on {op_name!r} (linked={preset_linked}, op rpm={op_rpm:.0f} "
