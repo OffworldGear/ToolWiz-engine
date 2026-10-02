@@ -1232,10 +1232,19 @@ def _preset_has_value(tool, preset_name, param_name, expected_expr):
     return False
 
 
+# Values that must match for an edit to count as applied. Secondary feeds (entry/exit/
+# transition/ramp/plunge) are excluded: Fusion may store them as formulas such as
+# 'tool_feedCutting', which made the check fail falsely and trigger a copy assignment.
+VERIFY_PARAMS = ('tool_spindleSpeed', 'tool_feedCutting')
+
+
 def _preset_matches(tool, preset_name, speed_values):
-    """True when the named preset on `tool` holds every value in speed_values (params the preset
-    doesn't have are skipped). Checking only spindle speed missed lost feed edits."""
+    """True when the named preset on `tool` holds the key values (VERIFY_PARAMS) we wrote.
+    Checking only spindle speed missed lost feed edits; checking every field gave false
+    negatives on formula-valued feeds."""
     for p_name, p_val in speed_values:
+        if p_name not in VERIFY_PARAMS:
+            continue
         found = False
         for pr in getattr(tool, 'presets', []) or []:
             if getattr(pr, 'name', None) != preset_name:
@@ -1253,23 +1262,24 @@ def _preset_matches(tool, preset_name, speed_values):
 
 
 def _write_tool_back(target_op, tool, preset_name, speed_values):
-    """Persist edits made on the operation.tool copy. Prefer updating the existing document tool
-    in place (same tool id); fall back to assigning the tool to the operation."""
+    """Persist edits made on the operation.tool copy by updating the EXISTING document tool in
+    place (documentToolLibrary.update). The copy is never assigned to the operation: Fusion
+    adds an edited copy as a new document tool (log: 64 -> 65 tools). If the in-place update
+    can't be confirmed, the caller falls back to operation values."""
     try:
         cam = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
         lib = cam.documentToolLibrary if cam else None
-        if lib is not None and hasattr(lib, 'update'):
-            lib.update(tool, False)
-            if _preset_matches(getattr(target_op, 'tool', None), preset_name, speed_values):
-                return "documentToolLibrary.update"
+        if lib is None or not hasattr(lib, 'update'):
+            _log("documentToolLibrary.update not available in this Fusion version")
+            return "none (no documentToolLibrary.update)"
+        result = lib.update(tool, False)
+        _log(f"documentToolLibrary.update returned {result!r}")
+        if _preset_matches(getattr(target_op, 'tool', None), preset_name, speed_values):
+            return "documentToolLibrary.update"
+        return "documentToolLibrary.update (not confirmed on operation)"
     except Exception as ex_lib:
         _log("documentToolLibrary.update failed", ex_lib)
-    try:
-        target_op.tool = tool
-        return "operation.tool assignment"
-    except Exception as ex_assign:
-        _log("Could not assign the edited tool back to the operation", ex_assign)
-        return "none (failed)"
+        return "none (update failed)"
 
 
 def _doc_tool_count():

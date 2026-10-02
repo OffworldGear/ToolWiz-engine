@@ -381,3 +381,18 @@ def _fresh_tool_without_preset():
     added.parameters.itemByName.return_value = MagicMock()
     t.presets.add.return_value = added
     return t
+
+
+class TestNeverAssignsToolCopy(ServerTestBase):
+    def test_upsert_never_sets_operation_tool(self):
+        assigned = []
+        op = MagicMock()
+        type(op).tool = property(lambda self_: _fresh_tool_without_preset(), lambda self_, v: assigned.append(v))
+        lib = MagicMock(); lib.update.return_value = True
+        cam = MagicMock(); cam.documentToolLibrary = lib
+        self.addin.adsk.cam.CAM.cast.return_value = cam
+        with patch.object(self.addin, "_doc_tool_count", return_value=64):
+            self.addin._upsert_preset_in_place(op, "P - Roughing", None, [("tool_spindleSpeed", "9000 rpm"),
+                                                                          ("tool_feedCutting", "30.00 in/min")])
+        self.assertEqual(assigned, [])          # assigning an edited copy adds a document tool
+        lib.update.assert_called_once()        # in-place update is the only write-back
