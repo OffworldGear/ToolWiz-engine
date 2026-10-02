@@ -1193,6 +1193,36 @@ def _set_preset_steps(params, doc_in, woc_in):
     return written
 
 
+def _expr_number(expr):
+    m = re.search(r'[-+]?\d*\.?\d+', str(expr or ''))
+    return float(m.group(0)) if m else None
+
+
+def _preset_has_value(tool, preset_name, param_name, expected_expr):
+    """True if `tool` has preset `preset_name` whose `param_name` numerically equals expected_expr."""
+    want = _expr_number(expected_expr)
+    for pr in getattr(tool, 'presets', []) or []:
+        if getattr(pr, 'name', None) != preset_name:
+            continue
+        try:
+            p_obj = pr.parameters.itemByName(param_name)
+            have = _expr_number(getattr(p_obj, 'expression', None)) if p_obj else None
+        except Exception:
+            have = None
+        return want is None or (have is not None and abs(have - want) <= max(abs(want) * 0.001, 1e-6))
+    return False
+
+
+def _doc_tool_count():
+    """Number of tools in the document tool library (None if unavailable); used to detect copies."""
+    try:
+        cam = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+        lib = cam.documentToolLibrary if cam else None
+        return lib.count if lib is not None else None
+    except Exception:
+        return None
+
+
 def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, doc_in=None, woc_in=None):
     """Find the preset to replace (or one already named `preset_name`) on the operation's tool,
     else add one; set its speed/feed parameters with explicit units. Returns (preset, was_updated).
@@ -1245,15 +1275,23 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
         if not steps:
             _log("Preset has no stepdown/stepover parameters; DOC/WOC will be written to the operation")
 
-    # Some Fusion versions hand back a copy from operation.tool; if the preset isn't visible on
-    # the operation's tool now, assign the edited tool back (same tool id, not a new tool).
+    # operation.tool returns a COPY: edits only reach the operation when the edited tool is
+    # assigned back (same tool, same id). Check the live preset's values, not just its name;
+    # a replaced preset keeps its name, so a name check missed lost edits.
     live = getattr(target_op, 'tool', None)
-    if live is not None and not any(getattr(pr, 'name', None) == preset_name for pr in getattr(live, 'presets', []) or []):
+    want = dict(speed_values).get('tool_spindleSpeed')
+    if live is not None and not _preset_has_value(live, preset_name, 'tool_spindleSpeed', want):
+        before = _doc_tool_count()
         try:
             target_op.tool = tool
             live = target_op.tool
         except Exception as ex_assign:
             _log("Could not assign the edited tool back to the operation", ex_assign)
+        after = _doc_tool_count()
+        _log(f"Assigned edited tool back to operation; document tools {before} -> {after}"
+             + ("  (WARNING: tool count changed)" if before is not None and after != before else ""))
+        if not _preset_has_value(live, preset_name, 'tool_spindleSpeed', want):
+            _log("Edited preset values still not visible on the operation's tool after assigning it back")
     for pr in getattr(live, 'presets', []) or []:
         if getattr(pr, 'name', None) == preset_name:
             return pr, was_updated
@@ -1320,7 +1358,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     final_preset_name = calc_result["name"]
     speed_values = [
         ('tool_spindleSpeed', f"{rpm} rpm"),
-        ('tool_spindleSpeedRamp', f"{rpm} rpm"),
+        ('tool_rampSpindleSpeed', f"{rpm} rpm"),   # preset id (operation id is tool_spindleSpeedRamp)
         ('tool_feedCutting', f"{feed:.2f} in/min"),
         ('tool_feedEntry', f"{feed:.2f} in/min"),
         ('tool_feedExit', f"{feed:.2f} in/min"),
