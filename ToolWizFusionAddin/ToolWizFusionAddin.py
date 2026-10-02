@@ -1413,6 +1413,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
 
     payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw)
     tools_at_start = _doc_tool_count()
+    _log_custom_diff(target_op, label="BEFORE auto-set")
 
     try:
         calc_result = _http_json('/api/calculate_for_fusion', payload, timeout=10.0)
@@ -2031,7 +2032,7 @@ PRESET_TO_OP_PARAMS = {
 }
 
 
-def _log_custom_diff(op):
+def _log_custom_diff(op, label="after auto-set"):
     """Diagnostic: list every preset field whose value differs from the operation's own
     parameter of the same name. Fusion marks the operation '(custom)' when any differ."""
     try:
@@ -2056,7 +2057,7 @@ def _log_custom_diff(op):
             same = (pv == ov) if not (isinstance(pv, float) and isinstance(ov, float)) else abs(pv - ov) <= max(abs(pv) * 1e-6, 1e-9)
             if not same:
                 diffs.append(f"{name}: preset {getattr(p_obj, 'expression', None)!r} vs op {getattr(o_obj, 'expression', None)!r}")
-        _log("Preset vs operation differences (cause of '(custom)'): " + ("; ".join(diffs) if diffs else "none")
+        _log(f"Preset vs operation differences {label} (cause of '(custom)'): " + ("; ".join(diffs) if diffs else "none")
              + (f"  [preset fields with no matching operation parameter: {', '.join(unmatched)}]" if unmatched else ""))
     except Exception as e:
         _log("custom diff diagnostic failed", e)
