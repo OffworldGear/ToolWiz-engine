@@ -1232,6 +1232,46 @@ def _preset_has_value(tool, preset_name, param_name, expected_expr):
     return False
 
 
+def _preset_matches(tool, preset_name, speed_values):
+    """True when the named preset on `tool` holds every value in speed_values (params the preset
+    doesn't have are skipped). Checking only spindle speed missed lost feed edits."""
+    for p_name, p_val in speed_values:
+        found = False
+        for pr in getattr(tool, 'presets', []) or []:
+            if getattr(pr, 'name', None) != preset_name:
+                continue
+            found = True
+            try:
+                p_obj = pr.parameters.itemByName(p_name)
+            except Exception:
+                p_obj = None
+            if p_obj is not None and not _preset_has_value(tool, preset_name, p_name, p_val):
+                return False
+        if not found:
+            return False
+    return True
+
+
+def _write_tool_back(target_op, tool, preset_name, speed_values):
+    """Persist edits made on the operation.tool copy. Prefer updating the existing document tool
+    in place (same tool id); fall back to assigning the tool to the operation."""
+    try:
+        cam = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+        lib = cam.documentToolLibrary if cam else None
+        if lib is not None and hasattr(lib, 'update'):
+            lib.update(tool, False)
+            if _preset_matches(getattr(target_op, 'tool', None), preset_name, speed_values):
+                return "documentToolLibrary.update"
+    except Exception as ex_lib:
+        _log("documentToolLibrary.update failed", ex_lib)
+    try:
+        target_op.tool = tool
+        return "operation.tool assignment"
+    except Exception as ex_assign:
+        _log("Could not assign the edited tool back to the operation", ex_assign)
+        return "none (failed)"
+
+
 def _doc_tool_count():
     """Number of tools in the document tool library (None if unavailable); used to detect copies."""
     try:
@@ -1298,23 +1338,22 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
     # assigned back (same tool, same id). Check the live preset's values, not just its name;
     # a replaced preset keeps its name, so a name check missed lost edits.
     live = getattr(target_op, 'tool', None)
-    want = dict(speed_values).get('tool_spindleSpeed')
-    if live is not None and not _preset_has_value(live, preset_name, 'tool_spindleSpeed', want):
+    if live is not None and not _preset_matches(live, preset_name, speed_values):
         before = _doc_tool_count()
-        try:
-            target_op.tool = tool
-            live = target_op.tool
-        except Exception as ex_assign:
-            _log("Could not assign the edited tool back to the operation", ex_assign)
+        method = _write_tool_back(target_op, tool, preset_name, speed_values)
+        live = getattr(target_op, 'tool', None)
         after = _doc_tool_count()
-        _log(f"Assigned edited tool back to operation; document tools {before} -> {after}"
+        _log(f"Wrote edited tool back via {method}; document tools {before} -> {after}"
              + ("  (WARNING: tool count changed)" if before is not None and after != before else ""))
-        if not _preset_has_value(live, preset_name, 'tool_spindleSpeed', want):
-            _log("Edited preset values still not visible on the operation's tool after assigning it back")
+        if not _preset_matches(live, preset_name, speed_values):
+            _log("Edited preset values still not visible on the operation's tool after writing it back")
     for pr in getattr(live, 'presets', []) or []:
         if getattr(pr, 'name', None) == preset_name:
             return pr, was_updated
-    return target, was_updated
+    # Never link a preset that belongs to a detached copy of the tool: Fusion would attach
+    # that copy to the document as an extra tool. The caller falls back to operation values.
+    _log(f"Preset {preset_name!r} not found on the operation's tool; not linking a detached copy")
+    return None, was_updated
 
 
 def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
@@ -1338,6 +1377,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         return False
 
     payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw)
+    tools_at_start = _doc_tool_count()
 
     try:
         calc_result = _http_json('/api/calculate_for_fusion', payload, timeout=10.0)
@@ -1415,6 +1455,9 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
             apply_param(target_op, p_name, p_val, force=(p_name not in ('tool_spindleSpeed', 'tool_feedCutting')))
     _log_speed_sources(target_op)
     tool_updated = preset_obj is not None
+    tools_at_end = _doc_tool_count()
+    _log(f"Auto-set {op_name!r}: T{t_num}, document tools {tools_at_start} -> {tools_at_end}"
+         + ("  (WARNING: a tool was added)" if tools_at_start is not None and tools_at_end != tools_at_start else ""))
 
     # DOC/WOC: the preset carries them (above). Write the operation's own step parameters only
     # if the linked preset didn't deliver them, because any operation value that differs from

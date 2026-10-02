@@ -345,3 +345,39 @@ class TestPresetInPlace(ServerTestBase):
         self.assertEqual(by["tool_useStepdown"], "true")
         self.assertEqual(by["tool_spindleSpeed"], "")
         self.assertEqual(sorted(written), ["tool_stepdown", "tool_stepover"])
+
+
+class TestNoDetachedCopies(ServerTestBase):
+    def _preset(self, name, values):
+        pr = MagicMock(); pr.name = name
+        params = {}
+        for k, v in values.items():
+            p = MagicMock(); p.expression = v; params[k] = p
+        pr.parameters.itemByName.side_effect = lambda n: params.get(n)
+        return pr
+
+    def test_feed_mismatch_is_not_a_match(self):
+        tool = MagicMock()
+        tool.presets = [self._preset("P", {"tool_spindleSpeed": "16000 rpm", "tool_feedCutting": "54.07 in/min"})]
+        want = [("tool_spindleSpeed", "16000 rpm"), ("tool_feedCutting", "52.65 in/min")]
+        self.assertFalse(self.addin._preset_matches(tool, "P", want))
+        want_ok = [("tool_spindleSpeed", "16000 rpm"), ("tool_feedCutting", "54.07 in/min")]
+        self.assertTrue(self.addin._preset_matches(tool, "P", want_ok))
+
+    def test_never_links_preset_from_detached_copy(self):
+        # operation.tool hands out a fresh copy every time, and writing back doesn't stick.
+        op = MagicMock()
+        type(op).tool = property(lambda self_: _fresh_tool_without_preset(), lambda self_, v: None)
+        with patch.object(self.addin, "_doc_tool_count", return_value=7):
+            pr, _ = self.addin._upsert_preset_in_place(op, "New - Roughing", None, [("tool_spindleSpeed", "9000 rpm")])
+        self.assertIsNone(pr)
+
+
+def _fresh_tool_without_preset():
+    t = MagicMock()
+    t.presets = MagicMock()
+    t.presets.__iter__ = lambda self_: iter([])
+    added = MagicMock(); added.name = ""
+    added.parameters.itemByName.return_value = MagicMock()
+    t.presets.add.return_value = added
+    return t
