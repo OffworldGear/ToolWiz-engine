@@ -1162,7 +1162,38 @@ def _close(a, b, rel):
         return False
 
 
-def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values):
+def _iter_params(params):
+    """Iterate a Fusion CAMParameters collection (iterable in newer APIs, count/item in older)."""
+    try:
+        return list(params)
+    except TypeError:
+        try:
+            return [params.item(i) for i in range(params.count)]
+        except Exception:
+            return []
+
+
+def _set_preset_steps(params, doc_in, woc_in):
+    """Write stepdown/stepover into a preset by matching parameter names (Fusion doesn't document
+    the preset parameter ids), enabling their 'use' flags. Logs the preset's parameter names."""
+    names = [getattr(p, 'name', '') for p in _iter_params(params)]
+    _log("Preset parameters: " + ", ".join(n for n in names if n))
+    written = []
+    for p_obj in _iter_params(params):
+        n = str(getattr(p_obj, 'name', '')).lower()
+        try:
+            if 'use' in n and ('stepdown' in n or 'stepover' in n):
+                p_obj.expression = 'true'
+            elif 'stepdown' in n and doc_in:
+                p_obj.expression = f"{doc_in:.4f} in"; written.append(n)
+            elif ('stepover' in n or 'optimalload' in n) and woc_in:
+                p_obj.expression = f"{woc_in:.4f} in"; written.append(n)
+        except Exception as ex:
+            _log(f"Could not set preset parameter {n!r}", ex)
+    return written
+
+
+def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, doc_in=None, woc_in=None):
     """Find the preset to replace (or one already named `preset_name`) on the operation's tool,
     else add one; set its speed/feed parameters with explicit units. Returns (preset, was_updated).
     The tool object itself is never replaced, so Fusion keeps a single copy of the tool."""
@@ -1210,6 +1241,9 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values):
                     _log(f"Preset has no parameter {p_name!r}")
             except Exception as ex_p:
                 _log(f"Could not set preset parameter {p_name!r}", ex_p)
+        steps = _set_preset_steps(params, doc_in, woc_in)
+        if not steps:
+            _log("Preset has no stepdown/stepover parameters; DOC/WOC will be written to the operation")
 
     # Some Fusion versions hand back a copy from operation.tool; if the preset isn't visible on
     # the operation's tool now, assign the edited tool back (same tool id, not a new tool).
@@ -1300,7 +1334,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     #    JSON-written preset values were not unit-safe; preset parameters set with explicit
     #    units are converted by Fusion itself.
     preset_obj, was_updated = _upsert_preset_in_place(target_op, final_preset_name,
-                                                      target_preset_to_replace, speed_values)
+                                                      target_preset_to_replace, speed_values,
+                                                      doc_in=doc, woc_in=woc)
 
     # 2. Link the preset to the operation.
     preset_linked = False
@@ -1324,13 +1359,22 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_speed_sources(target_op)
     tool_updated = preset_obj is not None
 
-    # Apply operation-specific cut step parameters (not stored in tool presets)
-    if "Adaptive" in strategy:
-        woc_applied = bool(apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"))
-    else:
-        woc_applied = bool(apply_param(target_op, 'stepover', f"{woc:.4f} in")
-                           or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"))
-    doc_applied = bool(apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"))
+    # DOC/WOC: the preset carries them (above). Write the operation's own step parameters only
+    # if the linked preset didn't deliver them, because any operation value that differs from
+    # its preset makes Fusion show 'Preset (custom)'.
+    _, _, op_doc, op_woc = get_op_cut_params(target_op, "in")
+    woc_applied = preset_linked and _close(op_woc, woc, 0.01)
+    doc_applied = preset_linked and _close(op_doc, doc, 0.01)
+    if not woc_applied:
+        _log(f"WOC from preset not in effect (op {op_woc:.4f} vs {woc:.4f} in); writing operation parameter")
+        if "Adaptive" in strategy:
+            woc_applied = bool(apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"))
+        else:
+            woc_applied = bool(apply_param(target_op, 'stepover', f"{woc:.4f} in")
+                               or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"))
+    if not doc_applied:
+        _log(f"DOC from preset not in effect (op {op_doc:.4f} vs {doc:.4f} in); writing operation parameter")
+        doc_applied = bool(apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"))
 
     preset_note = f"Preset: {final_preset_name} ({'updated' if was_updated else 'created'}"
     if not (tool_updated or preset_linked):

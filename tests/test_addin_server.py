@@ -326,3 +326,22 @@ class TestPresetInPlace(ServerTestBase):
         written = self._autoset((5000, 12.0, 0, 0))
         self.assertIn("tool_spindleSpeed", written)
         self.assertIn("tool_feedCutting", written)
+
+    def test_preset_with_steps_in_effect_writes_nothing_to_op(self):
+        # Op already reflects the preset's speeds AND DOC/WOC -> no '(custom)' writes at all.
+        written = self._autoset((10000, 50.0, 0.1, 0.05))
+        self.assertEqual(written, [])
+
+    def test_set_preset_steps_matches_names(self):
+        names = ["tool_spindleSpeed", "tool_stepdown", "tool_useStepdown", "tool_stepover", "tool_useStepover"]
+        params = []
+        for n in names:
+            p = MagicMock(); p.name = n; p.expression = ""
+            params.append(p)
+        written = self.addin._set_preset_steps(params, 0.08, 0.025)
+        by = {p.name: p.expression for p in params}
+        self.assertEqual(by["tool_stepdown"], "0.0800 in")
+        self.assertEqual(by["tool_stepover"], "0.0250 in")
+        self.assertEqual(by["tool_useStepdown"], "true")
+        self.assertEqual(by["tool_spindleSpeed"], "")
+        self.assertEqual(sorted(written), ["tool_stepdown", "tool_stepover"])
