@@ -41,6 +41,7 @@ importCommandId = 'ToolWizImportTwinCmd'
 calcCommandId = 'ToolWizCalcCmd'
 stockCommandId = 'ToolWizStockToLeaveCmd'
 logCutCommandId = 'ToolWizLogCutCmd'
+cleanupCommandId = 'ToolWizCleanupDuplicatesCmd'
 
 workspaceToUse = 'CAMEnvironment'
 panelToUse = 'CAMManagePanel'
@@ -3106,6 +3107,176 @@ class ToolWizLogCutCreatedHandler(adsk.core.CommandCreatedEventHandler):
 # ADD-IN RUN / STOP
 # ==============================================================================
 
+# ==============================================================================
+# COMMAND 6: CLEAN UP DUPLICATE TOOLS (document tool library)
+# ==============================================================================
+
+def _tool_signature(t):
+    """Identity of a physical tool: type, unit, tool number, description and geometry."""
+    g = t.get('geometry', {}) or {}
+    pp = t.get('post-process') or t.get('postProcess') or {}
+
+    def r(k):
+        v = g.get(k)
+        try:
+            return round(float(v), 5)
+        except (TypeError, ValueError):
+            return v
+    return (str(t.get('type', '')).lower(), str(t.get('unit', '')).lower(), pp.get('number'),
+            str(t.get('description', '')).strip().lower(),
+            r('DC'), r('NOF'), r('LCF'), r('shoulder-length'), r('shoulder-diameter'), r('SFDM'),
+            r('RE'), r('TA'), r('OAL'), r('LB'))
+
+
+def _preset_names(t):
+    presets = ((t.get('start-values') or {}).get('presets') or [])
+    return {p.get('name') for p in presets if isinstance(p, dict) and p.get('name')}
+
+
+def plan_duplicate_cleanup(entries):
+    """Pure planner. entries: [{'index': int, 'tool': dict (tool JSON), 'used': bool}].
+    Returns (remove, skipped). Rules: only exact duplicates (same _tool_signature); tools used by
+    an operation are never removed; one copy of every group is always kept; a copy holding presets
+    the kept tool(s) don't have is skipped, so no cutting data is lost. Holders are ignored."""
+    groups = {}
+    for e in entries:
+        if str(e['tool'].get('type', '')).lower() == 'holder':
+            continue
+        groups.setdefault(_tool_signature(e['tool']), []).append(e)
+    remove, skipped = [], []
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        used = [m for m in members if m['used']]
+        keeper = used[0] if used else max(members, key=lambda m: (len(_preset_names(m['tool'])), -m['index']))
+        kept = used or [keeper]
+        kept_presets = set().union(*(_preset_names(m['tool']) for m in kept))
+        for m in members:
+            if m['used'] or m is keeper:
+                continue
+            pp = m['tool'].get('post-process') or m['tool'].get('postProcess') or {}
+            info = {'index': m['index'], 'number': pp.get('number'),
+                    'description': m['tool'].get('description', ''), 'keep_index': keeper['index']}
+            extra = _preset_names(m['tool']) - kept_presets
+            if extra:
+                skipped.append(dict(info, reason="has presets the kept tool lacks: " + ", ".join(sorted(extra))))
+            else:
+                remove.append(info)
+    return remove, skipped
+
+
+def _collect_document_tools():
+    """(library, [{'index', 'tool', 'used'}]) for the active document. 'used' compares tool guids
+    with every operation's tool; without guids the tool counts as used (fail safe)."""
+    cam = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+    if not cam:
+        return None, []
+    lib = cam.documentToolLibrary
+    used_guids, used_sigs = set(), set()
+    for setup in cam.setups:
+        for op in setup.allOperations:
+            t = getattr(op, 'tool', None)
+            if not t:
+                continue
+            try:
+                d = json.loads(t.toJson())
+            except Exception:
+                continue
+            # Every operation tool protects its signature too, so a guid mismatch between the
+            # operation's tool copy and the library entry can never expose an in-use tool.
+            used_sigs.add(_tool_signature(d))
+            if d.get('guid'):
+                used_guids.add(d['guid'])
+    entries = []
+    for i in range(lib.count):
+        d = json.loads(lib.item(i).toJson())
+        used = (d.get('guid') in used_guids) if d.get('guid') else True
+        entries.append({'index': i, 'tool': d, 'used': used, 'sig_used': _tool_signature(d) in used_sigs})
+    # A group whose signature is used by an operation keeps every member that is (or may be) in
+    # use; if no member matched by guid, treat the whole group as in use (fail safe).
+    by_sig = {}
+    for e in entries:
+        by_sig.setdefault(_tool_signature(e['tool']), []).append(e)
+    for members in by_sig.values():
+        if members[0]['sig_used'] and not any(m['used'] for m in members):
+            for m in members:
+                m['used'] = True
+    return lib, entries
+
+
+def _cleanup_report(remove, skipped):
+    lines = []
+    for r in remove:
+        lines.append(f"Remove: {tool_label(r['number'])} {r['description']} "
+                     f"(duplicate of library item {r['keep_index'] + 1})")
+    for k in skipped:
+        lines.append(f"Keep:   {tool_label(k['number'])} {k['description']}: {k['reason']}")
+    return "\n".join(lines) if lines else "No unused duplicate tools found."
+
+
+class ToolWizCleanupCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            on_exec = ToolWizCleanupExecuteHandler()
+            cmd.execute.add(on_exec)
+            handlers.append(on_exec)
+            lib, entries = _collect_document_tools()
+            if lib is None:
+                ui.messageBox('Open a document with CAM data (Manufacture workspace) first.', 'ToolWiz Clean Up')
+                return
+            remove, skipped = plan_duplicate_cleanup(entries)
+            head = (f"{len(remove)} unused duplicate tool(s) will be removed from this document's tool library "
+                    f"({lib.count} tools now). Tools used by operations are never removed. "
+                    f"Click OK to remove them, or Cancel to leave everything as is.\n\n")
+            box = cmd.commandInputs.addTextBoxCommandInput(
+                'cleanupPlan', 'Plan', head + _cleanup_report(remove, skipped),
+                min(20, 4 + len(remove) + len(skipped)), True)
+            box.isFullWidth = True
+        except Exception as e:
+            _report_error("Clean Up dialog failed.", e)
+
+
+class ToolWizCleanupExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            lib, entries = _collect_document_tools()   # re-plan on the current state
+            if lib is None:
+                return
+            remove, skipped = plan_duplicate_cleanup(entries)
+            before = lib.count
+            removed, failed = 0, 0
+            for r in sorted(remove, key=lambda x: x['index'], reverse=True):   # highest index first
+                ok = False
+                try:
+                    if hasattr(lib, 'remove'):
+                        ok = bool(lib.remove(r['index']))
+                    else:
+                        ok = bool(lib.item(r['index']).deleteMe())
+                except Exception as ex:
+                    _log(f"Could not remove tool at library index {r['index']}", ex)
+                removed += 1 if ok else 0
+                failed += 0 if ok else 1
+            _log(f"Clean Up: removed {removed}, failed {failed}, skipped {len(skipped)}; "
+                 f"document tools {before} -> {lib.count}")
+            msg = f"Removed {removed} duplicate tool(s); {lib.count} tools remain."
+            if failed:
+                msg += f"\n{failed} could not be removed (see {_log_path()})."
+            if skipped:
+                msg += f"\n{len(skipped)} duplicate(s) kept because they hold presets the kept tool lacks."
+            ui.messageBox(msg, 'ToolWiz Clean Up')
+        except Exception as e:
+            _report_error("Clean Up failed.", e)
+
+
 COMMAND_SPECS = [
     (exportCommandId, 'Export Digital Twin',
      'Exports selected Hub / Cloud / Local library to ToolWiz with automated backup.', 'ToolWizExportCreatedHandler'),
@@ -3119,6 +3290,9 @@ COMMAND_SPECS = [
     (logCutCommandId, 'Log Cut Result',
      'Record the measured wall error, spindle load and chatter of a real cut so ToolWiz can calibrate its predictions.',
      'ToolWizLogCutCreatedHandler'),
+    (cleanupCommandId, 'Clean Up Duplicate Tools',
+     'Remove unused duplicate tools from the document tool library (tools used by operations are never removed).',
+     'ToolWizCleanupCreatedHandler'),
 ]
 
 
