@@ -1414,6 +1414,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw)
     tools_at_start = _doc_tool_count()
     _log_custom_diff(target_op, label="BEFORE auto-set")
+    _log_op_motion_params(target_op, "BEFORE")
 
     try:
         calc_result = _http_json('/api/calculate_for_fusion', payload, timeout=10.0)
@@ -1505,6 +1506,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_speed_sources(target_op)
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
+    _log_op_motion_params(target_op, "AFTER")
     _regenerate_toolpath(target_op)
     tools_at_end = _doc_tool_count()
     _log(f"Auto-set {op_name!r}: T{t_num}, document tools {tools_at_start} -> {tools_at_end}"
@@ -2043,6 +2045,22 @@ def _regenerate_toolpath(op):
             _log(f"Regenerating toolpath for {getattr(op, 'name', '?')!r}")
     except Exception as ex:
         _log("Toolpath regeneration request failed (regenerate manually)", ex)
+
+
+def _log_op_motion_params(op, label):
+    """Diagnostic: every operation parameter related to feeds, speeds, steps or ramps, so a
+    change Fusion makes while applying a preset (e.g. clamping a stepover) is visible."""
+    try:
+        keys = ('feed', 'speed', 'step', 'ramp', 'plunge', 'load', 'coolant')
+        rows = []
+        for p_obj in _iter_params(getattr(op, 'parameters', None)):
+            n = str(getattr(p_obj, 'name', ''))
+            if any(k in n.lower() for k in keys):
+                v = getattr(getattr(p_obj, 'value', None), 'value', None)
+                rows.append(f"{n}={getattr(p_obj, 'expression', None)!r}({v!r})")
+        _log(f"Operation motion parameters {label}: " + "; ".join(rows))
+    except Exception as e:
+        _log("operation parameter dump failed", e)
 
 
 def _log_custom_diff(op, label="after auto-set"):
