@@ -1443,15 +1443,23 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     preset_obj, was_updated = _upsert_preset_in_place(target_op, final_preset_name,
                                                       target_preset_to_replace, speed_values,
                                                       doc_in=doc, woc_in=woc)
+    _log(f"  after preset update: document tools {_doc_tool_count()}")
 
-    # 2. Link the preset to the operation.
+    # 2. Link the preset to the operation, unless it is already linked to it. Re-linking hands
+    #    Fusion a preset object from a copy of the tool, which can add that copy as a new
+    #    document tool (log: 65 -> 66 with no other write).
     preset_linked = False
-    if preset_obj is not None:
+    current = getattr(target_op, 'toolPreset', None)
+    if preset_obj is not None and getattr(current, 'name', None) == final_preset_name:
+        preset_linked = True
+        _log(f"  operation already linked to {final_preset_name!r}; not re-linking")
+    elif preset_obj is not None:
         try:
             target_op.toolPreset = preset_obj
             preset_linked = True
         except Exception as ex_set:
             _log("Could not activate preset on operation", ex_set)
+        _log(f"  after linking preset: document tools {_doc_tool_count()}")
 
     # 3. Write the operation's own feed/speed only if the linked preset did not deliver the
     #    calculated values. Writing them unconditionally is what made Fusion show a second
@@ -1464,6 +1472,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         for p_name, p_val in speed_values:
             apply_param(target_op, p_name, p_val, force=(p_name not in ('tool_spindleSpeed', 'tool_feedCutting')))
     _log_speed_sources(target_op)
+    _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
     tools_at_end = _doc_tool_count()
     _log(f"Auto-set {op_name!r}: T{t_num}, document tools {tools_at_start} -> {tools_at_end}"
@@ -1981,6 +1990,31 @@ def _is_fusion_default_formula(p):
     """True for Fusion's placeholder speed/feed formula (e.g. "tool_type == 'probe' ? 0 : ... 5000rpm")."""
     expr = str(getattr(p, 'expression', '') or '') if p is not None else ''
     return 'tool_type' in expr
+
+
+def _log_custom_diff(op):
+    """Diagnostic: list every preset field whose value differs from the operation's own
+    parameter of the same name. Fusion marks the operation '(custom)' when any differ."""
+    try:
+        preset = getattr(op, 'toolPreset', None)
+        params = getattr(preset, 'parameters', None) if preset else None
+        if params is None:
+            return
+        diffs = []
+        for p_obj in _iter_params(params):
+            name = getattr(p_obj, 'name', '')
+            op_name = 'tool_spindleSpeedRamp' if name == 'tool_rampSpindleSpeed' else name
+            o_obj = _param(getattr(op, 'parameters', None), op_name)
+            if o_obj is None:
+                continue
+            pv = getattr(getattr(p_obj, 'value', None), 'value', None)
+            ov = getattr(getattr(o_obj, 'value', None), 'value', None)
+            same = (pv == ov) if not (isinstance(pv, float) and isinstance(ov, float)) else abs(pv - ov) <= max(abs(pv) * 1e-6, 1e-9)
+            if not same:
+                diffs.append(f"{name}: preset {getattr(p_obj, 'expression', None)!r} vs op {getattr(o_obj, 'expression', None)!r}")
+        _log("Preset vs operation differences (cause of '(custom)'): " + ("; ".join(diffs) if diffs else "none"))
+    except Exception as e:
+        _log("custom diff diagnostic failed", e)
 
 
 def _log_speed_sources(op):
