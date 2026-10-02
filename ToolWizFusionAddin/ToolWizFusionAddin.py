@@ -1548,6 +1548,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
     _log_op_motion_params(target_op, "AFTER")
+    _log_preset_use_flags(target_op, final_preset_name)
     _regenerate_toolpath(target_op)
     tools_at_end = _doc_tool_count()
     _log(f"Auto-set {op_name!r}: T{t_num}, document tools {tools_at_start} -> {tools_at_end}"
@@ -2086,6 +2087,25 @@ def _regenerate_toolpath(op):
             _log(f"Regenerating toolpath for {getattr(op, 'name', '?')!r}")
     except Exception as ex:
         _log("Toolpath regeneration request failed (regenerate manually)", ex)
+
+
+def _log_preset_use_flags(op, preset_name):
+    """Diagnostic: the preset's 'Use stepdown/stepover' checkboxes are not exposed as preset
+    parameters, so read them from the tool's JSON. Unchecked flags make the operation ignore the
+    preset's stepdown/stepover when the preset is selected."""
+    try:
+        t = getattr(op, 'tool', None)
+        d = json.loads(t.toJson()) if t is not None else {}
+        for pr in ((d.get('start-values') or {}).get('presets') or []):
+            if pr.get('name') == preset_name:
+                _log(f"Preset {preset_name!r} JSON: use-stepdown={pr.get('use-stepdown')!r} "
+                     f"stepdown={pr.get('stepdown')!r} use-stepover={pr.get('use-stepover')!r} "
+                     f"stepover={pr.get('stepover')!r}")
+                return pr
+        _log(f"Preset {preset_name!r} not found in the tool JSON")
+    except Exception as e:
+        _log("preset use-flag diagnostic failed", e)
+    return None
 
 
 def _log_op_motion_params(op, label):
