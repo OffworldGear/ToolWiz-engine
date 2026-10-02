@@ -1155,6 +1155,77 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
     }
 
 
+def _close(a, b, rel):
+    try:
+        return abs(float(a) - float(b)) <= abs(float(b)) * rel + 1e-9
+    except (TypeError, ValueError):
+        return False
+
+
+def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values):
+    """Find the preset to replace (or one already named `preset_name`) on the operation's tool,
+    else add one; set its speed/feed parameters with explicit units. Returns (preset, was_updated).
+    The tool object itself is never replaced, so Fusion keeps a single copy of the tool."""
+    tool = getattr(target_op, 'tool', None)
+    presets = getattr(tool, 'presets', None) if tool else None
+    if presets is None:
+        _log("Operation tool exposes no presets collection; cannot update cutting data in place")
+        return None, False
+
+    def find(name):
+        if not name:
+            return None
+        for pr in presets:
+            if getattr(pr, 'name', None) == name:
+                return pr
+        return None
+
+    target = None
+    if replace_name and replace_name != "+ Create New Preset (Auto-Named)":
+        target = find(replace_name)
+    if target is None:
+        target = find(preset_name)
+    was_updated = target is not None
+    if target is None:
+        try:
+            target = presets.add()
+        except Exception as ex_add:
+            _log("Could not add a preset to the tool", ex_add)
+            return None, False
+
+    try:
+        target.name = preset_name
+    except Exception as ex_name:
+        _log("Could not rename preset", ex_name)
+    params = getattr(target, 'parameters', None)
+    if params is None:
+        _log("Preset exposes no parameters; values not written")
+    else:
+        for p_name, p_val in speed_values:
+            try:
+                p_obj = params.itemByName(p_name)
+                if p_obj:
+                    p_obj.expression = p_val
+                else:
+                    _log(f"Preset has no parameter {p_name!r}")
+            except Exception as ex_p:
+                _log(f"Could not set preset parameter {p_name!r}", ex_p)
+
+    # Some Fusion versions hand back a copy from operation.tool; if the preset isn't visible on
+    # the operation's tool now, assign the edited tool back (same tool id, not a new tool).
+    live = getattr(target_op, 'tool', None)
+    if live is not None and not any(getattr(pr, 'name', None) == preset_name for pr in getattr(live, 'presets', []) or []):
+        try:
+            target_op.tool = tool
+            live = target_op.tool
+        except Exception as ex_assign:
+            _log("Could not assign the edited tool back to the operation", ex_assign)
+    for pr in getattr(live, 'presets', []) or []:
+        if getattr(pr, 'name', None) == preset_name:
+            return pr, was_updated
+    return target, was_updated
+
+
 def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                 target_preset_to_replace, selected_grade, selected_coating_raw):
     """Calculate cutting data on the server and write it to the operation's tool preset."""
@@ -1212,102 +1283,46 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     sfm = calc_result.get("sfm", 300)
     ipt = calc_result.get("ipt", 0.002)
 
-    # Mutate tool JSON (preset injection only; tool number / offsets are never touched)
-    mutated_json, final_preset_name, was_updated = json_mutator.mutate_tool_json(
-        geo_payload["raw_json"], calc_result, target_preset_to_replace=target_preset_to_replace
-    )
+    final_preset_name = calc_result["name"]
+    speed_values = [
+        ('tool_spindleSpeed', f"{rpm} rpm"),
+        ('tool_spindleSpeedRamp', f"{rpm} rpm"),
+        ('tool_feedCutting', f"{feed:.2f} in/min"),
+        ('tool_feedEntry', f"{feed:.2f} in/min"),
+        ('tool_feedExit', f"{feed:.2f} in/min"),
+        ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
+        ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
+        ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
+    ]
 
-    # Re-instantiate Tool with the mutated JSON and assign to operation & library
-    tool_updated = False
-    new_tool = None
-    try:
-        if hasattr(adsk, 'cam') and hasattr(adsk.cam, 'Tool') and hasattr(adsk.cam.Tool, 'createFromJson'):
-            new_tool = adsk.cam.Tool.createFromJson(mutated_json)
-            if new_tool:
-                target_op.tool = new_tool
-                tool_updated = True
-    except Exception as ex_tool:
-        _log("Tool.createFromJson / assigning tool to operation failed", ex_tool)
+    # 1. Update (or add) the preset IN PLACE on the operation's own tool. Building a new tool
+    #    from JSON (Tool.createFromJson) made Fusion add a second copy of the tool, and the
+    #    JSON-written preset values were not unit-safe; preset parameters set with explicit
+    #    units are converted by Fusion itself.
+    preset_obj, was_updated = _upsert_preset_in_place(target_op, final_preset_name,
+                                                      target_preset_to_replace, speed_values)
 
-    # Fallback to direct tool presets collection manipulation if createFromJson was not used
-    if not tool_updated:
-        try:
-            cur_tool = getattr(target_op, 'tool', None)
-            if cur_tool and hasattr(cur_tool, 'presets'):
-                target_preset = None
-                if target_preset_to_replace and target_preset_to_replace != "+ Create New Preset (Auto-Named)":
-                    for pr in cur_tool.presets:
-                        if pr.name == target_preset_to_replace:
-                            target_preset = pr
-                            break
-                if not target_preset:
-                    for pr in cur_tool.presets:
-                        if pr.name == final_preset_name:
-                            target_preset = pr
-                            break
-                if not target_preset:
-                    target_preset = cur_tool.presets.add()
-                if target_preset:
-                    target_preset.name = final_preset_name
-                    if hasattr(target_preset, 'parameters') and target_preset.parameters:
-                        for p_name, p_val in [
-                            ('tool_spindleSpeed', f"{rpm} rpm"),
-                            ('tool_spindleSpeedRamp', f"{rpm} rpm"),
-                            ('tool_feedCutting', f"{feed:.2f} in/min"),
-                            ('tool_feedEntry', f"{feed:.2f} in/min"),
-                            ('tool_feedExit', f"{feed:.2f} in/min"),
-                            ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
-                            ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
-                            ('tool_feedTransition', f"{feed * 1.5:.2f} in/min")
-                        ]:
-                            try:
-                                p_obj = target_preset.parameters.itemByName(p_name)
-                                if p_obj:
-                                    p_obj.expression = p_val
-                            except Exception as ex_p:
-                                _log(f"Could not set preset parameter {p_name!r}", ex_p)
-                    target_op.tool = cur_tool
-                    tool_updated = True
-        except Exception as ex_preset:
-            _log("Direct preset manipulation failed", ex_preset)
-
-    # Activate the newly created / updated preset on the operation
+    # 2. Link the preset to the operation.
     preset_linked = False
-    try:
-        active_tool = getattr(target_op, 'tool', None)
-        if active_tool and hasattr(active_tool, 'presets'):
-            for pr in active_tool.presets:
-                if pr.name == final_preset_name:
-                    try:
-                        target_op.toolPreset = pr
-                        preset_linked = True
-                    except Exception as ex_set:
-                        _log("Could not activate preset on operation", ex_set)
-                    break
-    except Exception as ex_link:
-        _log("Preset link step failed", ex_link)
+    if preset_obj is not None:
+        try:
+            target_op.toolPreset = preset_obj
+            preset_linked = True
+        except Exception as ex_set:
+            _log("Could not activate preset on operation", ex_set)
 
-    # Update Document Tool Library if accessible
-    try:
-        cam_prod = app.activeDocument.products.itemByProductType('CAMProductType')
-        if cam_prod:
-            cam_obj = adsk.cam.CAM.cast(cam_prod)
-            if cam_obj and hasattr(cam_obj, 'documentToolLibrary') and cam_obj.documentToolLibrary:
-                doc_lib = cam_obj.documentToolLibrary
-                if hasattr(doc_lib, 'update') and target_op.tool:
-                    doc_lib.update(target_op.tool, False)
-    except Exception as ex_doclib:
-        _log("Document tool library update failed", ex_doclib)
-
-    # Explicitly apply feeds & speeds as operation parameter values so the active toolpath uses them
-    apply_param(target_op, 'tool_spindleSpeed', f"{rpm} rpm")
-    apply_param(target_op, 'tool_spindleSpeedRamp', f"{rpm} rpm", force=True)
-    apply_param(target_op, 'tool_feedCutting', f"{feed:.2f} in/min")
-    apply_param(target_op, 'tool_feedEntry', f"{feed:.2f} in/min", force=True)
-    apply_param(target_op, 'tool_feedExit', f"{feed:.2f} in/min", force=True)
-    apply_param(target_op, 'tool_feedRamp', f"{ramp_feed:.2f} in/min", force=True)
-    apply_param(target_op, 'tool_feedPlunge', f"{plunge_feed:.2f} in/min", force=True)
-    apply_param(target_op, 'tool_feedTransition', f"{feed * 1.5:.2f} in/min", force=True)
+    # 3. Write the operation's own feed/speed only if the linked preset did not deliver the
+    #    calculated values. Writing them unconditionally is what made Fusion show a second
+    #    'Preset (custom)' entry next to the real preset.
+    op_rpm, op_feed, _, _ = get_op_cut_params(target_op, "in")
+    preset_ok = preset_linked and _close(op_rpm, rpm, 0.01) and _close(op_feed, feed, 0.01)
+    if not preset_ok:
+        _log(f"Preset values not in effect on {op_name!r} (linked={preset_linked}, op rpm={op_rpm:.0f} "
+             f"feed={op_feed:.2f} IPM vs calculated {rpm} / {feed:.2f}); writing operation parameters")
+        for p_name, p_val in speed_values:
+            apply_param(target_op, p_name, p_val, force=(p_name not in ('tool_spindleSpeed', 'tool_feedCutting')))
+    _log_speed_sources(target_op)
+    tool_updated = preset_obj is not None
 
     # Apply operation-specific cut step parameters (not stored in tool presets)
     if "Adaptive" in strategy:

@@ -222,7 +222,7 @@ class TestAutoSet(ServerTestBase):
         addin.ui.messageBox.return_value = addin.adsk.core.DialogResults.DialogYes if yes else addin.adsk.core.DialogResults.DialogNo
         with patch.object(addin, "get_op_tool_info", return_value=(geo, "summary", [])), \
              patch.object(addin, "_http_json", return_value=calc) as http, \
-             patch.object(addin.json_mutator, "mutate_tool_json", return_value=("{}", "P", False)) as mut:
+             patch.object(addin, "_upsert_preset_in_place", return_value=(MagicMock(), False)) as mut,              patch.object(addin, "get_op_cut_params", return_value=(calc.get("rpm", 0), calc.get("feed", 0), 0, 0)):
             result = addin.run_autoset(MagicMock(), "Setup > Op", "Titanium Alloy", "Grade 2", "Finishing", 50,
                                        None, "HP High Performance Carbide", "AlTiN (Black)")
         return result, http, mut
@@ -242,7 +242,8 @@ class TestAutoSet(ServerTestBase):
         self.assertEqual(http.call_args[0][0], "/api/calculate_for_fusion")
         sent = http.call_args[0][1]
         self.assertEqual(sent["stickout"], 1.6)
-        self.assertNotIn("tool_number", mut.call_args[0][1])
+        # Preset values only (no tool number / offsets ever).
+        self.assertTrue(all(not n.startswith("post") for n, _ in mut.call_args[0][3]))
 
     def test_infeasible_declined_does_not_apply(self):
         calc = dict(self.CALC, feasible=False, limited_by="deflection")
@@ -264,3 +265,64 @@ class TestAutoSet(ServerTestBase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPresetInPlace(ServerTestBase):
+    """The auto-setter edits the operation's existing tool preset; it never builds a new tool."""
+
+    def _tool_with_presets(self, names):
+        tool = MagicMock()
+        presets = []
+        for n in names:
+            pr = MagicMock(); pr.name = n
+            params = {}
+            pr.parameters.itemByName.side_effect = lambda name, params=params: params.setdefault(name, MagicMock())
+            presets.append(pr)
+        tool.presets = MagicMock()
+        tool.presets.__iter__ = lambda self_: iter(presets)
+        def add():
+            pr = MagicMock(); pr.name = ""
+            params = {}
+            pr.parameters.itemByName.side_effect = lambda name, params=params: params.setdefault(name, MagicMock())
+            presets.append(pr)
+            return pr
+        tool.presets.add.side_effect = add
+        return tool, presets
+
+    def test_replaces_named_preset_without_adding(self):
+        tool, presets = self._tool_with_presets(["Old preset", "Other"])
+        op = MagicMock(); op.tool = tool
+        pr, updated = self.addin._upsert_preset_in_place(op, "Brass - Roughing", "Old preset",
+                                                         [("tool_spindleSpeed", "9000 rpm"), ("tool_feedCutting", "30.00 in/min")])
+        self.assertTrue(updated)
+        tool.presets.add.assert_not_called()
+        self.assertEqual(pr.name, "Brass - Roughing")
+        self.assertEqual(pr.parameters.itemByName("tool_feedCutting").expression, "30.00 in/min")
+
+    def test_adds_preset_when_missing(self):
+        tool, presets = self._tool_with_presets(["Other"])
+        op = MagicMock(); op.tool = tool
+        pr, updated = self.addin._upsert_preset_in_place(op, "Brass - Roughing", None, [("tool_spindleSpeed", "9000 rpm")])
+        self.assertFalse(updated)
+        tool.presets.add.assert_called_once()
+        self.assertEqual(pr.parameters.itemByName("tool_spindleSpeed").expression, "9000 rpm")
+
+    def _autoset(self, op_values):
+        addin = self.addin
+        geo = TestAutoSet.GEO
+        calc = dict(TestAutoSet.CALC)
+        with patch.object(addin, "get_op_tool_info", return_value=(geo, "summary", [])),              patch.object(addin, "_http_json", return_value=calc),              patch.object(addin, "_upsert_preset_in_place", return_value=(MagicMock(), True)),              patch.object(addin, "get_op_cut_params", return_value=op_values),              patch.object(addin, "apply_param", return_value=True) as ap,              patch.object(addin.adsk.cam.Tool, "createFromJson") as cfj:
+            addin.run_autoset(MagicMock(), "Setup > Op", "Brass", "", "Roughing", 50, None,
+                              "HP High Performance Carbide", "AlTiN (Black)")
+        cfj.assert_not_called()  # never builds a second tool
+        return [c.args[1] for c in ap.call_args_list]
+
+    def test_preset_in_effect_does_not_write_op_speeds(self):
+        written = self._autoset((10000, 50.0, 0, 0))
+        self.assertNotIn("tool_spindleSpeed", written)   # no '(custom)' copy
+        self.assertNotIn("tool_feedCutting", written)
+
+    def test_preset_not_in_effect_writes_op_speeds(self):
+        written = self._autoset((5000, 12.0, 0, 0))
+        self.assertIn("tool_spindleSpeed", written)
+        self.assertIn("tool_feedCutting", written)
