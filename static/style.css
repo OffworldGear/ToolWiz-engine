@@ -1693,3 +1693,24 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .thread-class-warning { font-size: var(--fs-sm); color: #fbbf24; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 0.35rem 0.6rem; margin-bottom: 0.6rem; }
 sub, sup { font-size: var(--fs-xs); }
+
+/* ---- Tool Properties: Fusion-style cutter fields ------------------------------------------------ */
+.tool-fields-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+.tool-fields-title { font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.abbr { font-size: var(--fs-xs); font-weight: 500; color: #7dd3fc; opacity: 0.85; margin-left: 2px; letter-spacing: 0.02em; }
+.tool-fields .input-group { min-width: 0; }
+.tool-more-toggle { display: inline-flex; align-items: center; gap: 0.35rem; background: none; border: none; padding: 0.25rem 0; color: var(--accent); font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+.tool-more-toggle:hover { color: #ffffff; }
+.tool-more-caret { display: inline-block; transition: transform 0.15s ease; }
+.tool-more-toggle[aria-expanded="true"] .tool-more-caret { transform: rotate(90deg); }
+.library-loader-card { width: min(640px, 100%); }
+.library-loader-list { max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.library-loader-row { display: grid; grid-template-columns: 3.2rem 1fr auto; align-items: center; gap: 0.6rem; width: 100%; text-align: left; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--panel-border); border-radius: 6px; padding: 0.45rem 0.65rem; color: #e2e8f0; font-size: var(--fs-sm); cursor: pointer; }
+.library-loader-row:hover, .library-loader-row:focus-visible { border-color: var(--accent); background: rgba(56, 189, 248, 0.12); outline: none; }
+.library-loader-num { font-weight: 700; color: var(--accent); }
+.library-loader-desc small { display: block; color: var(--text-secondary); font-size: var(--fs-xs); }
+.library-loader-dia { color: var(--text-secondary); white-space: nowrap; }
+.library-loader-empty { color: var(--text-secondary); font-size: var(--fs-sm); padding: 0.75rem; text-align: center; }
+.tool-fields > .input-group > label { min-height: 2.6em; }
+.flute-ratio-row { display: flex; gap: 0.35rem; margin-top: 6px; }
+.tool-fields-head .btn-ratio { flex: 0 0 auto; padding: 4px 10px; }
