@@ -100,7 +100,8 @@ def machine_limits():
         "overridden": sorted(ov.keys()),
     }
 
-ALLOWED_ORIGINS = ("http://127.0.0.1:5000", "http://localhost:5000")
+ALLOWED_ORIGINS = ("http://127.0.0.1:5000", "http://localhost:5000") + tuple(
+    o.strip().rstrip("/") for o in os.environ.get("TOOLWIZ_EXTRA_ORIGINS", "").split(",") if o.strip())
 CLIENT_HEADER = "X-ToolWiz-Client"
 
 

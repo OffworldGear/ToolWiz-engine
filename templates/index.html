@@ -343,7 +343,7 @@
                                 <input type="number" id="neckDiameter" class="tool-dialog-input" step="any" value="0.125" oninput="calculate()">
                             </div>
                             <div class="input-group" style="margin:0;">
-                                <label for="neckLength">Neck Length (<span class="unit-lbl">in</span>)</label>
+                                <label for="neckLength" title="Distance from the tool tip to where the full shank begins (flutes + neck). Same as Fusion's shoulder length / Harvey's reach.">Reach, tip to shank (<span class="unit-lbl">in</span>)</label>
                                 <input type="number" id="neckLength" class="tool-dialog-input" step="any" value="0.5" oninput="calculate()">
                             </div>
                             <div class="input-group" style="margin:0;">
@@ -3147,7 +3147,11 @@
             }
 
             // Collision checks
-            const isNeckCollision = hasSteppedShank && (effNeckDia < diaVal) && (widthVal > (maxReach * 1.001));
+            // The neck can only rub the wall on form cutters (T-slot, dovetail, lollipop cut radially)
+            // or when the cut goes deeper than the flutes. Same rule as the physics advisor.
+            const isFormCutter = /t-slot|woodruff|keyseat|lollipop|dovetail/i.test(geo);
+            const neckEngaged = isFormCutter || (fluteLVal > 0 && depthVal > fluteLVal * 1.001);
+            const isNeckCollision = hasSteppedShank && (effNeckDia < diaVal) && neckEngaged && (widthVal > (maxReach * 1.001));
             const isColletCollision = stickVal > 0 && (depthVal > (stickVal * 1.001));
 
             // Update UI Clearance Badge & Alert Banner
@@ -3169,7 +3173,7 @@
                     if (reachLabelSpan) reachLabelSpan.innerText = 'COLLISION:';
                     if (reachValSpan) reachValSpan.innerText = `Holder Strike +${(depthVal - stickVal).toFixed(isMetric ? 2 : 3)} ${unit}`;
                 } else if (hasSteppedShank) {
-                    if (reachLabelSpan) reachLabelSpan.innerText = 'Max Reach:';
+                    if (reachLabelSpan) reachLabelSpan.innerText = 'Neck clearance:';
                     if (reachValSpan) reachValSpan.innerText = `${maxReach.toFixed(isMetric ? 2 : 3)} ${unit}`;
                 } else {
                     if (reachLabelSpan) reachLabelSpan.innerText = 'Stickout:';
@@ -3183,6 +3187,9 @@
                     alertBanner.className = 'collision-alert-banner active';
                 } else if (isColletCollision) {
                     alertBanner.innerHTML = `⚠️ <strong>Tool Holder Collision:</strong> Programmed Cut Depth (<strong>${depthVal.toFixed(isMetric ? 3 : 4)} ${unit}</strong>) exceeds tool stickout (<strong>${stickVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>). The collet chuck will crash into the workpiece!`;
+                    alertBanner.className = 'collision-alert-banner active';
+                } else if (hasRelieved && neckLenVal > stickVal * 1.001) {
+                    alertBanner.innerHTML = `⚠️ <strong>Holder Over Neck:</strong> Reach (<strong>${neckLenVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>) is longer than the stickout (<strong>${stickVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>), so the holder would clamp on the reduced neck. Increase the stickout to at least the reach.`;
                     alertBanner.className = 'collision-alert-banner active';
                 } else {
                     alertBanner.innerHTML = '';
@@ -3225,11 +3232,14 @@
                 yNeckTop = yNeckBot - hNeck;
                 yTaperTop = yNeckTop - hTaper;
             } else if (hasSteppedShank) {
-                let hFlute = Math.max(Math.min(fluteLVal * hScale, 80), 22);
-                let hNeck = Math.max(Math.min(neckLenVal * hScale, 100), 22);
-                let hTaper = 14;
-                if (hFlute + hNeck + hTaper > H_stick - 20) {
-                    const ratio = (H_stick - 20) / (hFlute + hNeck + hTaper);
+                // One scale for every segment so flutes + neck + shank always add up to the stickout.
+                // neckLenVal is the REACH (tip to shank), as in the physics and Fusion's shoulder length.
+                const reach = Math.min(Math.max(neckLenVal, fluteLVal), stickVal);
+                let hFlute = Math.max(Math.min(fluteLVal, stickVal) * hScale, 6);
+                let hNeck = Math.max((reach - Math.min(fluteLVal, stickVal)) * hScale, 0);
+                let hTaper = Math.min(8, Math.max(H_stick - hFlute - hNeck, 0));
+                if (hFlute + hNeck + hTaper > H_stick) {
+                    const ratio = H_stick / (hFlute + hNeck + hTaper);
                     hFlute *= ratio;
                     hNeck *= ratio;
                     hTaper *= ratio;
@@ -3536,7 +3546,7 @@
                 const yReachCall = isFormTool ? yNeckBot - 8 : yFluteTop - 8;
                 svgContent += `
                     <line x1="${cx + rn_px}" y1="${yReachCall}" x2="${cx + rd_px}" y2="${yReachCall}" stroke="${isNeckCollision ? '#ef4444' : '#10b981'}" stroke-width="1.5" marker-start="url(#arrow${isNeckCollision ? 'Amber' : 'Green'})" marker-end="url(#arrow${isNeckCollision ? 'Amber' : 'Green'})"/>
-                    <text x="${cx + (rn_px + rd_px) * 0.5}" y="${yReachCall - 4}" fill="${isNeckCollision ? '#ef4444' : '#34d399'}" font-size="8.5" font-weight="bold" text-anchor="middle">Reach:${maxReach.toFixed(isMetric ? 2 : 3)}</text>
+                    <text x="${cx + (rn_px + rd_px) * 0.5}" y="${yReachCall - 4}" fill="${isNeckCollision ? '#ef4444' : '#34d399'}" font-size="8.5" font-weight="bold" text-anchor="middle">Neck clr:${maxReach.toFixed(isMetric ? 2 : 3)}</text>
                 `;
             }
 
