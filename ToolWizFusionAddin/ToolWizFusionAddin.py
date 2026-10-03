@@ -1,6 +1,6 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
 import urllib.request, urllib.error, urllib.parse, json
-import os, re, sys, math, time, datetime
+import os, re, sys, math, time, datetime, uuid, collections
 
 # ---------------------------------------------------------------------------
 # Imports of sibling modules. Installed layout: json_mutator.py and toolwiz_common/
@@ -42,6 +42,7 @@ calcCommandId = 'ToolWizCalcCmd'
 stockCommandId = 'ToolWizStockToLeaveCmd'
 logCutCommandId = 'ToolWizLogCutCmd'
 cleanupCommandId = 'ToolWizCleanupDuplicatesCmd'
+snapshotCommandId = 'ToolWizSnapshotCompareCmd'
 
 workspaceToUse = 'CAMEnvironment'
 panelToUse = 'CAMManagePanel'
@@ -108,6 +109,626 @@ def _report_error(context, exc=None):
             ui.messageBox(f"{context}{detail}\n\nDetails were written to:\n{_log_path()}", "ToolWiz")
     except Exception:
         pass
+
+
+# ==============================================================================
+# AUDIT TRAIL (%APPDATA%/ToolWiz/audit.jsonl)
+# ==============================================================================
+# One JSON object per line. Every entry carries ts (ISO), session_id (one per add-in run),
+# document (active document name or "?") and command (the add-in command that was running).
+# Event kinds: param_change, preset_change, preset_link, tool_removed, side_effect,
+# command_start, command_end, replace_decision.
+
+_AUDIT_MAX_BYTES = 5 * 1024 * 1024
+_SESSION_ID = datetime.datetime.now().strftime('%Y%m%dT%H%M%S') + '-' + uuid.uuid4().hex[:6]
+_audit_command = ''
+_active_cmd = None
+
+
+def _audit_path():
+    return os.path.join(_toolwiz_dir(), 'audit.jsonl')
+
+
+def _jsonable(v):
+    if v is None or isinstance(v, (bool, int, float, str)):
+        return v
+    if isinstance(v, (list, tuple)):
+        return [_jsonable(x) for x in v]
+    return str(v)
+
+
+def _doc_name():
+    try:
+        return str(app.activeDocument.name)
+    except Exception:
+        return "?"
+
+
+def _audit_suppressed(d):
+    """True only when adsk is a unittest mock AND the target is the user's real ToolWiz folder,
+    so test runs never pollute the real audit file. Never true inside Fusion."""
+    try:
+        real = os.path.join(os.environ.get('APPDATA') or os.path.expanduser('~'), 'ToolWiz')
+        return type(adsk.core).__module__.startswith('unittest.mock') and d == real
+    except Exception:
+        return False
+
+
+def audit(event):
+    """Append ONE JSON line describing `event` (a dict) to audit.jsonl. Rotates at ~5 MB to
+    audit.1.jsonl. Never raises."""
+    try:
+        d = _toolwiz_dir()
+        if _audit_suppressed(d):
+            return
+        entry = {'ts': datetime.datetime.now().isoformat(timespec='seconds'),
+                 'session_id': _SESSION_ID, 'document': _doc_name(), 'command': _audit_command}
+        for k, v in dict(event).items():
+            if k not in ('ts', 'session_id'):
+                entry[k] = v
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, 'audit.jsonl')
+        try:
+            if os.path.exists(path) and os.path.getsize(path) > _AUDIT_MAX_BYTES:
+                os.replace(path, os.path.join(d, 'audit.1.jsonl'))
+        except OSError:
+            pass
+        with open(path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry, default=str, ensure_ascii=False) + '\n')
+    except Exception:
+        pass
+
+
+def _safe(fn, default=None):
+    try:
+        return fn()
+    except Exception:
+        return default
+
+
+def _op_setup_name(op):
+    """Name of the setup that owns `op` (walks up through folders/patterns)."""
+    p = getattr(op, 'parent', None)
+    first = None
+    for _ in range(8):
+        if p is None:
+            break
+        nm = _safe(lambda: p.name)
+        first = first or nm
+        if hasattr(p, 'allOperations'):
+            return nm
+        p = _safe(lambda: p.parent)
+    return first or "Setup"
+
+
+def _op_path(op):
+    """"Setup > Operation" (the same label the dialogs use)."""
+    try:
+        return f"{_op_setup_name(op)} > {op.name}"
+    except Exception:
+        return "?"
+
+
+def _tool_ident(op):
+    """(tool number, description, guid) of the operation's tool; unknown parts are None."""
+    d = None
+    try:
+        d = json.loads(op.tool.toJson())
+        if not isinstance(d, dict):
+            d = None
+    except Exception:
+        d = None
+    num = _safe(lambda: extract_tool_number(op, d))
+    desc = d.get('description') if d else None
+    if desc is None:
+        desc = _safe(lambda: op.tool.description)
+    guid = d.get('guid') if d else None
+    return num, (None if desc is None else str(desc)), guid
+
+
+def _param_state(p):
+    """(expression, value) of a CAM parameter, JSON-safe; unreadable parts are None."""
+    e = _safe(lambda: p.expression)
+    v = _safe(lambda: p.value.value)
+    return _jsonable(e), _jsonable(v)
+
+
+def _audit_param(op, name, old_expr, new_expr, old_val, new_val, ok=True, error=None, requested=None):
+    try:
+        num, _, _ = _tool_ident(op)
+        ev = {'event': 'param_change', 'op_path': _op_path(op), 'tool_number': num, 'param': name,
+              'old_expression': old_expr, 'new_expression': new_expr,
+              'old_value': old_val, 'new_value': new_val, 'ok': ok}
+        if requested is not None and requested != new_expr:
+            ev['requested_expression'] = requested
+        if error:
+            ev['error'] = error
+        audit(ev)
+    except Exception:
+        pass
+
+
+def _set_expression(op, p, name, expr):
+    """Write p.expression = expr on operation `op` and audit the old/new expression and value.
+    The old state is captured BEFORE the write. Raises if the write fails (after auditing it)."""
+    old_e, old_v = _param_state(p)
+    try:
+        p.expression = expr
+    except Exception as ex:
+        _audit_param(op, name, old_e, None, old_v, None, ok=False, error=str(ex), requested=expr)
+        raise
+    new_e, new_v = _param_state(p)
+    _audit_param(op, name, old_e, new_e if new_e is not None else expr, old_v, new_v, requested=expr)
+
+
+def _preset_ctx(op, tool, before_name, after_name):
+    num, desc, _ = _tool_ident(op)
+    if desc is None and tool is not None:
+        desc = _safe(lambda: tool.description)
+    return {'tool_number': num, 'tool_description': None if desc is None else str(desc),
+            'preset_before': before_name, 'preset_after': after_name}
+
+
+def _audit_preset(ctx, field, old, new, ok=True, error=None, **extra):
+    try:
+        ev = {'event': 'preset_change'}
+        ev.update(ctx or {})
+        ev.update({'field': field, 'old': _jsonable(old), 'new': _jsonable(new), 'ok': ok})
+        if error:
+            ev['error'] = error
+        ev.update(extra)
+        audit(ev)
+    except Exception:
+        pass
+
+
+def _set_preset_param(ctx, p_obj, field, expr):
+    """Write a preset parameter and audit old/new. Raises if the write fails (after auditing)."""
+    old = _safe(lambda: p_obj.expression)
+    try:
+        p_obj.expression = expr
+    except Exception as ex:
+        _audit_preset(ctx, field, old, expr, ok=False, error=str(ex))
+        raise
+    new = _safe(lambda: p_obj.expression)
+    _audit_preset(ctx, field, old, new if new is not None else expr)
+
+
+def _op_preset_name(op):
+    return _safe(lambda: op.toolPreset.name)
+
+
+def _assign_tool_preset(op, preset, reason):
+    """operation.toolPreset = preset, audited as preset_link (preset before -> after)."""
+    old = _op_preset_name(op)
+    num, _, _ = _tool_ident(op)
+    try:
+        op.toolPreset = preset
+    except Exception as ex:
+        audit({'event': 'preset_link', 'op_path': _op_path(op), 'tool_number': num, 'preset_before': old,
+               'preset_after': _safe(lambda: preset.name), 'reason': reason, 'ok': False, 'error': str(ex)})
+        raise
+    new = _op_preset_name(op)
+    audit({'event': 'preset_link', 'op_path': _op_path(op), 'tool_number': num, 'preset_before': old,
+           'preset_after': new if new is not None else _safe(lambda: preset.name),
+           'reason': reason, 'ok': True})
+
+
+# ---- document snapshot ------------------------------------------------------
+
+# Parameters recorded per operation (expression + evaluated value each).
+SNAPSHOT_PARAMS = ('tool_spindleSpeed', 'tool_feedCutting', 'maximumStepdown', 'stepdown',
+                   'stepover', 'optimalLoad', 'use_tool_stepdown', 'use_tool_stepover')
+
+
+def _snapshot_op(op):
+    num, desc, guid = _tool_ident(op)
+    entry = {'tool_number': num, 'tool_guid': guid, 'tool_description': desc,
+             'preset_name': _jsonable(_op_preset_name(op))}
+    params = _safe(lambda: op.parameters)
+    for name in SNAPSHOT_PARAMS:
+        p = _param(params, name)
+        if p is None:
+            entry[name] = None
+        else:
+            e, v = _param_state(p)
+            entry[name] = {'expr': e, 'value': v}
+    return entry
+
+
+def snapshot_document():
+    """Read-only picture of every operation in the active document:
+    {'document', 'ts', 'tool_count', 'tool_numbers', 'ops': {"Setup > Op": {...}}}.
+    Never raises and never modifies anything."""
+    snap = {'document': _doc_name(), 'ts': datetime.datetime.now().isoformat(timespec='seconds'),
+            'tool_count': None, 'tool_numbers': [], 'ops': {}}
+    try:
+        cam = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+        if not cam:
+            return snap
+        for setup in cam.setups:
+            for op in setup.allOperations:
+                try:
+                    path = f"{setup.name} > {op.name}"
+                    if path in snap['ops']:      # same name twice in one setup
+                        n = 2
+                        while f"{path} #{n}" in snap['ops']:
+                            n += 1
+                        path = f"{path} #{n}"
+                    snap['ops'][path] = _snapshot_op(op)
+                except Exception as ex:
+                    _log("Snapshot: could not read an operation", ex)
+        lib = cam.documentToolLibrary
+        if lib is not None:
+            snap['tool_count'] = lib.count
+            nums = []
+            for i in range(lib.count):
+                try:
+                    n = extract_tool_number(None, json.loads(lib.item(i).toJson()))
+                    if n is not None:
+                        nums.append(n)
+                except Exception:
+                    pass
+            snap['tool_numbers'] = sorted(nums)
+    except Exception as ex:
+        _log("Snapshot of the document failed", ex)
+    return snap
+
+
+def _ops_of(snap):
+    if isinstance(snap, dict) and isinstance(snap.get('ops'), dict):
+        return snap['ops']
+    return snap if isinstance(snap, dict) else {}
+
+
+def _flatten(entry):
+    flat = {}
+    for k, v in (entry or {}).items():
+        if isinstance(v, dict):
+            for sk, sv in v.items():
+                flat[f"{k}.{sk}"] = sv
+        else:
+            flat[k] = v
+    return flat
+
+
+def _same(a, b):
+    if (isinstance(a, (int, float)) and isinstance(b, (int, float))
+            and not isinstance(a, bool) and not isinstance(b, bool)):
+        return abs(a - b) <= 1e-9 * max(1.0, abs(a), abs(b))
+    return a == b
+
+
+def diff_snapshots(before, after):
+    """Pure. Changes between two snapshots (the dicts snapshot_document returns, or plain
+    {op_path: {field: value}} dicts). Each change is a dict with 'kind' and 'path':
+      op_added / op_removed        {'path'}
+      preset_change                {'path', 'before', 'after'}   (preset_name changed)
+      field_change                 {'path', 'field', 'before', 'after'}
+      tool_count / tool_numbers    {'path': None, ...}  (document level; only if both snapshots carry them)"""
+    b, a = _ops_of(before), _ops_of(after)
+    changes = []
+    for path in sorted(set(a) - set(b)):
+        changes.append({'kind': 'op_added', 'path': path})
+    for path in sorted(set(b) - set(a)):
+        changes.append({'kind': 'op_removed', 'path': path})
+    for path in sorted(set(a) & set(b)):
+        fb, fa = _flatten(b[path]), _flatten(a[path])
+        for field in sorted(set(fb) | set(fa)):
+            vb, va = fb.get(field), fa.get(field)
+            if _same(vb, va):
+                continue
+            if field == 'preset_name':
+                changes.append({'kind': 'preset_change', 'path': path, 'before': vb, 'after': va})
+            else:
+                changes.append({'kind': 'field_change', 'path': path, 'field': field,
+                                'before': vb, 'after': va})
+    if isinstance(before, dict) and isinstance(after, dict):
+        cb, ca = before.get('tool_count'), after.get('tool_count')
+        if cb is not None and ca is not None and cb != ca:
+            changes.append({'kind': 'tool_count', 'path': None, 'before': cb, 'after': ca})
+        nb, na = before.get('tool_numbers'), after.get('tool_numbers')
+        if isinstance(nb, list) and isinstance(na, list) and sorted(nb) != sorted(na):
+            cbn, can = collections.Counter(nb), collections.Counter(na)
+            changes.append({'kind': 'tool_numbers', 'path': None,
+                            'added': sorted((can - cbn).elements()),
+                            'removed': sorted((cbn - can).elements())})
+    return changes
+
+
+def classify_changes(changes, target_paths, expected_doc_changes=False):
+    """Pure. Split changes into (on the command's intended targets, side effects). Document-level
+    changes (tool count/numbers) are side effects unless the command is expected to cause them."""
+    targets = set(target_paths or ())
+    mine, other = [], []
+    for c in changes:
+        p = c.get('path')
+        if p is None:
+            (mine if expected_doc_changes else other).append(c)
+        elif p in targets:
+            mine.append(c)
+        else:
+            other.append(c)
+    return mine, other
+
+
+def describe_change(c):
+    k, p = c.get('kind'), c.get('path')
+    if k == 'op_added':
+        return f"{p}: operation added"
+    if k == 'op_removed':
+        return f"{p}: operation removed"
+    if k == 'preset_change':
+        return f"{p}: preset {c.get('before')!r} -> {c.get('after')!r}"
+    if k == 'field_change':
+        return f"{p}: {c.get('field')} {c.get('before')!r} -> {c.get('after')!r}"
+    if k == 'tool_count':
+        return f"Document tool count {c.get('before')} -> {c.get('after')}"
+    if k == 'tool_numbers':
+        return f"Document tool numbers: added {c.get('added')}, removed {c.get('removed')}"
+    return str(c)
+
+
+def format_diff_summary(changes, limit=25):
+    """Readable summary: counts, then the first `limit` changes."""
+    if not changes:
+        return "No changes."
+    kinds = {}
+    for c in changes:
+        kinds[c['kind']] = kinds.get(c['kind'], 0) + 1
+    ops = {c['path'] for c in changes if c.get('path')}
+    lines = [f"{len(changes)} change(s) across {len(ops)} operation(s):"]
+    labels = (('op_added', 'operations added'), ('op_removed', 'operations removed'),
+              ('preset_change', 'preset changes'), ('field_change', 'field changes'),
+              ('tool_count', 'tool count changes'), ('tool_numbers', 'tool number changes'))
+    lines.append("  " + ", ".join(f"{kinds[k]} {txt}" for k, txt in labels if k in kinds))
+    lines.append("")
+    lines += [" - " + describe_change(c) for c in changes[:limit]]
+    if len(changes) > limit:
+        lines.append(f"... and {len(changes) - limit} more (full list in {_log_path()})")
+    return "\n".join(lines)
+
+
+def _change_event(c, source):
+    """Audit event for a change on an intended target (recorded as a normal change)."""
+    k = c.get('kind')
+    if k == 'preset_change':
+        return {'event': 'preset_link', 'op_path': c['path'], 'preset_before': c.get('before'),
+                'preset_after': c.get('after'), 'source': source}
+    if k == 'field_change':
+        name, _, sub = str(c.get('field')).partition('.')
+        ev = {'event': 'param_change', 'op_path': c['path'], 'param': name, 'source': source}
+        if sub == 'expr':
+            ev.update(old_expression=c.get('before'), new_expression=c.get('after'))
+        else:
+            ev.update(old_value=c.get('before'), new_value=c.get('after'))
+        return ev
+    return dict(c, event='param_change', source=source)
+
+
+def _side_effect_event(c, intended):
+    ev = {'event': 'side_effect', 'change': c.get('kind'), 'op_path': c.get('path'),
+          'intended_target': intended}
+    for key in ('field', 'before', 'after', 'added', 'removed'):
+        if key in c:
+            ev[key] = c[key]
+    return ev
+
+
+def format_side_effect_note(n, doc_level=False):
+    tail = "; see %APPDATA%\\ToolWiz\\audit.jsonl"
+    if n:
+        return f"Note: {n} other operation(s) changed as a side effect{tail}"
+    if doc_level:
+        return f"Note: the document tool library changed as a side effect{tail}"
+    return ""
+
+
+class AuditedCommand:
+    """snapshot before -> run -> snapshot after -> diff. Call begin() first and finish() when the
+    command's writes are done (idempotent). Changes on `targets` are recorded as normal changes;
+    changes elsewhere are side effects (audit + 'SIDE EFFECT:' in addin.log)."""
+
+    def __init__(self, command, target='', targets=(), expected_doc_changes=False,
+                 detect=True, snapshot_fn=None):
+        self.command = command
+        self.target = target
+        self.targets = list(targets or ())
+        self.expected_doc_changes = expected_doc_changes
+        self.detect = detect
+        self.snapshot_fn = snapshot_fn
+        self.before = None
+        self.finished = False
+        self.note = ""
+        self.side_effects = 0
+
+    def _snap(self):
+        try:
+            return (self.snapshot_fn or snapshot_document)()
+        except Exception as ex:
+            _log("Snapshot failed", ex)
+            return None
+
+    def begin(self):
+        global _audit_command, _active_cmd
+        _audit_command = self.command
+        _active_cmd = self
+        if self.detect:
+            self.before = self._snap()
+        audit({'event': 'command_start', 'target': self.target, 'targets': self.targets})
+        return self
+
+    def finish(self, result='ok', targets=None, target=None):
+        """Diff against the 'before' snapshot, audit, and return the message-box note ('' if none)."""
+        global _audit_command, _active_cmd
+        if self.finished:
+            return self.note
+        self.finished = True
+        if targets is not None:
+            self.targets = list(targets)
+        if target is not None:
+            self.target = target
+        n_target, n_other = 0, 0
+        try:
+            after = self._snap() if (self.detect and self.before is not None) else None
+            if after is not None:
+                changes = diff_snapshots(self.before, after)
+                mine, other = classify_changes(changes, self.targets, self.expected_doc_changes)
+                n_target = len(mine)
+                intended = self.targets or self.target or 'none'
+                for c in mine:
+                    audit(_change_event(c, 'snapshot_diff'))
+                for c in other:
+                    _log(f"SIDE EFFECT: {describe_change(c)} (during {self.command}; intended: {intended})")
+                    audit(_side_effect_event(c, intended))
+                n_other = len({c['path'] for c in other if c.get('path')})
+                doc_level = any(c.get('path') is None for c in other)
+                self.side_effects = n_other
+                self.note = format_side_effect_note(n_other, doc_level) if other else ""
+        except Exception as ex:
+            _log("Side-effect detection failed", ex)
+        audit({'event': 'command_end', 'target': self.target, 'result': _jsonable(result),
+               'target_changes': n_target, 'side_effect_ops': n_other})
+        if _active_cmd is self:
+            _active_cmd = None
+            _audit_command = ''
+        return self.note
+
+
+def _finish_active_command(result='ok'):
+    """Finish the running AuditedCommand (if any) and return its note for the final message box."""
+    cmd = _active_cmd
+    return cmd.finish(result) if cmd is not None else ""
+
+
+# ---- Replace safety ---------------------------------------------------------
+
+def preset_names_to_modify(existing_names, replace_name, final_name):
+    """Names of existing presets _upsert_preset_in_place will overwrite (and rename)."""
+    existing = set(n for n in existing_names if n)
+    if replace_name and replace_name != "+ Create New Preset (Auto-Named)" and replace_name in existing:
+        return [replace_name]
+    return [final_name] if final_name in existing else []
+
+
+def find_sharing_ops(ops, target_path, tool_guid, tool_number, tool_description, preset_names):
+    """Pure. Paths of OTHER operations that use the same tool (same guid, or same number and
+    description) and are linked to one of `preset_names`."""
+    names = set(preset_names or ())
+    found = []
+    for path, e in sorted((ops or {}).items()):
+        if path == target_path or e.get('preset_name') not in names:
+            continue
+        same_guid = bool(tool_guid) and e.get('tool_guid') == tool_guid
+        same_num = (tool_number is not None and e.get('tool_number') == tool_number
+                    and (e.get('tool_description') or '') == (tool_description or ''))
+        if same_guid or same_num:
+            found.append(path)
+    return found
+
+
+def format_shared_preset_prompt(paths, limit=10):
+    shown = list(paths)[:limit]
+    listing = "\n".join(f" - {p}" for p in shown)
+    if len(paths) > limit:
+        listing += f"\n ... and {len(paths) - limit} more"
+    return f"Replacing this preset also changes these operations:\n{listing}\n\nContinue?"
+
+
+def confirm_shared_preset_replace(paths, op_path=None, preset_names=()):
+    """Ask Yes/No when other operations share the preset. Returns True to continue. The decision
+    is audited."""
+    if not paths:
+        return True
+    res = ui.messageBox(format_shared_preset_prompt(paths), "ToolWiz - Preset Is Shared",
+                        adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+                        adsk.core.MessageBoxIconTypes.WarningIconType)
+    yes = res == adsk.core.DialogResults.DialogYes
+    audit({'event': 'replace_decision', 'op_path': op_path, 'presets': list(preset_names),
+           'shared_with': list(paths), 'decision': 'yes' if yes else 'no'})
+    if not yes:
+        _log(f"Replace aborted by user: preset(s) {list(preset_names)} are also used by {list(paths)}")
+    return yes
+
+
+def check_replace_safety(target_op, op_path, replace_name, final_name):
+    """True if it is OK to proceed with the preset write (no other operation shares the preset,
+    or the user said Yes)."""
+    try:
+        existing = [getattr(pr, 'name', None) for pr in (getattr(target_op.tool, 'presets', None) or [])]
+        names = preset_names_to_modify(existing, replace_name, final_name)
+        if not names:
+            return True
+        num, desc, guid = _tool_ident(target_op)
+        cmd = _active_cmd
+        ops = _ops_of(cmd.before) if (cmd is not None and cmd.before) else _ops_of(snapshot_document())
+        sharing = find_sharing_ops(ops, op_path, guid, num, desc, names)
+    except Exception as ex:
+        _log("Replace safety check failed; continuing", ex)
+        return True
+    if not sharing:
+        audit({'event': 'replace_decision', 'op_path': op_path, 'presets': names,
+               'shared_with': [], 'decision': 'not_shared'})
+        return True
+    return confirm_shared_preset_replace(sharing, op_path, names)
+
+
+# ---- saved snapshots (Document Snapshot / Compare command) -------------------
+
+def _safe_doc_key(name):
+    s = re.sub(r'\s+v\d+$', '', str(name or '').strip())   # Fusion appends " v12" per version
+    return re.sub(r'[^A-Za-z0-9._-]+', '_', s).strip('_') or 'document'
+
+
+def snapshots_dir():
+    return os.path.join(_toolwiz_dir(), 'snapshots')
+
+
+def save_snapshot(snap):
+    """Write snap to snapshots/<safe document name>_<timestamp>.json; returns the path."""
+    d = snapshots_dir()
+    os.makedirs(d, exist_ok=True)
+    key = _safe_doc_key(snap.get('document'))
+    stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    path, n = os.path.join(d, f"{key}_{stamp}.json"), 1
+    while os.path.exists(path):
+        n += 1
+        path = os.path.join(d, f"{key}_{stamp}-{n}.json")
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(snap, f, indent=1, default=str)
+    return path
+
+
+def latest_snapshot_path(doc_name):
+    """Newest saved snapshot for the document, or None."""
+    d = snapshots_dir()
+    rx = re.compile(r'^' + re.escape(_safe_doc_key(doc_name)) + r'_(\d{8}_\d{6})(?:-(\d+))?\.json$')
+    best, best_key = None, None
+    try:
+        for fn in os.listdir(d):
+            m = rx.match(fn)
+            if m:
+                k = (m.group(1), int(m.group(2) or 1))
+                if best_key is None or k > best_key:
+                    best, best_key = os.path.join(d, fn), k
+    except OSError:
+        return None
+    return best
+
+
+def compare_with_last_snapshot(current=None):
+    """(summary text, changes, snapshot path). path is None when there is no saved snapshot."""
+    current = current or snapshot_document()
+    path = latest_snapshot_path(current.get('document'))
+    if path is None:
+        return ("No saved snapshot exists for this document yet. Choose 'Save snapshot now' first.", [], None)
+    with open(path, 'r', encoding='utf-8') as f:
+        saved = json.load(f)
+    changes = diff_snapshots(saved, current)
+    for c in changes:
+        _log("SNAPSHOT DIFF: " + describe_change(c))
+    head = f"Compared with snapshot taken {saved.get('ts', '?')}\n({os.path.basename(path)})\n\n"
+    return head + format_diff_summary(changes), changes, path
 
 
 # ==============================================================================
@@ -842,7 +1463,7 @@ def apply_param(op, name, expr_str, force=False):
     try:
         p = op.parameters.itemByName(name)
         if p and (p.isEnabled or force):
-            p.expression = str(expr_str)
+            _set_expression(op, p, name, str(expr_str))
             return True
     except Exception as e:
         _log(f"Could not set CAM parameter {name!r} = {expr_str!r}", e)
@@ -1053,6 +1674,7 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
                 ui.messageBox("No modified Digital Twin library found on ToolWiz server.\nPlease generate presets in ToolWiz first.")
                 return
                 
+            ac = AuditedCommand('import_digital_twin', target='ToolWiz server library').begin()
             library_data = res_data["library"]
             lib_name = library_data.get("library_name", "ToolWiz_Twin_Library")
             tools_list = library_data.get("tools", [])
@@ -1067,8 +1689,11 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
             os.makedirs(staging_dir, exist_ok=True)
             staging_file = os.path.join(staging_dir, f"{lib_name.replace(':', '_')}.json")
             
+            existed = os.path.exists(staging_file)
             with open(staging_file, "w", encoding="utf-8") as f:
                 json.dump({"data": tools_list}, f, indent=2)
+            note = ac.finish(f"wrote {len(tools_list)} tools to staging file"
+                             + (" (overwrote existing file)" if existed else ""), target=staging_file)
                 
             msg = (
                 f"Digital Twin Ready for Synchronization!\n"
@@ -1079,9 +1704,12 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
                 f"📂 {staging_file}\n\n"
                 f"Your tools now contain all material presets (Roughing, Adaptive, Finishing, Slotting) in their Cutting Data tab!"
             )
+            if note:
+                msg += "\n\n" + note
             ui.messageBox(msg, 'ToolWiz Digital Twin Import')
             
         except Exception as e:
+            _finish_active_command(f"error: {e}")
             _report_error("Digital Twin Import failed.", e)
 
 class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
@@ -1212,7 +1840,7 @@ def _is_formula(expr):
     return isinstance(expr, str) and 'tool_' in expr
 
 
-def _restore_linked_formulas(params, target_op):
+def _restore_linked_formulas(params, target_op, ctx=None):
     """Put formulas (not numbers) back into the preset's linked fields."""
     op_params = getattr(target_op, 'parameters', None) if target_op is not None else None
     restored = []
@@ -1228,7 +1856,7 @@ def _restore_linked_formulas(params, target_op):
                 break
         try:
             if getattr(p_obj, 'expression', None) != formula:
-                p_obj.expression = formula
+                _set_preset_param(ctx, p_obj, name, formula)
                 restored.append(name)
         except Exception as ex:
             _log(f"Could not restore formula for preset field {name!r}", ex)
@@ -1236,7 +1864,7 @@ def _restore_linked_formulas(params, target_op):
         _log("Restored linked formulas in preset: " + ", ".join(restored))
 
 
-def _set_preset_steps(params, doc_in, woc_in):
+def _set_preset_steps(params, doc_in, woc_in, ctx=None):
     """Write stepdown/stepover into a preset by matching parameter names (Fusion doesn't document
     the preset parameter ids), enabling their 'use' flags. Logs the preset's parameter names."""
     names = [getattr(p, 'name', '') for p in _iter_params(params)]
@@ -1245,12 +1873,13 @@ def _set_preset_steps(params, doc_in, woc_in):
     for p_obj in _iter_params(params):
         n = str(getattr(p_obj, 'name', '')).lower()
         try:
+            field = str(getattr(p_obj, 'name', n))
             if 'use' in n and ('stepdown' in n or 'stepover' in n):
-                p_obj.expression = 'true'
+                _set_preset_param(ctx, p_obj, field, 'true')
             elif 'stepdown' in n and doc_in:
-                p_obj.expression = f"{doc_in:.4f} in"; written.append(n)
+                _set_preset_param(ctx, p_obj, field, f"{doc_in:.4f} in"); written.append(n)
             elif ('stepover' in n or 'optimalload' in n) and woc_in:
-                p_obj.expression = f"{woc_in:.4f} in"; written.append(n)
+                _set_preset_param(ctx, p_obj, field, f"{woc_in:.4f} in"); written.append(n)
         except Exception as ex:
             _log(f"Could not set preset parameter {n!r}", ex)
     return written
@@ -1315,7 +1944,7 @@ def _refresh_operations_from_preset(target_op, preset_name=None):
         if fresh is None:
             return False
         before = _doc_tool_count()
-        target_op.toolPreset = fresh
+        _assign_tool_preset(target_op, fresh, "refresh operation from updated preset")
         after = _doc_tool_count()
         _log(f"Re-applied preset {name!r} to this operation; document tools {before} -> {after}"
              + ("  (WARNING: tool count changed)" if before is not None and after != before else ""))
@@ -1342,6 +1971,8 @@ def _write_tool_back(target_op, tool, preset_name, speed_values):
         # by re-linking it below.
         result = lib.update(tool, False)
         _log(f"documentToolLibrary.update returned {result!r}")
+        _audit_preset(_preset_ctx(target_op, tool, preset_name, preset_name),
+                      "documentToolLibrary.update(updateFeedAndSpeed=False)", None, repr(result))
         if _preset_matches(getattr(target_op, 'tool', None), preset_name, speed_values):
             return "documentToolLibrary.update"
         return "documentToolLibrary.update (not confirmed on operation)"
@@ -1389,12 +2020,20 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
             target = presets.add()
         except Exception as ex_add:
             _log("Could not add a preset to the tool", ex_add)
+            audit({'event': 'preset_change', 'field': 'presets.add', 'new': preset_name, 'ok': False,
+                   'error': str(ex_add)})
             return None, False
 
+    name_before = _safe(lambda: target.name)
+    ctx = _preset_ctx(target_op, tool, name_before, preset_name)
     try:
         target.name = preset_name
+        _audit_preset(ctx, 'name', name_before, _safe(lambda: target.name) or preset_name)
     except Exception as ex_name:
         _log("Could not rename preset", ex_name)
+        _audit_preset(ctx, 'name', name_before, preset_name, ok=False, error=str(ex_name))
+    if not was_updated:
+        _audit_preset(ctx, 'preset_created', None, preset_name)
     params = getattr(target, 'parameters', None)
     if params is None:
         _log("Preset exposes no parameters; values not written")
@@ -1403,13 +2042,13 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
             try:
                 p_obj = params.itemByName(p_name)
                 if p_obj:
-                    p_obj.expression = p_val
+                    _set_preset_param(ctx, p_obj, p_name, p_val)
                 else:
                     _log(f"Preset has no parameter {p_name!r}")
             except Exception as ex_p:
                 _log(f"Could not set preset parameter {p_name!r}", ex_p)
-        _restore_linked_formulas(params, target_op)
-        steps = _set_preset_steps(params, doc_in, woc_in)
+        _restore_linked_formulas(params, target_op, ctx)
+        steps = _set_preset_steps(params, doc_in, woc_in, ctx)
         if not steps:
             _log("Preset has no stepdown/stepover parameters; DOC/WOC will be written to the operation")
 
@@ -1504,6 +2143,12 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
     ]
 
+    # 0. Replace safety: other operations on the same tool that are linked to the preset about to be
+    #    edited/renamed would change too. Ask before touching anything; No leaves everything as is.
+    if not check_replace_safety(target_op, op_name, target_preset_to_replace, final_preset_name):
+        _log(f"Auto-setter: replace of a shared preset cancelled for {op_name!r}; nothing changed")
+        return False
+
     # 1. Update (or add) the preset IN PLACE on the operation's own tool. Building a new tool
     #    from JSON (Tool.createFromJson) made Fusion add a second copy of the tool, and the
     #    JSON-written preset values were not unit-safe; preset parameters set with explicit
@@ -1523,7 +2168,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         _log(f"  operation already linked to {final_preset_name!r}; not re-linking")
     elif preset_obj is not None:
         try:
-            target_op.toolPreset = preset_obj
+            _assign_tool_preset(target_op, preset_obj, "link auto-set preset to operation")
             preset_linked = True
         except Exception as ex_set:
             _log("Could not activate preset on operation", ex_set)
@@ -1582,6 +2227,9 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         limited_by=calc_result.get("limited_by"), provenance=calc_result.get("provenance"),
         preset_note=preset_note,
     )
+    note = _finish_active_command('ok')
+    if note:
+        msg += "\n\n" + note
     ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
     return True
 
@@ -1664,8 +2312,14 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
 
             save_prefs(family=family, alloy=alloy, aggressiveness=aggressiveness, strategy=strategy)
 
-            run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
-                        target_preset_to_replace, selected_grade, selected_coating_raw)
+            ac = AuditedCommand('autoset', target=op_name, targets=[op_name]).begin()
+            result = 'error'
+            try:
+                done = run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
+                                   target_preset_to_replace, selected_grade, selected_coating_raw)
+                result = 'ok' if done else 'not applied'
+            finally:
+                ac.finish(result)
 
         except Exception as e:
             _report_error("Auto-Setter failed.", e)
@@ -2340,11 +2994,14 @@ def _set_bool_param(op, name, flag):
     if not p:
         return True
     try:
-        p.expression = "true" if flag else "false"
+        _set_expression(op, p, name, "true" if flag else "false")
         return True
     except Exception as e1:
         try:
+            old_e, old_v = _param_state(p)
             p.value.value = bool(flag)
+            new_e, new_v = _param_state(p)
+            _audit_param(op, name, old_e, new_e, old_v, new_v)
             return True
         except Exception as e2:
             _log(f"Could not set boolean CAM parameter {name!r} (expression: {e1}; value: {e2})")
@@ -2369,7 +3026,7 @@ def apply_stock_to_op(op, rad_val, ax_val):
             p = op.parameters.itemByName(name)
             if p:
                 try:
-                    p.expression = str(val)
+                    _set_expression(op, p, name, str(val))
                 except Exception as e:
                     _log(f"Could not set {name!r} = {val!r}", e)
                     failed.append(name)
@@ -2400,6 +3057,10 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
 
             applied_ops = []
             failed_ops = []
+            selected = [i.get('label') for i in stock_ops_cache.values()
+                        if i.get("chk") and i["chk"].value and getattr(i["chk"], 'isVisible', True)]
+            ac = AuditedCommand('stock_to_leave', target=", ".join(str(x) for x in selected),
+                                targets=selected).begin()
             for op_id, op_info in stock_ops_cache.items():
                 chk = op_info.get("chk")
                 if chk and chk.value and getattr(chk, 'isVisible', True):
@@ -2423,14 +3084,18 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
                     else:
                         applied_ops.append((op_info['label'], rad_val, ax_val))
 
+            note = ac.finish(f"applied {len(applied_ops)}, failed {len(failed_ops)}")
             if applied_ops or failed_ops:
                 material = f"{fam_name} / {alloy_name}" if (fam_name and alloy_name) else fam_name
                 msg = format_stock_summary(material, applied_ops, failed_ops, _log_path())
+                if note:
+                    msg += "\n\n" + note
                 ui.messageBox(msg, 'ToolWiz Stock to Leave Manager')
             else:
                 ui.messageBox('No operations were selected to update.', 'ToolWiz Stock to Leave Manager')
 
         except Exception as e:
+            _finish_active_command(f"error: {e}")
             _report_error("Stock Manager apply failed.", e)
 
 class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
@@ -3365,6 +4030,8 @@ class ToolWizCleanupExecuteHandler(adsk.core.CommandEventHandler):
             remove, skipped = plan_duplicate_cleanup(entries)
             before = lib.count
             removed, failed = 0, 0
+            ac = AuditedCommand('cleanup_duplicates', target=f"{len(remove)} planned tool removal(s)",
+                                expected_doc_changes=True).begin()
             for r in sorted(remove, key=lambda x: x['index'], reverse=True):   # highest index first
                 ok = False
                 try:
@@ -3374,6 +4041,8 @@ class ToolWizCleanupExecuteHandler(adsk.core.CommandEventHandler):
                         ok = bool(lib.item(r['index']).deleteMe())
                 except Exception as ex:
                     _log(f"Could not remove tool at library index {r['index']}", ex)
+                audit({'event': 'tool_removed', 'library_index': r['index'], 'tool_number': r.get('number'),
+                       'description': r.get('description'), 'kept_index': r.get('keep_index'), 'ok': ok})
                 removed += 1 if ok else 0
                 failed += 0 if ok else 1
             _log(f"Clean Up: removed {removed}, failed {failed}, skipped {len(skipped)}; "
@@ -3383,9 +4052,84 @@ class ToolWizCleanupExecuteHandler(adsk.core.CommandEventHandler):
                 msg += f"\n{failed} could not be removed (see {_log_path()})."
             if skipped:
                 msg += f"\n{len(skipped)} duplicate(s) kept because they hold presets the kept tool lacks."
+            note = ac.finish(f"removed {removed}, failed {failed}, skipped {len(skipped)}")
+            if note:
+                msg += "\n\n" + note
             ui.messageBox(msg, 'ToolWiz Clean Up')
         except Exception as e:
+            _finish_active_command(f"error: {e}")
             _report_error("Clean Up failed.", e)
+
+
+# ==============================================================================
+# COMMAND 7: DOCUMENT SNAPSHOT / COMPARE
+# ==============================================================================
+
+SNAPSHOT_SAVE = "Save snapshot now"
+SNAPSHOT_COMPARE = "Compare with last saved snapshot"
+
+
+def run_snapshot_action(action, snapshot_fn=None):
+    """Save or compare a snapshot of the active document. Returns the message to show.
+    Read-only with respect to the Fusion document (only files under %APPDATA%/ToolWiz change)."""
+    ac = AuditedCommand('document_snapshot', target=action, detect=False).begin()
+    result = 'error'
+    try:
+        snap = (snapshot_fn or snapshot_document)()
+        if not snap.get('ops'):
+            result = 'no operations'
+            return "The active document has no CAM operations to snapshot."
+        if action == SNAPSHOT_COMPARE:
+            text, changes, path = compare_with_last_snapshot(snap)
+            result = f"compared: {len(changes)} change(s)" if path else 'no saved snapshot'
+            return text
+        path = save_snapshot(snap)
+        result = 'saved'
+        ac.target = path
+        return (f"Snapshot saved: {len(snap['ops'])} operation(s), {snap.get('tool_count')} document tool(s).\n"
+                f"{path}\n\nWork, or open other files, then run this command again and choose "
+                f"'{SNAPSHOT_COMPARE}' to see exactly what changed.")
+    finally:
+        ac.finish(result)
+
+
+class ToolWizSnapshotCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            cmd.isRepeatable = False
+            on_exec = ToolWizSnapshotExecuteHandler()
+            cmd.execute.add(on_exec)
+            handlers.append(on_exec)
+            inputs = cmd.commandInputs
+            dd = inputs.addDropDownCommandInput('snapAction', 'Action', adsk.core.DropDownStyles.TextListDropDownStyle)
+            dd.listItems.add(SNAPSHOT_SAVE, True, '')
+            dd.listItems.add(SNAPSHOT_COMPARE, False, '')
+            box = inputs.addTextBoxCommandInput(
+                'snapInfo', '',
+                "Save a snapshot of every operation (tool, preset, speed, feed, stepdown, stepover) in this "
+                "document, then compare later to see exactly what changed, including changes ToolWiz did not make. "
+                f"Snapshots are kept in {snapshots_dir()}", 4, True)
+            box.isFullWidth = True
+        except Exception as e:
+            _report_error("Snapshot dialog failed.", e)
+
+
+class ToolWizSnapshotExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            eventArgs = adsk.core.CommandEventArgs.cast(args)
+            action = _selected_name(eventArgs.command.commandInputs.itemById('snapAction')) or SNAPSHOT_SAVE
+            ui.messageBox(run_snapshot_action(action), 'ToolWiz Document Snapshot')
+        except Exception as e:
+            _report_error("Document snapshot failed.", e)
 
 
 COMMAND_SPECS = [
@@ -3404,6 +4148,9 @@ COMMAND_SPECS = [
     (cleanupCommandId, 'Clean Up Duplicate Tools',
      'Remove unused duplicate tools from the document tool library (tools used by operations are never removed).',
      'ToolWizCleanupCreatedHandler'),
+    (snapshotCommandId, 'Document Snapshot / Compare',
+     'Save a snapshot of every operation in this document and compare later to see exactly what changed.',
+     'ToolWizSnapshotCreatedHandler'),
 ]
 
 
