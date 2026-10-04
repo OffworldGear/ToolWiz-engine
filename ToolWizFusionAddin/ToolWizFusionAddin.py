@@ -917,6 +917,28 @@ def _prefs_path():
     return os.path.join(_toolwiz_dir(), 'addin_prefs.json')
 
 
+# Stock to Leave strength: the predicted negative stock is scaled by this percentage.
+STOCK_STRENGTH_PCTS = (25, 50, 75, 100)
+STOCK_STRENGTH_DEFAULT = 50
+
+
+def stock_strength_pct(dropdown, default=STOCK_STRENGTH_DEFAULT):
+    """Percent chosen in a strength dropdown ('25%' ... '100%'); `default` if unreadable."""
+    try:
+        v = int(str(dropdown.selectedItem.name).strip().rstrip('%'))
+        return v if v in STOCK_STRENGTH_PCTS else default
+    except Exception:
+        return default
+
+
+def _add_strength_dropdown(inputs, input_id, label, selected_pct, tooltip):
+    dd = inputs.addDropDownCommandInput(input_id, label, adsk.core.DropDownStyles.TextListDropDownStyle)
+    for pct in STOCK_STRENGTH_PCTS:
+        dd.listItems.add(f"{pct}%", pct == selected_pct)
+    dd.tooltip = tooltip
+    return dd
+
+
 def _clean_prefs(raw):
     """Keep only the known keys with sane types. Anything else is dropped."""
     out = {}
@@ -929,6 +951,10 @@ def _clean_prefs(raw):
     agg = raw.get('aggressiveness')
     if isinstance(agg, (int, float)) and not isinstance(agg, bool) and math.isfinite(agg):
         out['aggressiveness'] = int(max(0, min(100, round(agg))))
+    for key in ('stock_radial_pct', 'stock_axial_pct'):
+        v = raw.get(key)
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and int(v) in STOCK_STRENGTH_PCTS:
+            out[key] = int(v)
     return out
 
 
@@ -2234,34 +2260,60 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     return True
 
 
-def _selected_op_label():
-    """"Setup > Operation" of the operation currently selected in Fusion, or None."""
+def _selected_operation():
+    """The first operation among Fusion's current selections, or None."""
     try:
         sel = ui.activeSelections
-        if sel.count > 0:
-            ent = sel.item(0).entity
-            if ent.objectType == adsk.cam.Operation.classType():
-                parent_setup = ent.parent
-                setup_name = parent_setup.name if parent_setup else "Setup"
-                return f"{setup_name} > {ent.name}"
+        for i in range(sel.count):
+            ent = sel.item(i).entity
+            if ent is not None and ent.objectType == adsk.cam.Operation.classType():
+                return ent
     except Exception:
         pass
     return None
 
 
+def _same_entity(a, b):
+    """True if a and b are the same Fusion object (equality, else matching entity tokens)."""
+    if a is None or b is None:
+        return False
+    try:
+        if a == b:
+            return True
+    except Exception:
+        pass
+    try:
+        ta, tb = a.entityToken, b.entityToken
+        return isinstance(ta, str) and bool(ta) and ta == tb
+    except Exception:
+        return False
+
+
 def discover_tool_ops(camObj, ops_map):
     """Fill `ops_map` ("Setup > Op" -> operation) with every operation that has a tool.
-    Returns the label to pre-select (the selected operation, else the first one), or None."""
+    Returns the label to pre-select: the operation highlighted in Fusion (matched by identity, so
+    operations inside folders or patterns and duplicate names work), else the first one, or None."""
     ops_map.clear()
-    preselect = _selected_op_label()
+    selected = _selected_operation()
+    preselect, first = None, None
     for setup in camObj.setups:
         for op in setup.allOperations:
-            if hasattr(op, 'tool') and op.tool:
-                op_label = f"{setup.name} > {op.name}"
-                ops_map[op_label] = op
-                if not preselect:
-                    preselect = op_label
-    return preselect
+            if not (hasattr(op, 'tool') and op.tool):
+                continue
+            op_label = f"{setup.name} > {op.name}"
+            if op_label in ops_map:          # same name twice in a setup: keep both selectable
+                n = 2
+                while f"{op_label} #{n}" in ops_map:
+                    n += 1
+                op_label = f"{op_label} #{n}"
+            ops_map[op_label] = op
+            first = first or op_label
+            if preselect is None and selected is not None and _same_entity(op, selected):
+                preselect = op_label
+    if selected is not None and preselect is None:
+        _log(f"Highlighted operation {getattr(selected, 'name', '?')!r} was not found among the "
+             f"operations with a tool; defaulting to {first!r}")
+    return preselect or first
 
 
 class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
@@ -2923,7 +2975,8 @@ def build_stock_ops_payload(ops_cache, doc_unit="in"):
     return ops_payload
 
 
-def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in", doc_unit="in"):
+def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in", doc_unit="in",
+                                     radial_pct=100, axial_pct=100):
     """Queries the server's /api/stock_compensation for all cached operations.
     Returns the results list, or [] on failure (reason stored in _stock_last_error and logged)."""
     global _stock_last_error
@@ -2937,17 +2990,32 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
             "unit": doc_unit,
             "custom_radial_offset": custom_rad,
             "custom_axial_offset": custom_ax,
+            "radial_pct": radial_pct,
+            "axial_pct": axial_pct,
             "operations": build_stock_ops_payload(stock_ops_cache, doc_unit)
         }
         res_data = _http_json('/api/stock_compensation', payload, timeout=8.0)
         if res_data.get("success"):
-            return res_data.get("results", [])
+            results = res_data.get("results", [])
+            _log_stock_results(results, radial_pct, axial_pct)
+            return results
         _stock_last_error = str(res_data.get("error") or "server reported failure")
         _log(f"stock_compensation failed: {_stock_last_error}")
     except Exception as e:
         _stock_last_error = str(e)
         _log("stock_compensation request failed", e)
     return []
+
+def _log_stock_results(results, radial_pct, axial_pct):
+    """One line per finishing op: the inputs the calculation used and what it recommends."""
+    for r in results or []:
+        if not r.get("is_finishing"):
+            continue
+        _log(f"Stock calc {r.get('name')!r} ({r.get('strategy')}): DOC {r.get('doc_in')} in, "
+             f"WOC {r.get('woc_in')} in, deflection {r.get('deflection_in')} in, springback "
+             f"{r.get('springback_in')} in, strength rad {radial_pct}% / ax {axial_pct}% -> "
+             f"rad {r.get('recommended_radial_stock')}, ax {r.get('recommended_axial_stock')}")
+
 
 def find_table_input(inputs, table, input_id):
     """Finds an input control in either dialog inputs or table commandInputs"""
@@ -3053,7 +3121,9 @@ class ToolWizStockExecuteHandler(adsk.core.CommandEventHandler):
                 agg_val = int(agg_in.valueOne) if agg_in is not None else None
             except (TypeError, ValueError, AttributeError):
                 agg_val = None
-            save_prefs(family=fam_name, alloy=alloy_name, aggressiveness=agg_val)
+            save_prefs(family=fam_name, alloy=alloy_name, aggressiveness=agg_val,
+                       stock_radial_pct=stock_strength_pct(inputs.itemById('stockRadialPct'), None),
+                       stock_axial_pct=stock_strength_pct(inputs.itemById('stockAxialPct'), None))
 
             applied_ops = []
             failed_ops = []
@@ -3227,7 +3297,8 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 return
                 
             # 4. Handle Material / Aggressiveness / Mode changes
-            if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset']:
+            if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset',
+                               'stockRadialPct', 'stockAxialPct']:
                 if not (mat_family_input and mat_family_input.selectedItem) or not materials_ready():
                     return
                 family = mat_family_input.selectedItem.name
@@ -3257,7 +3328,10 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 c_rad = custom_rad.value if custom_rad else zero_str
                 c_ax = custom_ax.value if custom_ax else zero_str
                 
-                calc_results = query_toolwiz_stock_compensation(family, alloy, agg, mode_code, c_rad, c_ax, doc_unit=doc_u)
+                calc_results = query_toolwiz_stock_compensation(
+                    family, alloy, agg, mode_code, c_rad, c_ax, doc_unit=doc_u,
+                    radial_pct=stock_strength_pct(inputs.itemById('stockRadialPct')),
+                    axial_pct=stock_strength_pct(inputs.itemById('stockAxialPct')))
                 if not calc_results and _stock_last_error:
                     ui.messageBox(
                         f"ToolWiz could not calculate stock compensation:\n{_stock_last_error}\n\nDetails: {_log_path()}",
@@ -3444,6 +3518,14 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             agg_input = inputs.addIntegerSliderCommandInput('stockAggressiveness', 'Aggressiveness', 0, 100)
             agg_input.valueOne = init_agg
 
+            init_rad_pct = prefs.get('stock_radial_pct', STOCK_STRENGTH_DEFAULT)
+            init_ax_pct = prefs.get('stock_axial_pct', STOCK_STRENGTH_DEFAULT)
+            _add_strength_dropdown(inputs, 'stockRadialPct', 'Radial Stock Strength', init_rad_pct,
+                                   'Use this share of the predicted negative radial (wall) stock. '
+                                   'In a hole, radial stock changes the diameter by twice this amount.')
+            _add_strength_dropdown(inputs, 'stockAxialPct', 'Axial Stock Strength', init_ax_pct,
+                                   'Use this share of the predicted negative axial (floor) stock.')
+
             mode_input = inputs.addDropDownCommandInput('stockBatchMode', 'Compensation Preset', adsk.core.DropDownStyles.TextListDropDownStyle)
             mode_input.listItems.add('Auto-Compensate Finishing (Negative Stock)', True)
             mode_input.listItems.add('Zero-Out Finishing (0.0000")', False)
@@ -3471,7 +3553,8 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             # Initial calculation from Tool Wizard
             init_results = query_toolwiz_stock_compensation(
-                default_family, init_alloy, init_agg, "auto_compensate", doc_unit=doc_unit
+                default_family, init_alloy, init_agg, "auto_compensate", doc_unit=doc_unit,
+                radial_pct=init_rad_pct, axial_pct=init_ax_pct
             )
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             

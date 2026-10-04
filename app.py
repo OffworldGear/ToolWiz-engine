@@ -1480,6 +1480,21 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
         pass
     return s
 
+def _stock_strength(pct):
+    """User strength setting (percent, 25/50/75/100 in the add-in) as a 0..1 scale; bad input -> 1.0."""
+    try:
+        v = float(pct)
+    except (TypeError, ValueError):
+        return 1.0
+    return max(0.0, min(1.0, v / 100.0))
+
+
+def is_hole_op(name, strategy=""):
+    """Operation that machines a hole (by name or strategy), where radial stock counts twice on diameter."""
+    text = f"{name} {strategy}".lower()
+    return any(k in text for k in ("bore", "hole", "circular", "helical"))
+
+
 @app.route("/api/stock_compensation", methods=["POST"])
 def stock_compensation():
     """Calculates tool deflection, material springback, and recommended radial/axial stock to leave
@@ -1495,6 +1510,8 @@ def stock_compensation():
         custom_radial_offset = str(data.get("custom_radial_offset", "0.0000 in")).strip()
         custom_axial_offset = str(data.get("custom_axial_offset", "0.0000 in")).strip()
         operations = data.get("operations", [])
+        radial_scale = _stock_strength(data.get("radial_pct", 100))
+        axial_scale = _stock_strength(data.get("axial_pct", 100))
         
         results = []
         for op in operations:
@@ -1679,40 +1696,26 @@ def stock_compensation():
                     # Precision finish cuts should never exceed 0.0025" (0.065 mm) or 2.5% of tool diameter
                     # to prevent any risk of part gouging or scrap.
                     max_safe_comp_in = min(0.0025, max(0.0008, diameter * 0.025))
-                    eff_total_err = min(total_err, max_safe_comp_in)
-                    eff_sb = min(sb, max_safe_comp_in)
-                    
+                    # The user's strength setting (25-100%) scales the predicted compensation.
+                    rad_in = -min(total_err, max_safe_comp_in) * radial_scale
+                    ax_in = -min(sb, max_safe_comp_in) * axial_scale
+                    if is_metric:
+                        rec_rad, rec_ax = f"{rad_in * 25.4:.3f} mm", f"{ax_in * 25.4:.3f} mm"
+                    else:
+                        rec_rad, rec_ax = f"{rad_in:.4f} in", f"{ax_in:.4f} in"
                     if is_floor_finish:
-                        if is_metric:
-                            rec_ax_val = -eff_sb * 25.4
-                            rec_rad_val = -eff_total_err * 25.4
-                            rec_ax = f"{rec_ax_val:.3f} mm"
-                            rec_rad = f"{rec_rad_val:.3f} mm"
-                            advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\nTip: Use Rad +0.150mm if floor-only"
-                        else:
-                            rec_ax_val = -eff_sb
-                            rec_rad_val = -eff_total_err
-                            rec_ax = f"{rec_ax_val:.4f} in"
-                            rec_rad = f"{rec_rad_val:.4f} in"
-                            advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\nTip: Use Rad +0.005\" if floor-only"
+                        tip = "Tip: Use Rad +0.150mm if floor-only" if is_metric else "Tip: Use Rad +0.005\" if floor-only"
+                        advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\n{tip}"
                     else:  # Wall finishing / lateral contour
-                        if is_metric:
-                            rec_rad_val = -eff_total_err * 25.4
-                            rec_ax_val = -eff_sb * 25.4
-                            rec_rad = f"{rec_rad_val:.3f} mm"
-                            rec_ax = f"{rec_ax_val:.3f} mm"
-                            advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\nKeep Ax: 0.000 if floor pre-cut"
-                        else:
-                            rec_rad_val = -eff_total_err
-                            rec_ax_val = -eff_sb
-                            rec_rad = f"{rec_rad_val:.4f} in"
-                            rec_ax = f"{rec_ax_val:.4f} in"
-                            advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\nKeep Ax: 0.000\" if floor pre-cut"
+                        keep = "Keep Ax: 0.000 if floor pre-cut" if is_metric else "Keep Ax: 0.000\" if floor pre-cut"
+                        advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\n{keep}"
+                    if is_hole_op(op_name, strat):
+                        advisory += "\nHole: radial stock acts on both sides (diameter changes 2x)"
                 else:
                     rec_rad = current_radial
                     rec_ax = current_axial
                     advisory = f"Roughing Pass\nRetaining stock ({rec_rad})"
-                    
+
             results.append({
                 "id": op_id,
                 "name": op_name,
@@ -1724,6 +1727,10 @@ def stock_compensation():
                 "springback_in": round(sb, 6),
                 "total_error_in": round(total_err, 6),
                 "wear_comp_offset_in": round(wear_comp, 6),
+                "doc_in": round(doc_in, 5),
+                "woc_in": round(woc_in, 5),
+                "radial_scale": radial_scale,
+                "axial_scale": axial_scale,
                 "recommended_radial_stock": rec_rad,
                 "recommended_axial_stock": rec_ax,
                 "advisory": advisory,
