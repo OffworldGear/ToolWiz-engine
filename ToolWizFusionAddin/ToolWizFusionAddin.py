@@ -392,10 +392,26 @@ def _flatten(entry):
     return flat
 
 
+_NUM_EXPR = re.compile(r'^\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*([A-Za-z/]*)\s*$')
+
+
+def _num_expr(x):
+    """(number, unit) for a plain numeric expression like '108.14in/min' or '16000.', else None."""
+    if not isinstance(x, str):
+        return None
+    m = _NUM_EXPR.match(x)
+    return (float(m.group(1)), m.group(2).lower()) if m else None
+
+
 def _same(a, b):
     if (isinstance(a, (int, float)) and isinstance(b, (int, float))
             and not isinstance(a, bool) and not isinstance(b, bool)):
         return abs(a - b) <= 1e-9 * max(1.0, abs(a), abs(b))
+    # Fusion re-serialises numbers ('108.13999999999999in/min' -> '108.13999999999997in/min'):
+    # the same number and unit is not a change.
+    na, nb = _num_expr(a), _num_expr(b)
+    if na is not None and nb is not None:
+        return na[1] == nb[1] and _same(na[0], nb[0])
     return a == b
 
 

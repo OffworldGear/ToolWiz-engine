@@ -175,6 +175,14 @@ class TestSnapshotAndDiff(AuditBase):
         base.update(kw)
         return base
 
+    def test_reserialised_number_is_not_a_change(self):
+        a = self.a
+        f = lambda e: {"Setup1 > A": self.entry(tool_feedCutting={"expr": e, "value": 2746.756})}
+        self.assertEqual(a.diff_snapshots(f("108.13999999999999in/min"), f("108.13999999999997in/min")), [])
+        self.assertEqual(len(a.diff_snapshots(f("108.14in/min"), f("108.14mm/min"))), 1)
+        self.assertEqual(len(a.diff_snapshots(f("108.14in/min"), f("110in/min"))), 1)
+        self.assertEqual(len(a.diff_snapshots(f("tool_feedCutting"), f("108.14in/min"))), 1)
+
     def test_preset_change_on_non_target_op_detected(self):
         before = {"Setup1 > A": self.entry(), "Setup1 > B": self.entry()}
         after = {"Setup1 > A": self.entry(), "Setup1 > B": self.entry(preset_name="Alu - Finishing")}
