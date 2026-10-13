@@ -13,7 +13,7 @@ from tests.test_pipeline_parity import all_payloads
 
 REQUIRED_KEYS = {"step", "quantity", "multiplier", "value_after", "reason"}
 EXPECTED_SFM_STEPS = ["base_lookup", "hardness", "chatter", "aggressiveness", "hem_thermal", "slot_engagement", "coating", "spindle_cap"]
-EXPECTED_IPT_STEPS = ["base_lookup", "hardness", "chatter", "aggressiveness", "chip_thinning"]
+EXPECTED_IPT_STEPS = ["base_lookup", "hardness", "chatter", "aggressiveness", "reach_chipload", "chip_thinning"]
 
 
 class _Capture:

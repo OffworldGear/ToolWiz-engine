@@ -38,8 +38,11 @@ from toolwiz_common import ToolProfile, default_stickout
 from gwizard_physics import (
     ASTMHardnessConverter,
     HARD_MILL_ONSET_HRC,
+    WORK_HARDENING_CHIPLOAD_FLOOR,
+    alloy_work_hardens,
     is_drilling_tool_type,
     is_tap_tool_type,
+    reach_chipload_floor,
 )
 
 
@@ -368,13 +371,42 @@ def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width:
     return base_sfm, base_ipt_lookup, sfm, ipt
 
 
-def _recommend(physics, r: CutRequest, rpm: float, base_ipt: float, details: Dict[str, Any]):
+_ROUGHING_WORDS = ("rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot")
+
+
+def _chipload_floor(physics, r: CutRequest, ctx, base_ipt: float) -> float:
+    """Lowest chip-load factor the long-reach rule may use for this cut (1.0 = no reduction):
+    OSG overhang band for L/D, raised for work-hardening alloys and kept >= 2x the edge's minimum
+    chip thickness. Roughing/adaptive/slotting end mills only."""
+    op = str(r.operation).lower()
+    geo = str(r.geometry).lower()
+    if (ctx.is_hole_tool or ctx.is_tapping or ctx.is_saw or "finish" in op
+            or not any(w in op for w in _ROUGHING_WORDS)
+            or any(k in geo for k in FORM_TOOL_GEOMETRIES) or "high feed" in op or geo == "high feed"):
+        return 1.0
+    floor = reach_chipload_floor(r.stickout or 0.0, r.diameter)
+    if floor >= 1.0:
+        return 1.0
+    try:
+        if alloy_work_hardens(r.family, r.alloy, physics.machinability.get(r.family)):
+            floor = max(floor, WORK_HARDENING_CHIPLOAD_FLOOR)
+    except Exception:
+        floor = max(floor, WORK_HARDENING_CHIPLOAD_FLOOR)
+    if base_ipt > 0:
+        mct = physics.get_minimum_chip_thickness(r.coating, r.tool, r.diameter)
+        floor = max(floor, min(1.0, 2.0 * mct / base_ipt))
+    return floor
+
+
+def _recommend(physics, r: CutRequest, rpm: float, base_ipt: float, details: Dict[str, Any],
+               min_chipload_factor: float = 1.0):
     return physics.recommend_cut_parameters(
         r.diameter, r.shank_diameter, r.stickout, r.flutes, rpm, base_ipt, r.is_carbide,
         r.operation, r.aggressiveness, r.geometry, r.cutter_thickness, r.max_hp,
         material_family=r.family, helix_angle=r.helix_angle, neck_length=r.neck_length,
         taper_angle=r.taper_angle, flute_length=r.flute_length, neck_diameter=r.neck_diameter,
-        corner_radius=r.corner_radius, details=details, profile=r.profile
+        corner_radius=r.corner_radius, details=details, profile=r.profile,
+        min_chipload_factor=min_chipload_factor
     )
 
 
@@ -395,7 +427,8 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         prov_width = cut_width if cut_width is not None else diameter * 0.25
         _, _, pre_sfm, pre_ipt = _speed_chain(physics, r, ctx, prov_depth, prov_width)
         pre_rpm = physics.calc_rpm(pre_sfm, diameter, max_rpm=r.max_rpm)
-        rec_doc, rec_woc, rec_limit = _recommend(physics, r, pre_rpm, pre_ipt, rec_details)
+        rec_doc, rec_woc, rec_limit = _recommend(physics, r, pre_rpm, pre_ipt, rec_details,
+                                                 _chipload_floor(physics, r, ctx, pre_ipt))
         if cut_depth is None:
             cut_depth = rec_doc
         if cut_width is None:
@@ -438,14 +471,44 @@ def run_cut(physics, req: CutRequest) -> CutResult:
             major_dia=diameter, pitch=pitch, tap_type=r.tap_type,
             material_family=r.family, is_metric=r.is_metric
         )
+        prov.add("reach_chipload", "ipt", base_ipt, base_ipt, "not applied to taps")
         prov.add("chip_thinning", "ipt", base_ipt, adjusted_ipt, f"tap feed = thread lead ({pitch:g} in/rev)")
     else:
-        adjusted_ipt = physics.calc_adjusted_chipload(
-            base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation,
-            geometry=r.geometry, tool_type=r.tool, corner_radius=r.corner_radius
-        )
-        feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
-        prov.add("chip_thinning", "ipt", base_ipt, adjusted_ipt,
+        def _feed_for(scale):
+            a_ipt = physics.calc_adjusted_chipload(
+                base_ipt * scale, cut_depth, cut_width, diameter, effective_diameter, operation=operation,
+                geometry=r.geometry, tool_type=r.tool, corner_radius=r.corner_radius
+            )
+            return a_ipt, physics.calc_feedrate(rpm, flutes, a_ipt)
+
+        # Long reach: if this cut deflects past the limit at the full chip load, lighten the chip
+        # (down to the OSG overhang band floor) before anything else.
+        chip_factor, reason = 1.0, "no long-reach chip load reduction"
+        floor = 1.0 if ctx.is_hole_tool else _chipload_floor(physics, r, ctx, base_ipt)
+        if floor < 1.0:
+            limit = physics.calc_deflection_limit(diameter, operation, r.aggressiveness, r.is_carbide)
+
+            def _defl(feed_s):
+                return physics.tool_deflection(
+                    diameter, r.shank_diameter, r.stickout, cut_depth, cut_width, feed_s, rpm, flutes,
+                    r.is_carbide, material_family=r.family, helix_angle=r.helix_angle,
+                    neck_length=r.neck_length, taper_angle=r.taper_angle, flute_length=r.flute_length,
+                    neck_diameter=r.neck_diameter, operation=operation, geometry=r.geometry,
+                    corner_radius=r.corner_radius, profile=r.profile)
+
+            if _defl(_feed_for(1.0)[1]) > limit * 1.001:
+                f = 0.95
+                while f >= floor - 1e-9:
+                    chip_factor = round(f, 2)
+                    if _defl(_feed_for(chip_factor)[1]) <= limit * 1.001:
+                        break
+                    f -= 0.05
+                ld = (r.stickout or 0.0) / diameter if diameter > 0 else 0.0
+                reason = (f"long reach (L/D {ld:.1f}): chip load {chip_factor:.0%} so the stepdown "
+                          f"stays within the deflection limit (OSG overhang floor {floor:.0%})")
+        prov.add("reach_chipload", "ipt", base_ipt, base_ipt * chip_factor, reason)
+        adjusted_ipt, feedrate = _feed_for(chip_factor)
+        prov.add("chip_thinning", "ipt", base_ipt * chip_factor, adjusted_ipt,
                  "chip thinning / engagement adjustment (adjusted chipload / base)")
 
     mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=r.geometry, diameter=diameter)
@@ -498,7 +561,8 @@ def run_cut(physics, req: CutRequest) -> CutResult:
 
     if rec_doc is None:
         rec_details = {}
-        rec_doc, rec_woc, rec_limit = _recommend(physics, r, rpm, base_ipt, rec_details)
+        rec_doc, rec_woc, rec_limit = _recommend(physics, r, rpm, base_ipt, rec_details,
+                                                 _chipload_floor(physics, r, ctx, base_ipt))
     feasible = bool(rec_details.get("feasible", True))
     limited_by = rec_details.get("limited_by")
     if not feasible:

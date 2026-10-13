@@ -78,16 +78,51 @@ class TestSlotDepth(unittest.TestCase):
                 self.assertEqual(p.calc_deflection_limit(d, "Slotting", a), p.calc_deflection_limit(d, "Adaptive Roughing", a))
 
     def test_user_t1_slot_depth(self):
-        r = fusion()          # 1/8" 4FL, 0.5" flutes, 0.6" stickout, 17-7 PH, 65%
-        self.assertAlmostEqual(r["doc"], 0.005, places=4)
+        r = fusion()          # 1/8" 4FL, 0.5" flutes, 0.6" stickout (4.8xD), 17-7 PH, 65%
+        self.assertGreaterEqual(r["doc"], 0.005)     # 0.005" at full chip load; deeper with the reach trade
         self.assertEqual(r["woc"], 0.125)
         self.assertTrue(r["feasible"])
+        step = next(p for p in r["provenance"] if p["step"] == "reach_chipload")
+        self.assertGreaterEqual(step["multiplier"], 0.8)   # 17-7 work-hardens: never below 80%
 
     def test_slot_never_narrowed_when_no_safe_depth(self):
         r = fusion(lb=1.0)
         self.assertEqual(r["woc"], 0.125)
         self.assertFalse(r["feasible"])
         self.assertEqual(r["limited_by"], "deflection")
+
+
+
+class TestReachChipload(unittest.TestCase):
+    def test_osg_bands(self):
+        from gwizard_physics import reach_chipload_floor
+        self.assertEqual(reach_chipload_floor(0.5, 0.125), 1.0)    # 4.0xD
+        self.assertEqual(reach_chipload_floor(0.6, 0.125), 0.8)    # 4.8xD
+        self.assertEqual(reach_chipload_floor(0.75, 0.125), 0.6)   # 6xD
+
+    def test_short_tools_and_finishing_untouched(self):
+        g = dict(T1, LB=0.45, LCF=0.375, **{"shoulder-length": 0.375})
+        c = app.app.test_client()
+        c.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
+        for op, geo in (("Adaptive Roughing", g), ("Wall Finishing (Deep DOC)", T1)):
+            r = c.post("/api/calculate_for_fusion", json=dict(
+                family="Stainless - PH Series (17-4)", alloy="17-7 PH (Annealed)", tool="HP Carbide Endmill",
+                coating="AlTiN", geometry="Square", operation=op, diameter=0.125, flutes=4, aggressiveness=65,
+                fusion_tool={"type": "flat end mill", "unit": "inches", "geometry": geo})).get_json()
+            step = next(p for p in r["provenance"] if p["step"] == "reach_chipload")
+            self.assertEqual(step["multiplier"], 1.0, op)
+
+    def test_trade_deepens_without_losing_more_than_10pct_removal(self):
+        import pipeline
+        orig = pipeline._chipload_floor
+        try:
+            pipeline._chipload_floor = lambda *a, **k: 1.0
+            a = fusion()
+        finally:
+            pipeline._chipload_floor = orig
+        b = fusion()
+        self.assertGreater(b["doc"], a["doc"])
+        self.assertGreaterEqual(b["doc"] * b["woc"] * b["feed"], 0.9 * a["doc"] * a["woc"] * a["feed"])
 
 
 if __name__ == "__main__":

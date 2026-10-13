@@ -127,6 +127,24 @@ COPPER_WORK_HARDENING_KEYS = (
 WORK_HARDENING_ALLOY_KEYS = ("nitronic", "inconel", "titanium", "316", "304")
 
 
+# Long-reach chip load (OSG overhang tables, e.g. EXOCARB AM-HFC List 4970: L/D <= 4: fz 100%,
+# 4-5: 80%, 5-6: 60%; PHOENIX guides 4-6xD: 60-80%, 6-10xD: 40-60%). Lowest chip-load factor allowed
+# by stickout band; the depth trade may use anything between this and 100%.
+REACH_CHIPLOAD_BANDS = ((4.0, 1.0), (5.0, 0.8), (float("inf"), 0.6))
+WORK_HARDENING_CHIPLOAD_FLOOR = 0.8   # thin chips rub on the hardened layer
+DEPTH_TRADE_MRR = 0.10                # removal rate the depth trade may give up for fewer Z levels
+
+
+def reach_chipload_floor(stickout: float, diameter: float) -> float:
+    if diameter <= 0 or stickout <= 0:
+        return 1.0
+    ld = stickout / diameter
+    for upper, factor in REACH_CHIPLOAD_BANDS:
+        if ld <= upper:
+            return factor
+    return REACH_CHIPLOAD_BANDS[-1][1]
+
+
 def alloy_work_hardens(material_family: str, alloy: str, mat_props: Optional[Dict[str, Any]] = None) -> bool:
     """True only when the selected alloy actually work-hardens.
 
@@ -998,7 +1016,8 @@ class OptimizationEngine:
         neck_diameter: Optional[float] = None,
         corner_radius: float = 0.0,
         details: Optional[Dict[str, Any]] = None,
-        profile: Optional[Any] = None
+        profile: Optional[Any] = None,
+        min_chipload_factor: float = 1.0
     ) -> Tuple[float, float, float]:
         """Returns (doc, woc, deflection_limit). If `details` is a dict it is filled with
         {"feasible": bool, "limited_by": "deflection"|"power"|"flute_length"|"geometry_rule"}."""
@@ -1194,6 +1213,51 @@ class OptimizationEngine:
                 current_doc = max_doc
             else:
                 current_doc += step
+
+        # Long reach: when deflection (not flute length) caps the depth, a lighter chip allows a deeper
+        # stepdown at almost the same removal rate and far fewer Z levels. OSG publishes overhang
+        # tables that reduce chip load (fz) and axial depth together beyond 4xD; the caller passes the
+        # lowest chip-load factor its bands allow. Rule: deepest stepdown whose removal rate stays
+        # within DEPTH_TRADE_MRR of the best candidate.
+        if (found_safe and details.get("limited_by") == "deflection" and min_chipload_factor < 1.0
+                and (is_adaptive or "slot" in op_low or "rough" in op_low) and "finish" not in op_low):
+            def _search(scale):
+                found, cur = None, min_doc
+                while cur <= max_doc:
+                    ipt_s = physics.calc_adjusted_chipload(
+                        base_ipt * scale, cur, target_woc, diameter, diameter, operation=operation,
+                        geometry=geometry, corner_radius=corner_radius)
+                    feed_s = physics.calc_feedrate(eval_rpm, flutes, ipt_s)
+                    d_s = physics.tool_deflection(
+                        diameter, shank_size, stickout, cur, target_woc, feed_s, eval_rpm, flutes,
+                        is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
+                        neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
+                        neck_diameter=neck_diameter, operation=operation, geometry=geometry,
+                        corner_radius=corner_radius, profile=profile)
+                    _, _, _, hp_s = CuttingMechanics.calc_cutting_forces(
+                        diameter, cur, target_woc, feed_s, eval_rpm, flutes, unit_hp, helix_angle,
+                        operation=operation, geometry=geometry, corner_radius=corner_radius)
+                    if d_s > target_deflection or hp_s > max_hp:
+                        break
+                    found = (cur, feed_s)
+                    cur = max_doc if (cur < max_doc and cur + step > max_doc) else cur + step
+                return found
+
+            candidates = []
+            f = 1.0
+            while f >= min_chipload_factor - 1e-9:
+                res = _search(f)
+                if res:
+                    candidates.append((round(f, 2), res[0], res[0] * target_woc * res[1]))
+                f -= 0.05
+            if candidates:
+                best_mrr = max(c[2] for c in candidates)
+                ok = [c for c in candidates if c[2] >= best_mrr * (1.0 - DEPTH_TRADE_MRR)]
+                chosen = max(ok, key=lambda c: (c[1], c[0]))
+                if chosen[0] < 1.0 and chosen[1] > best_doc:
+                    details["depth_trade"] = {"chipload_factor": chosen[0], "doc_full_chip": best_doc,
+                                              "doc": chosen[1]}
+                    best_doc = chosen[1]
 
         # If even min_doc exceeded target_deflection at target_woc (e.g. tough alloy, high stickout, or non-carbide):
         # Step down radial immersion (WOC) to reduce cutting force and guarantee a safe cut within deflection limits
@@ -2622,13 +2686,15 @@ class GWizardPhysics:
         neck_diameter: Optional[float] = None,
         corner_radius: float = 0.0,
         details: Optional[Dict[str, Any]] = None,
-        profile: Optional[Any] = None
+        profile: Optional[Any] = None,
+        min_chipload_factor: float = 1.0
     ) -> Tuple[float, float, float]:
         return OptimizationEngine.recommend_cut_parameters(
             self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide,
             operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family,
             helix_angle, neck_length, taper_angle, flute_length, neck_diameter,
-            corner_radius=corner_radius, details=details, profile=profile
+            corner_radius=corner_radius, details=details, profile=profile,
+            min_chipload_factor=min_chipload_factor
         )
 
     def calc_deflection_limit(
