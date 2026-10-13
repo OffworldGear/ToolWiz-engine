@@ -2196,7 +2196,29 @@ class GWizardPhysics:
 
         return adjusted_ipt
 
-    def get_coating_multiplier(self, coating: str, material_family: str) -> float:
+    def _db_sfm(self, material: str, tool: str) -> Optional[float]:
+        for entry in self.sfm_data:
+            if entry["material"] == material and entry["tool"] == tool:
+                try:
+                    return float(entry["sfm"])
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    def tialn_endmill_multiplier(self, material_family: str, tool_type: str = "") -> Optional[float]:
+        """GWizard rates TiAlN-coated carbide end mills per material ("TiAlN Carbide Endmill").
+        Returns that rating relative to the selected carbide end mill class (HP or standard), never
+        below 1.0, or None when the database has no such rating for the material. HP Carbide already
+        assumes a premium coated tool, so in e.g. PH stainless, 316 and H13 the coating adds nothing."""
+        tialn = self._db_sfm(material_family, "TiAlN Carbide Endmill")
+        ref = self._db_sfm(material_family,
+                           "HP Carbide Endmill" if "hp" in str(tool_type).lower() else "Carbide Endmill")
+        if not tialn or not ref:
+            return None
+        return max(1.0, tialn / ref)
+
+    def get_coating_multiplier(self, coating: str, material_family: str, tool_type: str = "",
+                               geometry: str = "", is_carbide: bool = False) -> float:
         if coating == "Uncoated" or not material_family:
             return 1.0
 
@@ -2208,6 +2230,15 @@ class GWizardPhysics:
         if coating in ["TiAlN", "AlTiN"]:
             if is_aluminum:
                 return 0.80
+            t_low = str(tool_type).lower()
+            is_carbide_endmill = (is_carbide and not is_drilling_tool_type(t_low, geometry)
+                                  and not is_tap_tool_type(t_low)
+                                  and not any(k in t_low for k in ("thread", "ream", "indexable"))
+                                  and geometry != "Thread Mill")
+            if is_carbide_endmill:
+                m = self.tialn_endmill_multiplier(material_family, tool_type)
+                if m is not None:
+                    return m
             if is_ferrous or is_titanium:
                 return 1.40
             return 1.20

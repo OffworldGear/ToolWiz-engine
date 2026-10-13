@@ -278,6 +278,13 @@ def _hardness_reason(physics, family: str, alloy: str) -> str:
     return txt
 
 
+FULL_SLOT_IMMERSION = 0.9      # radial engagement (fraction of D) treated as a full slot
+FULL_SLOT_SFM_FACTOR = 0.80
+# Form tools: their "cut width" is a radial depth, not immersion, so the slot rule doesn't apply.
+FORM_TOOL_GEOMETRIES = ("chamfer", "v-bit", "engrav", "dovetail", "thread", "lollipop", "t-slot",
+                        "keyseat", "woodruff", "drill", "ream", "tap")
+
+
 def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width: float,
                  prov: Optional[_Prov] = None):
     """Base lookup -> hardness -> chatter -> aggressiveness -> HEM -> coating.
@@ -332,14 +339,29 @@ def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width:
                   if hem != 1.0 and r.diameter > 0 else "no HEM low-immersion boost")
         p.add("hem_thermal", "sfm", b_sfm, sfm, reason)
 
+        # Full-width slot: the edge never leaves the cut, so it runs hotter than in a profile cut.
+        # Vendor slotting speeds (Harvey AlTiN in 4130: 150-280 / 180-320 SFM) sit about 20% below
+        # the general coated rating. Saws/T-slots/keyseats report radial depth, not immersion.
+        b_sfm = sfm
+        immersion = cut_width / r.diameter if r.diameter > 0 else 0.0
+        geo = str(r.geometry).lower()
+        is_endmill_shape = not any(k in geo for k in FORM_TOOL_GEOMETRIES)
+        if immersion >= FULL_SLOT_IMMERSION and is_endmill_shape and not ctx.is_saw and not ctx.is_hole_tool:
+            sfm *= FULL_SLOT_SFM_FACTOR
+            reason = f"full-width slot ({immersion * 100:.0f}% radial engagement)"
+        else:
+            reason = "not a full-width slot"
+        p.add("slot_engagement", "sfm", b_sfm, sfm, reason)
+
         b_sfm = sfm
         if r.apply_coating:
-            sfm *= physics.get_coating_multiplier(r.coating, r.family)
+            sfm *= physics.get_coating_multiplier(r.coating, r.family, tool_type=r.tool,
+                                                  geometry=r.geometry, is_carbide=r.is_carbide)
             p.add("coating", "sfm", b_sfm, sfm, f"{r.coating} coating on {r.family}")
         else:
             p.add("coating", "sfm", b_sfm, sfm, "coating not applied (tool coating unknown)")
     else:
-        for step in ("aggressiveness", "hem_thermal", "coating"):
+        for step in ("aggressiveness", "hem_thermal", "slot_engagement", "coating"):
             p.add(step, "sfm", sfm, sfm, "skipped for taps")
         p.add("aggressiveness", "ipt", ipt, ipt, "skipped for taps")
 
