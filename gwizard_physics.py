@@ -722,7 +722,10 @@ class CuttingMechanics:
         op_low = str(operation).lower()
         is_finish = "finish" in op_low
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low or "hem" in op_low
-        
+        # Slotting is a roughing pass (the wall is finished separately), so it gets the same
+        # allowance as adaptive; the old 0.002xD rule was the strictest of all roughing types.
+        is_slot = "slot" in op_low
+
         if "high feed" in op_low or "hf" in op_low:
             lim = diameter * 0.002 * (0.5 + aggressiveness * 0.8)
             return max(0.0005, min(0.0030, lim))
@@ -734,14 +737,14 @@ class CuttingMechanics:
             # Finishing: tight tolerance (0.001x to 0.002x D, max 0.0005")
             lim = diameter * 0.002 * (0.7 + aggressiveness * 0.6)
             return max(0.0001, min(0.0005, lim))
-        elif is_adaptive:
+        elif is_adaptive or is_slot:
             # High Efficiency Milling (HEM) uses roughing-grade allowable deflection (0.001" - 0.003" based on aggressiveness)
             lim = diameter * 0.006 * (0.35 + aggressiveness * 0.65)
             # Floor scales with diameter: a fixed 0.0004" floor allowed 1.3% of D on a 1/32" tool
             # (vs ~0.5% on larger tools), letting micro HEM run 2xD deep unchecked.
             return max(min(0.0004, diameter * 0.004), min(0.0030, lim))
         else:
-            # Traditional roughing / 3D roughing / slotting / facing:
+            # Traditional roughing / 3D roughing / facing:
             lim = diameter * 0.002 * (0.2 + aggressiveness)
             if diameter <= 0.125:
                 # Micro-tool transverse compliance floor to prevent false alerts on sub-100 microinch deflections
@@ -1146,7 +1149,7 @@ class OptimizationEngine:
         else:
             max_doc = min(diameter * 4.0, flute_length if flute_length > 0.0 else diameter * 1.5)
             min_doc = max(diameter * 0.02, 0.0005)
-            step = max(diameter * 0.02, 0.0005)
+            step = max(diameter * 0.01, 0.0002)   # was 2% of D: 0.0025" steps on a 1/8" tool
 
         best_doc = min_doc
         best_woc = target_woc
@@ -1194,7 +1197,12 @@ class OptimizationEngine:
 
         # If even min_doc exceeded target_deflection at target_woc (e.g. tough alloy, high stickout, or non-carbide):
         # Step down radial immersion (WOC) to reduce cutting force and guarantee a safe cut within deflection limits
-        if not found_safe:
+        if not found_safe and "slot" in op_low:
+            # A slot is full width by definition: never narrow it; report that no safe depth exists.
+            best_doc = min_doc
+            details["feasible"] = False
+            details["limited_by"] = "deflection"
+        elif not found_safe:
             best_doc = min_doc
             for woc_ratio in [0.35, 0.25, 0.15, 0.10, 0.05]:
                 cand_woc = max(diameter * 0.02, diameter * woc_ratio)

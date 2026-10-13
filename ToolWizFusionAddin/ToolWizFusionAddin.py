@@ -1773,6 +1773,22 @@ class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
 # COMMAND 3: FAST CAM OPERATION AUTO-SETTER
 # ==============================================================================
 
+def _log_calc_exchange(payload, res):
+    """One line with the tool geometry sent and one with what the server recommended / what capped it."""
+    try:
+        ft = (payload.get("fusion_tool") or {})
+        g = ft.get("geometry") or {}
+        geo = ", ".join(f"{k}={g[k]}" for k in ("DC", "NOF", "LCF", "shoulder-length", "shoulder-diameter",
+                                                 "SFDM", "LB", "RE", "TA") if k in g)
+        _log(f"Calc request: {payload.get('family')} / {payload.get('alloy')}, {payload.get('operation')}, "
+             f"{payload.get('tool')} {payload.get('coating')}, aggressiveness {payload.get('aggressiveness')}; "
+             f"tool [{ft.get('unit')}] {geo}")
+        _log(f"Calc result: {res.get('rpm')} RPM, {res.get('feed', res.get('feedrate'))} IPM, DOC {res.get('doc')} in, "
+             f"WOC {res.get('woc')} in, limited by {res.get('limited_by')}, feasible {res.get('feasible', True)}")
+    except Exception as ex:
+        _log("Could not log the calculation exchange", ex)
+
+
 def confirm_feasibility(calc_result):
     """Return True if it is OK to apply the result. When the server reports
     "feasible": false, ask the user (Yes/No). A missing field counts as feasible."""
@@ -2154,6 +2170,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                       "ToolWiz CAM Auto-Setter")
         return False
 
+    _log_calc_exchange(payload, calc_result)
     if not confirm_feasibility(calc_result):
         return False
 

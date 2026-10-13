@@ -57,5 +57,38 @@ class TestFullSlot(unittest.TestCase):
         self.assertEqual(step(r, "slot_engagement")["multiplier"], 1.0)
 
 
+T1 = {"DC": 0.125, "LB": 0.6, "LCF": 0.5, "NOF": 4, "OAL": 1.5, "RE": 0, "SFDM": 0.125, "TA": 0,
+      "shoulder-diameter": 0.125, "shoulder-length": 0.5}
+
+
+def fusion(lb=0.6):
+    c = app.app.test_client()
+    c.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
+    return c.post("/api/calculate_for_fusion", json=dict(
+        family="Stainless - PH Series (17-4)", alloy="17-7 PH (Annealed)", tool="HP Carbide Endmill",
+        coating="AlTiN", geometry="Square", operation="Slotting", diameter=0.125, flutes=4, aggressiveness=65,
+        fusion_tool={"type": "flat end mill", "unit": "inches", "geometry": dict(T1, LB=lb)})).get_json()
+
+
+class TestSlotDepth(unittest.TestCase):
+    def test_slot_uses_the_adaptive_deflection_limit(self):
+        p = app.physics
+        for d in (0.0625, 0.125, 0.25, 0.5):
+            for a in (0.0, 0.5, 1.0):
+                self.assertEqual(p.calc_deflection_limit(d, "Slotting", a), p.calc_deflection_limit(d, "Adaptive Roughing", a))
+
+    def test_user_t1_slot_depth(self):
+        r = fusion()          # 1/8" 4FL, 0.5" flutes, 0.6" stickout, 17-7 PH, 65%
+        self.assertAlmostEqual(r["doc"], 0.005, places=4)
+        self.assertEqual(r["woc"], 0.125)
+        self.assertTrue(r["feasible"])
+
+    def test_slot_never_narrowed_when_no_safe_depth(self):
+        r = fusion(lb=1.0)
+        self.assertEqual(r["woc"], 0.125)
+        self.assertFalse(r["feasible"])
+        self.assertEqual(r["limited_by"], "deflection")
+
+
 if __name__ == "__main__":
     unittest.main()
