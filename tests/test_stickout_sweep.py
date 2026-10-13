@@ -50,13 +50,17 @@ class StickoutSweepBase(unittest.TestCase):
 
 
 class TestMillingStickoutSweep(StickoutSweepBase):
-    def test_no_speed_or_chipload_penalty_at_any_stickout(self):
+    def test_speed_follows_osg_overhang_line_and_chipload_untouched_by_stickout_step(self):
+        # OSG: 100% to 4xD, then about -10% per D (4-5xD 90%, 5-6xD 80%; PHOENIX 6-10xD 40-60%).
+        from gwizard_physics import reach_sfm_factor
         for name, tool in MILLING_TOOLS.items():
             for ld in LD_STEPS:
                 with self.subTest(tool=name, ld=ld):
                     d = self.calc({**tool, "stickout": tool["diameter"] * ld})
                     m = self.chatter_multipliers(d)
-                    self.assertEqual(m.get("sfm", 1.0), 1.0)
+                    expected = 1.0 if ld <= 4 else max(0.4, 1.0 - 0.1 * (ld - 4))
+                    self.assertAlmostEqual(m.get("sfm", 1.0), expected, places=6)
+                    self.assertAlmostEqual(reach_sfm_factor(tool["diameter"] * ld, tool["diameter"]), expected, places=6)
                     self.assertEqual(m.get("ipt", 1.0), 1.0)
 
     def test_recommended_engagement_shrinks_as_stickout_grows(self):

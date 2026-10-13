@@ -322,7 +322,9 @@ def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width:
     if ctx.is_saw:
         reason = "saw/woodruff: stickout penalty bypassed"
     elif sfm != b_sfm or ipt != b_ipt:
-        reason = f"stickout/chatter penalty (L/D = {r.stickout / r.diameter:.1f})" if r.diameter > 0 else "stickout penalty"
+        reason = ((f"long reach (L/D = {r.stickout / r.diameter:.1f}): surface speed reduced per OSG overhang guidance"
+                   if not ctx.is_hole_tool else f"stickout/chatter penalty (L/D = {r.stickout / r.diameter:.1f})")
+                  if r.diameter > 0 else "stickout penalty")
     else:
         reason = "stickout within limit; no penalty"
     p.add("chatter", "sfm", b_sfm, sfm, reason)

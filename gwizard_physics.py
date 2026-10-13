@@ -135,6 +135,19 @@ WORK_HARDENING_CHIPLOAD_FLOOR = 0.8   # thin chips rub on the hardened layer
 DEPTH_TRADE_MRR = 0.10                # removal rate the depth trade may give up for fewer Z levels
 
 
+REACH_SFM_ONSET_LD = 4.0
+REACH_SFM_PER_D = 0.10
+REACH_SFM_MIN = 0.40
+
+
+def reach_sfm_factor(stickout: float, diameter: float) -> float:
+    """Surface-speed factor for a milling cutter's stickout (1.0 up to 4xD, -10% per D, >= 40%)."""
+    if diameter <= 0 or stickout <= 0:
+        return 1.0
+    over = stickout / diameter - REACH_SFM_ONSET_LD
+    return 1.0 if over <= 0 else max(REACH_SFM_MIN, 1.0 - REACH_SFM_PER_D * over)
+
+
 def reach_chipload_floor(stickout: float, diameter: float) -> float:
     if diameter <= 0 or stickout <= 0:
         return 1.0
@@ -2515,10 +2528,11 @@ class GWizardPhysics:
             # G-Wizard GWizFeedsSpeeds2.as:1604: this.fsm.adjustSFMForLength = false
             return sfm, ipt
         if not is_drilling:
-            # G-Wizard only length-adjusts drills (GWizFeedsSpeeds2.as:1540, adjustSFMForLength).
-            # Milling stickout is handled by the deflection-limited DOC/WOC, as in long-reach
-            # vendor practice (reduce engagement, keep chipload); a warning tip covers > 7xD.
-            return sfm, ipt
+            # Milling: OSG overhang tables cut surface speed beyond 4xD (EXOCARB AM-HFC: 4-5xD 90%,
+            # 5-6xD 80%; PHOENIX 6-10xD 40-60%) - about 10% per diameter, used here as a straight
+            # line with a 40% floor. Chip load is handled by the long-reach depth trade
+            # (reach_chipload) and depth by the deflection limit. G-Wizard length-adjusts drills only.
+            return sfm * reach_sfm_factor(stickout, diameter), ipt
 
         if diameter <= 0.0 or stickout <= 0.0:
             return sfm, ipt
