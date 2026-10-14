@@ -269,6 +269,22 @@ def get_data():
     })
 
 
+# Which code this process loaded: the desktop launcher restarts a server whose stamp is older than
+# the files on disk (a stale server otherwise keeps answering on port 5000 after an update).
+from toolwiz_common.server_stamp import code_stamp as _code_stamp
+import datetime as _dt
+SERVER_INFO = {
+    "code_stamp": _code_stamp(os.path.dirname(os.path.abspath(__file__))),
+    "pid": os.getpid(),
+    "started": _dt.datetime.now().isoformat(timespec="seconds"),
+}
+
+
+@app.route("/api/server_info", methods=["GET"])
+def server_info():
+    return jsonify(SERVER_INFO)
+
+
 @app.route("/api/machine_limits", methods=["GET", "POST"])
 def api_machine_limits():
     """GET effective limits; POST {maxRpm?, maxHp?} to override (null/"" clears back to the profile)."""
