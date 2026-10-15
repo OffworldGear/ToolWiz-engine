@@ -10,7 +10,7 @@ Why: ToolWiz v1 is GWizard's tables plus stacked rules. For tools of 1/8" and sm
 
 **Step 1 (data) done 2026-10-15.** Findings: `docs/research/v2_data_findings.md`. Decisions needed before calibration (its §6):
 - 17-4 Condition A → Sandvik P5.0.Z.HT or P5.0.Z.PH.
-- How to weight Harvey's generic charts.
+- Harvey's generic charts: under discussion. By removal rate they agree with Harvey's specific sheet (findings §2).
 
 Next is step 2, the force model module.
 

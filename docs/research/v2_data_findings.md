@@ -69,32 +69,49 @@ The design's target is 8 materials × 7 diameters × 4 operations = 224 cells, e
 
 ## 2. What the data already says about v1 and about the physics
 
-### Harvey's generic charts are the conservative outlier
+### Compare whole cuts, not chip loads (revised 2026-10-15 with the user)
 
-SF_73000 and SF_72000 cover dozens of alloys in one row. For 17-4 PH they sit at about 1/3 of every other source, including Harvey's own material-specific sheet SF_875400 (17-4 PH chip loads in in/tooth):
+A first pass compared chip load alone and called Harvey's generic charts (SF_73000/72000) "1/3 of every other source". That was misleading. The generic charts take 3·D deep at 0.25·D wide with a small chip, while Harvey's material-specific sheet SF_875400 takes 0.6·D × 0.4·D with a 2.5× larger chip. By removal rate the two Harvey sheets **agree**.
 
-| D | Harvey generic (73000, 29–37 HRC) | Harvey SF_875400 | Helical HEV-5 | OSG | Kennametal |
-|---|---|---|---|---|---|
-| 1/16" | 0.00010 | 0.00026 | 0.00040 | 0.00040 | — |
-| 1/8" | 0.00019 | 0.00053 | 0.00070 | 0.00048–0.00090 | 0.00070 |
-| 1/4" | 0.00039 | 0.00105 | 0.00130 | 0.00117–0.0023 | 0.00140 |
+Below, each 17-4 PH side/rough row is at the same diameter. The physics columns come from `physics_v2/forces.py` with P5.0.Z.PH, K_r = 0.4, 35° helix and no runout:
+- **F_lat** is the mean lateral force on the tool, which drives deflection and breakage.
+- **MRR/F** is removal per unit of lateral force (in³/min per kN).
 
-**Consequence for the design (§1):** the "v1 is 2–7× Harvey's feeds" finding used the generic charts. Against the material-specific data v1's **chip load is roughly in line**. The real differences are speed and depth.
+v1 is the same 17-4 H1025, Standard Roughing, aggressiveness-50 run as before.
 
-v1 for 17-4 PH H1025 (356 HB, about 38 HRC), AlTiN, Standard Roughing, aggressiveness 50, 4 flutes, no rpm cap:
+| D | Source (hardness) | SFM | fz | ap/D × ae/D | MRR in³/min | F_lat N | MRR/F |
+|---|---|---|---|---|---|---|---|
+| 1/16" | Harvey SF_73000 (29–37 HRC) | 150 | 0.00010 | 3.0 × 0.25 | 0.011 | 46 | 0.23 |
+| | Harvey SF_875400 (300–350 HBn) | 140 | 0.00026 | 0.6 × 0.40 | 0.008 | 29 | 0.28 |
+| | OSG 3604 (< 32 HRC, all stainless) | 229 | 0.00040 | 1.5 × 0.05 | 0.007 | 17 | 0.39 |
+| | Helical HEV-5 (21–36 HRC) | 200 | 0.00040 | 2.0 × 0.22 | 0.043 | 105 | 0.41 |
+| | **v1** | 329 | 0.00038 | 0.10 × 0.50 | 0.006 | 8 | 0.75 |
+| 1/4" | Harvey SF_73000 (29–37 HRC) | 150 | 0.00039 | 3.0 × 0.25 | 0.168 | 541 | 0.31 |
+| | Harvey SF_875400 (300–350 HBn) | 140 | 0.00105 | 0.6 × 0.40 | 0.135 | 354 | 0.38 |
+| | OSG AE-VMS 8200 | 300 | 0.00117 | 1.5 × 0.20 | 0.402 | 530 | 0.76 |
+| | Helical HEV-5 (21–36 HRC) | 200 | 0.00130 | 2.0 × 0.23 | 0.559 | 1064 | 0.53 |
+| | Kennametal HARVI I TE (35–43 HRC) | 205 | 0.00110 | 1.5 × 0.50 | 0.646 | 1109 | 0.58 |
+| | **v1** | 344 | 0.00090 | 0.09 × 0.50 | 0.053 | 57 | 0.94 |
+| 1/2" | Harvey SF_73000 (29–37 HRC) | 150 | 0.00078 | 3.0 × 0.25 | 0.670 | 1869 | 0.36 |
+| | OSG AE-VMS 8200 | 265 | 0.00193 | 1.5 × 0.20 | 1.17 | 1573 | 0.75 |
+| | Helical HEV-5 (21–36 HRC) | 200 | 0.00260 | 2.5 × 0.23 | 2.79 | 4598 | 0.61 |
+| | **v1** | 344 | 0.00180 | 0.16 × 0.50 | 0.379 | 349 | 1.08 |
 
-| D | v1 SFM | Vendor SFM, 35–43 HRC | v1 fz | Vendor fz (material-specific) | v1 ap × ae | Vendor ap × ae |
-|---|---|---|---|---|---|---|
-| 1/16" | 329 | 100–200 | 0.00038 | 0.00026–0.00040 | 0.10D × 0.5D | 0.6–3D × 0.2–0.4D |
-| 1/8" | 317 | 90–265 | 0.00065 | 0.0005–0.0009 | 0.08D × 0.5D | 0.6–2D × 0.15–0.5D |
-| 1/4" | 344 | 80–300 | 0.0009 | 0.0011–0.0023 | 0.09D × 0.5D | 1–2D × 0.1–0.5D |
-| 1/2" | 344 | 100–265 | 0.0018 | 0.0019–0.0045 | 0.16D × 0.5D | 0.6–2.5D × 0.1–0.5D |
+What this shows:
 
-- **SFM:** v1 is about 1.5–3× high at this hardness.
-- **Depth:** v1 is 10–20× shallower than every vendor, at a wider ae.
-- **Chip load:** within or just below the vendor range.
+- **Within Harvey,** generic and specific sheets give about the same removal rate (1/4": 0.17 vs 0.13 in³/min). They split it differently between depth and chip load.
+- **Across vendors at 1/8–1/2",** Harvey removes about 2–4× less than Helical and Kennametal. OSG falls in between, close to Harvey at 1/16".
+  - Most of the gap is **speed**: Harvey runs 140–150 SFM where others run 200–300 SFM.
+  - Speed adds removal without adding force in this model, so MRR/F rises with SFM.
+  - The rest is the **tool load each vendor accepts**: Helical and Kennametal put 2–3× Harvey's lateral force on a 1/4" tool.
+- **Hardness bands differ and must be compared like for like.** Harvey's lowest ferrous column is 29–37 HRC, which covers H900–H1025 17-4. Helical's is 21–36 HRC, Kennametal's ≤ 35 HRC, and OSG gives none. Harvey's own sheet drops from 140 to 80 SFM going from 300–350 to 400–425 HBn.
+- **v1 is not "too aggressive" by removal or force.**
+  - v1's MRR is at or below the lowest vendor at every diameter: 1/4" gives 0.053 against 0.13–0.65.
+  - Its tool load is 5–20× lower than any vendor's.
+  - It gets there with SFM 1.5–2.5× too high and a depth 10–30× too shallow.
+  - v1's problem is the shape of the cut, plus SFM: too fast and too shallow. The size of the cut is not the problem.
 
-This supports the v2 direction, a deep and narrow cut from the force, deflection and stress limits. The target is now SFM and the ap/ae split, not a lower chip load.
+**Open question:** do vendors differ in the lateral load they accept for the same tool, or does the force model miss something (K_r, edge force, hardness)? That is what calibration has to settle. A useful check is tool deflection or bending stress for each row on its own catalog geometry, using C3/C4 from design §3.4.
 
 ### Chip thinning alone does not reconcile the vendors
 
@@ -148,5 +165,5 @@ That is the force/deflection trade the v2 model is meant to explain. The calibra
 ## 6. Decisions needed from the user (before calibration)
 
 1. **17-4 Condition A** → P5.0.Z.HT (2300) or P5.0.Z.PH (2800)? See `material_mapping_v2.md`.
-2. **Harvey's generic charts (SF_73000/72000):** keep as validation rows, or mark them "conservative generic" and fit to the material-specific sheets? Recommendation: keep them but weight the material-specific rows, because the generic charts cover dozens of alloys at one value.
+2. **Harvey's generic charts (SF_73000/72000):** under discussion. By removal rate they agree with Harvey's material-specific sheet (see §2), so weighting them down is probably unnecessary.
 3. ~~**C5 rating**~~ **Decided 2026-10-15:** the continuous rating for sustained cuts.

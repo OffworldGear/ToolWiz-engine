@@ -24,7 +24,7 @@ The evidence that the base itself is wrong for small tools comes from Harvey's p
 - chip load 1.4–4.5× Harvey's;
 - feed 2–7× Harvey's.
 
-**Update (2026-10-15, data step):** those Harvey figures came from Harvey's generic miniature charts (SF_73000/72000), which are about 1/3 of every other source for 17-4 PH, including Harvey's own material-specific sheet. Against the material-specific data, v1's chip load is roughly in line. v1's SFM is about 1.5–3× high, and its depth is 10–20× shallower than every vendor's. See `docs/research/v2_data_findings.md` §2.
+**Update (2026-10-15, data step, revised with the user):** comparing whole cuts, not chip loads, v1 is not too aggressive by removal rate or tool load. At 1/4" in 17-4, v1 removes 0.05 in³/min where vendors remove 0.13–0.65, at 5–20× less lateral force. v1's SFM is 1.5–2.5× high and its depth 10–30× shallow. Harvey's generic and material-specific sheets agree on removal rate. Harvey runs 2–4× below Helical and Kennametal, mostly through lower SFM. See `docs/research/v2_data_findings.md` §2.
 
 ToolWiz runs a heavy chip at a shallow depth. Harvey runs a thin chip, deep and narrow. That difference is behind the user's "tiny stepdown, giant G-code" problem on the 1/16" rougher.
 
