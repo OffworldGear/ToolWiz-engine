@@ -11,7 +11,6 @@ Why: ToolWiz v1 is GWizard's tables plus stacked rules. For tools of 1/8" and sm
 **Step 1 (data) done 2026-10-15.** Findings: `docs/research/v2_data_findings.md`. Decisions needed before calibration (its §6):
 - 17-4 Condition A → Sandvik P5.0.Z.HT or P5.0.Z.PH.
 - How to weight Harvey's generic charts.
-- C5: the continuous or the 10-minute spindle rating.
 
 Next is step 2, the force model module.
 
@@ -20,7 +19,7 @@ Next is step 2, the force model module.
 - **Correct T12 in Fusion** (1/16" 4FL rougher). Its Shaft diameter is 0.0625; most likely it should be 0.125, and the neck should match the real tool. With a 1/8" shank the adaptive stepdown goes from 0.0019" to about 0.0125".
 - **Fusion roughing passes on micro tools:** Fine Stepdown was about 0.005 mm (it follows the maximum stepdown) and Tolerance was 0.010 mm. Suggested values are 0.025 mm tolerance and a fine stepdown of at least 0.05–0.1 mm. Tell me whether the Fine Stepdown field shows a formula.
 - **Set holder runout** (TIR at the tool tip) in Machine & Cut Parameters. The default is 0.0002" for micro tools unless overridden.
-- **Confirm the 16k torque curve** (received 2026-10-15, in `machines/speedio_s500x2.json`) against the Brother spindle output chart, and decide whether v2 limits cuts by the continuous or the 10-minute rating (design §7.3).
+- **Confirm the 16k torque curve** (received 2026-10-15, in `machines/speedio_s500x2.json`) against the Brother spindle output chart. v2 limits sustained cuts by the continuous rating (decided 2026-10-15).
 - **Machine profiles (done 2026-10-15):** pick the machine and spindle in Machine & Cut Parameters; "Edit machines…" sets max rpm, power ratings and torque curve points.
   - Built-in profiles are in `machines/`; user profiles are in `data/machines/` (not committed).
   - Max RPM, Max HP and runout overrides are stored per machine in `data/machine_settings.json`.

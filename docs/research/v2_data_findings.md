@@ -149,4 +149,4 @@ That is the force/deflection trade the v2 model is meant to explain. The calibra
 
 1. **17-4 Condition A** → P5.0.Z.HT (2300) or P5.0.Z.PH (2800)? See `material_mapping_v2.md`.
 2. **Harvey's generic charts (SF_73000/72000):** keep as validation rows, or mark them "conservative generic" and fit to the material-specific sheets? Recommendation: keep them but weight the material-specific rows, because the generic charts cover dozens of alloys at one value.
-3. **C5 rating:** the continuous rating for sustained cuts (recommended), or the 10-minute rating at high aggressiveness.
+3. ~~**C5 rating**~~ **Decided 2026-10-15:** the continuous rating for sustained cuts.
