@@ -24,6 +24,8 @@ The evidence that the base itself is wrong for small tools comes from Harvey's p
 - chip load 1.4–4.5× Harvey's;
 - feed 2–7× Harvey's.
 
+**Update (2026-10-15, data step):** those Harvey figures came from Harvey's generic miniature charts (SF_73000/72000), which are about 1/3 of every other source for 17-4 PH, including Harvey's own material-specific sheet. Against the material-specific data, v1's chip load is roughly in line. v1's SFM is about 1.5–3× high, and its depth is 10–20× shallower than every vendor's. See `docs/research/v2_data_findings.md` §2.
+
 ToolWiz runs a heavy chip at a shallow depth. Harvey runs a thin chip, deep and narrow. That difference is behind the user's "tiny stepdown, giant G-code" problem on the 1/16" rougher.
 
 **Goal:** compute every cut from physics. That means chip geometry, force, deflection, stress and power, with explicit limits. Use vendor data (Harvey, Helical, OSG, Sandvik, Kennametal) only to calibrate and validate the model, never as a lookup table.
@@ -63,7 +65,7 @@ All lengths are in inches internally; the notation below uses mm and N where the
 | Radial | F_r = K_r·F_t + K_re·ap, with K_r about 0.3–0.6 by material and rake |
 | Lateral force on the tool | Average over the engagement arc of the vector sum of all engaged teeth (Altintas, *Manufacturing Automation*, ch. 2), split into feed-direction and normal components |
 | Power | P = F_t,total·v_c |
-| Torque | T = P/ω, checked against the spindle torque curve (the 16k spindle needs a curve; until then use power only) |
+| Torque | T = P/ω, checked against the active machine's spindle torque curve (§4.1) |
 
 Notes:
 - **Replacement:** this replaces today's power-based force (`calc_cutting_forces`: `unit_hp × MRR → hp → F_t = 33000·hp/SFM`), which ignores the size effect and the edge force.
@@ -140,7 +142,7 @@ Every constraint names its source. "Empirical" means kept deliberately until it 
 All parameter sets live in versioned JSON under `data/model_v2/`, each with a `source` field:
 - `materials.json`: kc1.1, mc, K_r, K_te, Taylor C/n, λ, h_wh, and the GWizard family → Sandvik MC group mapping.
 - `tools.json`: r_β by coating and diameter; c_mat and n for h_tooth; core-diameter ratio by flute count; carbide E, TRS and fatigue fraction.
-- `machine.json`: already exists. Add the spindle torque curve and runout.
+- Machine profiles (`machines/*.json`, one per machine, user-editable): max rpm, power by duty rating, and the torque curve as [rpm, N·m] points per rating, with power interpolated linearly between points. The Speedio 16k curve is in `machines/speedio_s500x2.json`. Runout stays a machine setting with a per-tool override (Blum measurement later).
 
 ### 4.2 Benchmark dataset
 
@@ -179,20 +181,22 @@ The existing `cutlog.py` adjusts the user's own results from cuts they log, on t
 
 ## 6. Implementation plan (each step in its own session or PR)
 
-1. **Data first.** Build the v2 benchmark dataset (§4.2). Source the Sandvik kc1.1/mc table and carbide properties. Research is in `docs/research/`.
+1. **Data first.** Build the v2 benchmark dataset (§4.2). Source the Sandvik kc1.1/mc table and carbide properties. Research is in `docs/research/`. **Done 2026-10-15:** 578 rows, findings and open decisions in `docs/research/v2_data_findings.md`.
 2. **Force model module** `physics_v2/forces.py`, with unit tests against textbook examples (Altintas) and Sandvik power examples.
 3. **Constraint and optimizer module** `physics_v2/optimize.py` (pure functions), plus the provenance of which constraint is binding.
 4. **Calibration script** `tools/calibrate_v2.py`, which writes `data/model_v2/*.json` and a residual report.
 5. **Pipeline integration** behind `TOOLWIZ_MODEL=v2` (v1 stays the default). The web page and Fusion show which model produced the numbers.
 6. **Comparison report** (an HTML artifact) for the user's review, then the switch to v2 and v1's retirement.
 
-## 7. Open questions for the user
+## 7. Decisions (user, 2026-10-15)
 
-1. **Tool-life target** for the default aggressiveness (minutes of cutting per edge), or keep "vendor-typical" life.
-2. **Z-level credit:** use the operation's real depth from Fusion when the add-in can read it (it is the top and bottom heights), or keep the fixed credit.
-3. **Spindle torque curve** for the 16k non-dual-contact spindle: from the Brother manual, if available.
-4. **Holder runout:** the measured TIR of the user's holders (ER, shrink-fit, etc.). Set it in Machine & Cut Parameters.
-5. **Scope:** chamfer, ball and bull-nose finishing in v2.0, or v2.1.
+1. **Tool life:** vendor-typical. Taylor C is anchored so that default aggressiveness reproduces the vendors' published SFM; other aggressiveness settings trade life for speed.
+2. **Z-level credit:** use the operation's real depth (top to bottom height) when the add-in can read it; otherwise the fixed credit from the 10% rule (2026-10-13).
+3. **Spindle torque curve:** supplied by the user for the 16k spindle and stored in `machines/speedio_s500x2.json` (`torque_curve`): 5.1 kW continuous, 7.4 kW for 10 min / 15% ED, 40 N·m momentary up to the ~4,500 rpm base speed. The quoted high-speed torques (8.8 / 5.9 / 4.4 N·m at 8k / 12k / 16k) equal the 7.4 kW rating. To be checked against the Brother spindle output chart.
+   - **Proposed (needs the user's OK):** C5 uses the continuous rating for sustained cutting. Below base speed it is constant torque, about 10.8 N·m, which is far tighter than a power-only check: at 764 rpm (1" tool at 200 SFM) the torque cap is 0.87 kW, against 5.1 kW for power alone.
+   - **Other machines:** ToolWiz must accept spindle data for any machine (user, 2026-10-15). Machine profiles hold max rpm, power by duty rating and torque curve points, entered by the user; the Speedio file is one profile among several.
+4. **Runout:** 0.0002" TIR for micro tools unless the user enters an override. Later goal: the Blum laser measures runout per tool and writes it to the tool library, so TIR becomes a per-tool value with the machine setting as fallback. Not implemented yet.
+5. **Scope:** chamfer mills and ball and bull-nose finishing move to v2.1. v2.0 is square end mills: slot, side/rough, adaptive/HEM and finish.
 
 ## 8. References
 
