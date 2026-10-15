@@ -164,6 +164,6 @@ That is the force/deflection trade the v2 model is meant to explain. The calibra
 
 ## 6. Decisions needed from the user (before calibration)
 
-1. **17-4 Condition A** → P5.0.Z.HT (2300) or P5.0.Z.PH (2800)? See `material_mapping_v2.md`.
-2. **Harvey's generic charts (SF_73000/72000):** under discussion. By removal rate they agree with Harvey's material-specific sheet (see §2), so weighting them down is probably unnecessary.
+1. ~~17-4 Condition A~~ **Decided 2026-10-15:** every 17-4 condition uses P5.0.Z.AN scaled by real hardness, as Sandvik's ToolGuide does (`sandvik_toolguide_probes.md`).
+2. ~~Harvey's generic charts~~ **Decided 2026-10-15:** kept at normal weight. By removal rate they agree with Harvey's material-specific sheet (§2).
 3. ~~**C5 rating**~~ **Decided 2026-10-15:** the continuous rating for sustained cuts.

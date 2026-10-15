@@ -1,6 +1,6 @@
 # GWizard families → Sandvik MC groups (proposal for v2 force data)
 
-_Research, 2026-10-15. For design §3.2 and §4.1 (`data/model_v2/materials.json`). Status: **proposal for the user's review**; nothing in the engine uses it yet._
+_Research, 2026-10-15. For design §3.2 and §4.1 (`data/model_v2/materials.json`). Status: proposal, with the PH stainless decision made (see that section). Nothing in the engine uses it yet._
 
 ## Source
 
@@ -39,7 +39,16 @@ Families that span annealed and hardened conditions map by the alloy's condition
 | Tungsten | S5.0.U.NS | **no kc1** | Gap. |
 | Composite, Graphite, Plastics, Wax, Woods | none | — | Outside the Kienzle model. Keep v1 rules (design §2). |
 
-### PH stainless (the user's main material)
+### Decision (user, 2026-10-15): 17-4 PH follows Sandvik's own placement
+
+Sandvik's CoroPlus ToolGuide files 17-4 PH in the annealed ferritic/martensitic group at a default 200 HB and scales force with the hardness entered. That gives ×1.25 from 200 to 345 HB, about kc ∝ HB^0.41; see `sandvik_toolguide_probes.md`.
+
+- 17-4, 15-5, 13-8 and Custom 455/465 in every condition: **P5.0.Z.AN (1800 / 0.21 at 200 HB)**, scaled to the alloy's real HB.
+- The hardness exponent per ISO family is taken from that family's own annealed/hardened Sandvik rows (P5: 0.49 from the table, 0.41 from the calculator; P2: 0.26 from both). The calibration step fits the final value.
+- P5.0.Z.PH (2800) is **not** used for 17-4. The table below is kept for the record and superseded for kc.
+- 17-7 PH Condition A stays austenitic (M1.0.Z.AQ, scaled by HB).
+
+### PH stainless (original proposal, superseded for kc)
 
 | GWizard alloy and condition | HB (GWizard) | Sandvik group | kc1 / mc | Why |
 |---|---|---|---|---|

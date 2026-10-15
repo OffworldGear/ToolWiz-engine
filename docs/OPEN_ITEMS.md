@@ -8,11 +8,11 @@ The design is in `docs/PHYSICS_MODEL_DESIGN.md`. Implement it in a new chat, one
 
 Why: ToolWiz v1 is GWizard's tables plus stacked rules. For tools of 1/8" and smaller in steel it is 2–7× Harvey's published feeds (`docs/research/harvey_micro_data.md`). It runs a heavy chip at a shallow depth where Harvey runs a thin chip deep, which is why the 1/16" rougher's programs are so large.
 
-**Step 1 (data) done 2026-10-15.** Findings: `docs/research/v2_data_findings.md`. Decisions needed before calibration (its §6):
-- 17-4 Condition A → Sandvik P5.0.Z.HT or P5.0.Z.PH.
-- Harvey's generic charts: under discussion. By removal rate they agree with Harvey's specific sheet (findings §2).
+**Done 2026-10-15:** step 1 (data, `docs/research/v2_data_findings.md`) and step 2 (`physics_v2/forces.py`).
+- All data decisions are made: 17-4 → P5.0.Z.AN scaled by hardness; Harvey generic charts at normal weight; C5 on the continuous rating.
+- The optimizer objective is agreed (design §3.6): MRR, with speed set from tool life.
 
-Next is step 2, the force model module.
+Next is step 3, constraints and optimizer (`physics_v2/optimize.py`).
 
 ## User actions
 

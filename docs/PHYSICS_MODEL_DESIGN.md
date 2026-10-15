@@ -114,6 +114,13 @@ Every constraint names its source. "Empirical" means kept deliberately until it 
 - **Objective:** maximize removal rate, with a credit for fewer Z levels (the user's G-code concern):
   - score = MRR / (1 + t_level·v_f / (ap·L_path)).
   - With no part data, use a fixed small credit, set so that "deep with a thin chip" wins over "shallow with a heavy chip" when removal is about equal (the 10% rule the user approved on 2026-10-13).
+- **Agreed with the user (2026-10-15):**
+  - **Speed is not a free variable.** v_c comes from C7 (tool life at the alloy's real hardness and the engagement), and only then is MRR maximized over fz, ap and ae. If speed were free, MRR would always drive it to max rpm, since in the force model speed adds removal without adding force.
+  - **The objective depends on the operation.**
+    - Roughing and adaptive maximize MRR, with the Z-level credit from the real depth.
+    - Finishing maximizes feed at the fixed ap and ae of the stock, with deflection held within tolerance and the chip above C1.
+    - Slotting has ae fixed at D; it maximizes over fz and ap, with C8 capping ap.
+  - **Robust optimum.** Pick a point with a margin from each binding limit (set by aggressiveness), preferring a point where MRR is flat. Then an error in an uncertain limit (runout, K_r, the tool factor) costs little MRR rather than a tool.
 - **Aggressiveness** sets the safety margins, not multipliers on the result: the δ_allow fraction, the stress fraction s, the tool-life target, and λ.
 - **Expected behavior:** for micro side milling, C2 (tooth strength) and runout pin fz low, deflection then allows a large ap, and the optimum is deep and narrow. That is Harvey's micro roughing pattern. It should come out of the model, not be hard-coded. If it doesn't, something is missing from the model.
 
