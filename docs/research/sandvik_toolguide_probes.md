@@ -16,6 +16,8 @@ _Research with the user, 2026-10-15. Source: CoroPlus ToolGuide cutting-data scr
 | 200 HB | Pre-machining (dynamic) | 440 | 0.000618 | 21300 | 52.7 | 0.0078 | 0.125 | 0.000369 | 0.0514 | 0.0821 | 0.0274 |
 | 345 HB, "Universal machining center" 37.5 HP, 18000 1/min | Helical milling | 142 | 0.0003 | 6880 | 8.26 | 0.0787 | 0.021 | 0.0003 | 0.00683 | 0.0273 | 0.0283 |
 | 345 HB | Pre-machining (conventional, full slot, 6 axial passes) | 142 | 0.0003 | 6880 | 8.26 | 0.0787 | 0.021 | 0.0003 | 0.0137 | 0.0273 | 0.0283 |
+| **45 NCD 16** (not 17-4) 420 HB, Universal machining center, **compressed air** | Helical milling | 212 | 0.0003 | 10300 | 12.4 | 0.0787 | 0.025 | 0.0003 | 0.0122 | 0.046 | 0.0318 |
+| 45 NCD 16, 420 HB | Pre-machining (dynamic); **rpm at the machine's 18000 cap** | 371 | 0.000691 | 18000 | 49.7 | 0.00619 | 0.125 | 0.000372 | 0.0385 | 0.0727 | 0.0288 |
 
 Overview at 345 HB: tool life count 5.58 features; machining time 3:33.8.
 
@@ -44,7 +46,25 @@ The helical step's absolute kc reflects how Sandvik defines QQ for helical entry
 - The ratio is the same at very different engagements, so the h_m + Kienzle structure matches Sandvik's.
 - The constant 0.79 is a tool/rake factor to calibrate. By Sandvik's 1%/° rule it would be about 21° of rake, which is high for a steel end mill.
 
+## Sandvik holds the mean chip constant
+
+In every pre-machining case the mean chip thickness h_m = fz·(1 − cos φe)/φe is **0.000191" (0.0049 mm)** for this 2 mm tool:
+- 17-4 PH at 200 HB, dynamic, ae 0.10·D, fz 0.000618;
+- 17-4 PH at 345 HB, full slot, fz 0.0003;
+- 45 NCD 16 at 420 HB, dynamic, ae 0.079·D, fz 0.000691.
+
+The strategy, engagement, material and hardness all change; the mean chip does not. Sandvik raises fz to undo chip thinning and doesn't reduce it for hardness. Hardness lowers the speed. This is the tooth-strength / chip-thickness limit (C2 in design §3.5) expressed as a constant h_m per tool size.
+
+## Family-specific hardness exponents
+
+45 NCD 16 (a Ni-Cr-Mo low-alloy steel, Sandvik P2, not stainless) at 420 HB has an implied dynamic kc of 5156 N/mm² at the same h_m.
+- Using P2.5.Z.HT (2000 at 330 HB) with the same 0.79 tool factor gives 4838. That implies kc ∝ HB^0.26 from 330 to 420 HB.
+- Sandvik's own table gives exactly 0.26 for P2 (P2.1.Z.AN → P2.5.Z.HT), and 0.49 for P5 (P5.0.Z.AN → HT) against the calculator's 0.41 for 17-4.
+
+**Working hypothesis:** the calculator's hardness correction is about the exponent implied by each family's own annealed/hardened rows. Speed also stays higher for the low-alloy steel (212 SFM at 420 HB helical) than for 17-4 (142 at 345 HB). Stainless carries its own speed penalty on top of hardness.
+
 ## Not yet known
 
-- **A third hardness point** (H900, about 420 HB / 44 HRC) to confirm the curve shape.
+- **A third 17-4 point** (H900, about 420 HB / 44 HRC) to confirm the curve shape. The 45 NCD 16 run is a different family.
+- **A consistent setup.** The machine (rpm cap) and coolant changed between runs. Speeds can only be compared with the same machine and coolant.
 - **Dynamic at 345 HB.** At 345 HB the calculator chose conventional slotting, not dynamic. Was that a user setting or Sandvik's own choice? The machine also differed between runs.
