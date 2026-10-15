@@ -258,10 +258,12 @@ class TestSpindle(unittest.TestCase):
         self.assertFalse(fast["spindle"]["rpm_ok"])
         self.assertFalse(fast["spindle"]["ok"])
 
-    def test_rating_must_be_named(self):
-        with self.assertRaises(ValueError):
-            f.cutting_forces(f.Cut(10.0, 4, 10.0, 3.0, 0.05, 3000.0), f.ForceCoefficients(P5_PH, k_r=0.4),
-                             spindle=speedio_16k())
+    def test_default_rating_is_continuous(self):
+        # C5 uses the continuous rating (design §7.3, decided 2026-10-15); at 6000 rpm that is 5.1 kW.
+        cut = f.Cut(10.0, 4, 10.0, 3.0, 0.05, 6000.0)
+        r = f.cutting_forces(cut, f.ForceCoefficients(P5_PH, k_r=0.4), spindle=speedio_16k())
+        self.assertEqual(r["spindle"]["rating"], "continuous")
+        self.assertAlmostEqual(r["spindle"]["available_power_kw"], 5.1, places=2)
 
 
 class TestWorkedExample(unittest.TestCase):

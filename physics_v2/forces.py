@@ -54,8 +54,8 @@ T12 is a 1/16" 4-flute rougher with a 1/8" shank. The cut is Harvey SF_875400 (8
 (tests/benchmarks/v2/harvey.json). H1025 is about 356 HB, so the 350–400 HBn row applies.
 Material: P5.0.Z.PH, kc1.1 = 2800 N/mm², mc = 0.21 at 330 HB (material_mapping_v2.md; no hardness
 correction yet). Assumed, pending calibration: 0° rake, 35° helix, K_r = 0.4 (design range 0.3–0.6),
-no edge force. TIR 0.0002" (machine default, §7.4). Spindle: Speedio 16k, checked here against the
-continuous rating (recommended for C5, still awaiting the user's OK).
+no edge force. TIR 0.0002" (machine default, §7.4). Spindle: Speedio 16k, continuous rating (C5,
+decided 2026-10-15).
 
     >>> import json, os, machine_profiles
     >>> from physics_v2 import forces
@@ -65,7 +65,7 @@ continuous rating (recommended for C5, still awaiting the user's OK).
     >>> coeffs = forces.ForceCoefficients(forces.load_kienzle("P5.0.Z.PH"), k_r=0.4)
     >>> with open(os.path.join(machine_profiles.BUILTIN_DIR, "speedio_s500x2.json"), encoding="utf-8") as fh:
     ...     spindle = json.load(fh)["spindle_options"]["optional_16k"]
-    >>> r = forces.cutting_forces(cut, coeffs, tir=0.0002 * 25.4, spindle=spindle, rating="continuous")
+    >>> r = forces.cutting_forces(cut, coeffs, tir=0.0002 * 25.4, spindle=spindle)
 
 6112 rpm. Engagement 78.1°; h_max = fz·sin φe = 0.0065 mm, h_m = 0.58·fz = 0.0038 mm (0.00015");
 0.87 teeth in cut on average, 1.40 counting the helix overlap:
@@ -361,12 +361,12 @@ def spindle_check(torque_nm, power_kw, rpm, spindle, rating):
 # ---------------------------------------------------------------------------
 
 def cutting_forces(cut, coeffs, tir=0.0, runout_model="bound", runout_phase=0.0,
-                   spindle=None, rating=None, n_theta=720, n_axial=None):
+                   spindle=None, rating="continuous", n_theta=720, n_axial=None):
     """Chip geometry, forces, power, torque, runout and (optionally) the spindle check for a cut.
 
     tir is in mm. The spindle check runs when `spindle` (a machine profile's spindle_options entry)
-    is given; `rating` must then be named ("continuous", "s3_15pct_10min" or "momentary"), since
-    which rating C5 uses is still the user's decision (v2_data_findings.md §6.3).
+    is given. C5 checks sustained cuts against the continuous rating (user decision 2026-10-15,
+    design §7.3); "s3_15pct_10min" and "momentary" are there for short cuts and reporting.
     """
     D, z, ap, ae, fz = cut.D, cut.z, cut.ap, cut.ae, cut.fz
     phi_e = engagement_angle(ae, D)
@@ -407,8 +407,6 @@ def cutting_forces(cut, coeffs, tir=0.0, runout_model="bound", runout_phase=0.0,
 
     spindle_result = None
     if spindle is not None:
-        if rating is None:
-            raise ValueError("name the spindle rating to check against")
         spindle_result = spindle_check(torque_nm, power_w / 1000.0, cut.rpm, spindle, rating)
 
     src = dict(coeffs.kienzle.source)
