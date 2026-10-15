@@ -50,27 +50,44 @@ class StickoutSweepBase(unittest.TestCase):
 
 
 class TestMillingStickoutSweep(StickoutSweepBase):
-    def test_speed_follows_osg_overhang_line_and_chipload_untouched_by_stickout_step(self):
-        # OSG: 100% to 4xD, then about -10% per D (4-5xD 90%, 5-6xD 80%; PHOENIX 6-10xD 40-60%).
-        from gwizard_physics import reach_sfm_factor
+    def test_speed_follows_osg_overhang_line_on_equivalent_stickout(self):
+        # OSG: 100% to 4xD, then about -10% per D (4-5xD 90%, 5-6xD 80%; PHOENIX 6-10xD 40-60%),
+        # applied to the stiffness-equivalent stickout (a micro tool on a 1/8" shank counts as shorter).
+        from gwizard_physics import BeamDeflectionEngine
+        from toolwiz_common.tool_profile import Segment
         for name, tool in MILLING_TOOLS.items():
             for ld in LD_STEPS:
                 with self.subTest(tool=name, ld=ld):
                     d = self.calc({**tool, "stickout": tool["diameter"] * ld})
+                    seg = [Segment(x["kind"], x["start"], x["end"], x["d0"], x["d1"], x["fluted"])
+                           for x in d["profile"]["segments"]]
+                    eq = BeamDeflectionEngine.equivalent_stickout(seg, tool["diameter"], tool["flutes"])
+                    eld = eq / tool["diameter"]
+                    expected = 1.0 if eld <= 4 else max(0.4, 1.0 - 0.1 * (eld - 4))
                     m = self.chatter_multipliers(d)
-                    expected = 1.0 if ld <= 4 else max(0.4, 1.0 - 0.1 * (ld - 4))
                     self.assertAlmostEqual(m.get("sfm", 1.0), expected, places=6)
-                    self.assertAlmostEqual(reach_sfm_factor(tool["diameter"] * ld, tool["diameter"]), expected, places=6)
                     self.assertEqual(m.get("ipt", 1.0), 1.0)
+                    self.assertLessEqual(eld, ld * 1.0001)   # never longer than the real stickout here
 
-    def test_recommended_engagement_shrinks_as_stickout_grows(self):
+    def test_straight_tool_equivalent_stickout_is_its_stickout(self):
+        from gwizard_physics import BeamDeflectionEngine
+        from toolwiz_common.tool_profile import ToolProfile
+        prof = ToolProfile.from_fusion({"type": "flat end mill", "unit": "inches", "geometry": {
+            "DC": 0.25, "NOF": 4, "LCF": 0.75, "SFDM": 0.25, "LB": 1.5}})
+        self.assertAlmostEqual(BeamDeflectionEngine.equivalent_stickout(prof.segments, 0.25, 4), 1.5, places=9)
+
+    def test_removal_rate_never_grows_with_stickout(self):
+        # The long-reach trade may take a deeper, lighter cut (larger DOC x WOC at a lower feed), so the
+        # invariant is the removal rate of the recommended cut, not its area.
         for name, tool in MILLING_TOOLS.items():
-            areas = []
+            rates = []
             for ld in LD_STEPS:
-                d = self.calc({**tool, "stickout": tool["diameter"] * ld})
-                areas.append(d["rec_doc"] * d["rec_woc"])
-            with self.subTest(tool=name, areas=areas):
-                for shorter, longer in zip(areas, areas[1:]):
+                p = {**tool, "stickout": tool["diameter"] * ld}
+                rec = self.calc(p)
+                applied = self.calc({**p, "cutDepth": rec["rec_doc"], "cutWidth": rec["rec_woc"]})
+                rates.append(rec["rec_doc"] * rec["rec_woc"] * applied["feedrate"])
+            with self.subTest(tool=name, rates=rates):
+                for shorter, longer in zip(rates, rates[1:]):
                     self.assertLessEqual(longer, shorter * 1.001)
 
     def test_recommended_cut_stays_within_deflection_limit(self):

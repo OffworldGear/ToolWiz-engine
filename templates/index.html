@@ -1228,9 +1228,26 @@
         let fullAlloys = [];
         let allFamilies = [];
         let runoutInches = 0.0002;   // precise runout in inches; the input only shows a rounded copy
+        // Runout is a machine setting (holder TIR), saved on the server so the Fusion add-in uses it too.
+        let runoutSaveTimer = null;
         function onRunoutInput() {
             const v = parseFloat(document.getElementById('runout')?.value);
-            if (Number.isFinite(v) && v >= 0) runoutInches = isMetric ? v / 25.4 : v;
+            if (Number.isFinite(v) && v >= 0) {
+                runoutInches = isMetric ? v / 25.4 : v;
+                clearTimeout(runoutSaveTimer);
+                runoutSaveTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch('/api/machine_limits', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ runout: runoutInches })
+                        });
+                        const data = await res.json();
+                        if (data.success && machineProfile) machineProfile.runout = data.runout;
+                        else if (!data.success) alert('Runout not saved: ' + data.error);
+                    } catch (e) { console.warn('Runout save failed', e); }
+                }, 600);
+            }
             calculate();
         }
         let machineProfile = null;
@@ -1343,7 +1360,7 @@
                 || cat.includes('Woodruff') || cat.includes('Saws');
         }
 
-        // Auto defaults: shoulder length = LCF, shoulder diameter = DC, shaft = DC,
+        // Auto defaults: shoulder length = LCF, shoulder diameter = DC, shaft = DC (1/8" / 3 mm under that),
         // LB = max(3.15*DC, 1.05*LCF). Only fields whose Auto badge is on are rewritten.
         function syncAutoToolFields() {
             const dia = fieldNum('diameter');
@@ -1363,7 +1380,10 @@
             }
             setIf('shoulderLength', 'shoulderLength', headOnNeck ? dia * 2.0 : fl);
             setIf('shoulderDiameter', 'shoulderDiameter', headOnNeck ? dia * 0.5 : dia);
-            setIf('shaftDiameter', 'shaftDiameter', dia);
+            // Miniature end mills (< 1/8" / 3 mm) are ground on 1/8" or 3 mm shanks, not on a rod of the
+            // cutting diameter (that would model them as far more flexible than they are).
+            const microShank = isMetric ? 3.0 : 0.125;
+            setIf('shaftDiameter', 'shaftDiameter', dia < microShank ? microShank : dia);
 
             // Ball nose: corner radius is half the diameter (Fusion's RE for a ball mill).
             const cr = document.getElementById('cornerRadius');
@@ -2198,6 +2218,11 @@
             if (machineProfile) {
                 if (rpmEl && machineProfile.max_rpm) rpmEl.value = machineProfile.max_rpm;
                 if (hpEl && machineProfile.max_hp) hpEl.value = Number(machineProfile.max_hp).toFixed(2);
+                if (Number.isFinite(Number(machineProfile.runout)) && machineProfile.runout !== null) {
+                    runoutInches = Number(machineProfile.runout);
+                    const roEl = document.getElementById('runout');
+                    if (roEl) roEl.value = isMetric ? (runoutInches * 25.4).toFixed(3) : runoutInches.toFixed(4);
+                }
                 const nameEl = document.getElementById('machineProfileName');
                 if (nameEl) nameEl.innerText = machineProfile.machine || '';
             }

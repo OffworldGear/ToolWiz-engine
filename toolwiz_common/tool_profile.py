@@ -8,7 +8,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from .geometry import ToolGeometry
+from .geometry import ToolGeometry, default_shank, shank_looks_wrong
+
+SHANK_WARNING = ("Shank diameter equals the cutting diameter on a tool under 1/8\": the tool is modelled "
+                 "as a thin rod all the way to the holder. Miniature end mills normally have a 1/8\" shank; "
+                 "if yours does, correct the tool's shaft diameter (Fusion: Cutter tab > Shaft diameter).")
 
 _EPS = 1e-9
 
@@ -49,6 +53,8 @@ class ToolProfile:
         warnings: List[str] = []
 
         has_neck = sl > lcf * 1.01 and sl > 0.0
+        if shank_looks_wrong(dc, g.shank_diameter):
+            warnings.append(SHANK_WARNING)
         if lb < lcf - _EPS:
             warnings.append("Holder over flutes")
         elif has_neck and lb < sl - _EPS:
@@ -101,7 +107,7 @@ class ToolProfile:
         tip-to-shoulder (Fusion 'shoulder-length'). The old request carries no tip diameter, so a
         taper angle alone leaves the flutes at DC (as the pipeline modelled them before).
         """
-        shank = shank_diameter if (shank_diameter and shank_diameter > 0) else diameter
+        shank = shank_diameter if (shank_diameter and shank_diameter > 0) else default_shank(diameter)
         geo: Dict[str, Any] = {
             "DC": float(diameter), "NOF": int(flutes), "LCF": float(flute_length or 0.0),
             "SFDM": float(shank), "LB": float(stickout), "RE": float(corner_radius or 0.0),

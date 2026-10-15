@@ -6,6 +6,21 @@ from .tool_types import ToolKind, classify, is_milling_kind
 from .units import to_inches, tool_unit
 
 
+MICRO_SHANK_IN = 0.125   # standard shank of miniature end mills (Harvey, Helical, OSG, ...)
+
+
+def default_shank(diameter: float) -> float:
+    """Shank diameter to assume when none is given: 1/8" for tools under 1/8" (miniature end mills
+    are ground on 1/8" shanks), otherwise the cutting diameter."""
+    return MICRO_SHANK_IN if 0 < diameter < MICRO_SHANK_IN else diameter
+
+
+def shank_looks_wrong(diameter: float, shank: float) -> bool:
+    """A tool under 1/8" whose shank equals its cutting diameter: almost always a tool definition
+    that left the shank at the cutting diameter, which makes it look far more flexible."""
+    return 0 < diameter < MICRO_SHANK_IN - 1e-6 and abs(shank - diameter) <= 1e-6
+
+
 def default_stickout(diameter: float, flute_length: float = 0.0) -> float:
     """max(3.0*D*1.05, 1.05*flute_length); always > 0 for positive diameter."""
     return max(3.0 * diameter * 1.05, 1.05 * (flute_length or 0.0))
@@ -62,7 +77,7 @@ class ToolGeometry:
         if shank is None or shank <= 0:
             shank = length("SF")
         if shank is None or shank <= 0:
-            shank = dia
+            shank = default_shank(dia)
         rad = length("RE", 0.0) or 0.0
 
         nof = geo.get("NOF")

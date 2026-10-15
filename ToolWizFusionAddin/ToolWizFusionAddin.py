@@ -1773,6 +1773,17 @@ class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
 # COMMAND 3: FAST CAM OPERATION AUTO-SETTER
 # ==============================================================================
 
+def tool_profile_warnings(calc_result):
+    """Warnings for the confirmation: problems the server found in the tool definition (e.g. shank
+    equals a micro cutting diameter) and alerts meant for Fusion (e.g. runout vs chip load)."""
+    prof = (calc_result or {}).get("profile") or {}
+    out = [str(w) for w in (prof.get("warnings") or []) if w]
+    for a in (calc_result or {}).get("alerts") or []:
+        if isinstance(a, dict) and a.get("message"):
+            out.append(f"{a.get('title') or 'Note'}: {a['message']}")
+    return out
+
+
 def _log_calc_exchange(payload, res):
     """One line with the tool geometry sent and one with what the server recommended / what capped it."""
     try:
@@ -2286,6 +2297,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         limited_by=calc_result.get("limited_by"), provenance=calc_result.get("provenance"),
         preset_note=preset_note,
     )
+    for w in tool_profile_warnings(calc_result):
+        msg += "\n\nCheck: " + w
     note = _finish_active_command('ok')
     if note:
         msg += "\n\n" + note

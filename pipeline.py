@@ -35,8 +35,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from toolwiz_common import ToolProfile, default_stickout
+from toolwiz_common.tool_profile import SHANK_WARNING
 from gwizard_physics import (
     ASTMHardnessConverter,
+    BeamDeflectionEngine,
     HARD_MILL_ONSET_HRC,
     WORK_HARDENING_CHIPLOAD_FLOOR,
     alloy_work_hardens,
@@ -315,15 +317,19 @@ def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width:
     p.add("hardness", "ipt", b_ipt, ipt, reason)
 
     b_sfm, b_ipt = sfm, ipt
+    # Milling reach rules use the equivalent stickout (stiffness-based), so a stub tool on a big
+    # shank is not treated as long; drills keep G-Wizard's length rule on the real stickout.
+    reach = r.stickout if ctx.is_hole_tool else _reach_stickout(r)
     sfm, ipt = physics.apply_chatter_penalty(
-        sfm, ipt, r.diameter, r.stickout, is_drilling=ctx.is_hole_tool,
+        sfm, ipt, r.diameter, reach, is_drilling=ctx.is_hole_tool,
         is_saw_woodruff=ctx.is_saw, flute_length=r.flute_length
     )
     if ctx.is_saw:
         reason = "saw/woodruff: stickout penalty bypassed"
     elif sfm != b_sfm or ipt != b_ipt:
-        reason = ((f"long reach (L/D = {r.stickout / r.diameter:.1f}): surface speed reduced per OSG overhang guidance"
-                   if not ctx.is_hole_tool else f"stickout/chatter penalty (L/D = {r.stickout / r.diameter:.1f})")
+        reason = ((f"long reach (equivalent L/D = {reach / r.diameter:.1f}): surface speed reduced per OSG "
+                   f"overhang guidance" if not ctx.is_hole_tool
+                   else f"stickout/chatter penalty (L/D = {r.stickout / r.diameter:.1f})")
                   if r.diameter > 0 else "stickout penalty")
     else:
         reason = "stickout within limit; no penalty"
@@ -373,6 +379,18 @@ def _speed_chain(physics, r: CutRequest, ctx: _Ctx, cut_depth: float, cut_width:
     return base_sfm, base_ipt_lookup, sfm, ipt
 
 
+def _reach_stickout(r: CutRequest) -> float:
+    """Equivalent stickout for the long-reach rules (see BeamDeflectionEngine.equivalent_stickout)."""
+    if r.profile is not None and r.profile.segments:
+        eq = BeamDeflectionEngine.equivalent_stickout(r.profile.segments, r.diameter, r.flutes, r.helix_angle)
+        if eq is not None:
+            return eq
+    return r.stickout or 0.0
+
+
+RUNOUT_CHIP_RATIO = 0.5
+
+
 _ROUGHING_WORDS = ("rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot")
 
 
@@ -386,7 +404,7 @@ def _chipload_floor(physics, r: CutRequest, ctx, base_ipt: float) -> float:
             or not any(w in op for w in _ROUGHING_WORDS)
             or any(k in geo for k in FORM_TOOL_GEOMETRIES) or "high feed" in op or geo == "high feed"):
         return 1.0
-    floor = reach_chipload_floor(r.stickout or 0.0, r.diameter)
+    floor = reach_chipload_floor(_reach_stickout(r), r.diameter)
     if floor >= 1.0:
         return 1.0
     try:
@@ -547,6 +565,27 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         operation=operation, tap_type=r.tap_type, neck_diameter=r.neck_diameter, alloy=r.alloy,
         corner_radius=r.corner_radius
     )
+
+    # Runout vs chip load: once the holder's TIR reaches about half the chip per tooth, one flute
+    # takes most of the cut (the others rub), which breaks small tools.
+    if (not ctx.is_hole_tool and not ctx.is_tapping and r.runout and r.runout > 0
+            and adjusted_ipt > 0 and r.runout >= RUNOUT_CHIP_RATIO * adjusted_ipt):
+        if r.is_metric:
+            ro_txt, ch_txt = f"{r.runout * 25.4 * 1000:.1f} um", f"{adjusted_ipt * 25.4 * 1000:.1f} um"
+        else:
+            ro_txt, ch_txt = f"{r.runout:.5f}\"", f"{adjusted_ipt:.5f}\""
+        tips.insert(0, {
+            "title": "Runout vs Chip Load",
+            "message": (f"Holder runout ({ro_txt}) is {r.runout / adjusted_ipt:.0%} of the chip load per tooth "
+                        f"({ch_txt}), so one flute does most of the cutting and the others rub. Check the "
+                        f"runout at the tool tip; a shrink-fit, hydraulic or precision collet chuck "
+                        f"(< 0.0001\" / 2.5 um TIR) protects small tools. Set your holder's runout in "
+                        f"Machine & Cut Parameters."),
+            "type": "warning", "fusion": True,
+        })
+
+    if r.profile is not None and SHANK_WARNING in (r.profile.warnings or []):
+        tips.insert(0, {"title": "Check Shank Diameter", "message": SHANK_WARNING, "type": "warning"})
 
     if is_spindle_limited:
         feed_val = feedrate if not r.is_metric else feedrate * 25.4

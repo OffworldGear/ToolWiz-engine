@@ -12,7 +12,7 @@ from pipeline import CutRequest, run_cut
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 from toolwiz_common import (
     ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
-    ToolGeometry, ToolProfile, default_stickout, to_inches, UnitError, safe_eval_length,
+    ToolGeometry, ToolProfile, default_stickout, default_shank, to_inches, UnitError, safe_eval_length,
     tool_unit as tool_unit_of,
 )
 
@@ -68,7 +68,8 @@ MACHINE = load_machine_profile()
 # User overrides for machine limits live on the server so the web UI and the Fusion add-in
 # share them. Profile values are the defaults; data/machine_settings.json holds overrides.
 MACHINE_SETTINGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "machine_settings.json")
-MACHINE_LIMIT_BOUNDS = {"max_rpm": (100.0, 60000.0), "max_hp": (0.1, 100.0)}
+MACHINE_LIMIT_BOUNDS = {"max_rpm": (100.0, 60000.0), "max_hp": (0.1, 100.0), "runout": (0.0, 0.002)}
+DEFAULT_RUNOUT_IN = 0.0002   # TIR at the cutting edge (good ER collet / milling chuck)
 
 
 def load_machine_overrides(path=None):
@@ -95,6 +96,7 @@ def machine_limits():
     return {
         "max_rpm": ov.get("max_rpm", MACHINE["max_rpm"]),
         "max_hp": ov.get("max_hp", MACHINE["max_hp"]),
+        "runout": ov.get("runout", MACHINE.get("runout", DEFAULT_RUNOUT_IN)),
         "profile_max_rpm": MACHINE["max_rpm"],
         "profile_max_hp": MACHINE["max_hp"],
         "overridden": sorted(ov.keys()),
@@ -287,12 +289,13 @@ def server_info():
 
 @app.route("/api/machine_limits", methods=["GET", "POST"])
 def api_machine_limits():
-    """GET effective limits; POST {maxRpm?, maxHp?} to override (null/"" clears back to the profile)."""
+    """GET effective limits; POST {maxRpm?, maxHp?, runout?} to override (null/"" clears back to the profile).
+    runout is in inches."""
     if request.method == "GET":
         return jsonify({"success": True, **machine_limits()})
     body = _json_body()
     overrides = load_machine_overrides()
-    for field, key in (("maxRpm", "max_rpm"), ("maxHp", "max_hp")):
+    for field, key in (("maxRpm", "max_rpm"), ("maxHp", "max_hp"), ("runout", "runout")):
         if field not in body:
             continue
         val = body[field]
@@ -324,7 +327,7 @@ def calculate():
         cut_depth = float(data.get("cutDepth", 0.25))
         cut_width = float(data.get("cutWidth", 0.25))
         is_metric = bool(data.get("isMetric", False))
-        shank_size = float(data.get("shankDiameter", diameter))
+        shank_size = float(data.get("shankDiameter") or default_shank(diameter))
 
         req = CutRequest(
             family=data.get("family", ""),
@@ -349,7 +352,7 @@ def calculate():
             aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,  # Scale 0-100 to 0.0-1.0
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
-            runout=float(data.get("runout", 0.0002)),
+            runout=float(data.get("runout") or machine_limits()["runout"]),
             cut_depth=cut_depth,
             cut_width=cut_width,
             tap_type=data.get("tapType", ""),
@@ -417,7 +420,7 @@ def calculate_for_fusion():
         data = _json_body()
         fusion_tool = _fusion_tool_arg(data)
         diameter = float(data.get("diameter", 0.25))
-        shank_size = float(data.get("shankDiameter", diameter))
+        shank_size = float(data.get("shankDiameter") or default_shank(diameter))
         pitch = data.get("pitch")
 
         # cut_depth / cut_width are left unset: the pipeline uses the recommended DOC/WOC
@@ -444,7 +447,7 @@ def calculate_for_fusion():
             aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
-            runout=float(data.get("runout", 0.0002)),
+            runout=float(data.get("runout") or machine_limits()["runout"]),
             cut_depth=None,
             cut_width=None,
             tap_type=data.get("tapType", ""),
@@ -473,6 +476,7 @@ def calculate_for_fusion():
             "limited_by": res.limited_by,
             "provenance": res.provenance,
             "profile": res.profile,
+            "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
         })
 
     except Exception as e:
@@ -988,7 +992,7 @@ def twin_batch_generate():
         coating = req_data.get("coating", "AlTiN")
         max_rpm = float(req_data.get("maxRpm") or machine_limits()["max_rpm"])
         max_hp = float(req_data.get("maxHp") or machine_limits()["max_hp"])
-        runout = float(req_data.get("runout", 0.0002))
+        runout = float(req_data.get("runout") or machine_limits()["runout"])
         
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:

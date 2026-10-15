@@ -778,8 +778,9 @@ class CuttingMechanics:
             # Traditional roughing / 3D roughing / facing:
             lim = diameter * 0.002 * (0.2 + aggressiveness)
             if diameter <= 0.125:
-                # Micro-tool transverse compliance floor to prevent false alerts on sub-100 microinch deflections
-                lim = max(0.00035, lim)
+                # Micro-tool floor, scaled with diameter (0.3% of D, at most 0.00035"): a fixed 0.00035"
+                # allowed 1.1% of D on a 1/32" tool, ~3x what adaptive allows.
+                lim = max(min(0.00035, diameter * 0.003), lim)
             return min(0.0010, lim)
 
     @classmethod
@@ -912,6 +913,29 @@ class BeamDeflectionEngine:
         return total * half_len
 
     _PANELS_TAPER: int = 4
+
+    @classmethod
+    def equivalent_stickout(cls, segments: Any, diameter: float, flutes: int = 4,
+                            helix_angle: float = 30.0) -> Optional[float]:
+        """Stickout of a plain tool (cutting diameter all the way to the holder, same flutes) that
+        bends as much as this one: L * (compliance / plain-tool compliance)^(1/3). A straight tool
+        returns its own stickout; a stub on a larger shank comes out shorter, a long slim neck longer.
+        None when there is no profile."""
+        if not segments or diameter <= 0:
+            return None
+        segs = list(segments)
+        stickout = float(segs[-1].end)
+        actual = sum(cls._segment_integral(sg, flutes, helix_angle) for sg in segs)
+        plain = []
+        for sg in segs:
+            if sg.fluted:
+                plain.append(sg)
+            else:
+                plain.append(type(sg)(sg.kind, sg.start, sg.end, diameter, diameter, False))
+        ref = sum(cls._segment_integral(sg, flutes, helix_angle) for sg in plain)
+        if actual <= 0 or ref <= 0:
+            return stickout
+        return stickout * (actual / ref) ** (1.0 / 3.0)
 
     @classmethod
     def _segment_integral(cls, seg: Any, flutes: int, helix_angle: float) -> float:
