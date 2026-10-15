@@ -16,3 +16,4 @@ t13_dump.txt
 t1_dump.json
 data/machine_settings.json
 data/cutlog.db
+data/machines/

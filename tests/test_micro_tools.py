@@ -105,7 +105,8 @@ class TestRunout(unittest.TestCase):
                 r = c.post("/api/machine_limits", json={"runout": 0.0001}).get_json()
                 self.assertEqual(r["runout"], 0.0001)
                 with open(path, encoding="utf-8") as fh:
-                    self.assertEqual(json.load(fh)["runout"], 0.0001)
+                    saved = json.load(fh)   # overrides are stored per machine
+                self.assertEqual(saved["machines"][saved["active_machine"]]["runout"], 0.0001)
                 self.assertEqual(c.post("/api/machine_limits", json={"runout": 0.01}).status_code, 400)
 
 

@@ -150,6 +150,25 @@
         .input-card-title .input-card-icon {
             font-size: var(--fs-lg);
         }
+
+        /* Machine selector row and machine-profile editor */
+        .machine-select-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+        .machine-select-row .btn-ratio { flex: 0 0 auto; padding: 0.5rem 0.75rem; font-size: var(--fs-sm); white-space: nowrap; }
+        #spindleSummary { font-size: var(--fs-sm); color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4; }
+        .machine-ed-card { width: min(760px, 100%); }
+        .machine-ed-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+        .machine-ed-row select { flex: 1 1 200px; width: auto; }
+        .machine-ed-row .btn-ratio { flex: 0 0 auto; padding: 0.45rem 0.75rem; font-size: var(--fs-sm); }
+        .machine-ed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin-bottom: 0.6rem; }
+        .machine-ed-grid label, .machine-ed-curves label { font-size: var(--fs-sm); color: var(--text-secondary); display: block; margin-bottom: 2px; }
+        .machine-ed-hp { font-weight: 400; color: var(--text-secondary); }
+        .machine-ed-curves { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.6rem; margin-bottom: 0.6rem; }
+        .machine-ed-curves textarea { font-family: ui-monospace, Consolas, monospace; font-size: var(--fs-sm); }
+        .machine-ed-chart { width: 100%; height: auto; display: block; background: rgba(15, 23, 42, 0.6); border-radius: 6px; margin: 0.4rem 0; }
+        .machine-ed-chart text { fill: var(--text-secondary); font-size: 12px; font-family: 'Inter', sans-serif; }
+        .machine-ed-chart .axis { stroke: var(--text-secondary); stroke-width: 1; }
+        .machine-ed-chart .grid { stroke: var(--panel-border); stroke-width: 1; }
+        @media (max-width: 560px) { .machine-select-row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -218,6 +237,12 @@
                     <!-- 2. MACHINE & CUT PARAMETERS CARD (Above Tool Properties) -->
                     <div class="glass-panel input-card">
                         <h3 class="input-card-title"><span class="input-card-icon">⚙️</span> Machine & Cut Parameters</h3>
+                        <div class="machine-select-row">
+                            <select id="machineSelect" aria-label="Machine" onchange="onMachineSelectChange()"></select>
+                            <select id="spindleSelect" aria-label="Spindle" onchange="onSpindleSelectChange()"></select>
+                            <button type="button" id="editMachinesBtn" class="btn-ratio" onclick="openMachineEditor()">Edit machines&hellip;</button>
+                        </div>
+                        <div id="spindleSummary" aria-live="polite"></div>
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="maxRpm">Max RPM</label>
@@ -1152,6 +1177,69 @@
             <input type="text" id="libraryLoaderSearch" class="tool-dialog-input" placeholder="Filter by number or description" autocomplete="off" oninput="renderLibraryLoader()" style="margin-bottom: 0.6rem;">
             <div id="libraryLoaderList" class="library-loader-list"></div>
             <div id="libraryLoaderMsg" class="cutlog-msg"></div>
+        </div>
+    </div>
+
+    <!-- MACHINE PROFILE EDITOR MODAL -->
+    <div id="machineEditorModal" class="cutlog-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="machineEditorTitle">
+        <div class="cutlog-modal-card machine-ed-card">
+            <div class="cutlog-modal-head">
+                <h3 id="machineEditorTitle">Machine profile</h3>
+                <button type="button" class="cutlog-close" onclick="closeMachineEditor()" aria-label="Close">&times;</button>
+            </div>
+            <div class="machine-ed-row">
+                <button type="button" class="btn-ratio" onclick="newMachineProfile()">New machine</button>
+                <span id="machineEdStatus" class="calibration-status"></span>
+            </div>
+            <div class="input-group">
+                <label for="machineEdName">Machine name</label>
+                <input type="text" id="machineEdName" class="tool-dialog-input" maxlength="80" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label for="machineEdNotes">Source / notes</label>
+                <textarea id="machineEdNotes" class="tool-dialog-input" rows="2" maxlength="4000" placeholder="where these numbers come from"></textarea>
+            </div>
+            <div class="machine-ed-row">
+                <select id="machineEdSpindle" aria-label="Spindle" onchange="onMachineEdSpindleChange()"></select>
+                <button type="button" class="btn-ratio" onclick="addMachineSpindle()">Add spindle</button>
+                <button type="button" class="btn-ratio" onclick="removeMachineSpindle()">Remove spindle</button>
+            </div>
+            <div class="machine-ed-grid">
+                <div><label for="machineEdLabel">Spindle label</label>
+                    <input type="text" id="machineEdLabel" class="tool-dialog-input" maxlength="80" autocomplete="off" oninput="onMachineEdLabelInput()"></div>
+                <div><label for="machineEdMaxRpm">Max RPM</label>
+                    <input type="number" id="machineEdMaxRpm" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
+                <div><label for="machineEdBaseRpm">Base RPM</label>
+                    <input type="number" id="machineEdBaseRpm" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
+                <div><label for="machineEdPowerCont">Continuous kW <span id="machineEdHpCont" class="machine-ed-hp"></span></label>
+                    <input type="number" id="machineEdPowerCont" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
+                <div><label for="machineEdPower10">10-min kW <span id="machineEdHp10" class="machine-ed-hp"></span></label>
+                    <input type="number" id="machineEdPower10" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
+                <div><label for="machineEdPowerPeak">Peak kW <span id="machineEdHpPeak" class="machine-ed-hp"></span></label>
+                    <input type="number" id="machineEdPowerPeak" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
+                <div><label for="machineEdTorque">Momentary torque (N&middot;m)</label>
+                    <input type="number" id="machineEdTorque" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
+            </div>
+            <div class="machine-ed-row">
+                <strong style="font-size: var(--fs-sm);">Torque curve points (one &ldquo;rpm, N&middot;m&rdquo; pair per line)</strong>
+                <button type="button" class="btn-ratio" onclick="fillMachineCurvesFromPower()">Fill from power</button>
+            </div>
+            <div class="machine-ed-curves">
+                <div><label for="machineEdPts_continuous">Continuous</label>
+                    <textarea id="machineEdPts_continuous" class="tool-dialog-input" rows="6" spellcheck="false" oninput="onMachineEdInput()"></textarea></div>
+                <div><label for="machineEdPts_s3_15pct_10min">10 min / S3</label>
+                    <textarea id="machineEdPts_s3_15pct_10min" class="tool-dialog-input" rows="6" spellcheck="false" oninput="onMachineEdInput()"></textarea></div>
+                <div><label for="machineEdPts_momentary">Momentary / peak</label>
+                    <textarea id="machineEdPts_momentary" class="tool-dialog-input" rows="6" spellcheck="false" oninput="onMachineEdInput()"></textarea></div>
+            </div>
+            <svg id="machineEdChart" class="machine-ed-chart" viewBox="0 0 520 260" role="img" aria-label="Torque versus rpm for the three duty ratings"></svg>
+            <div id="machineEdMsg" class="cutlog-msg" role="status" aria-live="polite"></div>
+            <div class="cutlog-actions">
+                <button type="button" id="machineEdDelete" class="btn-ratio" onclick="deleteMachineProfile()">Delete</button>
+                <button type="button" class="btn-ratio" onclick="closeMachineEditor()">Close</button>
+                <button type="button" class="btn-ratio" onclick="saveMachineProfile(true)">Save as new</button>
+                <button type="button" id="machineEdSave" class="btn-log-cut" onclick="saveMachineProfile(false)">Save</button>
+            </div>
         </div>
     </div>
 
@@ -2254,6 +2342,481 @@
             calculate();
         }
 
+        // ---- Machine selector and machine-profile editor ---------------------------------------
+        const MACHINE_RATINGS = [
+            { key: 'continuous', label: 'Continuous', color: 'var(--accent)', dash: '' },
+            { key: 's3_15pct_10min', label: '10 min / S3', color: 'var(--warning)', dash: '6 3' },
+            { key: 'momentary', label: 'Momentary / peak', color: 'var(--danger)', dash: '2 3' }
+        ];
+        const KW_TO_HP = 1.341;
+        let machineListData = null;
+        let machineEd = null;   // editor state: {id, builtin, modified, profile, spindleKey, fill}
+
+        function fmtThousands(v) {
+            return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+        }
+
+        function renderSpindleSummary() {
+            const el = document.getElementById('spindleSummary');
+            if (!el) return;
+            const sp = machineProfile && machineProfile.spindle;
+            if (!sp) { el.textContent = ''; return; }
+            const parts = [];
+            if (sp.power_kw_continuous) parts.push(fmtThousands(sp.power_kw_continuous) + ' kW continuous');
+            if (sp.power_kw_10min) parts.push(fmtThousands(sp.power_kw_10min) + ' kW 10 min');
+            if (sp.max_torque_nm_momentary) {
+                parts.push(fmtThousands(sp.max_torque_nm_momentary) + ' N·m peak' +
+                    (sp.base_rpm ? ' to ' + fmtThousands(sp.base_rpm) + ' rpm' : ''));
+            }
+            let text = parts.join(' · ');
+            if (Object.values(sp.torque_curves || {}).some(c => c.derived)) text += ' (curve partly derived)';
+            el.textContent = text;
+        }
+
+        async function loadMachineList() {
+            try {
+                const res = await fetch('/api/machines');
+                const data = await res.json();
+                if (data.success) renderMachineSelectors(data);
+            } catch (e) { console.warn('Machine list failed', e); }
+        }
+
+        function renderMachineSelectors(list) {
+            machineListData = list;
+            const msel = document.getElementById('machineSelect');
+            if (!msel) return;
+            msel.innerHTML = '';
+            (list.machines || []).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.text = m.name + (m.modified ? ' (edited)' : '');
+                msel.appendChild(opt);
+            });
+            if (list.active_machine) msel.value = list.active_machine;
+            renderSpindleSelect();
+        }
+
+        function renderSpindleSelect() {
+            const msel = document.getElementById('machineSelect');
+            const ssel = document.getElementById('spindleSelect');
+            if (!msel || !ssel || !machineListData) return;
+            const m = (machineListData.machines || []).find(x => x.id === msel.value);
+            ssel.innerHTML = '';
+            ((m && m.spindles) || []).forEach(sp => {
+                const opt = document.createElement('option');
+                opt.value = sp.key;
+                opt.text = sp.label;
+                ssel.appendChild(opt);
+            });
+            const want = machineListData.active_machine === msel.value ? machineListData.active_spindle : (m && m.active_spindle);
+            if (want) ssel.value = want;
+        }
+
+        // Makes this machine (and spindle) active on the server, then reloads limits into the page.
+        async function selectMachine(machineId, spindle) {
+            clearTimeout(machineLimitSaveTimer);   // a pending limit edit belongs to the machine being left
+            clearTimeout(runoutSaveTimer);
+            try {
+                const res = await fetch('/api/machines/select', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ machine_id: machineId, spindle: spindle || undefined })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert('Machine not changed: ' + (data.error || res.status));
+                    await loadMachineList();
+                    return false;
+                }
+                renderMachineSelectors(data);
+                machineProfile = Object.assign({}, data.limits);
+                applyMachineDefaults();
+                renderSpindleSummary();
+                calculate();
+                return true;
+            } catch (e) {
+                console.warn('Machine select failed', e);
+                await loadMachineList();
+                return false;
+            }
+        }
+
+        function onMachineSelectChange() {
+            selectMachine(document.getElementById('machineSelect').value, null);
+        }
+
+        function onSpindleSelectChange() {
+            selectMachine(document.getElementById('machineSelect').value, document.getElementById('spindleSelect').value);
+        }
+
+        // ---- editor ----
+        function setMachineEdMsg(text, cls) {
+            const el = document.getElementById('machineEdMsg');
+            el.textContent = text || '';
+            el.className = 'cutlog-msg' + (cls ? ' ' + cls : '');
+        }
+
+        function numOrNull(id) {
+            const v = parseFloat(document.getElementById(id).value);
+            return Number.isFinite(v) ? v : null;
+        }
+
+        function pointsToText(points) {
+            return points.map(p => p[0] + ', ' + p[1]).join('\n');
+        }
+
+        function pointsEqual(a, b) {
+            return a.length === b.length && a.every((p, i) => Math.abs(p[0] - b[i][0]) < 1e-9 && Math.abs(p[1] - b[i][1]) < 1e-9);
+        }
+
+        // One "rpm, N·m" pair per line; comma, tab, semicolon or spaces between the two numbers.
+        function parsePointsText(text) {
+            const points = [];
+            let error = null;
+            String(text || '').split(/\r?\n/).forEach((raw, i) => {
+                const line = raw.trim();
+                if (!line) return;
+                const t = line.split(/[\s,;]+/).filter(Boolean);
+                const rpm = Number(t[0]);
+                const nm = Number(t[1]);
+                if (t.length !== 2 || !Number.isFinite(rpm) || !Number.isFinite(nm)) {
+                    if (!error) error = 'line ' + (i + 1) + ' is not an "rpm, N·m" pair';
+                    return;
+                }
+                points.push([rpm, nm]);
+            });
+            return { points, error };
+        }
+
+        function powerCurvePoints(powerKw, baseRpm, maxRpm) {
+            const rad = rpm => rpm * 2 * Math.PI / 60;
+            const round2 = v => Math.round(v * 100) / 100;
+            baseRpm = Math.min(baseRpm, maxRpm);
+            const tBase = round2(powerKw * 1000 / rad(baseRpm));
+            const pts = [[0, tBase], [baseRpm, tBase]];
+            for (let i = 1; i <= 4 && maxRpm > baseRpm; i++) {
+                const rpm = Math.min(maxRpm, Math.round(baseRpm + (maxRpm - baseRpm) * i / 4));
+                pts.push([rpm, round2(powerKw * 1000 / rad(rpm))]);
+            }
+            return pts;
+        }
+
+        function openMachineEditor() {
+            const id = document.getElementById('machineSelect')?.value;
+            document.getElementById('machineEditorModal').style.display = 'flex';
+            if (id) loadMachineIntoEditor(id); else newMachineProfile();
+        }
+
+        function closeMachineEditor() {
+            document.getElementById('machineEditorModal').style.display = 'none';
+        }
+
+        async function loadMachineIntoEditor(id, message) {
+            setMachineEdMsg('Loading...', '');
+            try {
+                const res = await fetch('/api/machines/' + encodeURIComponent(id));
+                const data = await res.json();
+                if (!data.success) { setMachineEdMsg(data.error || 'Could not load machine.', 'err'); return; }
+                const profile = JSON.parse(JSON.stringify(data.profile || {}));
+                if (!profile.spindle_options || !Object.keys(profile.spindle_options).length) {
+                    profile.spindle_options = { spindle_1: { label: 'Spindle 1' } };
+                }
+                machineEd = { id: data.id, builtin: !!data.builtin, modified: !!data.modified, profile, spindleKey: null, fill: {} };
+                showMachineEditorProfile();
+                setMachineEdMsg(message || '', message ? 'ok' : '');
+            } catch (e) {
+                setMachineEdMsg('Could not load machine: ' + (e && e.message ? e.message : e), 'err');
+            }
+        }
+
+        function newMachineProfile() {
+            machineEd = {
+                id: null, builtin: false, modified: false, spindleKey: null, fill: {},
+                profile: { machine: '', notes: '', spindle_options: { spindle_1: { label: 'Spindle 1' } }, active_spindle: 'spindle_1' }
+            };
+            showMachineEditorProfile();
+            setMachineEdMsg('', '');
+            document.getElementById('machineEdName').focus();
+        }
+
+        function showMachineEditorProfile() {
+            const p = machineEd.profile;
+            document.getElementById('machineEdName').value = p.machine || '';
+            document.getElementById('machineEdNotes').value = p.notes || '';
+            const keys = Object.keys(p.spindle_options);
+            machineEd.spindleKey = keys.includes(p.active_spindle) ? p.active_spindle : keys[0];
+            refreshMachineEdSpindleSelect();
+            loadSpindleForm(machineEd.spindleKey);
+            const status = document.getElementById('machineEdStatus');
+            if (!machineEd.id) status.textContent = 'New machine (not saved yet)';
+            else if (machineEd.builtin) status.textContent = machineEd.modified ? 'Built-in machine with your saved edits' : 'Built-in machine (saving keeps an edited copy)';
+            else status.textContent = 'Your machine';
+            const del = document.getElementById('machineEdDelete');
+            del.textContent = machineEd.builtin ? 'Revert to built-in' : 'Delete machine';
+            del.disabled = !machineEd.id || (machineEd.builtin && !machineEd.modified);
+            del.title = del.disabled && machineEd.id ? 'No saved edits to revert' : '';
+        }
+
+        function refreshMachineEdSpindleSelect() {
+            const sel = document.getElementById('machineEdSpindle');
+            sel.innerHTML = '';
+            Object.entries(machineEd.profile.spindle_options).forEach(([key, sp]) => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.text = (sp && sp.label) || key;
+                sel.appendChild(opt);
+            });
+            sel.value = machineEd.spindleKey;
+        }
+
+        function loadSpindleForm(key) {
+            const sp = machineEd.profile.spindle_options[key] || {};
+            const set = (id, v) => { document.getElementById(id).value = (v === undefined || v === null) ? '' : v; };
+            set('machineEdLabel', sp.label);
+            set('machineEdMaxRpm', sp.max_rpm);
+            set('machineEdBaseRpm', sp.base_rpm);
+            set('machineEdPowerCont', sp.power_kw_continuous);
+            set('machineEdPower10', sp.power_kw_10min);
+            set('machineEdPowerPeak', sp.power_kw_peak);
+            set('machineEdTorque', sp.max_torque_nm_momentary);
+            const ratings = (sp.torque_curve && sp.torque_curve.ratings) || {};
+            MACHINE_RATINGS.forEach(r => {
+                const rating = ratings[r.key];
+                document.getElementById('machineEdPts_' + r.key).value = rating && rating.points ? pointsToText(rating.points) : '';
+            });
+            updateMachineEdHp();
+            drawMachineEdChart();
+        }
+
+        // Writes the visible spindle form into machineEd.profile; returns an error string or null.
+        function collectSpindleForm() {
+            const key = machineEd.spindleKey;
+            const old = machineEd.profile.spindle_options[key] || {};
+            const sp = Object.assign({}, old);
+            const label = document.getElementById('machineEdLabel').value.trim();
+            if (label) sp.label = label; else delete sp.label;
+            [['max_rpm', 'machineEdMaxRpm'], ['base_rpm', 'machineEdBaseRpm'], ['power_kw_continuous', 'machineEdPowerCont'],
+             ['power_kw_10min', 'machineEdPower10'], ['power_kw_peak', 'machineEdPowerPeak'],
+             ['max_torque_nm_momentary', 'machineEdTorque']].forEach(([field, id]) => {
+                const v = numOrNull(id);
+                if (v === null) delete sp[field]; else sp[field] = v;
+            });
+            const oldRatings = (old.torque_curve && old.torque_curve.ratings) || {};
+            const fills = machineEd.fill[key] || {};
+            const ratings = {};
+            for (const r of MACHINE_RATINGS) {
+                const parsed = parsePointsText(document.getElementById('machineEdPts_' + r.key).value);
+                if (parsed.error) return r.label + ': ' + parsed.error;
+                if (!parsed.points.length) continue;
+                const stored = oldRatings[r.key];
+                const fill = fills[r.key];
+                if (stored && stored.points && pointsEqual(parsed.points, stored.points)) {
+                    ratings[r.key] = stored;
+                } else if (fill && pointsEqual(parsed.points, fill.points)) {
+                    ratings[r.key] = { power_kw: fill.power_kw, points: parsed.points, derived: true, note: fill.note };
+                } else {
+                    ratings[r.key] = { points: parsed.points, derived: false };
+                }
+            }
+            if (Object.keys(ratings).length) sp.torque_curve = Object.assign({}, old.torque_curve || {}, { ratings });
+            else delete sp.torque_curve;
+            machineEd.profile.spindle_options[key] = sp;
+            return null;
+        }
+
+        function updateMachineEdHp() {
+            [['machineEdPowerCont', 'machineEdHpCont'], ['machineEdPower10', 'machineEdHp10'], ['machineEdPowerPeak', 'machineEdHpPeak']].forEach(([inId, outId]) => {
+                const kw = numOrNull(inId);
+                document.getElementById(outId).textContent = kw === null ? '' : '(≈ ' + (kw * KW_TO_HP).toFixed(2) + ' hp)';
+            });
+        }
+
+        function onMachineEdInput() {
+            updateMachineEdHp();
+            drawMachineEdChart();
+        }
+
+        function onMachineEdLabelInput() {
+            const sel = document.getElementById('machineEdSpindle');
+            const opt = sel.options[sel.selectedIndex];
+            if (opt) opt.text = document.getElementById('machineEdLabel').value.trim() || opt.value;
+        }
+
+        function onMachineEdSpindleChange() {
+            const sel = document.getElementById('machineEdSpindle');
+            const next = sel.value;
+            const err = collectSpindleForm();
+            if (err) { setMachineEdMsg(err, 'err'); sel.value = machineEd.spindleKey; return; }
+            machineEd.spindleKey = next;
+            loadSpindleForm(next);
+            setMachineEdMsg('', '');
+        }
+
+        function addMachineSpindle() {
+            const err = collectSpindleForm();
+            if (err) { setMachineEdMsg(err, 'err'); return; }
+            const opts = machineEd.profile.spindle_options;
+            if (Object.keys(opts).length >= 12) { setMachineEdMsg('At most 12 spindles per machine.', 'err'); return; }
+            let n = Object.keys(opts).length + 1;
+            while (opts['spindle_' + n]) n++;
+            const key = 'spindle_' + n;
+            opts[key] = { label: 'Spindle ' + n };
+            machineEd.spindleKey = key;
+            refreshMachineEdSpindleSelect();
+            loadSpindleForm(key);
+            setMachineEdMsg('', '');
+        }
+
+        function removeMachineSpindle() {
+            const opts = machineEd.profile.spindle_options;
+            const key = machineEd.spindleKey;
+            if (Object.keys(opts).length <= 1) { setMachineEdMsg('A machine needs at least one spindle.', 'err'); return; }
+            delete opts[key];
+            delete machineEd.fill[key];
+            const first = Object.keys(opts)[0];
+            if (machineEd.profile.active_spindle === key) machineEd.profile.active_spindle = first;
+            machineEd.spindleKey = first;
+            refreshMachineEdSpindleSelect();
+            loadSpindleForm(first);
+            setMachineEdMsg('', '');
+        }
+
+        function fillMachineCurvesFromPower() {
+            const maxRpm = numOrNull('machineEdMaxRpm');
+            const baseRpm = numOrNull('machineEdBaseRpm');
+            if (!maxRpm || !baseRpm) { setMachineEdMsg('Fill from power needs both Base RPM and Max RPM.', 'err'); return; }
+            const fills = machineEd.fill[machineEd.spindleKey] = machineEd.fill[machineEd.spindleKey] || {};
+            let filled = 0;
+            [['continuous', 'machineEdPowerCont'], ['s3_15pct_10min', 'machineEdPower10']].forEach(([rating, inId]) => {
+                const kw = numOrNull(inId);
+                if (!kw) return;
+                const pts = powerCurvePoints(kw, baseRpm, maxRpm);
+                document.getElementById('machineEdPts_' + rating).value = pointsToText(pts);
+                fills[rating] = { points: pts, power_kw: kw, note: 'Constant torque up to base speed, constant power above it (computed from the stated power, not quoted).' };
+                filled++;
+            });
+            if (!filled) { setMachineEdMsg('Enter the continuous or 10-min kW first.', 'err'); return; }
+            setMachineEdMsg('Filled ' + filled + ' curve(s) from power; they are saved as derived.', 'ok');
+            onMachineEdInput();
+        }
+
+        function niceStep(range, ticks) {
+            const raw = range / ticks;
+            const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+            const n = raw / mag;
+            return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
+        }
+
+        function drawMachineEdChart() {
+            const svg = document.getElementById('machineEdChart');
+            if (!svg) return;
+            const series = MACHINE_RATINGS.map(r => ({
+                r, pts: parsePointsText(document.getElementById('machineEdPts_' + r.key).value).points.sort((a, b) => a[0] - b[0])
+            }));
+            let xMax = numOrNull('machineEdMaxRpm') || 0;
+            let yMax = 0;
+            series.forEach(s => s.pts.forEach(p => { xMax = Math.max(xMax, p[0]); yMax = Math.max(yMax, p[1]); }));
+            if (!(xMax > 0)) xMax = 1000;
+            if (!(yMax > 0)) yMax = 10;
+            const xStep = niceStep(xMax, 6), yStep = niceStep(yMax, 5);
+            const xTop = Math.ceil(xMax / xStep - 1e-9) * xStep, yTop = Math.ceil(yMax / yStep - 1e-9) * yStep;
+            const W = 520, H = 260, L = 52, R = 30, T = 14, B = 70;
+            const pw = W - L - R, ph = H - T - B;
+            const px = v => (L + v / xTop * pw).toFixed(1);
+            const py = v => (T + ph - v / yTop * ph).toFixed(1);
+            let out = '';
+            for (let v = 0; v <= yTop + 1e-9; v += yStep) {
+                out += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + py(v) + '" y2="' + py(v) + '"/>' +
+                    '<text x="' + (L - 6) + '" y="' + (Number(py(v)) + 4) + '" text-anchor="end">' + fmtThousands(v) + '</text>';
+            }
+            for (let v = 0; v <= xTop + 1e-9; v += xStep) {
+                out += '<line class="grid" x1="' + px(v) + '" x2="' + px(v) + '" y1="' + T + '" y2="' + (T + ph) + '"/>' +
+                    '<text x="' + px(v) + '" y="' + (T + ph + 16) + '" text-anchor="middle">' + fmtThousands(v) + '</text>';
+            }
+            out += '<line class="axis" x1="' + L + '" x2="' + L + '" y1="' + T + '" y2="' + (T + ph) + '"/>' +
+                '<line class="axis" x1="' + L + '" x2="' + (W - R) + '" y1="' + (T + ph) + '" y2="' + (T + ph) + '"/>' +
+                '<text x="' + (L + pw / 2) + '" y="' + (T + ph + 33) + '" text-anchor="middle">Spindle speed (rpm)</text>' +
+                '<text transform="translate(13 ' + (T + ph / 2) + ') rotate(-90)" text-anchor="middle">Torque (N·m)</text>';
+            series.forEach((s, i) => {
+                const style = 'stroke:' + s.r.color + ';fill:none;stroke-width:2' + (s.r.dash ? ';stroke-dasharray:' + s.r.dash : '');
+                if (s.pts.length) {
+                    // Between points the server interpolates power (exact for constant-torque and
+                    // constant-power segments), so torque follows P/omega rather than a straight line.
+                    const line = [s.pts[0]];
+                    for (let k = 1; k < s.pts.length; k++) {
+                        const [r0, t0] = s.pts[k - 1], [r1, t1] = s.pts[k];
+                        for (let j = 1; j <= 16; j++) {
+                            const r = r0 + (r1 - r0) * j / 16;
+                            line.push([r, r0 > 0 ? (t0 * r0 + (t1 * r1 - t0 * r0) * j / 16) / r : t0 + (t1 - t0) * j / 16]);
+                        }
+                    }
+                    out += '<polyline style="' + style + '" points="' + line.map(p => px(p[0]) + ',' + py(p[1])).join(' ') + '"/>';
+                    s.pts.forEach(p => { out += '<circle cx="' + px(p[0]) + '" cy="' + py(p[1]) + '" r="3" style="fill:' + s.r.color + '"/>'; });
+                }
+                const lx = L + i * 160, ly = H - 12;
+                out += '<line x1="' + lx + '" x2="' + (lx + 20) + '" y1="' + ly + '" y2="' + ly + '" style="' + style + '"/>' +
+                    '<text x="' + (lx + 25) + '" y="' + (ly + 4) + '">' + s.r.label + (s.pts.length ? '' : ' (no points)') + '</text>';
+            });
+            svg.innerHTML = out;
+        }
+
+        async function saveMachineProfile(asNew) {
+            if (!machineEd) return;
+            setMachineEdMsg('', '');
+            const err = collectSpindleForm();
+            if (err) { setMachineEdMsg(err, 'err'); return; }
+            const profile = JSON.parse(JSON.stringify(machineEd.profile));
+            profile.machine = document.getElementById('machineEdName').value.trim();
+            const notes = document.getElementById('machineEdNotes').value.trim();
+            if (notes) profile.notes = notes; else delete profile.notes;
+            if (!profile.spindle_options[profile.active_spindle]) profile.active_spindle = Object.keys(profile.spindle_options)[0];
+            const body = { profile };
+            if (!asNew && machineEd.id) body.id = machineEd.id;
+            const btn = document.getElementById('machineEdSave');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/machines', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!data.success) { setMachineEdMsg(data.error || 'Could not save.', 'err'); return; }
+                await selectMachine(data.id, null);
+                await loadMachineIntoEditor(data.id, 'Saved.');
+            } catch (e) {
+                setMachineEdMsg('Could not save: ' + (e && e.message ? e.message : e), 'err');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteMachineProfile() {
+            if (!machineEd || !machineEd.id) return;
+            const name = document.getElementById('machineEdName').value.trim() || machineEd.id;
+            const revert = machineEd.builtin;
+            const question = revert
+                ? 'Revert "' + name + '" to its built-in profile? Your saved edits will be lost.'
+                : 'Delete the machine "' + name + '"? This cannot be undone.';
+            if (!confirm(question)) return;
+            try {
+                const res = await fetch('/api/machines/' + encodeURIComponent(machineEd.id), { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.success) { setMachineEdMsg(data.error || 'Could not delete.', 'err'); return; }
+                await selectMachine(data.active_machine, null);
+                await loadMachineIntoEditor(data.active_machine, revert ? 'Reverted to the built-in profile.' : 'Machine deleted.');
+            } catch (e) {
+                setMachineEdMsg('Could not delete: ' + (e && e.message ? e.message : e), 'err');
+            }
+        }
+
+        document.addEventListener('keydown', ev => {
+            if (ev.key === 'Escape') {
+                const m = document.getElementById('machineEditorModal');
+                if (m && m.style.display !== 'none') closeMachineEditor();
+            }
+        });
+
         async function init() {
             const response = await fetch('/api/data');
             const data = await response.json();
@@ -2291,6 +2854,8 @@
             updateGeometryDisplay('tool');
             loadState(); // load saved preferences
             applyMachineDefaults();
+            renderSpindleSummary();
+            loadMachineList();
             updateGeometryDisplay('tool');
             let initDia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
             lastHandledDiaInches = isMetric ? (initDia / 25.4) : initDia;

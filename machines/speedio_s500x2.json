@@ -3,13 +3,119 @@
   "source": "https://machinetool.global.brother/en-ap/all-products/sx2/s500x2 (retrieved 2026-09-30)",
   "taper": "BT30 (7/24 No.30)",
   "max_cutting_feed_mm_min": 30000,
-  "rapid_m_min": {"x": 50, "y": 50, "z": 56},
+  "rapid_m_min": {
+    "x": 50,
+    "y": 50,
+    "z": 56
+  },
   "spindle_options": {
-    "standard_10k":    {"max_rpm": 10000, "power_kw_10min": 10.1, "power_kw_continuous": 7.1, "max_torque_nm_momentary": 40},
-    "high_torque_10k": {"max_rpm": 10000, "power_kw_10min": 12.8, "power_kw_continuous": 9.2, "max_torque_nm_momentary": 92},
-    "optional_16k":    {"max_rpm": 16000, "power_kw_10min": 7.4,  "power_kw_continuous": 5.1, "max_torque_nm_momentary": null},
-    "optional_27k":    {"max_rpm": 27000, "power_kw_10min": 8.9,  "power_kw_continuous": 6.3, "max_torque_nm_momentary": null}
+    "standard_10k": {
+      "label": "10k standard",
+      "max_rpm": 10000,
+      "power_kw_10min": 10.1,
+      "power_kw_continuous": 7.1,
+      "max_torque_nm_momentary": 40
+    },
+    "high_torque_10k": {
+      "label": "10k high torque",
+      "max_rpm": 10000,
+      "power_kw_10min": 12.8,
+      "power_kw_continuous": 9.2,
+      "max_torque_nm_momentary": 92
+    },
+    "optional_16k": {
+      "label": "16k (non-dual-contact)",
+      "max_rpm": 16000,
+      "power_kw_10min": 7.4,
+      "power_kw_continuous": 5.1,
+      "max_torque_nm_momentary": 40,
+      "base_rpm": 4500,
+      "power_kw_peak": 18.9,
+      "torque_curve": {
+        "source": "User-supplied 2026-10-15 (pasted summary of the 16k spindle's power/torque characteristics). Not yet checked against the Brother spindle output chart.",
+        "format": "Per duty rating: [rpm, torque N·m] points. Interpolate POWER (T·omega) linearly in rpm between points; that is exact for both constant-torque and constant-power segments (interpolating torque linearly overstates it by up to ~8% in a constant-power segment). 'derived': true means the points were computed from the stated power (T = P/omega) rather than quoted.",
+        "quoted": "Rated at 5.1 kW (6.8 HP) continuous and 7.4 kW (9.9 HP) for 10-minute/15% ED; peak instantaneous 18.9 kW (25.3 HP). Maximum instantaneous torque 40 N·m from 0 up to base speed (~4,500 RPM). From base speed to 16,000 RPM power remains flat while torque decays inversely with speed (~8.8 N·m at 8,000 RPM, ~5.9 N·m at 12,000 RPM, ~4.4 N·m at 16,000 RPM).",
+        "ratings": {
+          "continuous": {
+            "power_kw": 5.1,
+            "points": [
+              [
+                0,
+                10.82
+              ],
+              [
+                4500,
+                10.82
+              ],
+              [
+                8000,
+                6.09
+              ],
+              [
+                12000,
+                4.06
+              ],
+              [
+                16000,
+                3.04
+              ]
+            ],
+            "derived": true,
+            "note": "Constant power 5.1 kW above base speed; constant torque below it is assumed (only the momentary curve is stated to be constant-torque)."
+          },
+          "s3_15pct_10min": {
+            "power_kw": 7.4,
+            "points": [
+              [
+                0,
+                15.7
+              ],
+              [
+                4500,
+                15.7
+              ],
+              [
+                8000,
+                8.8
+              ],
+              [
+                12000,
+                5.9
+              ],
+              [
+                16000,
+                4.4
+              ]
+            ],
+            "derived": false,
+            "note": "The 8k/12k/16k torques are given and equal 7.4 kW; the 0-4500 rpm segment is derived and assumed constant-torque."
+          },
+          "momentary": {
+            "power_kw": 18.9,
+            "points": [
+              [
+                0,
+                40.0
+              ],
+              [
+                4500,
+                40.0
+              ]
+            ],
+            "derived": false,
+            "note": "Given up to base speed only. Above 4500 rpm the momentary curve is not stated."
+          }
+        }
+      }
+    },
+    "optional_27k": {
+      "label": "27k",
+      "max_rpm": 27000,
+      "power_kw_10min": 8.9,
+      "power_kw_continuous": 6.3,
+      "max_torque_nm_momentary": null
+    }
   },
   "active_spindle": "optional_16k",
-  "notes": "Torque for the 16k/27k options is not published on the product page; confirm from the machine's spindle output chart before enabling a torque limit. active_spindle must be confirmed by the owner."
+  "notes": "The 16k torque curve is user-supplied (2026-10-15); confirm against the Brother spindle output chart. Torque for the 27k option is not published on the product page. active_spindle confirmed by the owner (16k non-dual-contact)."
 }

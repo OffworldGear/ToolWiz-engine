@@ -23,6 +23,7 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB upload/request cap
 
 import cutlog
 cutlog.register(app)
+import machine_profiles
 
 # Initialize physics engine
 db_path = os.path.join(os.path.dirname(__file__), "materials_database_clean.json")
@@ -37,6 +38,27 @@ FALLBACK_MAX_RPM = 16000.0
 FALLBACK_MAX_HP = 10.0
 
 
+def _derive_limits(profile, active=None):
+    """Profile copy with active_spindle, max_rpm and max_hp taken from the active spindle."""
+    profile = dict(profile or {})
+    max_rpm, max_hp = FALLBACK_MAX_RPM, FALLBACK_MAX_HP
+    spindles = profile.get("spindle_options") or {}
+    if active not in spindles:
+        active = profile.get("active_spindle")
+    try:
+        spindle = spindles.get(active) or {}
+        if spindle.get("max_rpm"):
+            max_rpm = float(spindle["max_rpm"])
+        if spindle.get("power_kw_continuous"):
+            max_hp = round(float(spindle["power_kw_continuous"]) * KW_TO_HP, 2)
+    except (TypeError, ValueError, AttributeError):
+        max_rpm, max_hp = FALLBACK_MAX_RPM, FALLBACK_MAX_HP
+    profile["active_spindle"] = active
+    profile["max_rpm"] = max_rpm
+    profile["max_hp"] = max_hp
+    return profile
+
+
 def load_machine_profile(path=MACHINE_PROFILE_PATH):
     """Load the machine profile and derive default max RPM / HP from the active spindle."""
     profile = {}
@@ -46,21 +68,7 @@ def load_machine_profile(path=MACHINE_PROFILE_PATH):
     except (OSError, ValueError) as exc:
         logging.getLogger(__name__).warning("Machine profile %s unavailable: %s", path, exc)
         profile = {}
-    max_rpm, max_hp, active = FALLBACK_MAX_RPM, FALLBACK_MAX_HP, None
-    try:
-        active = profile.get("active_spindle")
-        spindle = (profile.get("spindle_options") or {}).get(active) or {}
-        if spindle.get("max_rpm"):
-            max_rpm = float(spindle["max_rpm"])
-        if spindle.get("power_kw_continuous"):
-            max_hp = round(float(spindle["power_kw_continuous"]) * KW_TO_HP, 2)
-    except (TypeError, ValueError):
-        max_rpm, max_hp = FALLBACK_MAX_RPM, FALLBACK_MAX_HP
-    profile = dict(profile)
-    profile["active_spindle"] = active
-    profile["max_rpm"] = max_rpm
-    profile["max_hp"] = max_hp
-    return profile
+    return _derive_limits(profile if isinstance(profile, dict) else {})
 
 
 MACHINE = load_machine_profile()
@@ -72,17 +80,11 @@ MACHINE_LIMIT_BOUNDS = {"max_rpm": (100.0, 60000.0), "max_hp": (0.1, 100.0), "ru
 DEFAULT_RUNOUT_IN = 0.0002   # TIR at the cutting edge (good ER collet / milling chuck)
 
 
-def load_machine_overrides(path=None):
-    """Return validated user overrides {max_rpm?, max_hp?} ({} when absent or invalid)."""
-    try:
-        with open(path or MACHINE_SETTINGS_PATH, "r", encoding="utf-8") as fh:
-            raw = json.load(fh)
-    except (OSError, ValueError):
-        return {}
+def _validated_overrides(raw):
     out = {}
     for key, (lo, hi) in MACHINE_LIMIT_BOUNDS.items():
         try:
-            val = float(raw.get(key))
+            val = float((raw or {}).get(key))
         except (TypeError, ValueError, AttributeError):
             continue
         if lo <= val <= hi:
@@ -90,16 +92,71 @@ def load_machine_overrides(path=None):
     return out
 
 
+def active_machine(settings=None):
+    """The selected machine profile (machines/ or data/machines/) with its active spindle's limits.
+
+    Falls back to the default machine, then to any profile, then to the built-in fallback limits."""
+    settings = settings or machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    profiles = machine_profiles.list_profiles()
+    mid = settings["active_machine"]
+    if mid not in profiles:
+        default = machine_profiles.DEFAULT_MACHINE_ID
+        mid = default if default in profiles else next(iter(profiles), None)
+    if mid is None:
+        prof = _derive_limits({})
+        prof.update(machine_id=None, builtin=False, modified=False)
+        return prof
+    entry = profiles[mid]
+    chosen = (settings["machines"].get(mid) or {}).get("active_spindle")
+    prof = _derive_limits(entry["profile"], chosen)
+    prof.update(machine_id=mid, builtin=entry["builtin"], modified=entry["modified"])
+    return prof
+
+
+def load_machine_overrides(path=None):
+    """Return validated user overrides {max_rpm?, max_hp?, runout?} for the active machine."""
+    settings = machine_profiles.read_settings(path or MACHINE_SETTINGS_PATH)
+    mid = active_machine(settings).get("machine_id")
+    return _validated_overrides(settings["machines"].get(mid) or {})
+
+
+def _spindle_summary(machine):
+    sp = (machine.get("spindle_options") or {}).get(machine.get("active_spindle")) or {}
+    curves = {}
+    for rating in machine_profiles.RATINGS:
+        pts = machine_profiles.rating_points(sp, rating)
+        if pts:
+            stored = ((sp.get("torque_curve") or {}).get("ratings") or {}).get(rating)
+            curves[rating] = {"points": pts,
+                              "derived": True if stored is None else bool(stored.get("derived", False)),
+                              "label": machine_profiles.RATING_LABELS[rating]}
+    return {
+        "key": machine.get("active_spindle"),
+        "label": sp.get("label") or machine.get("active_spindle"),
+        "base_rpm": sp.get("base_rpm"),
+        "power_kw_continuous": sp.get("power_kw_continuous"),
+        "power_kw_10min": sp.get("power_kw_10min"),
+        "power_kw_peak": sp.get("power_kw_peak"),
+        "max_torque_nm_momentary": sp.get("max_torque_nm_momentary"),
+        "torque_curves": curves,
+    }
+
+
 def machine_limits():
     """Effective limits: user override if set, else the active spindle's profile value."""
-    ov = load_machine_overrides()
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    machine = active_machine(settings)
+    ov = _validated_overrides(settings["machines"].get(machine.get("machine_id")) or {})
     return {
-        "max_rpm": ov.get("max_rpm", MACHINE["max_rpm"]),
-        "max_hp": ov.get("max_hp", MACHINE["max_hp"]),
-        "runout": ov.get("runout", MACHINE.get("runout", DEFAULT_RUNOUT_IN)),
-        "profile_max_rpm": MACHINE["max_rpm"],
-        "profile_max_hp": MACHINE["max_hp"],
+        "max_rpm": ov.get("max_rpm", machine["max_rpm"]),
+        "max_hp": ov.get("max_hp", machine["max_hp"]),
+        "runout": ov.get("runout", machine.get("runout", DEFAULT_RUNOUT_IN)),
+        "profile_max_rpm": machine["max_rpm"],
+        "profile_max_hp": machine["max_hp"],
         "overridden": sorted(ov.keys()),
+        "machine_id": machine.get("machine_id"),
+        "machine": machine.get("machine"),
+        "spindle": _spindle_summary(machine),
     }
 
 ALLOWED_ORIGINS = ("http://127.0.0.1:5000", "http://localhost:5000") + tuple(
@@ -267,7 +324,7 @@ def get_data():
         "tool_groups": TOOL_GROUPS,
         "tool_categories": tool_categories,
         "alloys": physics.specific_alloys,
-        "machine": {**MACHINE, **machine_limits()}
+        "machine": {**active_machine(), **machine_limits()}
     })
 
 
@@ -294,13 +351,15 @@ def api_machine_limits():
     if request.method == "GET":
         return jsonify({"success": True, **machine_limits()})
     body = _json_body()
-    overrides = load_machine_overrides()
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    mid = active_machine(settings).get("machine_id") or machine_profiles.DEFAULT_MACHINE_ID
+    entry = settings["machines"].setdefault(mid, {})
     for field, key in (("maxRpm", "max_rpm"), ("maxHp", "max_hp"), ("runout", "runout")):
         if field not in body:
             continue
         val = body[field]
         if val is None or str(val).strip() == "":
-            overrides.pop(key, None)
+            entry.pop(key, None)
             continue
         try:
             num = float(val)
@@ -309,13 +368,82 @@ def api_machine_limits():
         lo, hi = MACHINE_LIMIT_BOUNDS[key]
         if not lo <= num <= hi:
             return jsonify({"success": False, "error": f"{field} must be between {lo:g} and {hi:g}"}), 400
-        overrides[key] = num
-    os.makedirs(os.path.dirname(MACHINE_SETTINGS_PATH), exist_ok=True)
-    tmp = MACHINE_SETTINGS_PATH + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(overrides, fh, indent=2)
-    os.replace(tmp, MACHINE_SETTINGS_PATH)
+        entry[key] = num
+    machine_profiles.write_settings(MACHINE_SETTINGS_PATH, settings)
     return jsonify({"success": True, **machine_limits()})
+
+
+def _machine_list(settings=None):
+    settings = settings or machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    current = active_machine(settings)
+    return {
+        "success": True,
+        "active_machine": current.get("machine_id"),
+        "active_spindle": current.get("active_spindle"),
+        "machines": [machine_profiles.summarize(mid, e) for mid, e in machine_profiles.list_profiles().items()],
+    }
+
+
+@app.route("/api/machines", methods=["GET", "POST"])
+def api_machines():
+    """GET the machine list and the selection. POST {id?, profile} saves a profile to data/machines/
+    (a new id when id is absent); editing a built-in machine saves the user's copy under the same id."""
+    if request.method == "GET":
+        return jsonify(_machine_list())
+    body = _json_body()
+    profile, errors = machine_profiles.validate_profile(body.get("profile"))
+    if errors:
+        return jsonify({"success": False, "error": "; ".join(errors[:6])}), 400
+    profiles = machine_profiles.list_profiles()
+    mid = body.get("id")
+    if mid in (None, ""):
+        mid = machine_profiles.unique_id(profile["machine"], profiles)
+    elif not machine_profiles.ID_RE.match(str(mid)):
+        return jsonify({"success": False, "error": "invalid machine id"}), 400
+    machine_profiles.save_user_profile(mid, profile)
+    return jsonify({**_machine_list(), "id": mid})
+
+
+@app.route("/api/machines/<mid>", methods=["GET", "DELETE"])
+def api_machine(mid):
+    """GET one full profile. DELETE removes the user's file; a built-in machine reverts to its shipped profile."""
+    profiles = machine_profiles.list_profiles()
+    if mid not in profiles:
+        return jsonify({"success": False, "error": "unknown machine"}), 404
+    if request.method == "GET":
+        e = profiles[mid]
+        return jsonify({"success": True, "id": mid, "profile": e["profile"], "builtin": e["builtin"],
+                        "modified": e["modified"]})
+    if not machine_profiles.delete_user_profile(mid):
+        return jsonify({"success": False, "error": "This is a built-in machine with no saved edits."}), 400
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    if mid not in machine_profiles.list_profiles():
+        settings["machines"].pop(mid, None)
+        if settings["active_machine"] == mid:
+            settings["active_machine"] = machine_profiles.DEFAULT_MACHINE_ID
+        machine_profiles.write_settings(MACHINE_SETTINGS_PATH, settings)
+    return jsonify(_machine_list())
+
+
+@app.route("/api/machines/select", methods=["POST"])
+def api_machine_select():
+    """POST {machine_id, spindle?}: make this machine (and spindle) active for the web UI and Fusion."""
+    body = _json_body()
+    mid = body.get("machine_id")
+    profiles = machine_profiles.list_profiles()
+    if mid not in profiles:
+        return jsonify({"success": False, "error": "unknown machine"}), 404
+    spindles = profiles[mid]["profile"].get("spindle_options") or {}
+    spindle = body.get("spindle")
+    if spindle not in (None, "") and spindle not in spindles:
+        return jsonify({"success": False, "error": "unknown spindle for this machine"}), 400
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    settings["active_machine"] = mid
+    if spindle:
+        settings["machines"].setdefault(mid, {})["active_spindle"] = spindle
+    machine_profiles.write_settings(MACHINE_SETTINGS_PATH, settings)
+    return jsonify({**_machine_list(settings), "limits": machine_limits()})
+
 
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
