@@ -18,6 +18,7 @@ _Research with the user, 2026-10-15. Source: CoroPlus ToolGuide cutting-data scr
 | 345 HB | Pre-machining (conventional, full slot, 6 axial passes) | 142 | 0.0003 | 6880 | 8.26 | 0.0787 | 0.021 | 0.0003 | 0.0137 | 0.0273 | 0.0283 |
 | **45 NCD 16** (not 17-4) 420 HB, Universal machining center, **compressed air** | Helical milling | 212 | 0.0003 | 10300 | 12.4 | 0.0787 | 0.025 | 0.0003 | 0.0122 | 0.046 | 0.0318 |
 | 45 NCD 16, 420 HB | Pre-machining (dynamic); **rpm at the machine's 18000 cap** | 371 | 0.000691 | 18000 | 49.7 | 0.00619 | 0.125 | 0.000372 | 0.0385 | 0.0727 | 0.0288 |
+| **17-4 PH 345 HB**, Universal machining center, emulsion | Pre-machining (dynamic) | 256 | 0.000683 | 12400 | 33.9 | 0.00634 | 0.125 | 0.000372 | 0.0269 | 0.0537 | 0.0308 |
 
 Overview at 345 HB: tool life count 5.58 features; machining time 3:33.8.
 
@@ -63,8 +64,24 @@ The strategy, engagement, material and hardness all change; the mean chip does n
 
 **Working hypothesis:** the calculator's hardness correction is about the exponent implied by each family's own annealed/hardened rows. Speed also stays higher for the low-alloy steel (212 SFM at 420 HB helical) than for 17-4 (142 at 345 HB). Stainless carries its own speed penalty on top of hardness.
 
+## Like-for-like 17-4 dynamic (200 vs 345 HB)
+
+Both runs use the dynamic strategy and emulsion, and neither is limited by rpm (21300 and 12400 against 30000 and 18000 caps). The 345 HB run keeps the same mean chip (0.000191").
+
+| | 200 HB | 345 HB | Ratio |
+|---|---|---|---|
+| Implied kc (N/mm²) | 4361 | 5450 | **1.250** (p = 0.41) |
+| Dynamic vc (SFM) | 440 | 256 | **0.582** (vc ∝ HB^−0.99) |
+| Helical (full engagement) vc | 249 | 142 | 0.570 |
+| Dynamic / full-engagement speed | 1.77 | 1.80 | |
+
+What this confirms:
+- **Force rises ×1.25 from 200 to 345 HB.** Three independent comparisons agree (1.248, 1.250, 1.253).
+- **Speed falls about in proportion to hardness** (exponent ≈ −1.0), the same for dynamic and full engagement.
+- **Engagement raises speed by a constant factor.** At about 9–10% tooth contact (ae 0.08–0.10·D, φe 33–37°), Sandvik runs **1.8×** the full-engagement speed at both hardnesses. This is the first sourced number for the HEM thermal speed effect (C7, design §3.5 and §3.7 "HEM thermal SFM boost"). It is one engagement level, so the shape vs ae is still unknown.
+
 ## Not yet known
 
 - **A third 17-4 point** (H900, about 420 HB / 44 HRC) to confirm the curve shape. The 45 NCD 16 run is a different family.
 - **A consistent setup.** The machine (rpm cap) and coolant changed between runs. Speeds can only be compared with the same machine and coolant.
-- **Dynamic at 345 HB.** At 345 HB the calculator chose conventional slotting, not dynamic. Was that a user setting or Sandvik's own choice? The machine also differed between runs.
+- **Speed vs engagement.** Only two engagement levels so far: full, and about 0.09·D. Runs at about 0.2, 0.3 and 0.5·D (Change cutting data) would give the curve.
