@@ -190,7 +190,7 @@ The existing `cutlog.py` adjusts the user's own results from cuts they log, on t
 
 1. **Data first.** Build the v2 benchmark dataset (§4.2). Source the Sandvik kc1.1/mc table and carbide properties. Research is in `docs/research/`. **Done 2026-10-15:** 578 rows, findings and open decisions in `docs/research/v2_data_findings.md`.
 2. **Force model module** `physics_v2/forces.py`, with unit tests against textbook examples (Altintas) and Sandvik power examples.
-3. **Constraint and optimizer module** `physics_v2/optimize.py` (pure functions), plus the provenance of which constraint is binding.
+3. **Constraint and optimizer module** `physics_v2/optimize.py` (pure functions), plus the provenance of which constraint is binding. **Done 2026-10-16:** T12 and T1 come out deep and narrow, limited by C3 (v1's deflection limits); findings and open decisions in `docs/research/v2_optimizer_findings.md`.
 4. **Calibration script** `tools/calibrate_v2.py`, which writes `data/model_v2/*.json` and a residual report.
 5. **Pipeline integration** behind `TOOLWIZ_MODEL=v2` (v1 stays the default). The web page and Fusion show which model produced the numbers.
 6. **Comparison report** (an HTML artifact) for the user's review, then the switch to v2 and v1's retirement.

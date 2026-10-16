@@ -12,7 +12,14 @@ Why: ToolWiz v1 is GWizard's tables plus stacked rules. For tools of 1/8" and sm
 - All data decisions are made: 17-4 → P5.0.Z.AN scaled by hardness; Harvey generic charts at normal weight; C5 on the continuous rating.
 - The optimizer objective is agreed (design §3.6): MRR, with speed set from tool life.
 
-Next is step 3, constraints and optimizer (`physics_v2/optimize.py`).
+**Done 2026-10-16:** step 3, constraints and optimizer (`physics_v2/optimize.py`, `docs/research/v2_optimizer_findings.md`). T12 and T1 adaptive come out deep (full LCF) and narrow, limited by C3.
+
+Decisions needed before or during step 4 (calibration):
+- C1 on the largest-chip flute (default, design §3.3) or on every flute. Every-flute at 0.0002" TIR makes T12/T1 shallow and wide.
+- C3/C4 limits: every published 17-4 cut at 1/16–1/8" is 3–17× over v1's deflection limit and 1.3–5.6× over the C4 placeholder under the v2 forces.
+- The radial-engagement floor (now 0.02·D, the lightest vendor-published side cut); the model alone keeps narrowing.
+
+Next is step 4, calibration (`tools/calibrate_v2.py`).
 
 ## User actions
 
