@@ -56,11 +56,12 @@ class TestInputs(unittest.TestCase):
         r = o.optimize(T12, M17_4, SPEEDIO, "slot", robustness=False)
         params = r["parameters"]
         for name in ("k_r", "tool_factor", "kc_hardness_exp", "vc_ref_sfm", "vc_hardness_exp",
-                     "vc_engagement_exp", "taylor_n", "h_tooth_c", "h_tooth_n", "edge_radius_mm",
-                     "deflection_allow_in", "stress_limit_mpa", "effective_feed_ipm", "k_tir"):
+                     "vc_engagement_exp", "taylor_n", "edge_radius_mm", "effective_feed_ipm", "k_tir"):
             self.assertTrue(params[name]["placeholder"], name)
             self.assertTrue(params[name]["basis"], name)
         self.assertFalse(params["E_mpa"]["placeholder"])
+        for name in ("chip_limit_mm", "deflection_allow_in", "stress_limit_mpa"):    # adopted basis
+            self.assertFalse(params[name]["placeholder"], name)
 
 
 class TestConstraintsByHand(unittest.TestCase):
@@ -72,16 +73,34 @@ class TestConstraintsByHand(unittest.TestCase):
         self.assertFalse(o.c1_min_chip(0.0005, 0.002, 0.3).ok)
 
     def test_c2_tooth_strength(self):
-        h_tooth = M17_4.h_tooth_mm(T12.D_mm)
-        self.assertAlmostEqual(h_tooth, 0.008 * 1.5875)
-        c = o.c2_tooth_strength(0.010, h_tooth, 0.1)
+        c = o.c2_tooth_strength(0.010, 0.0127, 0.9)
         self.assertAlmostEqual(c.limit, 0.9 * 0.0127)
         self.assertAlmostEqual(c.margin, (0.01143 - 0.010) / 0.01143)
-        self.assertFalse(o.c2_tooth_strength(0.012, h_tooth, 0.1).ok)
+        self.assertFalse(o.c2_tooth_strength(0.012, 0.0127, 0.9).ok)
+
+    def test_c2_limit_is_the_vendor_chip_median(self):
+        band = o.chip_limit(T12.D)
+        self.assertEqual(band["band"], "1/16–3/32")
+        self.assertLess(band["p10"], band["h_worst_over_D"])
+        self.assertLess(band["h_worst_over_D"], band["p90"])
+        ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
+        self.assertAlmostEqual(ctx.h_tooth, band["h_worst_over_D"] * T12.D_mm)
+        # Aggressiveness scales it: ×0.7 at 0, ×1.3 at 1.
+        c = o.CutPoint(o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(1.0)), 0.1, 0.01).c2([0.001])
+        self.assertAlmostEqual(c.limit, 1.3 * ctx.h_tooth)
 
     def test_c3_deflection_check(self):
         c = o.c3_deflection(0.0002, 0.00025)
         self.assertAlmostEqual(c.margin, 0.2)
+
+    def test_c3_c4_adopted_defaults(self):
+        ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
+        self.assertAlmostEqual(ctx.delta_allow, 0.5 * 0.05 / 25.4)            # 50 % of 0.05 mm stock
+        self.assertAlmostEqual(ctx.stress_limit, 0.375 * 3800.0)              # fatigue, 10⁷ cycles
+        ctx = o._Context(T12, M17_4, SPEEDIO, "slot", o.Margins(0.5), stock_to_leave_in=0.1 / 25.4)
+        self.assertAlmostEqual(ctx.delta_allow, 0.5 * 0.1 / 25.4)
+        self.assertAlmostEqual(o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.0)).stress_limit,
+                               0.7 * 1425.0)
 
     def test_c4_stress_limit(self):
         c = o.c4_stress(500.0, 1288.0)
@@ -320,11 +339,11 @@ class TestEvaluateCut(unittest.TestCase):
 
     def test_v1_cut_under_v2_physics(self):
         # v1's adaptive answer for T12 (17-4 H1025, aggressiveness 50): 0.0119" × 0.0156", 16,000 rpm,
-        # fz 0.00054". It deflects T12 about twice the vendor-median allowance and overloads the tooth.
+        # fz 0.00054". Its worst-flute chip is well over the vendor median; the vendor-median C3 of Round 2
+        # (now only reported) would also reject it.
         r = o.evaluate_cut(T12, M17_4, SPEEDIO, "adaptive", 0.0119, 0.0156, 0.00054, rpm=16000)
-        self.assertIn("C3", r["violated"])
         self.assertIn("C2", r["violated"])
-        self.assertGreater(r["checks"]["C3"]["value"] / r["checks"]["C3"]["limit"], 1.8)
+        self.assertGreater(r["vendor_median_comparison"]["deflection_ratio"], 1.8)
 
 
 class TestOptimizer(unittest.TestCase):
@@ -340,7 +359,7 @@ class TestOptimizer(unittest.TestCase):
         self.assertGreaterEqual(c["ap_in"], 2.0 * T12.D)          # deep: at least 2·D
         self.assertLessEqual(c["ae_in"], 0.25 * T12.D)            # narrow: at most 0.25·D
         self.assertGreaterEqual(c["ap_in"] / c["ae_in"], 4.0)
-        self.assertIn("C3", r["binding"])                         # deflection sets the load
+        self.assertIn("C2", r["binding"])                         # the chip invariant sets the feed
         self.assertGreaterEqual(c["ae_in"], 2 * SPEEDIO.tir_in)   # C12
         self.assertLessEqual(c["feed_ipm"], 200.0 + 1e-6)          # C11
 
@@ -355,7 +374,7 @@ class TestOptimizer(unittest.TestCase):
         r = self.t12
         self.assertTrue(any(p.startswith("selection:") for p in r["provenance"]))
         self.assertTrue(any(p.startswith("binding:") for p in r["provenance"]))
-        self.assertEqual(set(r["robustness"]), {"TIR ×2", "K_r 0.6 (top of 0.3–0.6)", "h_tooth −25 %",
+        self.assertEqual(set(r["robustness"]), {"TIR ×2", "K_r 0.6 (top of 0.3–0.6)", "C2 chip limit −25 %",
                                                 "kc +20 % (hardness/tool factor)"})
 
     def test_why_full_depth_must_be_narrow(self):
@@ -368,13 +387,15 @@ class TestOptimizer(unittest.TestCase):
         ctx_w = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5), c1_flute="worst")
         self.assertIsNotNone(o.CutPoint(ctx_w, T12.lcf, 0.25 * T12.D).fz_window()[1])
 
-    def test_provisional_limits_follow_the_diameter_band(self):
+    def test_vendor_median_limits_are_reported_only(self):
         self.assertEqual(o.provisional_limits(0.0625)["band"], "1/16–3/32")
         self.assertEqual(o.provisional_limits(0.125)["band"], "1/8–3/16")
         r = self.t12
         band = o.provisional_limits(T12.D)
-        self.assertAlmostEqual(r["parameters"]["deflection_allow_in"]["value"], band["deflection_over_D"] * T12.D)
-        self.assertAlmostEqual(r["parameters"]["stress_limit_mpa"]["value"], band["sigma1_mpa"])
+        cmp = r["vendor_median_comparison"]
+        self.assertAlmostEqual(cmp["vendor_median_deflection_in"], band["deflection_over_D"] * T12.D)
+        self.assertAlmostEqual(cmp["vendor_median_sigma1_mpa"], band["sigma1_mpa"])
+        self.assertAlmostEqual(r["parameters"]["stress_limit_mpa"]["value"], 1425.0)
 
     def test_slot_fixes_ae_and_c8_caps_depth(self):
         r = o.optimize(T12, M17_4, SPEEDIO, "slot", robustness=False)
@@ -539,10 +560,21 @@ class TestProgramSizeAndWall(unittest.TestCase):
         self.assertIn("wall_error_in", rough["loads"])
 
     def test_trade_front_is_monotone(self):
-        r = o.optimize(T12, M17_4, SPEEDIO, "adaptive", deflection_allow=1.0, stress_limit=1425.0,
-                       grid=(10, 10), robust=False, robustness=False)
+        r = o.optimize(T1, M17_4, SPEEDIO, "adaptive", grid=(10, 10), robust=False, robustness=False)
         front = r["trade"]
         self.assertGreater(len(front), 1)
         for a, b in zip(front, front[1:]):
             self.assertLessEqual(a["toolpath_in_per_in3"], b["toolpath_in_per_in3"])
             self.assertLess(a["mrr_in3_min"], b["mrr_in3_min"])
+
+
+class TestC1WallFlute(unittest.TestCase):
+    def test_wall_flute_variant_checks_the_outermost_flute(self):
+        ctx = o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5), c1_flute="wall")
+        pt = o.CutPoint(ctx, 0.25, 0.002)
+        chips = pt.max_chips_mm(0.0003)
+        k = max(range(4), key=lambda i: pt.offsets[i])
+        self.assertAlmostEqual(pt.lower_checks(chips)["C1"].value, chips[k])
+        thin = o.CutPoint(o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5)), 0.25, 0.002)
+        self.assertLessEqual(thin.fz_window()[0], 1.0)
+        self.assertLess(pt.fz_window()[0], thin.fz_window()[0])      # fewer flutes to satisfy → lower min fz

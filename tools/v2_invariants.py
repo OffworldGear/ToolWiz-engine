@@ -17,7 +17,8 @@ plus h_m/D, h_worst/D.
 For each quantity it reports, per diameter band and overall, n, median, CV (σ/mean) and p90/p10.
 A second part re-evaluates the flute-root stress under alternative stress-model assumptions.
 
-Run from the repo root (Windows: python tools\\v2_invariants.py). Writes data/model_v2/invariants.json.
+Run from the repo root (Windows: python tools\\v2_invariants.py). Writes data/model_v2/invariants.json and
+data/model_v2/chip_limits.json (C2's basis); "--chip-only" writes just the latter (a few seconds).
 """
 import json
 import math
@@ -92,7 +93,7 @@ def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1
     ap, ae = min(float(c["ap"]), tool.lcf), min(float(c["ae"]), tool.D)
     rpm = 12.0 * sfm / (math.pi * tool.D)
     ctx = o._Context(tool, mat, machine, "rough", o.Margins(0.5), n_theta, n_quad,
-                     deflection_allow=1.0, stress_limit=1e9, effective_feed_ipm=None)
+                     deflection_allow=1.0, stress_limit=1e9, effective_feed_ipm=None, chip_limit_over_D=1.0)
     pt = o.CutPoint(ctx, ap, ae, rpm)
     chips = pt.max_chips_mm(fz)
     f = pt.loads(fz)
@@ -214,8 +215,39 @@ def stickout_sensitivity(rows):
     return out
 
 
+def chip_limits(rows, tir=0.0002):
+    """C2's basis (user decision 2026-10-16): worst-flute h_max / D per band (p10, median, p90)."""
+    inv, ev = invariants(rows, tir)
+    bands = []
+    for name, lo, hi in pl.BANDS:
+        st = inv["bands"][name]["h_worst_over_D"]
+        bands.append({"band": name, "d_min": lo, "d_max": hi if hi != math.inf else 1e9, "n": st["n"],
+                      "h_worst_over_D": st["median"], "p10": st["p10"], "p90": st["p90"]})
+    return {"status": "C2 basis (user decision 2026-10-16): vendor median worst-flute chip / D per band",
+            "generated_by": "tools/v2_invariants.py",
+            "quantity": "worst flute's h_max (eccentric runout at TIR 0.0002\", worst phase) / D, over the vendor "
+                        "side/rough/HEM rows on their own catalog geometry and material",
+            "tir_in": tir, "overall": inv["overall"]["h_worst_over_D"], "bands": bands}
+
+
+def write_chip_limits(rows=None):
+    out = chip_limits(rows or load_rows())
+    path = os.path.join(ROOT, "data", "model_v2", "chip_limits.json")
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
+    return out, path
+
+
 def main():
     rows = load_rows()
+    chips, chip_path = write_chip_limits(rows)
+    print("C2 chip limits (worst-flute h_max / D):")
+    for b in chips["bands"]:
+        print(f"  {b['band']:10} n {b['n']:3} median {b['h_worst_over_D']:.5f} (p10 {b['p10']:.5f}, p90 {b['p90']:.5f})")
+    print(f"wrote {chip_path}")
+    if "--chip-only" in sys.argv:
+        return
     inv, ev = invariants(rows)
     inv0, _ = invariants(rows, 0.0)
     result = {"status": "Round 3 analysis (2026-10-16)", "generated_by": "tools/v2_invariants.py",

@@ -126,7 +126,7 @@ def evaluate_row(row, machine):
     ap, ae = min(float(c["ap"]), tool.lcf), min(float(c["ae"]), tool.D)
     rpm = 12.0 * sfm / (math.pi * tool.D)
     r = o.evaluate_cut(tool, mat, machine, "rough", ap, ae, fz, rpm=rpm, n_theta=360, n_quad=64,
-                       deflection_allow=1.0, stress_limit=1e9, effective_feed_ipm=None)
+                       deflection_allow=1.0, stress_limit=1e9, effective_feed_ipm=None, chip_limit_over_D=1.0)
     top = r["loads"]["sections"][0] if r["loads"]["sections"] else {"kind": "none", "sigma1_mpa": 0.0}
     return {
         "id": row["id"], "doc": row["source"]["doc_id"], "family": row["material"]["toolwiz_family"],

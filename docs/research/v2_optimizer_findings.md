@@ -346,3 +346,104 @@ For infeasible rows, fz is the smallest feed C1 allows and the wall error is at 
 - Blum compensation of the mean is not enough: the ripple alone is 6–15 µm.
 - At 0.0001" TIR, a light pass (0.002" stock) holds 5 µm on both tools.
 - Finishing is therefore where a measured runout matters most. A thinner stock, or C1 on the wall-generating flute only, are the other levers (still an open decision).
+
+## Round 4 (2026-10-16): the adopted basis
+
+### What changed
+
+The user adopted the Round 3 proposal. Defaults now:
+
+| Constraint | Basis |
+|---|---|
+| **C2** | Worst-flute h_max (eccentric runout included) ≤ the **vendor median of worst-flute h_max/D** for the diameter band, ×(0.7 + 0.6·a) for aggressiveness (×1.0 at 50 %). Source: `data/model_v2/chip_limits.json`, written by `python tools\v2_invariants.py --chip-only`. `Material.h_tooth_c` remains as an explicit override. |
+| **C3**, roughing/adaptive/slot | Wall-normal tip deflection (largest over a revolution) ≤ **50 % of the radial stock to leave**. `stock_to_leave_in`, default 0.05 mm, user-settable; the user typically leaves 0.05–0.1 mm. |
+| **C3**, finishing | Unchanged: wall tolerance (default 0.005 mm). Wall error reported as max / mean (Blum-compensable) / ripple. |
+| **C4** | Carbide fatigue at 10⁷ cycles: 0.375 × TRS 3.8 GPa = **1425 MPa**, ×(0.7 + 0.6·a), on the fluted section shared with C3. Sandvik's 0.79 force factor stays off (calibration, step 4). |
+| Vendor-median C3/C4 (Round 2) | Removed from the default path. Reported per cut as `vendor_median_comparison`. |
+| C13 "Limit program size" | Unchanged: off by default, 6 MB. |
+| Finishing C1 | Still every flute (open with the user). `c1_flute="wall"` checks only the wall-generating (outermost) flute and is reported alongside. |
+
+C2 limits by band (worst-flute h_max / D, TIR 0.0002" eccentric):
+
+| Band | n | Median (limit at a = 50 %) | p10 | p90 |
+|---|---|---|---|---|
+| 1/64–3/64 | 17 | 0.00538 | 0.00224 | 0.01154 |
+| 1/16–3/32 | 27 | 0.00504 | 0.00361 | 0.00817 |
+| 1/8–3/16 | 45 | 0.00544 | 0.00328 | 0.01093 |
+| 1/4–3/8 | 79 | 0.00539 | 0.00281 | 0.00829 |
+| 1/2–3/4 | 59 | 0.00495 | 0.00304 | 0.00697 |
+| 1 and up | 19 | 0.00470 | 0.00285 | 0.00638 |
+
+### T1 and T12 (17-4 H1025, Speedio 16k, aggressiveness 50 %, stock to leave 0.05 mm → C3 0.000984")
+
+| Tool | Op | TIR | ap | ae | fz | SFM | IPM | MRR in³/min | MB/in³ at s 0.22 / 0.04 mm | Wall deflection / allowed (in) | σ1 MPa | Binding |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| T1 | adaptive | 0.0002 | 0.500" (4·D) | 0.0026" (0.021·D) | 0.00188 | 255 | 58.6 | 0.0768 | 2.34 / 12.9 | 0.000962 / 0.000984 | 726 | C2, C3, C6 |
+| T1 | adaptive | 0.0001 | 0.500" (4·D) | 0.0029" (0.023·D) | 0.00184 | 255 | 57.5 | 0.0828 | 2.13 / 11.7 | 0.000983 / 0.000984 | 751 | C3, C6 |
+| T1 | slot | 0.0002 | 0.0133" (0.11·D) | D | 0.00053 | 135 | 8.8 | 0.0147 | 1.84 / 10.1 | 0.000984 / 0.000984 | 344 | C2, C3 |
+| T1 | slot | 0.0001 | 0.0133" (0.11·D) | D | 0.00060 | 135 | 10.0 | 0.0166 | 1.84 / 10.1 | 0.000983 / 0.000984 | 347 | C2, C3 |
+| T12 | adaptive | 0.0002 | 0.1875" (3·D) | 0.0108" (0.173·D) | 0.00023 | 236 | 13.2 | 0.0269 | 1.51 / 8.3 | 0.000874 / 0.000984 | 1173 | C2, C6 |
+| T12 | adaptive | 0.0001 | 0.1875" (3·D) | 0.0125" (0.200·D) | 0.00028 | 229 | 15.4 | 0.0362 | 1.31 / 7.2 | 0.000984 / 0.000984 | 1352 | C3, C6 |
+| T12 | slot | 0.0002 | 0.0219" (0.35·D) | D | 0.00017 | 141 | 6.0 | 0.0081 | 2.24 / 12.3 | 0.000801 / 0.000984 | 876 | C2, C8 |
+| T12 | slot | 0.0001 | 0.0219" (0.35·D) | D | 0.00024 | 141 | 8.4 | 0.0115 | 2.24 / 12.3 | 0.000797 / 0.000984 | 887 | C2, C8 |
+
+v1 for reference: T12 adaptive 0.0064 in³/min (16.5 MB/in³); T1 adaptive 0.0194 (9.8 MB/in³); T12 slot 0.0063; T1 slot 0.0139.
+
+**Against v1:**
+- T12 adaptive: 4.2× the MRR with 11× less program per in³.
+- T1 adaptive: 4.0× the MRR with 4× less program.
+- Every roughing cut sits at full flute length.
+
+**Slots:**
+- T1 slot: 1.06× v1's MRR.
+- T12 slot: 1.3× v1 at 0.0002" TIR, 1.8× at 0.0001". It reaches the 0.35·D micro-slot cap (C8).
+
+**MRR vs program size (adaptive):**
+- **T12 at 0.0002"** has no trade. The C1/C2 window leaves fz·sin φe only 0.000165–0.000174", so MRR rises with ae, and the widest feasible cut is both fastest and smallest.
+- **T12 at 0.0001":**
+
+  | ae | MRR | MB/in³ at 0.22 / 0.04 mm |
+  |---|---|---|
+  | 0.42·D | 0.0225 | 0.62 / 3.4 |
+  | 0.29·D | 0.0284 | 0.90 / 4.9 |
+  | 0.20·D (chosen) | 0.0362 | 1.31 / 7.2 |
+
+- **T1 at 0.0002":**
+
+  | ae | MRR | MB/in³ at 0.22 / 0.04 mm |
+  |---|---|---|
+  | 0.065·D | 0.0459 | 0.76 / 4.2 |
+  | 0.044·D | 0.0560 | 1.10 / 6.1 |
+  | 0.031·D | 0.0673 | 1.61 / 8.8 |
+  | 0.021·D (chosen) | 0.0768 | 2.34 / 12.9 |
+
+  Widening from 0.021·D to 0.065·D gives up 40 % of MRR for a 3× smaller program.
+
+### Finishing (full-flute wall, stock = the roughing's 0.05 mm or 0.1 mm, tolerance 0.005 mm)
+
+| Tool | TIR | Stock | C1 every flute (default) | C1 wall-generating flute only |
+|---|---|---|---|---|
+| T1 | 0.0002 | 0.05 mm | **infeasible**: wall error 9.7 µm (mean 5.3, ripple 7.7) | 8.7 IPM, wall 5.0 µm (mean 2.5, ripple 4.8) |
+| T1 | 0.0002 | 0.10 mm | infeasible (14.9 µm) | 3.6 IPM |
+| T1 | 0.0001 | 0.05 mm | infeasible: 6.1 µm (mean 3.4, ripple 4.7) | 9.0 IPM, 5.0 µm (mean 2.7, ripple 4.2) |
+| T12 | 0.0002 | 0.05 mm | infeasible: 6.9 µm (mean 3.7, ripple 6.0) | 19.7 IPM, 5.0 µm (mean 2.5, ripple 4.6) |
+| T12 | 0.0002 | 0.10 mm | infeasible (10.9 µm) | 7.9 IPM |
+| T12 | 0.0001 | 0.05 mm | **21.8 IPM**, 5.0 µm (mean 2.8, ripple 4.0) | same |
+| T12 | 0.0001 | 0.10 mm | infeasible (6.9 µm) | 7.9 IPM |
+
+**Finishing C1 decision (open):**
+- With every flute cutting, only T12 at 0.0001" with 0.05 mm stock finishes inside 5 µm.
+- Checking only the wall-generating flute makes every case feasible, at 3.6–21.8 IPM. The other flutes then rub lightly behind it.
+- In the feasible cases the mean wall error, which Blum compensation removes, is 2.5–2.8 µm, and the ripple is 4.0–4.8 µm.
+
+### Step 3 status
+
+Ready for review and merge by the local session. Items for step 4 (calibration):
+- the 0.79 force factor;
+- K_r;
+- the Taylor constants and engagement exponent;
+- the aggressiveness map.
+
+Items still open with the user:
+- finishing C1 (every flute or wall flute);
+- measured runout per tool (Blum).

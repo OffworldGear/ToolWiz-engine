@@ -32,6 +32,14 @@ Results are in `docs/research/v2_optimizer_findings.md` (Round 2). Open:
 - At 0.0002" TIR no finishing pass holds 5 µm; at 0.0001" a 0.002" stock pass does.
 - CAM-side: Fusion Fine Stepdown 0.002–0.005 mm made the largest files; keep it at least ¼ of the stepdown and never under 0.05 mm.
 
+**Round 4 done 2026-10-16: adopted basis.**
+- C2 = vendor-median worst-flute chip/D per band.
+- C3 = wall deflection ≤ 50 % of the stock to leave (roughing) or the wall tolerance (finishing).
+- C4 = carbide fatigue 1425 MPa on the fluted section.
+- The vendor-median C3/C4 limits are reported only.
+
+Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: finishing C1 (every flute vs the wall-generating flute), measured runout.
+
 Next is step 4, calibration (`tools/calibrate_v2.py`).
 
 ## User actions
