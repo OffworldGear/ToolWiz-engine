@@ -17,10 +17,20 @@ What is decided, and where it comes from
 * Z-level credit (design §7.2): with the operation's real depth, ap is one of depth/N (even levels) and
   an optional per-level overhead enters the score; without it, the 10 % rule approved 2026-10-13
   (v1 `DEPTH_TRADE_MRR`): the deepest cut whose score is within 10 % of the best.
-* Robust optimum: aggressiveness sets the margins (design §3.6): λ in C1, the stress fraction in C4,
-  the tool-life target in C7, the deflection limit in C3 (v1's per-operation limits, pending review),
-  and a margin on the uncertain upper limits C2 and C5. fz then sits at the highest value that keeps
-  every margin.
+* Robust optimum: aggressiveness sets the margins (design §3.6): λ in C1, a scale on the C3/C4 limits,
+  the tool-life target in C7, and a margin on the uncertain upper limits C2 and C5. fz then sits at the
+  highest value that keeps every margin.
+* User decisions 2026-10-16:
+  - C1 holds on every flute (the thinnest flute's chip ≥ λ·r_β).
+  - Runout is the eccentric model (TIR = 2e) at its worst phase; the bound model (one flute high by the
+    full TIR) is only reported as a warning.
+  - C3/C4 are provisional limits: per diameter band, the median deflection/D and σ1 of the vendor side,
+    rough and HEM rows on their catalog geometry (tools/v2_provisional_limits.py →
+    data/model_v2/provisional_limits.json). Finishing keeps v1's tolerance limit for C3.
+  - C11 caps the feed at the machine's max cutting feed and, for adaptive, an effective adaptive feed
+    (200 IPM, empirical, user-settable). C12 requires ae ≥ k·TIR, k = 2 (see K_TIR).
+  - The score is MRR with the feed capped, i.e. 1/(machining time per volume); every result reports
+    the toolpath length per in³, 1/(ap·ae). 0.02·D is only a reported sanity check on ae.
 * 17-4 PH is P5.0.Z.AN (1800 / 0.21 at 200 HB) scaled by its real hardness (user, 2026-10-15;
   docs/research/material_mapping_v2.md).
 * C5 uses the spindle's continuous rating (user, 2026-10-15).
@@ -77,11 +87,20 @@ FT_PER_M = 1.0 / 0.3048
 OPERATIONS = ("rough", "adaptive", "slot", "finish")
 C1_FLUTES = ("worst", "thinnest")
 
-# Radial engagement searched for roughing/adaptive, as fractions of D. The floor is the lightest side-milling
-# engagement any vendor in tests/benchmarks/v2 publishes (OSG EXOCARB WXL 3604, ae = 0.02·D): nothing
-# validates the model below it, and in the deflection-limited regime the model keeps narrowing (the Kienzle
-# size effect favours a thicker mean chip at a fixed force) until C2 stops it near 0.002·D on a 1/16" tool.
-AE_RANGE = (0.02, 0.9)
+# Radial engagement searched for roughing/adaptive: from C12's k·TIR up to AE_MAX·D.
+AE_MAX = 0.9
+# C12: ae ≥ k·TIR. With the eccentric model the flutes' reach differs by up to TIR, so the lowest flute
+# engages ae − TIR. k = 2 keeps that at least ae/2: its engagement angle is then ≥ ~0.7× the highest
+# flute's (φe ∝ √ae for light cuts), so every flute stays in the multi-flute regime the chip and force
+# model assume. At k = 1 the lowest flute's arc shrinks to nothing and the cut becomes one-flute.
+K_TIR = 2.0
+# Reported only: the lightest side-milling engagement any vendor publishes (OSG EXOCARB WXL 3604, 0.02·D).
+AE_SANITY = 0.02
+# C11, empirical: the feed an adaptive toolpath sustains on the user's machine (short arcs, direction
+# changes, look-ahead), user-settable. Not the control's programmed maximum.
+EFFECTIVE_ADAPTIVE_FEED_IPM = 200.0
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LIMITS_PATH = os.path.join(ROOT, "data", "model_v2", "provisional_limits.json")
 V1_OPERATION_NAME = {"rough": "Roughing", "adaptive": "Adaptive Roughing", "slot": "Slotting",
                      "finish": "Finishing"}
 
@@ -95,11 +114,13 @@ SRC = {
           "0.4–3.5 µm (Liang et al. 2018; Jäckel et al. 2024). docs/research/carbide_and_edge_radius.md §3–4",
     "C2": "Tooth/edge strength h_tooth = c·D^n (design §3.5). PLACEHOLDER until calibration (§6 step 4) "
           "fits c and n to several vendors' chip loads",
-    "C3": "Deflection limit by operation and aggressiveness: v1 CuttingMechanics.calc_deflection_limit "
-          "(today's limits, design §3.5 C3 'reviewed' in calibration)",
-    "C4": "Carbide fatigue: σ1 ≤ s·f·TRS with TRS 3.8 GPa (CERATIZIT p-line 05/2024 p.22 CT-GS20Y; "
-          "Hyperion K10F 3.7 GPa) and f ≈ 0.35–0.4 for fully reversed bending (Schleinkofer 1996, "
-          "Kursawe 2001 via Preis 2004). docs/research/carbide_and_edge_radius.md §1–2",
+    "C3": "PROVISIONAL (user, 2026-10-16): median tip deflection / D of the vendor side, rough and HEM rows "
+          "in this diameter band, each on its catalog geometry and material (data/model_v2/"
+          "provisional_limits.json, tools/v2_provisional_limits.py); finishing keeps v1's tolerance "
+          "limit (CuttingMechanics.calc_deflection_limit). Step 4 refines it",
+    "C4": "PROVISIONAL (user, 2026-10-16): median flute-root/step σ1 of the vendor side, rough and HEM rows "
+          "in this diameter band (data/model_v2/provisional_limits.json). Reference: carbide fatigue "
+          "0.35–0.4 × TRS 3.8 GPa = 1.3–1.5 GPa (docs/research/carbide_and_edge_radius.md §1–2)",
     "C5": "Spindle capacity at rpm, continuous rating (user decision 2026-10-15): "
           "machines/*.json via machine_profiles.capacity",
     "C6": "Geometry: ap ≤ LCF (and ≤ the operation's depth), ae ≤ D; ae and ap fixed for finishing",
@@ -110,6 +131,9 @@ SRC = {
           "and SF_73000 slot ADOC (0.14·D for 0.015–0.047\", 0.35·D for 0.062\" and up)",
     "C9": "Empirical (design §3.5 C9): OSG overhang speed reduction on the equivalent stickout, "
           "v1 reach_sfm_factor (1.0 to 4·D, −10 %/D, ≥ 40 %)",
+    "C11": "Feed: v_f ≤ the machine's max cutting feed (machine profile) and, for adaptive, an effective "
+           "adaptive feed (empirical, user-settable, default 200 IPM)",
+    "C12": "Every flute reaches the stock: ae ≥ k·TIR, k = 2 (lowest flute engages ae − TIR ≥ ae/2)",
     "C10": "Empirical (design §3.5 C10): cut under the work-hardened layer, h ≥ h_wh. No sourced "
            "per-alloy value yet; inactive unless h_wh is given (17-4 PH is not in v1's "
            "work-hardening list)",
@@ -133,8 +157,11 @@ PLACEHOLDERS = {
                  "plus 0.0002\" TIR; not a fit",
     "h_tooth_n": "1.0: geometric similarity of the tooth and edge with D",
     "edge_radius_mm": "0.002: micro end mills 1–4 µm (Ducobu 2017), no data vs diameter",
-    "aggressiveness_map": "stress fraction 0.6 + 0.3·a, tool life ×4^(0.5 − a), C2/C5 margin "
-                          "0.2·(1 − a), λ from the top to the bottom of its range",
+    "aggressiveness_map": "C3/C4 provisional limits ×(0.7 + 0.6·a) (the vendor median at a = 0.5), tool "
+                          "life ×4^(0.5 − a), C2/C5 margin 0.2·(1 − a), λ from the top to the bottom of "
+                          "its range",
+    "effective_feed_ipm": "200 IPM: empirical effective adaptive feed (user, 2026-10-16), user-settable",
+    "k_tir": "2: C12 ae ≥ k·TIR, see K_TIR",
 }
 
 # Core (web) diameter / D by flute count: patents and Mitsubishi ("usually about 60 %"),
@@ -258,23 +285,26 @@ class Machine:
     max_rpm: float
     rating: str = "continuous"
     tir_in: float = 0.0002              # design §7.4 default for micro tools
-    runout_model: str = "bound"
+    runout_model: str = "eccentric"     # physical default (user, 2026-10-16); "bound" is reported only
     label: str = ""
+    max_feed_ipm: Optional[float] = None
 
 
-def speedio_16k(tir_in=0.0002, rating="continuous"):
+def speedio_16k(tir_in=0.0002, rating="continuous", runout_model="eccentric"):
     """Brother Speedio S500X2 with the 16k non-dual-contact spindle (machines/speedio_s500x2.json)."""
     with open(os.path.join(machine_profiles.BUILTIN_DIR, "speedio_s500x2.json"), encoding="utf-8") as fh:
         prof = json.load(fh)
     sp = prof["spindle_options"]["optional_16k"]
-    return Machine(sp, float(sp["max_rpm"]), rating, float(tir_in), "bound", "Speedio S500X2 16k")
+    feed = prof.get("max_cutting_feed_mm_min")
+    return Machine(sp, float(sp["max_rpm"]), rating, float(tir_in), runout_model, "Speedio S500X2 16k",
+                   feed / MM_PER_IN if feed else None)
 
 
 @dataclass(frozen=True)
 class Margins:
     """Safety margins from aggressiveness a ∈ [0, 1] (design §3.6). The mapping is a placeholder."""
     aggressiveness: float = 0.5
-    stress_fraction: float = None       # s in C4
+    limit_scale: float = None           # on the provisional C3/C4 limits
     life_ratio: float = None            # T / T_ref in C7
     limit_margin: float = None          # on C2 and C5
 
@@ -282,8 +312,8 @@ class Margins:
         a = self.aggressiveness
         if not 0.0 <= a <= 1.0:
             raise ValueError("aggressiveness must be in [0, 1]")
-        if self.stress_fraction is None:
-            object.__setattr__(self, "stress_fraction", 0.6 + 0.3 * a)
+        if self.limit_scale is None:
+            object.__setattr__(self, "limit_scale", 0.7 + 0.6 * a)
         if self.life_ratio is None:
             object.__setattr__(self, "life_ratio", 4.0 ** (0.5 - a))
         if self.limit_margin is None:
@@ -362,12 +392,11 @@ def c3_deflection(delta_in, allow_in, load_at_in=None):
                  detail=f"δ_tip = {delta_in:.6f}\"{where}; δ_allow = {allow_in:.6f}\"")
 
 
-def c4_stress(sigma1_mpa, trs_mpa, fatigue_fraction, stress_fraction, section=""):
-    """C4: largest principal stress at the critical section ≤ s·f·TRS."""
-    lim = stress_fraction * fatigue_fraction * trs_mpa
-    return Check("C4", "bending stress (fatigue)", "max", sigma1_mpa, lim, "MPa", SRC["C4"],
-                 detail=f"σ1 = {sigma1_mpa:.0f} MPa at {section or 'critical section'}; limit = "
-                        f"{stress_fraction:.2f}·{fatigue_fraction:g}·{trs_mpa:g} MPa = {lim:.0f} MPa")
+def c4_stress(sigma1_mpa, limit_mpa, section="", basis=""):
+    """C4: largest principal stress at the critical section (flute root, steps, holder) ≤ limit."""
+    return Check("C4", "bending stress", "max", sigma1_mpa, limit_mpa, "MPa", SRC["C4"],
+                 detail=f"σ1 = {sigma1_mpa:.0f} MPa at {section or 'critical section'}; limit {limit_mpa:.0f} MPa"
+                        + (f" ({basis})" if basis else ""))
 
 
 def c5_spindle(torque_nm, power_kw, rpm, spindle, rating="continuous", margin=0.0):
@@ -382,10 +411,11 @@ def c5_spindle(torque_nm, power_kw, rpm, spindle, rating="continuous", margin=0.
                         f"P = {power_kw * 1000:.1f} W of {s['available_power_kw'] * 1000:.0f} W at {rpm:.0f} rpm")
 
 
-def c6_geometry(ap_in, ae_in, D_in, lcf_in, depth_in=None):
-    """C6: ap ≤ min(LCF, depth) and ae ≤ D; value is the larger of ap/ap_max and ae/D."""
+def c6_geometry(ap_in, ae_in, D_in, lcf_in, depth_in=None, slot=False):
+    """C6: ap ≤ min(LCF, depth) and ae ≤ D; value is the larger of ap/ap_max and ae/D (ap only for a slot,
+    where ae = D by definition)."""
     ap_max = min(lcf_in, depth_in) if depth_in else lcf_in
-    ratio = max(ap_in / ap_max, ae_in / D_in)
+    ratio = ap_in / ap_max if slot and ae_in <= D_in * (1 + 1e-9) else max(ap_in / ap_max, ae_in / D_in)
     return Check("C6", "geometry", "max", ratio, 1.0, "fraction", SRC["C6"],
                  detail=f"ap {ap_in:.4f}\" of {ap_max:.4f}\" ({'depth' if depth_in and depth_in < lcf_in else 'LCF'}); "
                         f"ae {ae_in:.4f}\" of D {D_in:.4f}\"")
@@ -452,6 +482,61 @@ def c10_work_hardening(h_mm, h_wh_mm=None):
     applies = h_wh_mm is not None
     return Check("C10", "work-hardened layer", "min", h_mm, h_wh_mm, "mm", SRC["C10"], applies=applies,
                  detail=(f"h_wh = {h_wh_mm * 1000:.3g} µm" if applies else "no h_wh for this alloy"))
+
+
+def c11_feed(vf_ipm, machine_max_ipm=None, effective_ipm=None):
+    """C11: feed ≤ the machine's max cutting feed and, when given, the effective adaptive feed."""
+    caps = [(c, n) for c, n in ((machine_max_ipm, "machine max"), (effective_ipm, "effective adaptive"))
+            if c]
+    if not caps:
+        return Check("C11", "feed rate", "max", vf_ipm, None, "IPM", SRC["C11"], applies=False,
+                     detail="no feed limit")
+    lim, name = min(caps)
+    return Check("C11", "feed rate", "max", vf_ipm, lim, "IPM", SRC["C11"],
+                 detail=f"v_f = {vf_ipm:.1f} IPM; limit {lim:.0f} IPM ({name})")
+
+
+def c12_radial_reach(ae_in, tir_in, k=K_TIR):
+    """C12: ae ≥ k·TIR so every flute reaches the stock (the lowest engages ae − TIR)."""
+    lim = k * tir_in
+    return Check("C12", "every flute reaches the stock", "min", ae_in, lim, "in", SRC["C12"],
+                 detail=f"ae {ae_in:.5f}\" vs k·TIR = {k:g}·{tir_in:.5f}\" = {lim:.5f}\"")
+
+
+def runout_offsets_worst(tir_mm, z, model="eccentric"):
+    """Flute offsets at the phase that thins one flute most (largest r_(k−1) − r_k), as forces.runout_offsets.
+
+    For the eccentric model (r_k = e·cos(phase − 2πk/z), TIR = 2e) that deficit is TIR·sin(π/z) on a
+    4-flute tool (0.71·TIR). The bound model is phase-free.
+    """
+    if model != "eccentric" or tir_mm <= 0:
+        return forces.runout_offsets(tir_mm, z, model)
+    best, best_d = None, -1.0
+    for i in range(64):
+        offs = forces.runout_offsets(tir_mm, z, "eccentric", 2.0 * math.pi / z * i / 64.0)
+        d = max(offs[(k - 1) % z] - offs[k] for k in range(z))
+        if d > best_d + 1e-15:
+            best, best_d = offs, d
+    return best
+
+
+def provisional_limits(D_in, path=None):
+    """The provisional C3/C4 band for a diameter: {"band", "deflection_over_D", "sigma1_mpa", "n", ...}."""
+    data = _limits(path or LIMITS_PATH)
+    for band in data["bands"]:
+        if band["d_min"] <= D_in < band["d_max"]:
+            return band
+    return data["bands"][-1] if D_in >= data["bands"][-1]["d_min"] else data["bands"][0]
+
+
+_LIMIT_CACHE = {}
+
+
+def _limits(path):
+    if path not in _LIMIT_CACHE:
+        with open(path, encoding="utf-8") as fh:
+            _LIMIT_CACHE[path] = json.load(fh)
+    return _LIMIT_CACHE[path]
 
 
 # ---------------------------------------------------------------------------
@@ -720,25 +805,58 @@ def deflection_limit(tool, operation, aggressiveness):
     return CuttingMechanics.calc_deflection_limit(tool.D, V1_OPERATION_NAME[operation], aggressiveness, True)
 
 
-class _Context:
-    """Everything fixed for one tool, material, machine, operation and margin set."""
+OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None, "c1_flute": "thinnest",
+                   "effective_feed_ipm": EFFECTIVE_ADAPTIVE_FEED_IPM, "k_tir": K_TIR, "limits_path": None}
 
-    def __init__(self, tool, material, machine, operation, margins, deflection_allow=None, depth=None,
-                 n_theta=144, n_quad=48, c1_flute="worst"):
+
+class _Context:
+    """Everything fixed for one tool, material, machine, operation, margin set and options.
+
+    Options (OPTION_DEFAULTS): deflection_allow (in) and stress_limit (MPa) override the provisional
+    C3/C4 limits; depth is the operation's real depth; c1_flute "thinnest" (every flute must form a
+    chip, user 2026-10-16) or "worst"; effective_feed_ipm is C11's adaptive feed (None for none);
+    k_tir is C12's k.
+    """
+
+    def __init__(self, tool, material, machine, operation, margins, n_theta=144, n_quad=48, **opts):
+        unknown = set(opts) - set(OPTION_DEFAULTS)
+        if unknown:
+            raise TypeError(f"unknown options {sorted(unknown)}")
+        o = dict(OPTION_DEFAULTS, **opts)
         if operation not in OPERATIONS:
             raise ValueError(f"operation must be one of {OPERATIONS}")
-        if c1_flute not in C1_FLUTES:
+        if o["c1_flute"] not in C1_FLUTES:
             raise ValueError(f"c1_flute must be one of {C1_FLUTES}")
-        self.c1_flute = c1_flute
+        self.opts = o
+        self.c1_flute, self.depth, self.k_tir = o["c1_flute"], o["depth"], o["k_tir"]
         self.tool, self.mat, self.mach, self.op, self.mg = tool, material, machine, operation, margins
-        self.depth = depth
         self.n_theta, self.n_quad = n_theta, n_quad
         self.coeffs = material.coefficients(tool.rake_deg)
         self.lam = material.lam(margins.aggressiveness)
         self.h_tooth = material.h_tooth_mm(tool.D_mm)
-        self.offsets_per_in = forces.runout_offsets(machine.tir_in * MM_PER_IN, tool.z, machine.runout_model)
-        self.delta_allow = deflection_allow if deflection_allow is not None else \
-            deflection_limit(tool, operation, margins.aggressiveness)
+        tir_mm = machine.tir_in * MM_PER_IN
+        self.offsets_per_in = runout_offsets_worst(tir_mm, tool.z, machine.runout_model)
+        self.offsets_bound = forces.runout_offsets(tir_mm, tool.z, "bound")
+        band = None
+        if o["deflection_allow"] is None or o["stress_limit"] is None:
+            band = provisional_limits(tool.D, o["limits_path"])
+        self.band = band
+        if o["deflection_allow"] is not None:
+            self.delta_allow, self.delta_basis = o["deflection_allow"], "given"
+        elif operation == "finish":
+            self.delta_allow = deflection_limit(tool, operation, margins.aggressiveness)
+            self.delta_basis = "v1 finishing tolerance limit"
+        else:
+            self.delta_allow = band["deflection_over_D"] * tool.D * margins.limit_scale
+            self.delta_basis = (f"provisional: vendor median δ/D {band['deflection_over_D']:.5f} for "
+                                f"{band['band']} (n {band['n']})·{margins.limit_scale:.2f}")
+        if o["stress_limit"] is not None:
+            self.stress_limit, self.stress_basis = o["stress_limit"], "given"
+        else:
+            self.stress_limit = band["sigma1_mpa"] * margins.limit_scale
+            self.stress_basis = (f"provisional: vendor median σ1 {band['sigma1_mpa']:.0f} MPa for "
+                                 f"{band['band']} (n {band['n']})·{margins.limit_scale:.2f}")
+        self.feed_cap = o["effective_feed_ipm"] if operation == "adaptive" else None
         eq = BeamDeflectionEngine.equivalent_stickout(tool.segments, tool.D, tool.z, tool.helix_deg)
         self.eq_stickout = eq if eq else tool.stickout
         self.reach_factor, self.c9 = c9_stickout(self.eq_stickout, tool.D)
@@ -763,8 +881,9 @@ class CutPoint:
         rpm_life, _, self.c7 = ctx.speed(ae_in)
         self.rpm = float(rpm) if rpm else rpm_life
         self.eng = Engagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb)
-        self.c6 = c6_geometry(self.ap, self.ae, t.D, t.lcf, ctx.depth)
+        self.c6 = c6_geometry(self.ap, self.ae, t.D, t.lcf, ctx.depth, ctx.op == "slot")
         self.c8 = c8_slot_depth(self.ap, t.D, ctx.op)
+        self.c12 = c12_radial_reach(self.ae, ctx.mach.tir_in, ctx.k_tir)
         self._ctab = None
 
     @property
@@ -819,15 +938,18 @@ class CutPoint:
     def c2(self, chips):
         return c2_tooth_strength(max(chips), self.ctx.h_tooth, self.ctx.mg.limit_margin)
 
+    def c11(self, fz_in):
+        return c11_feed(fz_in * self.ctx.tool.z * self.rpm, self.ctx.mach.max_feed_ipm, self.ctx.feed_cap)
+
     def force_checks(self, fz_in):
-        ctx, t = self.ctx, self.ctx.tool
+        ctx = self.ctx
         f = self.loads(fz_in)
         beam = self._beam(f)
         top = beam["sections"][0] if beam["sections"] else {"sigma1_mpa": 0.0, "kind": "none", "x_in": 0.0}
         return {
             "C3": c3_deflection(beam["delta_in"], ctx.delta_allow, beam["delta_load_at_in"]),
-            "C4": c4_stress(top["sigma1_mpa"], t.trs_mpa, t.fatigue_fraction, ctx.mg.stress_fraction,
-                            f"{top['kind']} x = {top['x_in']:.4f}\""),
+            "C4": c4_stress(top["sigma1_mpa"], ctx.stress_limit, f"{top['kind']} x = {top['x_in']:.4f}\"",
+                            ctx.stress_basis),
             "C5": c5_spindle(abs(f["torque_mean_nm"]), f["power_kw"], self.rpm, ctx.mach.spindle,
                              ctx.mach.rating, ctx.mg.limit_margin),
         }, f, beam
@@ -844,11 +966,12 @@ class CutPoint:
         out = self.lower_checks(chips)
         out["C2"] = self.c2(chips)
         out.update(fc)
-        out.update({"C6": self.c6, "C7": self.c7, "C8": self.c8, "C9": self.ctx.c9})
+        out.update({"C6": self.c6, "C7": self.c7, "C8": self.c8, "C9": self.ctx.c9, "C11": self.c11(fz_in),
+                    "C12": self.c12})
         return {k: out[k] for k in sorted(out, key=lambda s: int(s[1:]))}, f, beam, chips
 
     def upper_ok(self, fz_in):
-        if not self.c2(self.max_chips_mm(fz_in)).ok:
+        if not (self.c11(fz_in).ok and self.c2(self.max_chips_mm(fz_in)).ok):
             return False
         return all(c.ok for c in self.force_checks(fz_in)[0].values())
 
@@ -858,7 +981,7 @@ class CutPoint:
     # --- fz window -------------------------------------------------------
     def fz_window(self, rel_tol=0.002):
         """(fz_lo, fz_hi) in inches: the smallest fz meeting C1/C10 and the largest meeting C2–C5."""
-        if not (self.c6.ok and self.c8.ok):
+        if not (self.c6.ok and self.c8.ok and self.c12.ok):
             return None
         fz_lo = _bisect_min(self.lower_ok, 1e-7, 0.05, rel_tol)
         if fz_lo is None:
@@ -898,10 +1021,13 @@ def _bisect_min(pred, lo, hi, rel_tol):
 
 
 def evaluate_cut(tool, material, machine, operation, ap_in, ae_in, fz_in, rpm=None, aggressiveness=0.5,
-                 margins=None, deflection_allow=None, depth=None, n_theta=720, n_quad=96, c1_flute="worst"):
-    """Every constraint C1–C10 for one cut (inches). rpm defaults to C7's speed for the engagement."""
+                 margins=None, n_theta=720, n_quad=96, **opts):
+    """Every constraint C1–C12 for one cut (inches). rpm defaults to C7's speed for the engagement.
+
+    opts: see OPTION_DEFAULTS.
+    """
     mg = margins or Margins(aggressiveness)
-    ctx = _Context(tool, material, machine, operation, mg, deflection_allow, depth, n_theta, n_quad, c1_flute)
+    ctx = _Context(tool, material, machine, operation, mg, n_theta, n_quad, **opts)
     pt = CutPoint(ctx, ap_in, ae_in, rpm)
     checks, f, beam, chips = pt.checks(fz_in)
     return _report(pt, fz_in, checks, f, beam, chips)
@@ -925,8 +1051,25 @@ def _report(pt, fz_in, checks, f, beam, chips):
              "deflection_if_tip_load_in": deflection_in(lbf, t.segments, 0.0, 0.0, t.z, t.helix_deg, t.E_psi),
              "sections": beam["sections"], "flute_h_max_in": [h / MM_PER_IN for h in chips],
              "flute_kc_n_mm2": f["flute_kc_n_mm2"]}
+    ctx = pt.ctx
+    bound = pt.eng.max_chips(fz_in * MM_PER_IN, ctx.offsets_bound)
+    h_min = ctx.lam * t.edge_radius_mm
+    warnings = []
+    if min(bound) < h_min:
+        warnings.append(f"bound runout (one flute high by the full TIR): the thinnest flute's chip "
+                        f"{min(bound) / MM_PER_IN:.6f}\" is under h_min {h_min / MM_PER_IN:.6f}\" — it would rub")
+    if max(bound) > ctx.h_tooth:
+        warnings.append(f"bound runout: the worst flute's chip {max(bound) / MM_PER_IN:.6f}\" exceeds h_tooth "
+                        f"{ctx.h_tooth / MM_PER_IN:.6f}\"")
+    if pt.ae < AE_SANITY * t.D:
+        warnings.append(f"ae {pt.ae:.5f}\" is under {AE_SANITY:g}·D, lighter than any vendor-published side cut")
+    cut["toolpath_in_per_in3"] = 1.0 / (pt.ap * pt.ae)
+    cut["time_min_per_in3"] = 1.0 / cut["mrr_in3_min"] if cut["mrr_in3_min"] > 0 else math.inf
     return {"cut": cut, "loads": loads, "checks": {k: c.to_dict() for k, c in checks.items()},
-            "violated": [k for k, c in checks.items() if not c.ok]}
+            "violated": [k for k, c in checks.items() if not c.ok],
+            "runout_bound": {"flute_h_max_in": [h / MM_PER_IN for h in bound],
+                             "c1_ok": min(bound) >= h_min, "c2_ok": max(bound) <= ctx.h_tooth},
+            "warnings": warnings}
 
 
 # ---------------------------------------------------------------------------
@@ -951,26 +1094,31 @@ def _parameters(tool, material, machine, mg, ctx):
     out = {k: {"value": v, "placeholder": True, "basis": PLACEHOLDERS[k]} for k, v in p.items()}
     out.update({
         "aggressiveness": {"value": mg.aggressiveness, "placeholder": False, "basis": "input"},
-        "aggressiveness_map": {"value": {"stress_fraction": mg.stress_fraction, "life_ratio": mg.life_ratio,
+        "aggressiveness_map": {"value": {"limit_scale": mg.limit_scale, "life_ratio": mg.life_ratio,
                                          "limit_margin": mg.limit_margin, "lambda": ctx.lam},
                                "placeholder": True, "basis": PLACEHOLDERS["aggressiveness_map"]},
         "kc1_1_at_hb": {"value": ctx.coeffs.kienzle.kc1_1, "placeholder": False,
                         "basis": f"{material.kienzle.kc1_1:g}·{material.kc_scale():.4f} ({material.name})"},
         "mc": {"value": material.kienzle.mc, "placeholder": False, "basis": "Sandvik MC table"},
         "tir_in": {"value": machine.tir_in, "placeholder": False, "basis": f"machine setting, {machine.runout_model} model"},
+        "fatigue_reference_mpa": {"value": tool.fatigue_fraction * tool.trs_mpa, "placeholder": False,
+                                  "basis": "0.35–0.4 × TRS 3.8 GPa, fully reversed bending (reported, not the C4 limit)"},
         "E_mpa": {"value": tool.E_mpa, "placeholder": False, "basis": "CERATIZIT p-line p.22, 10 % Co"},
         "core_ratio": {"value": tool.core(), "placeholder": False, "basis": "patents/Mitsubishi, by flute count"},
-        "deflection_allow_in": {"value": ctx.delta_allow, "placeholder": False, "basis": SRC["C3"]},
+        "deflection_allow_in": {"value": ctx.delta_allow, "placeholder": True, "basis": ctx.delta_basis},
+        "stress_limit_mpa": {"value": ctx.stress_limit, "placeholder": True, "basis": ctx.stress_basis},
+        "effective_feed_ipm": {"value": ctx.feed_cap, "placeholder": True, "basis": PLACEHOLDERS["effective_feed_ipm"]},
+        "machine_max_feed_ipm": {"value": machine.max_feed_ipm, "placeholder": False, "basis": "machine profile"},
+        "k_tir": {"value": ctx.k_tir, "placeholder": True, "basis": PLACEHOLDERS["k_tir"]},
         "h_tooth_mm": {"value": ctx.h_tooth, "placeholder": True, "basis": "c·D^n"},
     })
     return out
 
 
 def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, *, margins=None,
-             depth=None, stock=None, wall_height=None, deflection_allow=None,
-             level_time_s=None, path_length_per_level_in=None, depth_trade=DEPTH_TRADE_MRR,
-             grid=(20, 16), ae_range=AE_RANGE, n_theta=144, n_quad=48, robustness=True, robust=True,
-             flat_tol=0.05, c1_flute="worst"):
+             stock=None, wall_height=None, level_time_s=None, path_length_per_level_in=None,
+             depth_trade=DEPTH_TRADE_MRR, grid=(20, 16), ae_max=AE_MAX, n_theta=144, n_quad=48,
+             robustness=True, robust=True, flat_tol=0.05, **opts):
     """Choose fz, ap and ae for one operation (inches). Speed comes from C7 for each engagement.
 
     operation: "rough" | "adaptive" | "slot" | "finish".
@@ -984,11 +1132,16 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         flat_tol of the best), take the one with the largest worst-case margin when TIR, K_r, h_tooth or
         kc is pushed the wrong way (`robustness_report`): where MRR is flat, an error in an uncertain
         input then costs little MRR rather than a tool (design §3.6).
-    c1_flute: "worst" applies C1 to the flute with the largest chip (the design's worst flute, §3.3);
-        "thinnest" requires every flute to form a chip.
+    opts (OPTION_DEFAULTS): depth, the operation's real depth; deflection_allow / stress_limit to override
+        the provisional C3/C4 limits; c1_flute ("thinnest" by default: every flute forms a chip);
+        effective_feed_ipm (C11, adaptive only; None for none); k_tir (C12).
+
+    The score is MRR with the feed capped by C11, i.e. the inverse of machining time per volume: a narrow
+    ae needs a long toolpath (1/(ap·ae) inches per in³), and once the feed is capped that path costs time.
     """
     mg = margins or Margins(aggressiveness)
-    ctx = _Context(tool, material, machine, operation, mg, deflection_allow, depth, n_theta, n_quad, c1_flute)
+    ctx = _Context(tool, material, machine, operation, mg, n_theta, n_quad, **opts)
+    depth = ctx.depth
     D, lcf = tool.D, tool.lcf
     ap_max = min(lcf, depth) if depth else lcf
     prov = [f"{tool.label or 'tool'}: D {D:.4f}\", {tool.z} flutes, LCF {lcf:.4f}\", stickout "
@@ -996,12 +1149,14 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             f"material: {material.name}; kc1.1 = {ctx.coeffs.kienzle.kc1_1:.0f} N/mm², mc {material.kienzle.mc:g}",
             f"machine: {machine.label or 'spindle'}, max {machine.max_rpm:.0f} rpm, C5 {machine.rating}, "
             f"TIR {machine.tir_in:.5f}\" ({machine.runout_model})",
-            f"margins (aggressiveness {mg.aggressiveness:.2f}): λ {ctx.lam:.2f}, stress fraction "
-            f"{mg.stress_fraction:.2f}, tool life ×{mg.life_ratio:.2f}, C2/C5 margin {mg.limit_margin:.0%}, "
-            f"δ_allow {ctx.delta_allow:.6f}\""]
+            f"margins (aggressiveness {mg.aggressiveness:.2f}): λ {ctx.lam:.2f}, tool life ×{mg.life_ratio:.2f}, "
+            f"C2/C5 margin {mg.limit_margin:.0%}; C3 δ_allow {ctx.delta_allow:.6f}\" ({ctx.delta_basis}); "
+            f"C4 {ctx.stress_limit:.0f} MPa ({ctx.stress_basis})",
+            f"C1 on the {ctx.c1_flute} flute; C11 feed cap "
+            f"{min(c for c in (machine.max_feed_ipm, ctx.feed_cap, math.inf) if c):.0f} IPM; "
+            f"C12 ae ≥ {ctx.k_tir:g}·TIR = {ctx.k_tir * machine.tir_in:.5f}\""]
 
     # Candidate (ap, ae) pairs per operation.
-    ae_floor = None
     if operation == "finish":
         if stock is None:
             raise ValueError("finishing needs stock (the fixed ae)")
@@ -1024,8 +1179,8 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             pairs = [(a, D) for a in aps]
             prov.append("slot: ae = D; maximize MRR over fz and ap" + (f"; C8 caps ap at {k:g}·D" if k else ""))
         else:
-            aes = _logspace(ae_range[0] * D, ae_range[1] * D, grid[1])
-            ae_floor = aes[0]
+            ae_lo = max(ctx.k_tir * machine.tir_in, 0.002 * D)
+            aes = _logspace(ae_lo, ae_max * D, grid[1])
             pairs = [(a, e) for a in aps for e in aes]
             prov.append(f"{operation}: maximize MRR over fz, ap ∈ [{aps[0]:.4f}, {aps[-1]:.4f}]\", "
                         f"ae ∈ [{aes[0]:.4f}, {aes[-1]:.4f}]\"")
@@ -1035,8 +1190,8 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         pt = CutPoint(ctx, ap, ae)
         win = pt.fz_window()
         if win is None or win[1] is None:
-            if not (pt.c6.ok and pt.c8.ok):
-                reason = "C6/C8 geometry"
+            if not (pt.c6.ok and pt.c8.ok and pt.c12.ok):
+                reason = "C6/C8/C12 geometry"
             elif win is None:
                 reason = "C1/C10 unreachable"
             else:
@@ -1082,7 +1237,7 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             for c in pool:
                 rep_c = robustness_report(tool, material, machine, operation,
                                           {"ap_in": c["ap"], "ae_in": c["ae"], "fz_in": c["fz"], "rpm": c["pt"].rpm},
-                                          mg, ctx.delta_allow, depth, c1_flute, n_theta=n_theta, n_quad=n_quad)
+                                          ctx, n_theta=n_theta, n_quad=n_quad)
                 c["robust_margins"] = sorted(round(v["margin"], 2) for v in rep_c.values())
             # Leximin: the largest worst-case margin, then the largest second-worst, ..., then score.
             chosen = max(pool, key=lambda c: (tuple(c["robust_margins"]), c["score"]))
@@ -1092,7 +1247,7 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             chosen = max(pool, key=lambda c: c["score"])
 
     # Final evaluation at full resolution, rpm and fz as chosen.
-    ctx_hi = _Context(tool, material, machine, operation, mg, deflection_allow, depth, 720, 96, c1_flute)
+    ctx_hi = _Context(tool, material, machine, operation, mg, 720, 96, **opts)
     pt_hi = CutPoint(ctx_hi, chosen["ap"], chosen["ae"], chosen["pt"].rpm)
     fz = chosen["fz"]
     checks, f, beam, chips = pt_hi.checks(fz)
@@ -1103,13 +1258,14 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             fz = min(fz, win[1])
             checks, f, beam, chips = pt_hi.checks(fz)
     rep = _report(pt_hi, fz, checks, f, beam, chips)
-    binding = _binding(checks, rep["cut"], ae_floor)
+    binding = _binding(checks)
     prov.append(f"selection: {rule}")
     prov.append(f"best score {best['score']:.5f} in³/min at ap {best['ap']:.4f}\", ae {best['ae']:.4f}\", "
                 f"fz {best['fz']:.6f}\"; chosen ap {rep['cut']['ap_in']:.4f}\", ae {rep['cut']['ae_in']:.4f}\", "
                 f"fz {fz:.6f}\", MRR {rep['cut']['mrr_in3_min']:.5f} in³/min")
     prov.extend(f"{k}: {c.detail}" for k, c in checks.items() if c.applies)
     prov.append("binding: " + (", ".join(binding) or "none"))
+    prov.extend(f"warning: {w}" for w in rep["warnings"])
 
     score = rep["cut"]["mrr_in3_min"]
     if overhead:
@@ -1120,17 +1276,13 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
            "candidates": len(cands), "infeasible_counts": infeasible,
            "parameters": _parameters(tool, material, machine, mg, ctx), "provenance": prov}
     if robustness:
-        out["robustness"] = robustness_report(tool, material, machine, operation, rep["cut"], mg,
-                                              ctx.delta_allow, depth, c1_flute)
+        out["robustness"] = robustness_report(tool, material, machine, operation, rep["cut"], ctx)
     return out
 
 
-def _binding(checks, cut, ae_floor=None, tol=0.03):
-    """Constraints within tol of their limit (C6 at LCF or depth, C7 at the rpm cap), plus the ae search
-    floor when the cut sits on it."""
+def _binding(checks, tol=0.03):
+    """Constraints within tol of their limit (C6 at LCF or depth, C7 at the rpm cap)."""
     out = []
-    if ae_floor and cut["ae_in"] <= ae_floor * (1.0 + 1e-6):
-        out.append("ae_floor")
     for k, c in checks.items():
         if not c.applies or c.kind == "info":
             continue
@@ -1140,15 +1292,14 @@ def _binding(checks, cut, ae_floor=None, tol=0.03):
     return out
 
 
-UNCERTAIN_CHECKS = ("C1", "C2", "C3", "C4", "C5", "C10")
+UNCERTAIN_CHECKS = ("C1", "C2", "C3", "C4", "C5", "C10", "C12")
 
 
-def robustness_report(tool, material, machine, operation, cut, margins, deflection_allow, depth=None,
-                      c1_flute="worst", n_theta=360, n_quad=64):
+def robustness_report(tool, material, machine, operation, cut, ctx, n_theta=360, n_quad=64):
     """Re-check a cut (same ap, ae, fz, rpm) with each uncertain input pushed the wrong way.
 
-    Limits are the physical ones (stress fraction 1, no C2/C5 margin); C3 keeps δ_allow. Returns, per
-    scenario, the constraint with the least margin among C1–C5 and C10, its margin and any violations.
+    Limits are the context's C3/C4 limits with no C2/C5 margin. Returns, per scenario, the constraint
+    with the least margin among C1–C5, C10 and C12, its margin and any violations.
     """
     scenarios = {
         "TIR ×2": (tool, material, replace(machine, tir_in=machine.tir_in * 2.0)),
@@ -1156,12 +1307,12 @@ def robustness_report(tool, material, machine, operation, cut, margins, deflecti
         "h_tooth −25 %": (tool, replace(material, h_tooth_c=material.h_tooth_c * 0.75), machine),
         "kc +20 % (hardness/tool factor)": (tool, replace(material, tool_factor=material.tool_factor * 1.2), machine),
     }
-    nominal = Margins(margins.aggressiveness, 1.0, margins.life_ratio, 0.0)
+    nominal = Margins(ctx.mg.aggressiveness, ctx.mg.limit_scale, ctx.mg.life_ratio, 0.0)
+    opts = dict(ctx.opts, deflection_allow=ctx.delta_allow, stress_limit=ctx.stress_limit)
     out = {}
     for name, (t, m, mc) in scenarios.items():
         r = evaluate_cut(t, m, mc, operation, cut["ap_in"], cut["ae_in"], cut["fz_in"], cut["rpm"],
-                         margins=nominal, deflection_allow=deflection_allow, depth=depth, n_theta=n_theta,
-                         n_quad=n_quad, c1_flute=c1_flute)
+                         margins=nominal, n_theta=n_theta, n_quad=n_quad, **opts)
         ms = [(k, r["checks"][k]["margin"]) for k in UNCERTAIN_CHECKS if r["checks"][k]["margin"] is not None]
         worst = min(ms, key=lambda kv: kv[1])
         out[name] = {"worst": worst[0], "margin": worst[1],

@@ -14,10 +14,15 @@ Why: ToolWiz v1 is GWizard's tables plus stacked rules. For tools of 1/8" and sm
 
 **Done 2026-10-16:** step 3, constraints and optimizer (`physics_v2/optimize.py`, `docs/research/v2_optimizer_findings.md`). T12 and T1 adaptive come out deep (full LCF) and narrow, limited by C3.
 
-Decisions needed before or during step 4 (calibration):
-- C1 on the largest-chip flute (default, design §3.3) or on every flute. Every-flute at 0.0002" TIR makes T12/T1 shallow and wide.
-- C3/C4 limits: every published 17-4 cut at 1/16–1/8" is 3–17× over v1's deflection limit and 1.3–5.6× over the C4 placeholder under the v2 forces.
-- The radial-engagement floor (now 0.02·D, the lightest vendor-published side cut); the model alone keeps narrowing.
+**Round 2 done 2026-10-16** (user decisions):
+- C1 on every flute, eccentric runout;
+- provisional C3/C4 from the vendor rows (`data/model_v2/provisional_limits.json`);
+- C11 feed caps and C12 ae ≥ 2·TIR.
+
+Results are in `docs/research/v2_optimizer_findings.md` (Round 2). Open:
+- Program size: at the C3-limited feed, toolpath length is free in the time objective. T12's v2 cut has 28 % more toolpath per in³ than v1.
+- Finishing at 0.0002" TIR is infeasible under every-flute C1 plus v1's tolerance limit; a rule is needed.
+- A measured TIR (Blum) moves every micro result.
 
 Next is step 4, calibration (`tools/calibrate_v2.py`).
 
