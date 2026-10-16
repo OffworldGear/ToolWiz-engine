@@ -318,7 +318,7 @@ def _assign_tool_preset(op, preset, reason):
 
 # Parameters recorded per operation (expression + evaluated value each).
 SNAPSHOT_PARAMS = ('tool_spindleSpeed', 'tool_feedCutting', 'maximumStepdown', 'stepdown',
-                   'stepover', 'optimalLoad', 'use_tool_stepdown', 'use_tool_stepover')
+                   'stepover', 'optimalLoad', 'use_tool_stepdown', 'use_tool_stepover', 'fineStepdown')
 
 
 def _snapshot_op(op):
@@ -1511,6 +1511,35 @@ def apply_param(op, name, expr_str, force=False):
         _log(f"Could not set CAM parameter {name!r} = {expr_str!r}", e)
     return False
 
+
+# Fusion's adaptive default is 10 % of the maximum stepdown, so a small written stepdown gave
+# 0.005 mm fine-stepdown levels and multi-MB programs (docs/research/nc_file_size_calibration.md).
+# Ours: 25 % of the stepdown, never under 0.05 mm, never above the stepdown or half the diameter.
+FUSION_DEFAULT_FINE_STEPDOWN = "Math.min(tool_diameter * 0.5; maximumStepdown * 0.1)"
+FINE_STEPDOWN_EXPR = ("Math.min(tool_diameter * 0.5; Math.min(maximumStepdown; "
+                      "Math.max(maximumStepdown * 0.25; 0.05 mm)))")
+
+
+def _norm_expr(expr):
+    return "".join(str(expr or "").split()).lower()
+
+
+def apply_fine_stepdown_floor(op):
+    """Replace Fusion's default fine-stepdown expression on `op` with FINE_STEPDOWN_EXPR.
+
+    Only Fusion's default is replaced; a value the user typed is kept and logged. Returns
+    'written', 'kept' (user value), 'already' (ours), or None (no such parameter / disabled)."""
+    p = _safe(lambda: op.parameters.itemByName('fineStepdown'))
+    if p is None or not _safe(lambda: p.isEnabled):
+        return None
+    current = _norm_expr(_safe(lambda: p.expression))
+    if current == _norm_expr(FINE_STEPDOWN_EXPR):
+        return 'already'
+    if current != _norm_expr(FUSION_DEFAULT_FINE_STEPDOWN):
+        _log(f"  fineStepdown kept (user-set): {_safe(lambda: p.expression)!r}")
+        return 'kept'
+    return 'written' if apply_param(op, 'fineStepdown', FINE_STEPDOWN_EXPR) else None
+
 # ==============================================================================
 # COMMAND 1: EXPORT DIGITAL TWIN
 # ==============================================================================
@@ -2262,6 +2291,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_speed_sources(target_op)
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
+    fine_note = apply_fine_stepdown_floor(target_op)
     _log_op_motion_params(target_op, "AFTER")
     _log_preset_use_flags(target_op, final_preset_name)
     _regenerate_toolpath(target_op)
@@ -2299,6 +2329,11 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     )
     for w in tool_profile_warnings(calc_result):
         msg += "\n\nCheck: " + w
+    if fine_note == 'written':
+        msg += ("\n\nFine stepdown: set to 25% of the stepdown, at least 0.05 mm "
+                "(Fusion's default of 10% made very large programs).")
+    elif fine_note == 'kept':
+        msg += "\n\nFine stepdown: your own value was kept."
     note = _finish_active_command('ok')
     if note:
         msg += "\n\n" + note

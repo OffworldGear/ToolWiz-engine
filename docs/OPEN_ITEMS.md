@@ -37,7 +37,10 @@ Next is step 3, constraints and optimizer (`physics_v2/optimize.py`).
   - So a 0.0019" stepdown on T12 gave 0.0048 mm fine-stepdown levels. That explains the hundreds of 0.002–0.005 mm Z levels in the big programs (`docs/research/nc_file_size_calibration.md`).
   - The add-in never writes fineStepdown, tolerance, smoothing or any holder/shaft clearance setting.
   - The log also shows 9 operations where maximumStepdown evaluated to 0 (preset stepdown 0).
-  - **Option (offered, not built):** when the add-in writes a stepdown, also write fineStepdown = max(25% of stepdown, 0.05 mm).
+  - **Built 2026-10-16:** Auto-Set replaces Fusion's default fine-stepdown expression with 25% of the stepdown, at least 0.05 mm, never above the stepdown or half the diameter.
+    - A value the user typed is kept.
+    - The change is audited, and fineStepdown is included in snapshots.
+    - Needs a check in Fusion (reload the add-in, Auto-Set an adaptive op, look at Passes > Fine stepdown).
 - **Audit log `op_path`:** for operations inside patterns, the `preset_link` event uses the pattern name ("Pattern1 (3) > …") while snapshots use the setup name. Unify them.
 - **Done (2026-10-03 to 10-15):**
   - audit trail, side-effect detection and Snapshot/Compare;
