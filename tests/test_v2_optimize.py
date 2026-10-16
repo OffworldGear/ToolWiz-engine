@@ -314,7 +314,7 @@ class TestEvaluateCut(unittest.TestCase):
 
     def test_reports_all_twelve_constraints_and_the_bound_warning(self):
         r = o.evaluate_cut(T12, M17_4, SPEEDIO, "adaptive", 0.0372, 0.025, 0.00026, rpm=6112)
-        self.assertEqual(list(r["checks"]), [f"C{i}" for i in range(1, 13)])
+        self.assertEqual(list(r["checks"]), [f"C{i}" for i in range(1, 14)])
         self.assertIn("runout_bound", r)
         self.assertAlmostEqual(r["cut"]["toolpath_in_per_in3"], 1 / (0.0372 * 0.025))
 
@@ -499,3 +499,50 @@ class TestRound3Tooling(unittest.TestCase):
         I2, c2, _ = self.vi.section_props(None, 0.0625, 4, 35.0, "v1_section", 0.6)
         self.assertAlmostEqual(I, I2)
         self.assertAlmostEqual(c, c2)
+
+
+class TestProgramSizeAndWall(unittest.TestCase):
+    """User's NC-file model (2026-10-16) and the finishing wall tolerance."""
+
+    def test_program_bytes_by_hand(self):
+        # 23.1 bytes/line × L_cut/s, L_cut = V/(ap·ae)·1.15; 1 in³ at 0.1875" × 0.0078", s 0.22 mm.
+        l_in = 1.0 / (0.1875 * 0.0078) * 1.15
+        self.assertAlmostEqual(o.program_bytes(0.1875, 0.0078), 23.1 * l_in * 25.4 / 0.22)
+        self.assertAlmostEqual(o.program_bytes(0.1875, 0.0078, 2.0, 0.04), 2 * 23.1 * l_in * 25.4 / 0.04)
+        # Per inch of cutting path: 2,667 bytes at 0.22 mm (the user's 2,860 ≈ s 0.205 mm), 14,669 at 0.04.
+        self.assertAlmostEqual(23.1 * 25.4 / 0.22, 2667, delta=1)
+        self.assertAlmostEqual(23.1 * 25.4 / 0.04, 14669, delta=1)
+
+    def test_c13_is_off_by_default_and_binds_when_on(self):
+        self.assertFalse(o.c13_program_size(0.1875, 0.0078, None, None).applies)
+        c = o.c13_program_size(0.1875, 0.0008, 1.0, 6e6)
+        self.assertFalse(c.ok)                                  # ~19 MB for 1 in³ at 0.012·D
+        r = o.optimize(T12, M17_4, SPEEDIO, "adaptive", limit_program_size=True, removal_volume_in3=1.0,
+                       deflection_allow=1.0, stress_limit=1425.0, grid=(10, 10), robust=False, robustness=False)
+        self.assertLessEqual(r["cut"]["program"]["bytes_for_volume"]["s=0.22mm"], 6e6)
+        with self.assertRaises(ValueError):
+            o.optimize(T12, M17_4, SPEEDIO, "adaptive", limit_program_size=True, robustness=False)
+
+    def test_finish_default_tolerance_is_0005mm(self):
+        ctx = o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5))
+        self.assertAlmostEqual(ctx.delta_allow, 0.005 / 25.4)
+        ctx = o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5), wall_tolerance_in=0.001 / 25.4)
+        self.assertAlmostEqual(ctx.delta_allow, 0.001 / 25.4)
+
+    def test_wall_error_is_reported_and_split(self):
+        r = o.evaluate_cut(T1, M17_4, o.speedio_16k(0.0), "finish", 0.125, 0.005, 0.0001, rpm=7800)
+        w = r["loads"]["wall_error_in"]
+        self.assertLessEqual(w["max_in"], r["loads"]["deflection_tip_in"] + 1e-12)
+        self.assertGreater(w["mean_in"], 0.0)                 # pushed off the wall: stock left
+        self.assertAlmostEqual(r["checks"]["C3"]["value"], w["max_in"])
+        rough = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.5, 0.01, 0.0005, rpm=7800)
+        self.assertIn("wall_error_in", rough["loads"])
+
+    def test_trade_front_is_monotone(self):
+        r = o.optimize(T12, M17_4, SPEEDIO, "adaptive", deflection_allow=1.0, stress_limit=1425.0,
+                       grid=(10, 10), robust=False, robustness=False)
+        front = r["trade"]
+        self.assertGreater(len(front), 1)
+        for a, b in zip(front, front[1:]):
+            self.assertLessEqual(a["toolpath_in_per_in3"], b["toolpath_in_per_in3"])
+            self.assertLess(a["mrr_in3_min"], b["mrr_in3_min"])

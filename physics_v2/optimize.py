@@ -101,6 +101,15 @@ AE_SANITY = 0.02
 # C11, empirical: the feed an adaptive toolpath sustains on the user's machine (short arcs, direction
 # changes, look-ahead), user-settable. Not the control's programmed maximum.
 EFFECTIVE_ADAPTIVE_FEED_IPM = 200.0
+# Finishing wall tolerance (C3 for finishing): the user's usual 0.005 mm, user-settable (sometimes 0.001 mm).
+WALL_TOLERANCE_IN = 0.005 / 25.4
+# Program size (user's NC files, 2026-10-16: 100 adaptive ops in 239 Fusion → Brother C00 programs):
+# size ≈ BYTES_PER_LINE · L_cut / s, L_cut = V/(ap·ae)·(1 + LINKING_FACTOR), s = mean point spacing.
+BYTES_PER_LINE = 23.1          # p10–p90 21.5–26.1
+LINKING_FACTOR = 0.15          # empirical
+POINT_SPACING_MM = 0.22        # typical (p10–p90 0.10–0.40 mm)
+POINT_SPACING_BAD_MM = 0.04    # micro tool at tight tolerance (T12, O0175)
+PROGRAM_LIMIT_BYTES = 6_000_000
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIMITS_PATH = os.path.join(ROOT, "data", "model_v2", "provisional_limits.json")
 V1_OPERATION_NAME = {"rough": "Roughing", "adaptive": "Adaptive Roughing", "slot": "Slotting",
@@ -136,6 +145,8 @@ SRC = {
     "C11": "Feed: v_f ≤ the machine's max cutting feed (machine profile) and, for adaptive, an effective "
            "adaptive feed (empirical, user-settable, default 200 IPM)",
     "C12": "Every flute reaches the stock: ae ≥ k·TIR, k = 2 (lowest flute engages ae − TIR ≥ ae/2)",
+    "C13": "Program size (optional): 23.1 bytes/line × L_cut / s, L_cut = V/(ap·ae)·1.15, from 100 adaptive "
+           "ops in the user's 239 Fusion → Brother C00 programs (2026-10-16); limit user-set (6 MB)",
     "C10": "Empirical (design §3.5 C10): cut under the work-hardened layer, h ≥ h_wh. No sourced "
            "per-alloy value yet; inactive unless h_wh is given (17-4 PH is not in v1's "
            "work-hardening list)",
@@ -388,11 +399,14 @@ def c2_tooth_strength(h_worst_mm, h_tooth_mm, margin=0.0):
                         f"worst flute h_max = {h_worst_mm * 1000:.3g} µm")
 
 
-def c3_deflection(delta_in, allow_in, load_at_in=None):
-    """C3: the largest tip deflection over a revolution, each load at its centroid, ≤ δ_allow."""
+def c3_deflection(delta_in, allow_in, load_at_in=None, what="δ_tip"):
+    """C3: the largest tip deflection over a revolution, each load at its centroid, ≤ δ_allow.
+
+    For finishing, the deflection normal to the wall against the user's wall tolerance.
+    """
     where = f" (load at {load_at_in:.4f}\" from the tip)" if load_at_in is not None else ""
     return Check("C3", "tool deflection", "max", delta_in, allow_in, "in", SRC["C3"],
-                 detail=f"δ_tip = {delta_in:.6f}\"{where}; δ_allow = {allow_in:.6f}\"")
+                 detail=f"{what} = {delta_in:.6f}\"{where}; allowed {allow_in:.6f}\"")
 
 
 def c4_stress(sigma1_mpa, limit_mpa, section="", basis=""):
@@ -504,6 +518,28 @@ def c12_radial_reach(ae_in, tir_in, k=K_TIR):
     lim = k * tir_in
     return Check("C12", "every flute reaches the stock", "min", ae_in, lim, "in", SRC["C12"],
                  detail=f"ae {ae_in:.5f}\" vs k·TIR = {k:g}·{tir_in:.5f}\" = {lim:.5f}\"")
+
+
+def program_bytes(ap_in, ae_in, volume_in3=1.0, spacing_mm=POINT_SPACING_MM,
+                  bytes_per_line=BYTES_PER_LINE, linking=LINKING_FACTOR):
+    """Estimated NC program size: bytes_per_line · L_cut / s with L_cut = V/(ap·ae)·(1 + linking).
+
+    L_cut in mm (25.4·in), s in mm. With the defaults that is 2,667 bytes per inch of cutting path at
+    s = 0.22 mm (the user's 2,860 corresponds to s ≈ 0.205 mm) and 14,669 at s = 0.04 mm.
+    """
+    l_cut_in = volume_in3 / (ap_in * ae_in) * (1.0 + linking)
+    return bytes_per_line * l_cut_in * MM_PER_IN / spacing_mm
+
+
+def c13_program_size(ap_in, ae_in, volume_in3, limit_bytes, spacing_mm=POINT_SPACING_MM):
+    """C13 (optional): estimated program size for the operation's removal volume ≤ the user's limit."""
+    applies = bool(limit_bytes and volume_in3)
+    size = program_bytes(ap_in, ae_in, volume_in3 or 1.0, spacing_mm)
+    return Check("C13", "program size", "max", size, limit_bytes if applies else None, "bytes", SRC["C13"],
+                 applies=applies,
+                 detail=(f"{size / 1e6:.2f} MB for {volume_in3:g} in³ at s = {spacing_mm:g} mm; limit "
+                         f"{limit_bytes / 1e6:.1f} MB" if applies else
+                         f"{size / 1e6:.2f} MB per in³ at s = {spacing_mm:g} mm (limit off)"))
 
 
 def runout_offsets_worst(tir_mm, z, model="eccentric"):
@@ -817,7 +853,7 @@ class Engagement:
             st += t
             mag2 = fx * fx + fy * fy
             cen = min(max((mx * fx + my * fy) / mag2, 0.0), ap) if mag2 > 0 else 0.5 * ap
-            samples.append((math.sqrt(mag2), cen, t / 1000.0))
+            samples.append((math.sqrt(mag2), cen, t / 1000.0, fy))
             if mag2 > best[0]:
                 best = (mag2, fx, fy, cen, t)
         mag2, fx, fy, cen, t = best
@@ -838,7 +874,10 @@ def deflection_limit(tool, operation, aggressiveness):
 
 
 OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None, "c1_flute": "thinnest",
-                   "effective_feed_ipm": EFFECTIVE_ADAPTIVE_FEED_IPM, "k_tir": K_TIR, "limits_path": None}
+                   "effective_feed_ipm": EFFECTIVE_ADAPTIVE_FEED_IPM, "k_tir": K_TIR, "limits_path": None,
+                   "wall_tolerance_in": WALL_TOLERANCE_IN, "limit_program_size": False,
+                   "program_limit_bytes": PROGRAM_LIMIT_BYTES, "removal_volume_in3": None,
+                   "point_spacing_mm": POINT_SPACING_MM}
 
 
 class _Context:
@@ -876,8 +915,8 @@ class _Context:
         if o["deflection_allow"] is not None:
             self.delta_allow, self.delta_basis = o["deflection_allow"], "given"
         elif operation == "finish":
-            self.delta_allow = deflection_limit(tool, operation, margins.aggressiveness)
-            self.delta_basis = "v1 finishing tolerance limit"
+            self.delta_allow = o["wall_tolerance_in"]
+            self.delta_basis = f"wall tolerance {o['wall_tolerance_in'] * MM_PER_IN:.4f} mm (user-set)"
         else:
             self.delta_allow = band["deflection_over_D"] * tool.D * margins.limit_scale
             self.delta_basis = (f"provisional: vendor median δ/D {band['deflection_over_D']:.5f} for "
@@ -889,6 +928,10 @@ class _Context:
             self.stress_basis = (f"provisional: vendor median σ1 {band['sigma1_mpa']:.0f} MPa for "
                                  f"{band['band']} (n {band['n']})·{margins.limit_scale:.2f}")
         self.feed_cap = o["effective_feed_ipm"] if operation == "adaptive" else None
+        self.size_limit = (o["program_limit_bytes"] if o["limit_program_size"] and operation != "finish"
+                           else None)
+        if self.size_limit and not o["removal_volume_in3"]:
+            raise ValueError("limit_program_size needs removal_volume_in3 (the operation's removal volume)")
         eq = BeamDeflectionEngine.equivalent_stickout(tool.segments, tool.D, tool.z, tool.helix_deg)
         self.eq_stickout = eq if eq else tool.stickout
         self.reach_factor, self.c9 = c9_stickout(self.eq_stickout, tool.D)
@@ -916,6 +959,8 @@ class CutPoint:
         self.c6 = c6_geometry(self.ap, self.ae, t.D, t.lcf, ctx.depth, ctx.op == "slot")
         self.c8 = c8_slot_depth(self.ap, t.D, ctx.op)
         self.c12 = c12_radial_reach(self.ae, ctx.mach.tir_in, ctx.k_tir)
+        self.c13 = c13_program_size(self.ap, self.ae, ctx.opts["removal_volume_in3"], ctx.size_limit,
+                                    ctx.opts["point_spacing_mm"])
         self._ctab = None
 
     @property
@@ -943,18 +988,26 @@ class CutPoint:
         return self._ctab[i] + (x - i) * (self._ctab[i + 1] - self._ctab[i])
 
     def _beam(self, f):
-        """Largest tip deflection and largest σ1 over the revolution (the load band moves with the helix)."""
+        """Largest tip deflection and largest σ1 over the revolution (the load band moves with the helix).
+
+        Also the wall error: the tip deflection normal to the wall (Altintas's y; positive = pushed off the
+        wall, stock left), as its largest magnitude, its mean (systematic, what Blum wear compensation can
+        take out) and its ripple over a revolution (max − min, what it cannot).
+        """
         t = self.ctx.tool
         samples = f["samples"]
         delta, gov_d = -1.0, None
-        for mag, cen, tq in samples:
+        walls = []
+        for mag, cen, tq, fy in samples:
             a_in = cen / MM_PER_IN
-            d = mag / N_PER_LBF * self._compliance(a_in) / t.E_psi
+            k = self._compliance(a_in) / t.E_psi / N_PER_LBF
+            d = mag * k
+            walls.append(fy * k)
             if d > delta:
                 delta, gov_d = d, (mag, a_in, tq)
         s1_max, gov_s = -1.0, None
         for x, kind, I, c in critical_sections(t.segments, t.z, t.helix_deg, t.stress_section, t.core()):
-            for mag, cen, tq in samples:
+            for mag, cen, tq, _ in samples:
                 a_in = cen / MM_PER_IN
                 if x <= a_in:
                     continue
@@ -964,7 +1017,9 @@ class CutPoint:
         gov_s = gov_s or gov_d
         secs = bending_sections(t.segments, gov_s[0], gov_s[1], gov_s[2], t.z, t.helix_deg, t.stress_section,
                                 t.core())
-        return {"delta_in": max(delta, 0.0), "delta_load_n": gov_d[0], "delta_load_at_in": gov_d[1],
+        wall = {"max_in": max(abs(w) for w in walls), "mean_in": sum(walls) / len(walls),
+                "ripple_in": max(walls) - min(walls)}
+        return {"delta_in": max(delta, 0.0), "wall": wall, "delta_load_n": gov_d[0], "delta_load_at_in": gov_d[1],
                 "stress_load_n": gov_s[0], "stress_load_at_in": gov_s[1], "sections": secs}
 
     # --- checks ----------------------------------------------------------
@@ -980,7 +1035,9 @@ class CutPoint:
         beam = self._beam(f)
         top = beam["sections"][0] if beam["sections"] else {"sigma1_mpa": 0.0, "kind": "none", "x_in": 0.0}
         return {
-            "C3": c3_deflection(beam["delta_in"], ctx.delta_allow, beam["delta_load_at_in"]),
+            "C3": (c3_deflection(beam["wall"]["max_in"], ctx.delta_allow, beam["delta_load_at_in"],
+                                 "wall error (normal to the wall)") if ctx.op == "finish" else
+                   c3_deflection(beam["delta_in"], ctx.delta_allow, beam["delta_load_at_in"])),
             "C4": c4_stress(top["sigma1_mpa"], ctx.stress_limit, f"{top['kind']} x = {top['x_in']:.4f}\"",
                             ctx.stress_basis),
             "C5": c5_spindle(abs(f["torque_mean_nm"]), f["power_kw"], self.rpm, ctx.mach.spindle,
@@ -1000,7 +1057,7 @@ class CutPoint:
         out["C2"] = self.c2(chips)
         out.update(fc)
         out.update({"C6": self.c6, "C7": self.c7, "C8": self.c8, "C9": self.ctx.c9, "C11": self.c11(fz_in),
-                    "C12": self.c12})
+                    "C12": self.c12, "C13": self.c13})
         return {k: out[k] for k in sorted(out, key=lambda s: int(s[1:]))}, f, beam, chips
 
     def upper_ok(self, fz_in):
@@ -1014,7 +1071,7 @@ class CutPoint:
     # --- fz window -------------------------------------------------------
     def fz_window(self, rel_tol=0.002):
         """(fz_lo, fz_hi) in inches: the smallest fz meeting C1/C10 and the largest meeting C2–C5."""
-        if not (self.c6.ok and self.c8.ok and self.c12.ok):
+        if not (self.c6.ok and self.c8.ok and self.c12.ok and self.c13.ok):
             return None
         fz_lo = _bisect_min(self.lower_ok, 1e-7, 0.05, rel_tol)
         if fz_lo is None:
@@ -1097,6 +1154,16 @@ def _report(pt, fz_in, checks, f, beam, chips):
     if pt.ae < AE_SANITY * t.D:
         warnings.append(f"ae {pt.ae:.5f}\" is under {AE_SANITY:g}·D, lighter than any vendor-published side cut")
     cut["toolpath_in_per_in3"] = 1.0 / (pt.ap * pt.ae)
+    vol = ctx.opts["removal_volume_in3"]
+    cut["program"] = {
+        "bytes_per_in3": {f"s={sp:g}mm": program_bytes(pt.ap, pt.ae, 1.0, sp)
+                          for sp in (POINT_SPACING_MM, POINT_SPACING_BAD_MM)},
+        "in3_per_6MB": {f"s={sp:g}mm": PROGRAM_LIMIT_BYTES / program_bytes(pt.ap, pt.ae, 1.0, sp)
+                        for sp in (POINT_SPACING_MM, POINT_SPACING_BAD_MM)},
+        "bytes_for_volume": ({f"s={sp:g}mm": program_bytes(pt.ap, pt.ae, vol, sp)
+                              for sp in (POINT_SPACING_MM, POINT_SPACING_BAD_MM)} if vol else None),
+    }
+    loads["wall_error_in"] = beam["wall"]
     cut["time_min_per_in3"] = 1.0 / cut["mrr_in3_min"] if cut["mrr_in3_min"] > 0 else math.inf
     return {"cut": cut, "loads": loads, "checks": {k: c.to_dict() for k, c in checks.items()},
             "violated": [k for k, c in checks.items() if not c.ok],
@@ -1223,8 +1290,8 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         pt = CutPoint(ctx, ap, ae)
         win = pt.fz_window()
         if win is None or win[1] is None:
-            if not (pt.c6.ok and pt.c8.ok and pt.c12.ok):
-                reason = "C6/C8/C12 geometry"
+            if not (pt.c6.ok and pt.c8.ok and pt.c12.ok and pt.c13.ok):
+                reason = "C6/C8/C12/C13 geometry or program size"
             elif win is None:
                 reason = "C1/C10 unreachable"
             else:
@@ -1308,9 +1375,27 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
                                 "rpm": best["pt"].rpm, "mrr_in3_min": best["mrr"], "score": best["score"]},
            "candidates": len(cands), "infeasible_counts": infeasible,
            "parameters": _parameters(tool, material, machine, mg, ctx), "provenance": prov}
+    out["trade"] = mrr_size_front(cands)
     if robustness:
         out["robustness"] = robustness_report(tool, material, machine, operation, rep["cut"], ctx)
     return out
+
+
+def mrr_size_front(cands):
+    """The MRR-vs-program-size trade: candidates no other candidate beats on both MRR and toolpath per in³.
+
+    Sorted from the shortest toolpath (smallest program) up; each entry is the best MRR available at that
+    program size, with the estimated bytes per in³ at the typical and the bad point spacing.
+    """
+    front, best = [], -1.0
+    for c in sorted(cands, key=lambda c: (1.0 / (c["ap"] * c["ae"]), -c["mrr"])):
+        if c["mrr"] > best * (1.0 + 1e-9):
+            best = c["mrr"]
+            front.append({"ap_in": c["ap"], "ae_in": c["ae"], "fz_in": c["fz"], "rpm": c["pt"].rpm,
+                          "mrr_in3_min": c["mrr"], "toolpath_in_per_in3": 1.0 / (c["ap"] * c["ae"]),
+                          "MB_per_in3": {f"s={sp:g}mm": program_bytes(c["ap"], c["ae"], 1.0, sp) / 1e6
+                                         for sp in (POINT_SPACING_MM, POINT_SPACING_BAD_MM)}})
+    return front
 
 
 def _binding(checks, tol=0.03):

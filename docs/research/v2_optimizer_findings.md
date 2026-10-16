@@ -275,3 +275,74 @@ Under the physics basis:
 - Both stay at full flute length.
 
 The cost is deflection: 0.0013" on T12 and 0.0034" on T1 at the tip during roughing. That is the quantity a process-based C3 (the stock left for finishing) would bound.
+
+## Round 3, part 2 (2026-10-16): program size and finishing tolerance, from the user's NC files
+
+Runout default stays 0.0002" (eccentric). All numbers are 17-4 H1025 on the Speedio 16k at aggressiveness 50 %.
+
+### Program-size model (user's 239 Fusion → Brother C00 programs, 100 adaptive ops)
+
+- size ≈ 23.1 bytes/line × L_cut / s, with L_cut = V/(ap·ae)·(1 + 0.15).
+  - 23.1 bytes per motion line (p10–p90 21.5–26.1).
+  - 0.15 linking factor, empirical.
+  - s is the mean point spacing: 0.22 mm typical (p10–p90 0.10–0.40); 0.04 mm is the bad case for micro tools at tight tolerance (T12, O0175).
+- That is 2,667 bytes per inch of cutting path at s = 0.22 mm and 14,669 at 0.04 mm. The user's "about 2,860" corresponds to s ≈ 0.205 mm.
+- `optimize.program_bytes`. Every result reports bytes per in³, in³ per 6 MB at both spacings, and bytes for the operation when `removal_volume_in3` is given.
+- **"Limit program size"** is the optional C13: `limit_program_size=True`, `program_limit_bytes` (default 6 MB), `removal_volume_in3` (required when on), `point_spacing_mm` (default 0.22). It is off by default.
+- **CAM-side fix:** the largest real files came from Fusion "Fine stepdown" levels 0.002–0.005 mm apart (hundreds of Z levels). That is a CAM setting, not part of the cut model. Set Fine Stepdown to at least ¼ of the stepdown and never under 0.05 mm (OPEN_ITEMS, Fusion add-in).
+
+| Tool | Basis | ap | ae | IPM | MRR in³/min | Toolpath in/in³ | MB/in³ at s 0.22 / 0.04 mm | in³ per 6 MB at 0.22 / 0.04 | Binding |
+|---|---|---|---|---|---|---|---|---|---|
+| T12 | v1 | 0.19·D | 0.25·D | 34.6 | 0.0064 | 5387 | 16.5 / 90.9 | 0.36 / 0.07 | |
+| T12 | current (provisional C3/C4) | 3·D | 0.012·D | 72.5 | 0.0105 | 6895 | 21.1 / 116 | 0.28 / 0.05 | C3, C6, C7 |
+| T12 | proposed physics (C4 fatigue, no roughing C3) | 3·D | 0.124·D | 27.8 | 0.0405 | 686 | 2.1 / 11.6 | 2.85 / 0.52 | C2, C4, C6 |
+| T1 | v1 | 0.20·D | 0.10·D | 62.1 | 0.0194 | 3200 | 9.8 / 54.0 | 0.61 / 0.11 | |
+| T1 | current | 4·D | 0.010·D | 82.0 | 0.0507 | 1619 | 5.0 / 27.3 | 1.21 / 0.22 | C3, C6 |
+| T1 | proposed physics | 4·D | 0.065·D | 40.5 | 0.1639 | 247 | 0.76 / 4.2 | 7.9 / 1.44 | C4, C6 |
+
+**MRR vs program size** (`optimize(...)["trade"]`: the cuts no other cut beats on both MRR and program size).
+
+| Tool, basis | Cut (ap × ae) | MRR in³/min | MB/in³ at 0.22 / 0.04 mm |
+|---|---|---|---|
+| T12, physics | 3·D × 0.241·D | 0.0322 | 1.09 / 5.98 |
+| | 3·D × 0.173·D | 0.0361 | 1.51 / 8.32 |
+| | 3·D × 0.124·D (chosen) | 0.0405 | 2.10 / 11.6 |
+| T12, current | 0.13·D × 0.9·D | 0.0043 | 6.9 / 37.9 |
+| | 3·D × 0.017·D | 0.0095 | 15.2 / 83.6 |
+| | 3·D × 0.012·D (chosen) | 0.0106 | 21.2 / 116 |
+| | 3·D × 0.009·D | 0.0110 | 29.4 / 162 |
+| T1, physics | 4·D × 0.291·D | 0.108 | 0.17 / 0.93 |
+| | 4·D × 0.137·D | 0.139 | 0.36 / 1.96 |
+| | 4·D × 0.094·D | 0.156 | 0.52 / 2.86 |
+| | 4·D × 0.065·D (chosen) | 0.164 | 0.76 / 4.17 |
+| T1, current | 4·D × 0.044·D | 0.036 | 1.10 / 6.07 |
+| | 4·D × 0.010·D (chosen) | 0.051 | 4.96 / 27.3 |
+| | 4·D × 0.007·D | 0.055 | 7.23 / 39.8 |
+
+- On the physics basis, T12 halves its program size for 20 % less MRR (0.124·D → 0.241·D).
+- T1 cuts its program 4.5× for 34 % less MRR.
+- On the current basis every T12 adaptive cut needs 15–29 MB per in³ at typical spacing, so a 6 MB program holds under 0.4 in³.
+
+### Finishing: user wall tolerance, wall error, C1 on every flute
+
+- C3 for finishing is now the user's wall tolerance: `wall_tolerance_in`, default 0.005 mm (0.0002"), sometimes 0.001 mm. It replaces v1's fixed 0.00025".
+- It is checked against the **wall error**: the tip deflection normal to the wall (positive = pushed off the wall, stock left), largest over a revolution.
+- Every result reports the wall error as max, **mean** (systematic, which Blum wear compensation removes) and **ripple** (max − min over a revolution, which it cannot). The ripple is an approximation of the error's variation along the wall height. C1 still holds on every flute.
+
+| Tool | Wall | Stock | TIR | Feasible | fz | IPM | Wall error max / mean / ripple (µm) |
+|---|---|---|---|---|---|---|---|
+| T1 | 0.4" | 0.002" | 0.0002 | no | 0.00068 | 21.3 | 9.8 / 5.5 / 8.3 |
+| T1 | 0.125" | 0.002" | 0.0002 | no | 0.00068 | 21.3 | 8.0 / 2.9 / 8.0 |
+| T1 | 0.125" | 0.002" | 0.0001 | **yes** | 0.00041 | 12.7 | 5.0 / 2.0 / 5.0 |
+| T1 | 0.4" | 0.005" | 0.0002 | no | 0.00043 | 13.3 | 17.6 / 10.2 / 14.6 |
+| T12 | 0.1875" (3·D) | 0.002" | 0.0002 | no | 0.00049 | 31.1 | 7.0 / 3.7 / 6.0 |
+| T12 | 0.1875" | 0.002" | 0.0001 | **yes** | 0.00033 | 21.3 | 5.0 / 2.8 / 4.0 |
+| T12 | 0.0625" | 0.002" | 0.0001 | **yes** | 0.00057 | 36.2 | 5.0 / 2.6 / 4.9 |
+| T12 | 0.1875" | 0.005" | 0.0002 | no | 0.00031 | 19.8 | 12.8 / 7.1 / 10.8 |
+
+For infeasible rows, fz is the smallest feed C1 allows and the wall error is at that feed.
+
+**At 0.0002" TIR no finishing pass holds 5 µm**, because the chip every flute needs (fz·sin φe ≥ 0.71·TIR) already deflects the tool 6–18 µm.
+- Blum compensation of the mean is not enough: the ripple alone is 6–15 µm.
+- At 0.0001" TIR, a light pass (0.002" stock) holds 5 µm on both tools.
+- Finishing is therefore where a measured runout matters most. A thinner stock, or C1 on the wall-generating flute only, are the other levers (still an open decision).

@@ -103,7 +103,7 @@ def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1
     I, cc, J = section_props(segs[0], D, tool.z, tool.helix_deg, section, tool.core())
     I_s = math.pi * (shank_seg.d0 * MM) ** 4 / 64.0
     s_root = s_shank = 0.0
-    for mag, cen, tq in f["samples"]:
+    for mag, cen, tq, _ in f["samples"]:
         a = cen / MM
         if root_x > a:
             s_root = max(s_root, sigma1(mag * (root_x - a) * MM, abs(tq) * 1000.0, I, cc, J))
