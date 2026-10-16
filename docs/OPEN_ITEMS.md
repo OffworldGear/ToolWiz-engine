@@ -24,6 +24,8 @@ Results are in `docs/research/v2_optimizer_findings.md` (Round 2). Open:
 - Finishing at 0.0002" TIR is infeasible under every-flute C1 plus v1's tolerance limit; a rule is needed.
 - A measured TIR (Blum) moves every micro result.
 
+**Round 3 done 2026-10-16.** Vendors design to the worst-flute chip (h_worst ≈ 0.005·D in every band), not to deflection or stress. The C4 flute root now uses the deflection's own fluted section. Proposed, not applied: C2 from the chip invariant, C4 = carbide fatigue, C3 = a process requirement. Under that basis T12 runs 3·D × 0.12·D at 6× v1's MRR with 8× less toolpath. See `docs/research/v2_optimizer_findings.md` (Round 3).
+
 Next is step 4, calibration (`tools/calibrate_v2.py`).
 
 ## User actions

@@ -204,20 +204,30 @@ class TestBeam(unittest.TestCase):
 
     def test_section_stress(self):
         F, a, x, d, T = 10.0, 0.1, 0.5, 1.905, 0.01
-        m, sigma, tau, s1 = o.section_stress(F, a, T, x, d)
+        m, sigma, tau, s1 = o.section_stress(F, a, T, x, *o.circle(d))
         self.assertAlmostEqual(m, 10.0 * 0.4 * 25.4)
         self.assertAlmostEqual(sigma, 32 * 101.6 / (math.pi * d ** 3))
         self.assertAlmostEqual(tau, 16 * 10.0 / (math.pi * d ** 3))
         self.assertAlmostEqual(s1, sigma / 2 + math.hypot(sigma / 2, tau))
 
     def test_critical_sections_of_t12(self):
-        secs = o.critical_sections(T12.segments, 0.6)
-        self.assertEqual([(round(x, 4), k) for x, _, k in secs], [(0.1875, "flute root"), (0.5, "holder face")])
-        self.assertAlmostEqual(secs[0][1], 0.6 * 0.0625 * 25.4)
-        self.assertAlmostEqual(secs[1][1], 0.125 * 25.4)
-        # The flute root (core 0.95 mm, lever 0.0975") outweighs the holder face (3.175 mm, lever 0.41").
-        top = o.bending_sections(T12.segments, 10.0, 0.09, 0.0, 0.6)[0]
+        core = o.critical_sections(T12.segments, 4, 35.0, "core", 0.6)
+        self.assertEqual([(round(x, 4), k) for x, k, _, _ in core], [(0.1875, "flute root"), (0.5, "holder face")])
+        self.assertAlmostEqual(core[0][2], math.pi * (0.6 * 0.0625 * 25.4) ** 4 / 64)
+        self.assertAlmostEqual(core[1][2], math.pi * (0.125 * 25.4) ** 4 / 64)
+        # Round 3 default: the flute root uses the deflection's own fluted inertia, outer fibre at D/2.
+        fl = o.critical_sections(T12.segments, 4, 35.0)
+        self.assertAlmostEqual(fl[0][2], BeamDeflectionEngine.fluted_core_inertia(0.0625, 4, 35.0) * 25.4 ** 4)
+        self.assertAlmostEqual(fl[0][3], 0.0625 * 25.4 / 2)
+        # That section is about a 0.8·D cylinder (Kops & Vo 1990): (64·I/π)^¼ / D.
+        d_eq = (64 * fl[0][2] / math.pi) ** 0.25 / (0.0625 * 25.4)
+        self.assertAlmostEqual(d_eq, 0.8, delta=0.02)
+        # Core circle: the flute root (0.95 mm, lever 0.0975") outweighs the holder face.
+        top = o.bending_sections(T12.segments, 10.0, 0.09, 0.0, 4, 35.0, "core", 0.6)[0]
         self.assertEqual(top["kind"], "flute root")
+        fluted = o.bending_sections(T12.segments, 10.0, 0.09, 0.0, 4, 35.0)
+        root = next(b for b in fluted if b["kind"] == "flute root")
+        self.assertLess(root["sigma1_mpa"], top["sigma1_mpa"] / 1.8)
 
 
 class TestRunoutChips(unittest.TestCase):
@@ -450,3 +460,42 @@ class TestProvisionalLimits(unittest.TestCase):
         self.assertAlmostEqual(gen.row_hb({"min": 29, "max": 37, "scale": "HRC"}),
                                gen.ASTMHardnessConverter.hrc_to_brinell(33.0))
         self.assertIsNone(gen.row_hb(None))
+
+
+class TestRound3Tooling(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        import os
+        spec = importlib.util.spec_from_file_location(
+            "v2_invariants", os.path.join(o.ROOT, "tools", "v2_invariants.py"))
+        cls.vi = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.vi)
+        cls.row = next(r for r in cls.vi.load_rows() if r["id"] == "harvey_SF875400_ss_ph_300-350HBn_rough_0.062")
+
+    def test_stats(self):
+        s = self.vi.stats([1.0, 2.0, 3.0, 4.0])
+        self.assertAlmostEqual(s["median"], 2.5)
+        self.assertAlmostEqual(s["cv"], math.sqrt(1.25) / 2.5)
+        self.assertGreater(s["p90_p10"], 1.0)
+
+    def test_flute_root_stress_does_not_depend_on_stickout(self):
+        # M at the flute root is F·(x_root − a): nothing beyond the root enters it.
+        m = o.speedio_16k(0.0002)
+        a = self.vi.evaluate(self.row, m, stickout_extra=0.0, n_theta=120, n_quad=32)
+        b = self.vi.evaluate(self.row, m, stickout_extra=2.0, n_theta=120, n_quad=32)
+        self.assertAlmostEqual(a["sigma_root"], b["sigma_root"], places=6)
+        self.assertGreater(b["delta_in"], 1.3 * a["delta_in"])   # deflection does (1.34× here)
+
+    def test_fluted_section_halves_the_core_circle_stress(self):
+        m = o.speedio_16k(0.0002)
+        core = self.vi.evaluate(self.row, m, section="core", n_theta=120, n_quad=32)
+        fl = self.vi.evaluate(self.row, m, section="v1_section", n_theta=120, n_quad=32)
+        self.assertGreater(core["sigma_root"] / fl["sigma_root"], 1.8)
+
+    def test_optimizer_stress_matches_the_analysis_section(self):
+        # The optimizer's default C4 section is the analysis's "v1_section".
+        I, c = o.section_props(0.0625, True, 4, 35.0)
+        I2, c2, _ = self.vi.section_props(None, 0.0625, 4, 35.0, "v1_section", 0.6)
+        self.assertAlmostEqual(I, I2)
+        self.assertAlmostEqual(c, c2)

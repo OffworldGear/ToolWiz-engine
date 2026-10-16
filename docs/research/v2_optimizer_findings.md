@@ -142,3 +142,136 @@ How each row is evaluated:
 - Program size needs its own cost (a time per path length, or a cap on toolpath per in³) if it matters beyond machining time. At the C3-limited feed, toolpath length is free in a time objective.
 - The finishing conflict between C1-every-flute and the tolerance limit needs a rule. For example, finishing could check C1 on the wall-generating (highest) flute only, since the others never touch the finished wall.
 - A measured TIR (Blum) moves every result above. At 0.0001" the T12 window roughly doubles.
+
+## Round 3 (2026-10-16): find the invariant, fix the stress model, explain the T12 window
+
+The user asked for physics before tuning, so no limit was tuned in this round:
+- The C4 flute-root **section** changed (a model fix).
+- The provisional C3/C4 medians were regenerated with that section.
+- The three open decisions (program-size cost, finishing tolerance, measured runout) are held.
+
+Tools:
+- `tools/v2_invariants.py` writes `data/model_v2/invariants.json` (about 25 s).
+- `tools/v2_provisional_limits.py` is unchanged in method.
+
+### 1. What vendors design to
+
+Each of the 246 side/rough/HEM rows (12 titanium rows skipped, no mc) is evaluated with weight 1, generic sheets included, on its own catalog geometry and material. The model is the optimizer's: eccentric runout at 0.0002" TIR, the fluted section, and stickout = reach + 1 shank diameter.
+
+Spread (p90/p10) per band, from 1/64–3/64" to 1":
+
+| Quantity | Overall CV | Overall p90/p10 | 1/64 | 1/16 | 1/8 | 1/4 | 1/2 | 1 |
+|---|---|---|---|---|---|---|---|---|
+| **worst-flute h_max / D** | **0.38** | **2.7** | 5.2 | **2.3** | 3.3 | 3.0 | 2.3 | 2.2 |
+| F_t per tooth per mm of edge, kc·h_m (N/mm) | 0.75 | 10.8 | 5.7 | 2.9 | 2.9 | 3.2 | 2.7 | 2.2 |
+| worst-flute h_max (mm) | 0.83 | 11.7 | 7.8 | 2.3 | 3.2 | 3.0 | 2.4 | 2.2 |
+| h_m / D | 0.49 | 4.3 | 5.0 | 4.7 | 4.5 | 4.2 | 2.9 | 2.5 |
+| F peak (N) | 1.57 | 124 | 21 | 4.9 | 4.5 | 4.1 | 4.6 | 2.9 |
+| σ flute root (MPa) | 0.60 | 5.4 | 8.0 | 5.4 | 5.0 | 4.5 | 8.6 | 5.3 |
+| F mean / D² | 0.61 | 5.4 | 6.3 | 7.5 | 5.3 | 4.0 | 5.2 | 3.7 |
+| δ / D | 0.82 | 13.7 | 5.4 | **17.2** | 9.9 | 7.0 | 14.9 | 8.6 |
+| δ (in) | 0.92 | 25 | 10 | 15 | 10 | 6.6 | 15 | 8.6 |
+| σ in the shank at the step | 0.73 | 19 | 110 | 10 | 9.9 | 4.3 | 7.2 | 5.3 |
+| power / D² | 0.94 | 15 | 54 | 13 | 15 | 16 | 10 | 7.4 |
+
+**The invariant is the worst flute's chip, not deflection or stress.**
+- At 0.0002" TIR the median h_worst/D is **0.0047–0.0054 in every band from 1/64" to 1"** (overall 0.0052; p10 0.0030, p90 0.0082).
+- Edge load kc·h, which follows from the chip, is next.
+- Deflection is among the loosest quantities (p90/p10 7–17 per band). It also depends on the stickout assumption: the δ/D median is 0.0036, 0.0071 and 0.0137 for reach + 0, 1 and 2 shank diameters.
+- At TIR 0 the chip's spread widens (overall p90/p10 3.9; micro median 0.0018·D). Vendors' chips are consistent once a realistic runout is included.
+
+**Proposal (for the user, not applied):**
+- **C2 becomes the vendor-derived limit:** worst-flute h_max ≤ c·D, with c from these rows. The median is 0.0050·D at 1/16"; the current h_tooth placeholder 0.008·D × 0.9 sits at the 1/16" p90 (0.0082).
+- **C3 and C4 stop being vendor medians.** Vendors don't hold them, and a median of a 5–17× spread rejects half of all published cuts by construction.
+  - C4: the carbide fatigue limit on the corrected section (2 below).
+  - C3: a process requirement, not a statistic. For finishing, the wall tolerance. For roughing, for example, the deflection must stay below the stock left for finishing.
+
+### 2. The stress model
+
+The flute-root stress of all 246 rows was evaluated under each assumption. The fatigue reference is 0.375 × 3.8 GPa = 1425 MPa.
+
+| Variant | Median MPa | p90 | Max | Over fatigue | Over TRS |
+|---|---|---|---|---|---|
+| Round 1–2: core circle 0.6·D, K_r 0.4, kc ×1, TIR 0.0002 | 1254 | 2633 | 5396 | 104/246 | 5 |
+| core circle 0.75·D | 668 | 1348 | 2763 | 17 | 0 |
+| **fluted section = C3's own inertia (v1), outer fibre D/2 (now the default)** | **682** | **1377** | **2782** | **21** | **0** |
+| equivalent cylinder 0.8·D, fibre 0.4·D | 551 | 1111 | 2276 | 5 | 0 |
+| K_r 0.3 | 1217 | 2555 | 5233 | 99 | 4 |
+| kc ×0.79 (Sandvik ToolGuide tool factor) | 991 | 2080 | 4263 | 67 | 1 |
+| TIR 0 | 1146 | 2267 | 3956 | 89 | 1 |
+| fluted section + kc ×0.79 | 538 | 1088 | 2198 | 5 | 0 |
+| fluted section + kc ×0.79 + TIR 0 | 493 | 929 | 1611 | 3 | 0 |
+| fluted section + kc ×0.79 + K_r 0.3 + TIR 0 | 479 | 901 | 1563 | 3 | 0 |
+
+Each assumption:
+- **Section (the main error).** The core circle ignores the teeth.
+  - The deflection model the design says to reuse (v1 `fluted_core_inertia`) already gives the fluted section an inertia equal to a 0.805·D cylinder on 4 flutes. Kops & Vo (1990, CIRP Annals 39(1):93) report that end mill compliance matches an equivalent diameter of about 0.8·D.
+  - Using that same section for stress is not a free choice; it makes C3 and C4 consistent. It removes every above-TRS case and cuts over-fatigue cases from 104 to 21.
+  - **Citation caveat:** the Kops & Vo figure and Kivanc & Budak (2004, IJMTM 44:1151, which adds flute-arc and two-axis inertia) were seen only in secondary search summaries; the lookup could not fetch the papers.
+  - One micro-milling breakage paper (JMMP 8(3):122, 2024; also secondary) still uses the core circle, and places the maximum stress at the tool–shank transition.
+  - No source gives a flute-root stress concentration factor or a measured micro-tool core ratio.
+- **Load position.** The centroid already moves with the helix at every rotation sample, and the root moment F·(x_root − a) is exact for the distributed load. Nothing to change.
+- **K_r.** No primary steel or stainless Ktc/Krc table was found. Going from 0.4 to 0.3 moves the maximum by 3 %, so it is not the cause.
+- **Edge forces.** Sandvik's kc1.1 is fitted to total force, so adding K_te/K_re would double-count. They can only raise force; there is no reduction to be had there.
+- **Stickout** does not enter flute-root stress at all: the root moment involves nothing beyond the root (tested). It drives deflection (above) and the holder-face stress only.
+- **Runout and the tool factor** each lower the maximum by 10–25 %.
+
+**Which change brings every published cut below the fatigue limit?** None does on its own without being arbitrary.
+- The fluted section is the physics fix and is now the default: 21 rows remain over.
+- Adding Sandvik's measured 0.79 kc factor leaves 5. It is a calibration value, so it is not applied by default.
+- Adding zero runout as well leaves 3, with a maximum of 1611 MPa, 1.13× the 10⁷-cycle limit:
+  - Harvey SF_958500 3-flute at 1/32" and 1/16", 0.75·D × 0.5·D;
+  - Sandvik Plura HD in P3.0 hardened, 1·D × 0.5·D.
+- At 10⁶ cycles, about a tool's life, the fully reversed fatigue fraction is about 0.42 × TRS = 1596 MPa (Kursawe 2001 via Preis 2004). Only one row stays over at that level.
+
+### 3. The T12 window vs published 1/16" cuts
+
+Each published cut is evaluated:
+- on its own catalog tool and material;
+- on T12 (17-4 H1025, 3·D flutes, 0.5" stickout);
+- at 0.0001" and 0.0002" TIR.
+
+C3/C4 here are the current provisional medians, so the C4 limit is 664 MPa at 1/16".
+
+| Cut | Tool | TIR | h_thin µin | h_worst µin | δ (in) | σ MPa | Fails |
+|---|---|---|---|---|---|---|---|
+| Helical HEV-5, 5FL, 2·D × 0.22·D, fz 0.0004, 200 SFM | catalog (LCF 2·D, stickout 0.375") | 0.0001 / 0.0002 | 275 / 215 | 382 / 429 | 0.00021 / 0.00025 | 1027 / 1150 | C4 |
+| | T12 | 0.0001 / 0.0002 | 263 / 191 | 405 / 475 | 0.0016 / 0.0018 | 1771 / 1982 | C3, C4 (+C2 at 0.0002) |
+| Kennametal GOmill GP, 1.75·D × 0.10·D, fz 0.0004, 340 SFM (316 row) | catalog (LCF 1.75·D, stickout 0.234") | 0.0001 / 0.0002 | 168 / 96 | 311 / 381 | 0.00008 / 0.00010 | 368 / 430 | none |
+| | T12 (17-4) | both | 168 / 96 | 311 / 381 | 0.0009 / 0.0010 | 974 / 1099 | C3, C4 |
+| Harvey SF_875400, 0.6·D × 0.4·D, fz 0.00026, 140 SFM | catalog (LCF 3·D, stickout 0.311") | 0.0001 / 0.0002 | 184 / 113 | 325 / 396 | 0.0008 / 0.0010 | 1197 / 1431 | C3, C4 |
+| | T12 | both | 184 / 113 | 325 / 396 | 0.0011 / 0.0014 | 1223 / 1463 | C3, C4 |
+
+**Why the model's window (0.006–0.015·D at full depth) disagrees with these cuts:**
+1. **Not C1, C2 or C12.** Every published cut keeps every flute cutting at both TIRs, because their thinnest chip is 96–275 µin against h_min 24 µin. They are wide enough, at 0.1–0.4·D, that sin φe is large, so a modest fz clears 0.71·TIR.
+2. **C3 and C4 are medians of the vendor rows**, so about half the vendor cuts break them by construction.
+   - At full depth on T12 the C3 allowance is 0.000375", which permits only about 10–25 N of side load.
+   - Any ae wide enough for a comfortable chip then needs more force than that. Only the sliver between C12 (2·TIR) and about 0.015·D survives, where chip thinning lets a large fz clear 0.71·TIR at low force.
+3. **T12 is a weaker tool than the catalog tools it is compared with.**
+   - Its flute is 3·D long against 1.75–2·D.
+   - It sticks out 0.5" against 0.23–0.38".
+   - The same HEV-5 cut deflects T12 7.4× more than its own tool, and the GOmill cut 11×.
+   - The vendors' "deep" cut is deep relative to a shorter flute.
+
+**With the proposed physics basis** (C4 = 1425 MPa fatigue on the fluted section, no vendor-median C3 for roughing), T12 at full depth opens to 0.006–0.25·D at 0.0002" (0.003–0.50·D at 0.0001"). The best cut is about 0.12·D, which is GOmill's width.
+
+T12 and T1 adaptive, current defaults vs the proposed physics basis (what-if, not applied):
+
+| Tool | TIR | Basis | ap | ae | fz | SFM | IPM | MRR in³/min | Toolpath in/in³ | δ (in) | σ MPa | Binding |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| T12 | 0.0002 | current | 3·D | 0.012·D | 0.00113 | 262 | 72.5 | 0.0105 | 6895 | 0.00037 | 416 | C3, C6, C7 |
+| T12 | 0.0002 | physics | 3·D | 0.124·D | 0.00045 | 253 | 27.8 | **0.0405** | **686** | 0.00127 | 1424 | C2, C4, C6 |
+| T12 | 0.0001 | current | 3·D | 0.007·D | 0.00231 | 262 | 147.8 | 0.0118 | 12573 | 0.00034 | 385 | C2, C6, C7 |
+| T12 | 0.0001 | physics | 3·D | 0.137·D | 0.00045 | 248 | 27.4 | 0.0441 | 621 | 0.00123 | 1425 | C4, C6 |
+| T1 | 0.0002 | current | 4·D | 0.010·D | 0.00263 | 255 | 82.0 | 0.0507 | 1619 | 0.00121 | 486 | C3, C6 |
+| T1 | 0.0002 | physics | 4·D | 0.065·D | 0.00130 | 255 | 40.5 | **0.1639** | **247** | 0.00339 | 1425 | C4, C6 |
+| T1 | 0.0001 | physics | 4·D | 0.078·D | 0.00110 | 255 | 34.3 | 0.1676 | 205 | 0.00332 | 1424 | C4, C6 |
+
+v1 for reference: T12 0.0064 in³/min at 5389 in/in³; T1 0.0194 at 3200.
+
+Under the physics basis:
+- T12 removes 6.3× v1 with 7.9× less toolpath per in³.
+- T1 removes 8.4× v1 with 13× less toolpath.
+- Both stay at full flute length.
+
+The cost is deflection: 0.0013" on T12 and 0.0034" on T1 at the tip during roughing. That is the quantity a process-based C3 (the stock left for finishing) would bound.

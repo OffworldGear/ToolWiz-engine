@@ -62,9 +62,11 @@ from a lateral force F at x = a, both measured from the tip, is
 which is v1's F/E·∫x²/I dx when a = b = 0. C3 checks the tip (b = 0), the largest error along the cut.
 E is 570 GPa (CERATIZIT, 10 % Co submicron); v1 uses 90·10⁶ psi (620 GPa).
 
-Stress (design §3.4): σ = M·c/I = 32·M/(π·d³) with M = F·(x − a) at the far end of every segment:
-the flute root at the top of the flutes (core circle only, d = core ratio·D from the research, so
-conservative against the real fluted section), every diameter step, and the holder face. Torsion τ = 16·T/(π·d³); carbide is brittle, so C4 checks the largest
+Stress (design §3.4): σ = M·c/I with M = F·(x − a) at the far end of every segment: the flute root
+at the top of the flutes, every diameter step, and the holder face. The flute root uses the same fluted
+section as the deflection (v1's inertia, ≈ a 0.8·D cylinder; Kops & Vo 1990) with the outer fibre at
+D/2 (Round 3). The Round 1–2 core circle (0.6·D) put published micro cuts above TRS; it remains
+available as Tool(stress_section="core"). Torsion τ = T·c/J with J = 2I; carbide is brittle, so C4 checks the largest
 principal stress σ1 = σ/2 + √((σ/2)² + τ²) (Rankine). Stress concentration at the steps is not
 modelled; the stress fraction covers it.
 """
@@ -240,7 +242,8 @@ class Tool:
     helix_deg: float = 35.0
     rake_deg: float = 0.0
     edge_radius_mm: float = 0.002       # PLACEHOLDER (data gap)
-    core_ratio: Optional[float] = None  # None: CORE_RATIO_BY_FLUTES
+    core_ratio: Optional[float] = None  # None: CORE_RATIO_BY_FLUTES (only for stress_section "core")
+    stress_section: str = "fluted"      # C4 flute-root section: "fluted" (same I as C3) or "core"
     E_mpa: float = 570000.0             # CERATIZIT p.22, 10 % Co submicron (CTS20D / CT-GS20Y)
     trs_mpa: float = 3800.0             # CERATIZIT CT-GS20Y; Hyperion K10F 3700
     fatigue_fraction: float = 0.375     # 0.35–0.4 × TRS, fully reversed bending
@@ -599,12 +602,33 @@ def deflection_in(force_lbf, segments, load_at_in, at_in=0.0, flutes=4, helix_de
     return force_lbf / E_psi * compliance_integral(segments, load_at_in, at_in, flutes, helix_deg)
 
 
-def critical_sections(segments, core_ratio=0.6):
-    """(x, d_mm, kind) at the far end of every segment, plus a tapered segment's narrow start.
+STRESS_SECTIONS = ("fluted", "core")
+
+
+def section_props(d_in, fluted, flutes=4, helix_deg=30.0, section="fluted", core_ratio=0.6):
+    """(I mm⁴, c mm) of a section for bending stress σ = M·c/I.
+
+    Solid sections are circles. A fluted section is, by default ("fluted", Round 3), the same section the
+    deflection uses (v1 BeamDeflectionEngine.fluted_core_inertia, about a 0.8·D equivalent cylinder for
+    4 flutes, as Kops & Vo 1990 report for end mill compliance) with the outer fibre at D/2. "core" is
+    the Round 1–2 model: the core circle d = core_ratio·D alone.
+    """
+    d_mm = d_in * MM_PER_IN
+    if not fluted:
+        return math.pi * d_mm ** 4 / 64.0, d_mm / 2.0
+    if section == "core":
+        dc = core_ratio * d_mm
+        return math.pi * dc ** 4 / 64.0, dc / 2.0
+    if section == "fluted":
+        return BeamDeflectionEngine.fluted_core_inertia(d_in, flutes, helix_deg) * MM_PER_IN ** 4, d_mm / 2.0
+    raise ValueError(f"section must be one of {STRESS_SECTIONS}")
+
+
+def critical_sections(segments, flutes=4, helix_deg=30.0, section="fluted", core_ratio=0.6):
+    """(x in, kind, I mm⁴, c mm) at the far end of every segment, plus a tapered segment's narrow start.
 
     Within a constant section the moment grows toward the holder, so each segment's far end is its
-    critical point: the flute root at the top of the flutes (core diameter d·core_ratio), every
-    diameter step, and the holder face.
+    critical point: the flute root at the top of the flutes, every diameter step, and the holder face.
     """
     out = []
     last = float(segments[-1].end) if segments else 0.0
@@ -613,29 +637,37 @@ def critical_sections(segments, core_ratio=0.6):
         if abs(sg.d0 - sg.d1) > 1e-12:
             pts.append((float(sg.start), float(sg.d0)))
         for x, d in pts:
-            d_mm = d * MM_PER_IN * (core_ratio if sg.fluted else 1.0)
+            I, c = section_props(d, sg.fluted, flutes, helix_deg, section, core_ratio)
             kind = "holder face" if x >= last - 1e-12 else ("flute root" if sg.fluted else f"{sg.kind} at step")
-            out.append((x, d_mm, kind))
+            out.append((x, kind, I, c))
     return out
 
 
-def section_stress(force_n, load_at_in, torque_nm, x_in, d_mm):
-    """σ = 32·M/(π·d³), τ = 16·T/(π·d³), σ1 = σ/2 + √((σ/2)² + τ²) at x (MPa); M = F·(x − a)."""
+def circle(d_mm):
+    """(I, c) of a solid circle, for section_stress."""
+    return math.pi * d_mm ** 4 / 64.0, d_mm / 2.0
+
+
+def section_stress(force_n, load_at_in, torque_nm, x_in, I_mm4, c_mm):
+    """σ = M·c/I, τ = T·c/J with J = 2I, σ1 = σ/2 + √((σ/2)² + τ²) at x (MPa); M = F·(x − a).
+
+    For a circle these are 32·M/(π·d³) and 16·T/(π·d³).
+    """
     m_nmm = force_n * max(x_in - load_at_in, 0.0) * MM_PER_IN
-    k = math.pi * d_mm ** 3
-    sigma, tau = 32.0 * m_nmm / k, 16.0 * abs(torque_nm) * 1000.0 / k
+    sigma, tau = m_nmm * c_mm / I_mm4, abs(torque_nm) * 1000.0 * c_mm / (2.0 * I_mm4)
     return m_nmm, sigma, tau, sigma / 2.0 + math.hypot(sigma / 2.0, tau)
 
 
-def bending_sections(segments, force_n, load_at_in, torque_nm=0.0, core_ratio=0.6):
+def bending_sections(segments, force_n, load_at_in, torque_nm=0.0, flutes=4, helix_deg=30.0,
+                     section="fluted", core_ratio=0.6):
     """Stress at every critical section above the load, largest σ1 first (dicts)."""
     out = []
-    for x, d_mm, kind in critical_sections(segments, core_ratio):
+    for x, kind, I, c in critical_sections(segments, flutes, helix_deg, section, core_ratio):
         if x <= load_at_in + 1e-12:
             continue
-        m, sigma, tau, s1 = section_stress(force_n, load_at_in, torque_nm, x, d_mm)
-        out.append({"kind": kind, "x_in": x, "d_mm": d_mm, "moment_nmm": m, "sigma_mpa": sigma,
-                    "tau_mpa": tau, "sigma1_mpa": s1})
+        m, sigma, tau, s1 = section_stress(force_n, load_at_in, torque_nm, x, I, c)
+        out.append({"kind": kind, "x_in": x, "d_eq_mm": (64.0 * I / math.pi) ** 0.25, "moment_nmm": m,
+                    "sigma_mpa": sigma, "tau_mpa": tau, "sigma1_mpa": s1})
     out.sort(key=lambda s: -s["sigma1_mpa"])
     return out
 
@@ -921,16 +953,17 @@ class CutPoint:
             if d > delta:
                 delta, gov_d = d, (mag, a_in, tq)
         s1_max, gov_s = -1.0, None
-        for x, d_mm, kind in critical_sections(t.segments, t.core()):
+        for x, kind, I, c in critical_sections(t.segments, t.z, t.helix_deg, t.stress_section, t.core()):
             for mag, cen, tq in samples:
                 a_in = cen / MM_PER_IN
                 if x <= a_in:
                     continue
-                s1 = section_stress(mag, a_in, tq, x, d_mm)[3]
+                s1 = section_stress(mag, a_in, tq, x, I, c)[3]
                 if s1 > s1_max:
                     s1_max, gov_s = s1, (mag, a_in, tq)
         gov_s = gov_s or gov_d
-        secs = bending_sections(t.segments, gov_s[0], gov_s[1], gov_s[2], t.core())
+        secs = bending_sections(t.segments, gov_s[0], gov_s[1], gov_s[2], t.z, t.helix_deg, t.stress_section,
+                                t.core())
         return {"delta_in": max(delta, 0.0), "delta_load_n": gov_d[0], "delta_load_at_in": gov_d[1],
                 "stress_load_n": gov_s[0], "stress_load_at_in": gov_s[1], "sections": secs}
 
