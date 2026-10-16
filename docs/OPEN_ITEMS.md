@@ -33,7 +33,11 @@ Next is step 3, constraints and optimizer (`physics_v2/optimize.py`).
 
 - **"(custom)" after Replace:** the linked-formula fix still needs a confirmation run. The preset "Use stepdown/stepover" flags are logged; if they come back False, implement setting them.
 - **Ask the user:** which stepover field on Steep and Shallow looked unlinked?
-- **Option (offered, not built):** the add-in could set Fine Stepdown to at least ¼ of the stepdown and never under 0.05 mm whenever it writes a stepdown.
+- **Fine stepdown follows the add-in's stepdown (confirmed 2026-10-16 from addin.log).** Fusion's adaptive default is `fineStepdown = Math.min(tool_diameter * 0.5; maximumStepdown * 0.1)`, and `maximumStepdown = tool_stepdown`, which is the preset value the add-in writes.
+  - So a 0.0019" stepdown on T12 gave 0.0048 mm fine-stepdown levels. That explains the hundreds of 0.002–0.005 mm Z levels in the big programs (`docs/research/nc_file_size_calibration.md`).
+  - The add-in never writes fineStepdown, tolerance, smoothing or any holder/shaft clearance setting.
+  - The log also shows 9 operations where maximumStepdown evaluated to 0 (preset stepdown 0).
+  - **Option (offered, not built):** when the add-in writes a stepdown, also write fineStepdown = max(25% of stepdown, 0.05 mm).
 - **Audit log `op_path`:** for operations inside patterns, the `preset_link` event uses the pattern name ("Pattern1 (3) > …") while snapshots use the setup name. Unify them.
 - **Done (2026-10-03 to 10-15):**
   - audit trail, side-effect detection and Snapshot/Compare;
