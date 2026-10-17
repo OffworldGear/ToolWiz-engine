@@ -1,0 +1,499 @@
+{
+ "version": "2026-10-17.1",
+ "status": "PROPOSED (calibration step 4); adoption as optimizer defaults is the user's decision",
+ "generated_by": "tools/calibrate_v2.py",
+ "date": "2026-10-17",
+ "force": {
+  "tool_factor": {
+   "value": 0.79068,
+   "support": "one vendor (Sandvik ToolGuide, Dura)",
+   "source": "Sandvik CoroPlus ToolGuide cutting-data screens, CoroMill Dura 1K344-0200-XC 1730 (2 mm, 4 FL), 17-4 PH at 200 and 345 HB and 45 NCD 16 at 420 HB (user screenshots 2026-10-15); docs/research/sandvik_toolguide_probes.md; geometric mean of 3 pre-machining readings, log sd 0.001"
+  },
+  "k_r": {
+   "value": 0.4,
+   "source": "Kr/Kt 0.34\u20130.38 for carbide end mills in 45 steel (Sun, Ding, Deng, Xiong 2023, Sensors 23:8954, Table 2); Krc/Ktc 0.50 for Ti6Al4V (Li, Zhao, Li, He 2014, J. Vibroeng. 16:2657, citing Altintas, Manufacturing Automation 2nd ed.); no stainless value found; 0.4 kept (inside 0.34\u20130.50)"
+  },
+  "k_te_n_mm": {
+   "value": 0.0,
+   "source": "Edge coefficients 12\u201343 N/mm (Ti6Al4V Kte 24 / Kfe 43, Altintas MAL review Table 1; 16MnCr5 28.8 N/mm, Popovi\u0107 et al. 2017 FME Trans. 45:4 Table 1; 1020 steel 12.25 N/mm, Salehi et al. 2018 Procedia CIRP). Sandvik's kc1 is fitted to total force, so adding them double-counts; the ToolGuide probes all sit at one h_m (4.9 \u00b5m), so they cannot separate an edge term"
+  },
+  "k_re_n_mm": {
+   "value": 0.0,
+   "source": "Edge coefficients 12\u201343 N/mm (Ti6Al4V Kte 24 / Kfe 43, Altintas MAL review Table 1; 16MnCr5 28.8 N/mm, Popovi\u0107 et al. 2017 FME Trans. 45:4 Table 1; 1020 steel 12.25 N/mm, Salehi et al. 2018 Procedia CIRP). Sandvik's kc1 is fitted to total force, so adding them double-counts; the ToolGuide probes all sit at one h_m (4.9 \u00b5m), so they cannot separate an edge term"
+  }
+ },
+ "speed_engagement": {
+  "basis": "ae",
+  "form": "v \u221d max(ae/D, ae_min)^(\u2212k)",
+  "k": {
+   "value": 0.15642,
+   "source": "within-chart contrasts, 1271 rows in 516 charts, equal vendor weights"
+  },
+  "ae_min": {
+   "value": 0.05,
+   "source": "grid search on the within-chart residual"
+  }
+ },
+ "coating_speed_factor": {
+  "AlTiN/TiAlN": {
+   "value": 1.0,
+   "fitted": 1.0,
+   "source": "reference class",
+   "vendor_groups": [
+    "Emuge-Franken",
+    "Garr Tool",
+    "Harvey Performance",
+    "Kyocera",
+    "OSG",
+    "YG-1"
+   ]
+  },
+  "AlCrN": {
+   "value": 1.2051,
+   "fitted": 1.2051,
+   "source": "applied: \u2265 2 vendor groups and |t| \u2265 2",
+   "vendor_groups": [
+    "Emuge-Franken",
+    "Garr Tool",
+    "Sandvik"
+   ]
+  },
+  "Si-doped": {
+   "value": 1.2,
+   "fitted": 1.2,
+   "source": "applied: \u2265 2 vendor groups and |t| \u2265 2",
+   "vendor_groups": [
+    "Garr Tool",
+    "Sandvik"
+   ]
+  },
+  "uncoated": {
+   "value": 1.0,
+   "fitted": 1.2926,
+   "source": "not applied (1.0): one vendor group, |t| < 2, or no chemistry",
+   "vendor_groups": [
+    "Harvey Performance"
+   ]
+  },
+  "DLC": {
+   "value": 3.2946,
+   "fitted": 3.2946,
+   "source": "applied: \u2265 2 vendor groups and |t| \u2265 2",
+   "vendor_groups": [
+    "OSG",
+    "YG-1"
+   ]
+  },
+  "unspecified": {
+   "value": 1.0,
+   "fitted": 1.0436,
+   "source": "not applied (1.0): one vendor group, |t| < 2, or no chemistry",
+   "vendor_groups": [
+    "Harvey Performance",
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik",
+    "YG-1"
+   ]
+  }
+ },
+ "families": {
+  "Stainless - PH Series (17-4)": {
+   "kienzle_groups": [
+    {
+     "code": "P5.0.Z.AN",
+     "kc1_1_n_mm2": 1800.0,
+     "mc": 0.21,
+     "hb_ref": 200.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P5.0.Z.AN | 5 | stainless steel ferritic/martensitic | 0 | main group | Z | forged/rolled/cold/drawn | AN | annealed | 200 HB | 1800 | 0.21"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.41,
+    "source": "exponent from the family's own Sandvik condition rows (user decision 2026-10-15 (ToolGuide probe)); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 182.83,
+     "at": "slot (ae = D), 325 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 387 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 325.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 1.8201,
+     "source": "within-chart fit (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Stainless - 400 Series (420)": {
+   "kienzle_groups": [
+    {
+     "code": "P5.0.Z.AN",
+     "kc1_1_n_mm2": 1800.0,
+     "mc": 0.21,
+     "hb_ref": 200.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P5.0.Z.AN | 5 | stainless steel ferritic/martensitic | 0 | main group | Z | forged/rolled/cold/drawn | AN | annealed | 200 HB | 1800 | 0.21"
+    },
+    {
+     "code": "P5.0.Z.HT",
+     "kc1_1_n_mm2": 2300.0,
+     "mc": 0.21,
+     "hb_ref": 330.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P5.0.Z.HT | 5 | 0 | Z | HT | hardened+tempered | 330 HB | 2300 | 0.21"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.49,
+    "source": "exponent from the family's own Sandvik condition rows (P5.0 AN\u2192HT); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 306.45,
+     "at": "slot (ae = D), 200 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 21 non-finishing training rows from Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 200.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.84022,
+     "source": "pooled within-chart fit (too few contrasts) (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Stainless - 300 Series (316)": {
+   "kienzle_groups": [
+    {
+     "code": "M1.0.Z.AQ",
+     "kc1_1_n_mm2": 2000.0,
+     "mc": 0.21,
+     "hb_ref": 200.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): M1.0.Z.AQ | 1 | austenitic | 0 | main group | Z | forged/rolled/cold /drawn | AQ | annealed/quenched or annealed | 200 HB | 2000 | 0.21"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.45,
+    "source": "exponent from the family's own Sandvik condition rows (M1.0 AQ\u2192PH); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 206.16,
+     "at": "slot (ae = D), 262 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 215 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, OSG, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 262.5,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.84022,
+     "source": "pooled within-chart fit (too few contrasts) (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Steel - Low Carbon (1020)": {
+   "kienzle_groups": [
+    {
+     "code": "P1.1.Z.AN",
+     "kc1_1_n_mm2": 1500.0,
+     "mc": 0.25,
+     "hb_ref": 125.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P1.1.Z.AN | 1 | unalloyed Mn<1.65 | 1 | <=0.25% C | Z | forged/rolled/cold drawn | AN | annealed | 125 HB | 1500 | 0.25"
+    },
+    {
+     "code": "P1.1.Z.HT",
+     "kc1_1_n_mm2": 1770.0,
+     "mc": 0.25,
+     "hb_ref": 190.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P1.1.Z.HT | 1 | 1 | Z | HT | hardened+tempered | 190 HB | 1770 | 0.25"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.4,
+    "source": "exponent from the family's own Sandvik condition rows (P1.1 AN\u2192HT); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 195.87,
+     "at": "slot (ae = D), 271 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 17 non-finishing training rows from Harvey Performance, OSG (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 271.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.84022,
+     "source": "pooled within-chart fit (too few contrasts) (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Steel - Medium Carbon (1045)": {
+   "kienzle_groups": [
+    {
+     "code": "P1.2.Z.AN",
+     "kc1_1_n_mm2": 1700.0,
+     "mc": 0.25,
+     "hb_ref": 190.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P1.2.Z.AN | 1 | 2 | >0.25... <=0.55% C | Z | forged/rolled/cold drawn | AN | annealed | 190 HB | 1700 | 0.25"
+    },
+    {
+     "code": "P1.2.Z.HT",
+     "kc1_1_n_mm2": 1820.0,
+     "mc": 0.25,
+     "hb_ref": 210.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P1.2.Z.HT | 1 | 2 | Z | HT | hardened+tempered | 210 HB | 1820 | 0.25"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.68,
+    "source": "exponent from the family's own Sandvik condition rows (P1.2 AN\u2192HT); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 387.64,
+     "at": "slot (ae = D), 237 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 62 non-finishing training rows from Emuge-Franken, Harvey Performance, Kennametal, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 237.25,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.84022,
+     "source": "pooled within-chart fit (too few contrasts) (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Steel - Medium Carbon Alloy (4130)": {
+   "kienzle_groups": [
+    {
+     "code": "P2.2.Z.AN",
+     "kc1_1_n_mm2": 1950.0,
+     "mc": 0.25,
+     "hb_ref": 240.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P2.2.Z.AN | 2 | 2 | >0.25... <=0.55% C | Z | AN | 240 HB | 1950 | 0.25"
+    },
+    {
+     "code": "P2.5.Z.HT",
+     "kc1_1_n_mm2": 2000.0,
+     "mc": 0.25,
+     "hb_ref": 330.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P2.5.Z.HT | 2 | 5 | all carbon content (hard ended and tempered) | Z | forged/rolled/cold drawn | HT | hardened+tempered | 330 HB | 2000 | 0.25"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.26,
+    "source": "exponent from the family's own Sandvik condition rows (P2.1 AN\u2192P2.5 HT); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 351.94,
+     "at": "slot (ae = D), 294 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 94 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 293.5,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.84022,
+     "source": "pooled within-chart fit (too few contrasts) (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Steel - Tool (H13)": {
+   "kienzle_groups": [
+    {
+     "code": "P3.0.Z.AN",
+     "kc1_1_n_mm2": 1950.0,
+     "mc": 0.25,
+     "hb_ref": 200.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P3.0.Z.AN | 3 | high alloyed (alloying elements >5%) | 0 | main group | Z | forged/rolled/cold drawn | AN | annealed | 200 HB | 1950 | 0.25"
+    },
+    {
+     "code": "P3.0.Z.HT",
+     "kc1_1_n_mm2": 3100.0,
+     "mc": 0.25,
+     "hb_ref": 380.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): P3.0.Z.HT | 3 | 0 | Z | HT | hardened+tempered | 380 HB | 3100 | 0.25"
+    },
+    {
+     "code": "H1.1.Z.HA",
+     "kc1_1_n_mm2": 3090.0,
+     "mc": 0.25,
+     "hb_ref": 481.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): H1.1.Z.HA | 1 | steels (extra hard) | 1 | Hardness level 50 | Z | forged/rolled/cold drown | HA | hardened (+tempered) | 50 HRc | 3090 | 0.25"
+    },
+    {
+     "code": "H1.2.Z.HA",
+     "kc1_1_n_mm2": 3690.0,
+     "mc": 0.25,
+     "hb_ref": 555.5,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): H1.2.Z.HA | 1 | 2 | Hardness level 55 | Z | HA | 55 HRc | 3690 | 0.25"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.72,
+    "source": "exponent from the family's own Sandvik condition rows (P3.0 AN\u2192HT); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 189.83,
+     "at": "slot (ae = D), 432 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 288 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 432.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 1.1389,
+     "source": "within-chart fit (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Aluminum - Wrought (6061)": {
+   "kienzle_groups": [
+    {
+     "code": "N1.2.Z.AG",
+     "kc1_1_n_mm2": 650.0,
+     "mc": 0.25,
+     "hb_ref": 100.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): N1.2.Z.AG | 1 | 2 | Z | AG | aged | 100 HB | 650 | 0.25"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.0,
+    "source": "exponent from the family's own Sandvik condition rows (no hardness scaling); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 918.05,
+     "at": "slot (ae = D), 100 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 65 non-finishing training rows from Emuge-Franken, Harvey Performance, OSG, Sandvik, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 100.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.84022,
+     "source": "pooled within-chart fit (too few contrasts) (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "High Temp Nickel Alloy": {
+   "kienzle_groups": [
+    {
+     "code": "S2.0.Z.AN",
+     "kc1_1_n_mm2": 2650.0,
+     "mc": 0.25,
+     "hb_ref": 250.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): S2.0.Z.AN | 2 | nickel based alloys | 0 | main group | Z | forged/rolled/cold drawn | AN | annealed | 250 HB | 2650 | 0.25"
+    },
+    {
+     "code": "S2.0.Z.AG",
+     "kc1_1_n_mm2": 2900.0,
+     "mc": 0.25,
+     "hb_ref": 350.0,
+     "source": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB): S2.0.Z.AG | 2 | 0 | Z | AG | aged | 350 HB | 2900 | 0.25"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.27,
+    "source": "exponent from the family's own Sandvik condition rows (S2.0 AN\u2192AG); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 78.538,
+     "at": "slot (ae = D), 375 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 267 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 375.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.1843,
+     "source": "within-chart fit (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  },
+  "Titanium Alloy": {
+   "kienzle_groups": [
+    {
+     "code": "S4.3.Z.AN",
+     "kc1_1_n_mm2": 1400.0,
+     "mc": 0.23,
+     "hb_ref": 330.0,
+     "source": "Seco/Niagara SMG table, SMG 22 (ISO S) Ti6Al-4V annealed: kc1.1 210 ksi (1448 N/mm\u00b2), mc 0.23 (docs/research/data/kc_mc_sources.json, SE-NC; Seco is the independent second source, median ratio 0.97 to Sandvik, kc_mc_survey.md \u00a75); kc1 Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB)"
+    }
+   ],
+   "kc_hardness_exp": {
+    "value": 0.0,
+    "source": "exponent from the family's own Sandvik condition rows (Sandvik prints the same kc1 1400 for S4.3 AN (330 HB) and AG (375 HB)); docs/research/material_mapping_v2.md"
+   },
+   "speed": {
+    "vc_ref_sfm": {
+     "value": 203.03,
+     "at": "slot (ae = D), 325 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
+     "source": "fit to 282 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+    },
+    "hb_ref": {
+     "value": 325.0,
+     "source": "median hardness of the family's benchmark rows"
+    },
+    "vc_hardness_exp": {
+     "value": 0.31463,
+     "source": "within-chart fit (calibration_report.json speed.hardness)"
+    },
+    "taylor_n": {
+     "value": 0.25,
+     "source": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed"
+    }
+   }
+  }
+ }
+}

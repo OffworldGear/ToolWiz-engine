@@ -1,0 +1,2463 @@
+{
+ "version": "2026-10-17.1",
+ "generated_by": "tools/calibrate_v2.py",
+ "date": "2026-10-17",
+ "holdout": {
+  "fraction": 0.3,
+  "unit": "(vendor group, document, family) groups, sha256 hash",
+  "rows_train": 1912,
+  "rows_holdout": 892
+ },
+ "skipped": {
+  "missing geometry: LCF": 4,
+  "end 'corner_radius' (v2.0 scope: square end mills)": 35,
+  "end 'corner radius' (v2.0 scope: square end mills)": 12
+ },
+ "force": {
+  "runs": [
+   {
+    "run": "17-4 PH 200 HB, dynamic",
+    "group": "P5.0.Z.AN",
+    "hb": 200.0,
+    "kc_hardness_exp": 0.41,
+    "h_m_mm": 0.0048577,
+    "kc_model_n_mm2": 5509.6,
+    "kc_sandvik_n_mm2": 4361.1,
+    "ratio": 0.79154,
+    "qq_check_ap_ae_vf_over_qq": 1.0014
+   },
+   {
+    "run": "17-4 PH 345 HB, full slot",
+    "group": "P5.0.Z.AN",
+    "hb": 345.0,
+    "kc_hardness_exp": 0.41,
+    "h_m_mm": 0.004851,
+    "kc_model_n_mm2": 6891.8,
+    "kc_sandvik_n_mm2": 5440.7,
+    "ratio": 0.78945,
+    "qq_check_ap_ae_vf_over_qq": 0.9977
+   },
+   {
+    "run": "17-4 PH 345 HB, dynamic",
+    "group": "P5.0.Z.AN",
+    "hb": 345.0,
+    "kc_hardness_exp": 0.41,
+    "h_m_mm": 0.0048562,
+    "kc_model_n_mm2": 6890.2,
+    "kc_sandvik_n_mm2": 5450.5,
+    "ratio": 0.79105,
+    "qq_check_ap_ae_vf_over_qq": 1.0001
+   },
+   {
+    "run": "45 NCD 16 420 HB, dynamic",
+    "group": "P2.5.Z.HT",
+    "hb": 420.0,
+    "kc_hardness_exp": 0.26,
+    "h_m_mm": 0.0048563,
+    "kc_model_n_mm2": 8066.5,
+    "kc_sandvik_n_mm2": 5155.7,
+    "ratio": 0.63915,
+    "qq_check_ap_ae_vf_over_qq": 1.0002,
+    "ratio_if_mc_0.21": 0.79095
+   }
+  ],
+  "tool_factor": 0.79068,
+  "log_sd": 0.0011275,
+  "n": 3,
+  "kc_hardness_exp_17_4": 0.40886,
+  "identifiable": {
+   "tool_factor": true,
+   "k_r": false,
+   "k_te": false,
+   "mc": false
+  },
+  "note": "Tool factor from the three 17-4 PH readings; the 45 NCD 16 (P2) reading is a cross-check. Power is tangential only, so K_r cannot be fitted from it; every reading sits at h_m \u2248 4.9 \u00b5m, so neither mc nor an edge term K_te can be separated from the level. Support: one vendor (Sandvik), one tool (Dura), two materials.",
+  "k_r": 0.4
+ },
+ "speed": {
+  "engagement": {
+   "k": 0.15642,
+   "ae_min": 0.05,
+   "basis": "ae",
+   "se": 0.0038694,
+   "rmse": 0.12292,
+   "n": 1271,
+   "groups": 516,
+   "per_vendor": {
+    "Emuge-Franken": {
+     "k": 0.12731,
+     "se": 0.0041963,
+     "n": 200,
+     "groups": 44
+    },
+    "Garr Tool": {
+     "k": -0.0,
+     "se": 0.011799,
+     "n": 64,
+     "groups": 20
+    },
+    "Harvey Performance": {
+     "k": -0.0,
+     "se": 0.0,
+     "n": 376,
+     "groups": 188
+    },
+    "Kennametal": {
+     "k": 0.066178,
+     "se": 0.0072031,
+     "n": 136,
+     "groups": 62
+    },
+    "Kyocera": {
+     "k": 0.22464,
+     "se": 0.0061373,
+     "n": 117,
+     "groups": 48
+    },
+    "OSG": {
+     "k": 0.17098,
+     "se": 0.015688,
+     "n": 167,
+     "groups": 67
+    },
+    "Sandvik": {
+     "k": 0.1884,
+     "se": 0.0071882,
+     "n": 163,
+     "groups": 71
+    },
+    "YG-1": {
+     "k": 0.26869,
+     "se": 0.018769,
+     "n": 48,
+     "groups": 16
+    }
+   },
+   "binned": [
+    {
+     "ae_over_D": [
+      0.0,
+      0.03
+     ],
+     "factor_vs_slot": 1.4254,
+     "n": 60,
+     "model": 1.5978
+    },
+    {
+     "ae_over_D": [
+      0.03,
+      0.06
+     ],
+     "factor_vs_slot": 2.0045,
+     "n": 99,
+     "model": 1.5978
+    },
+    {
+     "ae_over_D": [
+      0.06,
+      0.09
+     ],
+     "factor_vs_slot": 1.5667,
+     "n": 30,
+     "model": 1.4996
+    },
+    {
+     "ae_over_D": [
+      0.09,
+      0.13
+     ],
+     "factor_vs_slot": 1.4709,
+     "n": 220,
+     "model": 1.4124
+    },
+    {
+     "ae_over_D": [
+      0.13,
+      0.18
+     ],
+     "factor_vs_slot": 1.1249,
+     "n": 170,
+     "model": 1.3386
+    },
+    {
+     "ae_over_D": [
+      0.18,
+      0.26
+     ],
+     "factor_vs_slot": 1.2221,
+     "n": 240,
+     "model": 1.2672
+    },
+    {
+     "ae_over_D": [
+      0.26,
+      0.36
+     ],
+     "factor_vs_slot": 1.0502,
+     "n": 104,
+     "model": 1.2011
+    },
+    {
+     "ae_over_D": [
+      0.36,
+      0.51
+     ],
+     "factor_vs_slot": 1.0816,
+     "n": 251,
+     "model": 1.1391
+    },
+    {
+     "ae_over_D": [
+      0.51,
+      0.99
+     ],
+     "factor_vs_slot": 1.0,
+     "n": 2,
+     "model": 1.046
+    }
+   ],
+   "sandvik_dura_check": {
+    "ae 0.5\u00b7D": {
+     "sandvik": 1.126,
+     "model": 1.1145
+    },
+    "ae 0.1\u00b7D": {
+     "sandvik": 1.8779,
+     "model": 1.4336
+    }
+   },
+   "toolguide_check": {
+    "sandvik": 1.8,
+    "model": 1.4574,
+    "note": "ToolGuide dynamic vs full engagement at ae \u2248 0.08\u20130.10\u00b7D (probe doc)"
+   }
+  },
+  "hardness": {
+   "pooled": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 272,
+    "groups": 133
+   },
+   "Aluminum - Wrought (6061)": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 0,
+    "vendors": {},
+    "basis": "pooled within-chart fit (too few contrasts)"
+   },
+   "High Temp Nickel Alloy": {
+    "q": 0.1843,
+    "se": 4.7544e-16,
+    "n": 26,
+    "groups": 13,
+    "vendors": {
+     "Harvey Performance": 26
+    },
+    "basis": "within-chart fit"
+   },
+   "Stainless - 300 Series (316)": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 0,
+    "vendors": {},
+    "basis": "pooled within-chart fit (too few contrasts)"
+   },
+   "Stainless - 400 Series (420)": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 0,
+    "vendors": {},
+    "basis": "pooled within-chart fit (too few contrasts)"
+   },
+   "Stainless - PH Series (17-4)": {
+    "q": 1.8201,
+    "se": 0.058125,
+    "n": 153,
+    "groups": 75,
+    "vendors": {
+     "Harvey Performance": 141,
+     "Kennametal": 12
+    },
+    "basis": "within-chart fit"
+   },
+   "Steel - Low Carbon (1020)": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 0,
+    "vendors": {},
+    "basis": "pooled within-chart fit (too few contrasts)"
+   },
+   "Steel - Medium Carbon (1045)": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 0,
+    "vendors": {},
+    "basis": "pooled within-chart fit (too few contrasts)"
+   },
+   "Steel - Medium Carbon Alloy (4130)": {
+    "q": 0.84022,
+    "se": 0.04807,
+    "n": 9,
+    "vendors": {
+     "Harvey Performance": 9
+    },
+    "basis": "pooled within-chart fit (too few contrasts)"
+   },
+   "Steel - Tool (H13)": {
+    "q": 1.1389,
+    "se": 0.063196,
+    "n": 66,
+    "groups": 33,
+    "vendors": {
+     "Emuge-Franken": 40,
+     "Harvey Performance": 8,
+     "Kennametal": 18
+    },
+    "basis": "within-chart fit"
+   },
+   "Titanium Alloy": {
+    "q": 0.31463,
+    "se": 4.4956e-17,
+    "n": 18,
+    "groups": 9,
+    "vendors": {
+     "Harvey Performance": 18
+    },
+    "basis": "within-chart fit"
+   },
+   "fz_pooled": {
+    "exp": -0.47794,
+    "se": 0.03767,
+    "n": 272
+   }
+  },
+  "families": {
+   "Aluminum - Wrought (6061)": {
+    "vc_ref_sfm": 918.05,
+    "se_log": 0.072405,
+    "hb_ref": 100.0,
+    "q": 0.84022,
+    "q_basis": "pooled within-chart fit (too few contrasts)",
+    "n_rows": 65,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Harvey Performance",
+     "OSG",
+     "Sandvik",
+     "YG-1"
+    ]
+   },
+   "High Temp Nickel Alloy": {
+    "vc_ref_sfm": 78.538,
+    "se_log": 0.046764,
+    "hb_ref": 375.0,
+    "q": 0.1843,
+    "q_basis": "within-chart fit",
+    "n_rows": 267,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kennametal",
+     "Kyocera",
+     "OSG",
+     "Sandvik",
+     "YG-1"
+    ]
+   },
+   "Stainless - 300 Series (316)": {
+    "vc_ref_sfm": 206.16,
+    "se_log": 0.050836,
+    "hb_ref": 262.5,
+    "q": 0.84022,
+    "q_basis": "pooled within-chart fit (too few contrasts)",
+    "n_rows": 215,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kennametal",
+     "OSG",
+     "Sandvik"
+    ]
+   },
+   "Stainless - 400 Series (420)": {
+    "vc_ref_sfm": 306.45,
+    "se_log": 0.10172,
+    "hb_ref": 200.0,
+    "q": 0.84022,
+    "q_basis": "pooled within-chart fit (too few contrasts)",
+    "n_rows": 21,
+    "vendor_groups": [
+     "Sandvik"
+    ]
+   },
+   "Stainless - PH Series (17-4)": {
+    "vc_ref_sfm": 182.83,
+    "se_log": 0.045313,
+    "hb_ref": 325.0,
+    "q": 1.8201,
+    "q_basis": "within-chart fit",
+    "n_rows": 387,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kennametal",
+     "Kyocera",
+     "OSG",
+     "YG-1"
+    ]
+   },
+   "Steel - Low Carbon (1020)": {
+    "vc_ref_sfm": 195.87,
+    "se_log": 0.11007,
+    "hb_ref": 271.0,
+    "q": 0.84022,
+    "q_basis": "pooled within-chart fit (too few contrasts)",
+    "n_rows": 17,
+    "vendor_groups": [
+     "Harvey Performance",
+     "OSG"
+    ]
+   },
+   "Steel - Medium Carbon (1045)": {
+    "vc_ref_sfm": 387.64,
+    "se_log": 0.065234,
+    "hb_ref": 237.25,
+    "q": 0.84022,
+    "q_basis": "pooled within-chart fit (too few contrasts)",
+    "n_rows": 62,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Harvey Performance",
+     "Kennametal",
+     "Sandvik"
+    ]
+   },
+   "Steel - Medium Carbon Alloy (4130)": {
+    "vc_ref_sfm": 351.94,
+    "se_log": 0.058919,
+    "hb_ref": 293.5,
+    "q": 0.84022,
+    "q_basis": "pooled within-chart fit (too few contrasts)",
+    "n_rows": 94,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kennametal",
+     "Kyocera",
+     "OSG",
+     "Sandvik"
+    ]
+   },
+   "Steel - Tool (H13)": {
+    "vc_ref_sfm": 189.83,
+    "se_log": 0.048487,
+    "hb_ref": 432.0,
+    "q": 1.1389,
+    "q_basis": "within-chart fit",
+    "n_rows": 288,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kennametal",
+     "Kyocera",
+     "OSG",
+     "Sandvik"
+    ]
+   },
+   "Titanium Alloy": {
+    "vc_ref_sfm": 203.03,
+    "se_log": 0.04664,
+    "hb_ref": 325.0,
+    "q": 0.31463,
+    "q_basis": "within-chart fit",
+    "n_rows": 282,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kennametal",
+     "Kyocera",
+     "OSG",
+     "Sandvik",
+     "YG-1"
+    ]
+   }
+  },
+  "coating": {
+   "AlTiN/TiAlN": {
+    "factor": 1.0,
+    "se_log": 0.0,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Harvey Performance",
+     "Kyocera",
+     "OSG",
+     "YG-1"
+    ],
+    "applied": 1.0,
+    "basis": "reference class"
+   },
+   "AlCrN": {
+    "factor": 1.2051,
+    "se_log": 0.039322,
+    "vendor_groups": [
+     "Emuge-Franken",
+     "Garr Tool",
+     "Sandvik"
+    ],
+    "applied": 1.2051,
+    "basis": "applied: \u2265 2 vendor groups and |t| \u2265 2"
+   },
+   "Si-doped": {
+    "factor": 1.2,
+    "se_log": 0.048945,
+    "vendor_groups": [
+     "Garr Tool",
+     "Sandvik"
+    ],
+    "applied": 1.2,
+    "basis": "applied: \u2265 2 vendor groups and |t| \u2265 2"
+   },
+   "uncoated": {
+    "factor": 1.2926,
+    "se_log": 0.074508,
+    "vendor_groups": [
+     "Harvey Performance"
+    ],
+    "applied": 1.0,
+    "basis": "not applied (1.0): one vendor group, |t| < 2, or no chemistry"
+   },
+   "DLC": {
+    "factor": 3.2946,
+    "se_log": 0.083997,
+    "vendor_groups": [
+     "OSG",
+     "YG-1"
+    ],
+    "applied": 3.2946,
+    "basis": "applied: \u2265 2 vendor groups and |t| \u2265 2"
+   },
+   "unspecified": {
+    "factor": 1.0436,
+    "se_log": 0.0262,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Kennametal",
+     "Kyocera",
+     "OSG",
+     "Sandvik",
+     "YG-1"
+    ],
+    "applied": 1.0,
+    "basis": "not applied (1.0): one vendor group, |t| < 2, or no chemistry"
+   }
+  },
+  "vendor_effect_log": {
+   "Emuge-Franken": 0.021488,
+   "Garr Tool": 0.13588,
+   "Harvey Performance": -0.38321,
+   "Kennametal": 0.23464,
+   "Kyocera": -0.021488,
+   "OSG": -0.26494,
+   "Sandvik": 0.13201,
+   "YG-1": -0.32206
+  },
+  "anchor": "median vendor group (decision \u00a77.1: vendor-typical life)",
+  "taylor_n": 0.25
+ },
+ "speed_fit": {
+  "train": {
+   "n": 1912,
+   "median_abs_log": 0.32864,
+   "by_band": {
+    "1/64-3/64": 0.48281,
+    "1/16-3/32": 0.41007,
+    "1/8-3/16": 0.36206,
+    "1/4-3/8": 0.31072,
+    "1/2-3/4": 0.28012,
+    "1 and up": 0.22496
+   },
+   "bias_by_vendor": {
+    "Emuge-Franken": -0.031227,
+    "Garr Tool": -0.16163,
+    "Harvey Performance": 0.46076,
+    "Kennametal": -0.31072,
+    "Kyocera": 0.012728,
+    "OSG": 0.11653,
+    "Sandvik": -0.12954,
+    "YG-1": 0.27942
+   }
+  },
+  "holdout": {
+   "n": 892,
+   "median_abs_log": 0.28932,
+   "by_band": {
+    "1/64-3/64": 0.41015,
+    "1/16-3/32": 0.3867,
+    "1/8-3/16": 0.3068,
+    "1/4-3/8": 0.29488,
+    "1/2-3/4": 0.24116,
+    "1 and up": 0.23398
+   },
+   "bias_by_vendor": {
+    "Emuge-Franken": 0.047676,
+    "Garr Tool": -0.24449,
+    "Harvey Performance": 0.48503,
+    "Kennametal": -0.11016,
+    "Kyocera": -0.19135,
+    "OSG": 0.040553,
+    "Sandvik": -0.2057,
+    "YG-1": -0.046531
+   }
+  }
+ },
+ "speed_fit_by_family": {
+  "Aluminum - Wrought (6061)": 0.46727,
+  "High Temp Nickel Alloy": 0.32602,
+  "Stainless - 300 Series (316)": 0.21269,
+  "Stainless - 400 Series (420)": 0.12501,
+  "Stainless - PH Series (17-4)": 0.35386,
+  "Steel - Low Carbon (1020)": 0.9786,
+  "Steel - Medium Carbon (1045)": 0.30136,
+  "Steel - Medium Carbon Alloy (4130)": 0.19892,
+  "Steel - Tool (H13)": 0.48337,
+  "Titanium Alloy": 0.27946
+ },
+ "thin_chip": {
+  "variants": {
+   "Round 5 basis (TIR 0.0002\", tool factor 1)": {
+    "over_fatigue": 391,
+    "over_trs": 24,
+    "n": 2804
+   },
+   "TIR 0": {
+    "over_fatigue": 205,
+    "over_trs": 4,
+    "n": 2804
+   },
+   "tool factor 0.79": {
+    "over_fatigue": 236,
+    "over_trs": 10,
+    "n": 2804
+   },
+   "TIR 0 + tool factor 0.79": {
+    "over_fatigue": 112,
+    "over_trs": 2,
+    "n": 2804
+   },
+   "kc saturating below 0.05 mm (not supported)": {
+    "over_fatigue": 154,
+    "over_trs": 0,
+    "n": 2804
+   },
+   "edge-force split fitted 0.05\u20130.2 mm": {
+    "over_fatigue": 1040,
+    "over_trs": 361,
+    "n": 2804
+   }
+  },
+  "sources": "Kienzle tables stop at h = 0.05\u20130.06 mm (Westermann; Europa); Bir\u00f3 & Szalay 2016 (IJAMT 84:2735) zones h \u2265 0.1, 0.01\u20130.1, 0.003\u20130.01, < 0.003 mm; measured kc keeps rising below the edge radius (de Oliveira et al. 2015 IJMTM 89:39, AISI 1045; Soriano Gonzalez et al. 2023 Micromachines 14:313, CMSX-4); edge-force split F = Kc\u00b7A + Ke\u00b7b (Altintas, MAL review Eq. 1)",
+  "remaining_over_fatigue_at_tir0_tool_factor": [
+   {
+    "id": "harvey2_SF711700_5xLOC_ni_36-50HRC_hem_0.062",
+    "sigma1_mpa": 5167.7
+   },
+   {
+    "id": "harvey2_SF711700_5xLOC_ni_36-50HRC_hem_0.125",
+    "sigma1_mpa": 4257.9
+   },
+   {
+    "id": "harvey2_SF711700_5xLOC_ni_36-50HRC_hem_0.250",
+    "sigma1_mpa": 3580.5
+   },
+   {
+    "id": "garr_vrx_h13_lt40_slot_1-16",
+    "sigma1_mpa": 3578.3
+   },
+   {
+    "id": "garr_vrx_in718_lt40_slot_1-16",
+    "sigma1_mpa": 2976.3
+   },
+   {
+    "id": "harvey2_SF711700_5xLOC_ti_21-36HRC_hem_0.062",
+    "sigma1_mpa": 2931.5
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_side_0.125_7155689",
+    "sigma1_mpa": 2855.9
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_slot_0.125_7155689",
+    "sigma1_mpa": 2842.4
+   },
+   {
+    "id": "garr_vrx_h13_gt40_slot_1-16",
+    "sigma1_mpa": 2818.0
+   },
+   {
+    "id": "harvey2_SF711700_5xLOC_ti_21-36HRC_hem_0.125",
+    "sigma1_mpa": 2757.8
+   },
+   {
+    "id": "garr_vrx_in718_gt40_slot_1-16",
+    "sigma1_mpa": 2724.6
+   },
+   {
+    "id": "sv2_PluraHD_P30_slot_ae1_2P3420300PAP2BM",
+    "sigma1_mpa": 2669.5
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_H1_side_0.0787_7230994",
+    "sigma1_mpa": 2606.0
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_side_0.25_7155870",
+    "sigma1_mpa": 2529.1
+   },
+   {
+    "id": "garr_vrx_h13_lt40_slot_1-4",
+    "sigma1_mpa": 2521.6
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_slot_0.25_7155870",
+    "sigma1_mpa": 2517.1
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE_H1_rough_0.375_5351815",
+    "sigma1_mpa": 2486.6
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_H2_side_0.0787_7230994",
+    "sigma1_mpa": 2449.7
+   },
+   {
+    "id": "garr_vrx_4140_lt40_slot_1-16",
+    "sigma1_mpa": 2421.4
+   },
+   {
+    "id": "harvey2_SF990700_ni_350-400HBn_rough_0.015",
+    "sigma1_mpa": 2357.8
+   },
+   {
+    "id": "harvey2_SF711700_ni_21-36HRC_hem_0.062",
+    "sigma1_mpa": 2355.6
+   },
+   {
+    "id": "harvey2_SF886200_ni_350-400HBn_rough_0.015",
+    "sigma1_mpa": 2296.8
+   },
+   {
+    "id": "harvey2_SF711700_5xLOC_ti_21-36HRC_hem_0.250",
+    "sigma1_mpa": 2286.5
+   },
+   {
+    "id": "garr_vrx_in718_lt40_slot_1-4",
+    "sigma1_mpa": 2261.8
+   },
+   {
+    "id": "garr_vrx_316_lt40_slot_1-16",
+    "sigma1_mpa": 2191.3
+   },
+   {
+    "id": "kmt2_HARVII-TE5_P5_slot_0.125_7155689",
+    "sigma1_mpa": 2168.2
+   },
+   {
+    "id": "harvey2_SF711700_ni_36-50HRC_finish_0.062",
+    "sigma1_mpa": 2156.7
+   },
+   {
+    "id": "garr_vrx_h13_gt40_slot_1-4",
+    "sigma1_mpa": 2152.1
+   },
+   {
+    "id": "harvey2_SF711700_ni_21-36HRC_finish_0.062",
+    "sigma1_mpa": 2095.3
+   },
+   {
+    "id": "osg2_VGX441_h13_side_1-8",
+    "sigma1_mpa": 2091.8
+   },
+   {
+    "id": "garr_x3_h13_lt40_slot_1-16",
+    "sigma1_mpa": 2060.6
+   },
+   {
+    "id": "kmt2_HARVII-TE5_S3_side_0.125_7155689",
+    "sigma1_mpa": 2043.0
+   },
+   {
+    "id": "kmt2_HARVITE4M_H1_side_0.1575_6769547_necked",
+    "sigma1_mpa": 2038.6
+   },
+   {
+    "id": "kmt2_HARVII-TE5_M1_slot_0.125_7155689",
+    "sigma1_mpa": 2005.7
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE_H1_rough_0.5_5351821",
+    "sigma1_mpa": 2001.0
+   },
+   {
+    "id": "sv2_PluraHD_P30_side_ae0p5_2P3420300PAP2BM",
+    "sigma1_mpa": 1998.3
+   },
+   {
+    "id": "sgs_hcarb77_carbon_hsm4_1-4",
+    "sigma1_mpa": 1997.0
+   },
+   {
+    "id": "garr_vrx_316_gt40_slot_1-16",
+    "sigma1_mpa": 1996.6
+   },
+   {
+    "id": "garr_x3_in718_lt40_slot_1-16",
+    "sigma1_mpa": 1992.3
+   },
+   {
+    "id": "garr_vrx_in718_gt40_slot_1-4",
+    "sigma1_mpa": 1988.3
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_H1_side_0.1181_7231062",
+    "sigma1_mpa": 1964.3
+   },
+   {
+    "id": "harvey2_SF967000_ni_350-400HBn_rough_0.015",
+    "sigma1_mpa": 1952.1
+   },
+   {
+    "id": "harvey2_SF886200_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1932.2
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_S3_side_0.0787_7230994",
+    "sigma1_mpa": 1931.3
+   },
+   {
+    "id": "garr_vrx_17-4_lt40_slot_1-16",
+    "sigma1_mpa": 1924.0
+   },
+   {
+    "id": "harvey2_SF711700_ni_36-50HRC_hem_0.062",
+    "sigma1_mpa": 1921.4
+   },
+   {
+    "id": "kmt2_HARVII-TE5_S3_side_0.25_7155870",
+    "sigma1_mpa": 1876.6
+   },
+   {
+    "id": "kmt2_HARVII-TE5_P5_slot_0.25_7155870",
+    "sigma1_mpa": 1874.5
+   },
+   {
+    "id": "kmt2_HARVITE4M_H1_side_0.1181_6769545_necked",
+    "sigma1_mpa": 1859.4
+   },
+   {
+    "id": "harvey2_SF990700_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1852.8
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE_S3_rough_0.375_5351815",
+    "sigma1_mpa": 1845.1
+   },
+   {
+    "id": "osg2_VGX441_h13_slot_1-8",
+    "sigma1_mpa": 1843.6
+   },
+   {
+    "id": "kmt2_HARVII-TE5_P5_side_0.125_7155689",
+    "sigma1_mpa": 1839.2
+   },
+   {
+    "id": "harvey2_SF886300_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1819.6
+   },
+   {
+    "id": "kmt2_HARVII-TE5_M1_slot_0.25_7155870",
+    "sigma1_mpa": 1819.0
+   },
+   {
+    "id": "garr_vrx_4140_lt40_slot_1-4",
+    "sigma1_mpa": 1766.9
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_H2_side_0.1181_7231062",
+    "sigma1_mpa": 1758.7
+   },
+   {
+    "id": "garr_vrx_17-4_gt40_slot_1-16",
+    "sigma1_mpa": 1753.1
+   },
+   {
+    "id": "osg2_AEVML8201_h13_side_1-4_4D_ar0p1",
+    "sigma1_mpa": 1722.6
+   },
+   {
+    "id": "garr_vrx_316_lt40_slot_1-4",
+    "sigma1_mpa": 1715.7
+   },
+   {
+    "id": "harvey2_SF711700_ni_21-36HRC_hem_0.125",
+    "sigma1_mpa": 1713.8
+   },
+   {
+    "id": "harvey2_SF990800_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1712.0
+   },
+   {
+    "id": "sv_PluraHD_P30ZHT_slot_ae1_2P3420635PBP2BM",
+    "sigma1_mpa": 1707.5
+   },
+   {
+    "id": "kmt2_HARVII-TE5_M1_side_0.125_7155689",
+    "sigma1_mpa": 1701.3
+   },
+   {
+    "id": "harvey2_SF901300_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1700.8
+   },
+   {
+    "id": "sgs_hcarb77_carbon_hsm4_1-2",
+    "sigma1_mpa": 1679.2
+   },
+   {
+    "id": "sv_PluraHD_P22ZAN_slot_ae1_2P3420300PAP2BM",
+    "sigma1_mpa": 1679.2
+   },
+   {
+    "id": "garr_vrx_h13_lt40_slot_1-2",
+    "sigma1_mpa": 1667.5
+   },
+   {
+    "id": "harvey2_SF886200_ni_350-400HBn_slot_0.015",
+    "sigma1_mpa": 1645.8
+   },
+   {
+    "id": "harvey2_SF851500_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1645.2
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_slot_0.5_7155975",
+    "sigma1_mpa": 1620.3
+   },
+   {
+    "id": "kmt2_HARVII-TE5_S3_slot_0.125_7155689",
+    "sigma1_mpa": 1605.5
+   },
+   {
+    "id": "harvey_SF958500_ss_300_250-275HBn_rough_0.031",
+    "sigma1_mpa": 1604.3
+   },
+   {
+    "id": "harvey2_SF711700_ni_36-50HRC_hem_0.125",
+    "sigma1_mpa": 1602.8
+   },
+   {
+    "id": "osg2_AEMSH_h13_side_1mm",
+    "sigma1_mpa": 1601.2
+   },
+   {
+    "id": "kmt2_HARVII-TE5_P5_side_0.25_7155870",
+    "sigma1_mpa": 1590.0
+   },
+   {
+    "id": "harvey2_SF967000_ni_350-400HBn_rough_0.031",
+    "sigma1_mpa": 1588.5
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_side_0.5_7155975",
+    "sigma1_mpa": 1578.2
+   },
+   {
+    "id": "harvey2_SF886200_ni_350-400HBn_rough_0.062",
+    "sigma1_mpa": 1577.7
+   },
+   {
+    "id": "garr_vrx_316_gt40_slot_1-4",
+    "sigma1_mpa": 1571.4
+   },
+   {
+    "id": "harvey2_SF978200_ni_350-400HBn_rough_0.015",
+    "sigma1_mpa": 1554.6
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE_M1_rough_0.375_5351815",
+    "sigma1_mpa": 1547.1
+   },
+   {
+    "id": "kmt2_HARVII-TE5_M1_side_0.25_7155870",
+    "sigma1_mpa": 1543.0
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE-NECK_H1_rough_0.4724_5350331",
+    "sigma1_mpa": 1541.9
+   },
+   {
+    "id": "sgs_hcarb77_carbon_hsm3_1-4",
+    "sigma1_mpa": 1536.1
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE_P5_rough_0.375_5351815",
+    "sigma1_mpa": 1531.4
+   },
+   {
+    "id": "harvey2_SF886300_ni_350-400HBn_rough_0.062",
+    "sigma1_mpa": 1530.1
+   },
+   {
+    "id": "harvey2_SF990700_ni_350-400HBn_slot_0.015",
+    "sigma1_mpa": 1528.3
+   },
+   {
+    "id": "osg2_VGX441_ss300_slot_1-8",
+    "sigma1_mpa": 1524.7
+   },
+   {
+    "id": "garr_x3_h13_gt40_slot_1-16",
+    "sigma1_mpa": 1520.3
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_side_1_7157062",
+    "sigma1_mpa": 1518.8
+   },
+   {
+    "id": "sgs_hcarb77_alloy_hsm4_1-2",
+    "sigma1_mpa": 1517.1
+   },
+   {
+    "id": "garr_vrx_17-4_lt40_slot_1-4",
+    "sigma1_mpa": 1506.5
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_P5_side_0.0787_7230994",
+    "sigma1_mpa": 1501.9
+   },
+   {
+    "id": "sv_PluraHD_P12ZAN_slot_ae1_2P3420300PAP2BM",
+    "sigma1_mpa": 1500.0
+   },
+   {
+    "id": "harvey2_SF990700_ni_350-400HBn_rough_0.062",
+    "sigma1_mpa": 1499.2
+   },
+   {
+    "id": "garr_vrx_in718_lt40_slot_1-2",
+    "sigma1_mpa": 1495.7
+   },
+   {
+    "id": "kmt2_HARVII-TE5_H1_slot_1_7157062",
+    "sigma1_mpa": 1494.7
+   },
+   {
+    "id": "harvey_SF958500_carbon_med_225-250HBn_rough_0.062",
+    "sigma1_mpa": 1482.6
+   },
+   {
+    "id": "kmt2_HARVITE4M_S3_side_0.1575_6769547_necked",
+    "sigma1_mpa": 1480.5
+   },
+   {
+    "id": "sv_PluraHD_P30ZHT_side_ae0p5_2P3420635PBP2BM",
+    "sigma1_mpa": 1480.1
+   },
+   {
+    "id": "kmt2_HARVII-TE5_S3_slot_0.25_7155870",
+    "sigma1_mpa": 1474.7
+   },
+   {
+    "id": "garr_x3_in718_gt40_slot_1-16",
+    "sigma1_mpa": 1469.9
+   },
+   {
+    "id": "sgs_hcarb77_tool_hsm4_1-4",
+    "sigma1_mpa": 1468.8
+   },
+   {
+    "id": "garr_x3_316_lt40_slot_1-16",
+    "sigma1_mpa": 1466.8
+   },
+   {
+    "id": "kmt2_GOMILLPRO4M_M1_side_0.0787_7230994",
+    "sigma1_mpa": 1465.9
+   },
+   {
+    "id": "sgs_zrxpr_casestudy_4140_slot_1-2",
+    "sigma1_mpa": 1465.6
+   },
+   {
+    "id": "kmt_HARVITE4_P2_slot_0.125_6676840",
+    "sigma1_mpa": 1456.4
+   },
+   {
+    "id": "kmt2_HARVIII-UJDE_S3_rough_0.5_5351821",
+    "sigma1_mpa": 1441.8
+   },
+   {
+    "id": "harvey2_SF990800_ni_350-400HBn_rough_0.062",
+    "sigma1_mpa": 1439.6
+   },
+   {
+    "id": "harvey2_SF901300_ni_350-400HBn_rough_0.062",
+    "sigma1_mpa": 1430.2
+   },
+   {
+    "id": "sgs_hcarb77_tool_hsm4_1-2",
+    "sigma1_mpa": 1428.7
+   }
+  ]
+ },
+ "c2": {
+  "A band median (chip_limits.json method)": {
+   "train": {
+    "n": 1698,
+    "median_abs_log": 0.27208,
+    "by_band": {
+     "1/64-3/64": 0.33894,
+     "1/16-3/32": 0.2769,
+     "1/8-3/16": 0.3139,
+     "1/4-3/8": 0.29129,
+     "1/2-3/4": 0.21683,
+     "1 and up": 0.26327
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.18232,
+     "Garr Tool": 0.020244,
+     "Harvey Performance": 0.024411,
+     "Kennametal": -0.18252,
+     "Kyocera": 0.25261,
+     "OSG": -0.10742,
+     "Sandvik": -0.2854,
+     "YG-1": 0.23581
+    }
+   },
+   "holdout": {
+    "n": 784,
+    "median_abs_log": 0.30509,
+    "by_band": {
+     "1/64-3/64": 0.37647,
+     "1/16-3/32": 0.30867,
+     "1/8-3/16": 0.22222,
+     "1/4-3/8": 0.3152,
+     "1/2-3/4": 0.28621,
+     "1 and up": 0.27522
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.22656,
+     "Garr Tool": -0.12017,
+     "Harvey Performance": 0.10939,
+     "Kennametal": -0.10997,
+     "Kyocera": 0.24755,
+     "OSG": -0.17295,
+     "Sandvik": -0.42615,
+     "YG-1": 0.058292
+    }
+   }
+  },
+  "A2 smooth in D": {
+   "train": {
+    "n": 1698,
+    "median_abs_log": 0.29076,
+    "by_band": {
+     "1/64-3/64": 0.36572,
+     "1/16-3/32": 0.29607,
+     "1/8-3/16": 0.3305,
+     "1/4-3/8": 0.29549,
+     "1/2-3/4": 0.22407,
+     "1 and up": 0.27368
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.18666,
+     "Garr Tool": -0.036445,
+     "Harvey Performance": 0.012836,
+     "Kennametal": -0.1973,
+     "Kyocera": 0.25925,
+     "OSG": -0.13304,
+     "Sandvik": -0.28556,
+     "YG-1": 0.22966
+    }
+   },
+   "holdout": {
+    "n": 784,
+    "median_abs_log": 0.30823,
+    "by_band": {
+     "1/64-3/64": 0.49823,
+     "1/16-3/32": 0.33636,
+     "1/8-3/16": 0.29627,
+     "1/4-3/8": 0.29647,
+     "1/2-3/4": 0.29755,
+     "1 and up": 0.28929
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.24474,
+     "Garr Tool": -0.11335,
+     "Harvey Performance": 0.12212,
+     "Kennametal": -0.20294,
+     "Kyocera": 0.18836,
+     "OSG": -0.20707,
+     "Sandvik": -0.45026,
+     "YG-1": 0.070476
+    }
+   }
+  },
+  "B smooth D + family + hardness": {
+   "train": {
+    "n": 1698,
+    "median_abs_log": 0.27573,
+    "by_band": {
+     "1/64-3/64": 0.4289,
+     "1/16-3/32": 0.31606,
+     "1/8-3/16": 0.27161,
+     "1/4-3/8": 0.26734,
+     "1/2-3/4": 0.23653,
+     "1 and up": 0.25819
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.15849,
+     "Garr Tool": -0.08443,
+     "Harvey Performance": -0.069372,
+     "Kennametal": -0.22943,
+     "Kyocera": 0.1371,
+     "OSG": -0.091128,
+     "Sandvik": -0.27734,
+     "YG-1": 0.21727
+    }
+   },
+   "holdout": {
+    "n": 784,
+    "median_abs_log": 0.31348,
+    "by_band": {
+     "1/64-3/64": 0.5031,
+     "1/16-3/32": 0.37302,
+     "1/8-3/16": 0.30385,
+     "1/4-3/8": 0.30055,
+     "1/2-3/4": 0.26152,
+     "1 and up": 0.29595
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.29254,
+     "Garr Tool": -0.27194,
+     "Harvey Performance": -0.026602,
+     "Kennametal": -0.14726,
+     "Kyocera": 0.21241,
+     "OSG": -0.23856,
+     "Sandvik": -0.34402,
+     "YG-1": 0.25071
+    }
+   }
+  },
+  "C edge load smooth in D": {
+   "train": {
+    "n": 1698,
+    "median_abs_log": 0.41294,
+    "by_band": {
+     "1/64-3/64": 0.59264,
+     "1/16-3/32": 0.60948,
+     "1/8-3/16": 0.44571,
+     "1/4-3/8": 0.37777,
+     "1/2-3/4": 0.36539,
+     "1 and up": 0.36789
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.1114,
+     "Garr Tool": -0.35652,
+     "Harvey Performance": 0.056433,
+     "Kennametal": -0.3532,
+     "Kyocera": 0.18395,
+     "OSG": 0.046827,
+     "Sandvik": -0.3222,
+     "YG-1": 0.44388
+    }
+   },
+   "holdout": {
+    "n": 784,
+    "median_abs_log": 0.43445,
+    "by_band": {
+     "1/64-3/64": 0.62958,
+     "1/16-3/32": 0.62648,
+     "1/8-3/16": 0.47667,
+     "1/4-3/8": 0.33924,
+     "1/2-3/4": 0.3783,
+     "1 and up": 0.35388
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.5989,
+     "Garr Tool": -0.4047,
+     "Harvey Performance": 0.080987,
+     "Kennametal": -0.254,
+     "Kyocera": -0.066161,
+     "OSG": -0.080261,
+     "Sandvik": -0.27763,
+     "YG-1": 0.15636
+    }
+   }
+  },
+  "C2 edge load + family": {
+   "train": {
+    "n": 1698,
+    "median_abs_log": 0.277,
+    "by_band": {
+     "1/64-3/64": 0.43205,
+     "1/16-3/32": 0.32284,
+     "1/8-3/16": 0.26816,
+     "1/4-3/8": 0.25304,
+     "1/2-3/4": 0.24541,
+     "1 and up": 0.27978
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.14357,
+     "Garr Tool": -0.15706,
+     "Harvey Performance": -0.073022,
+     "Kennametal": -0.2163,
+     "Kyocera": 0.11044,
+     "OSG": -0.038695,
+     "Sandvik": -0.27096,
+     "YG-1": 0.22953
+    }
+   },
+   "holdout": {
+    "n": 784,
+    "median_abs_log": 0.32844,
+    "by_band": {
+     "1/64-3/64": 0.47732,
+     "1/16-3/32": 0.42882,
+     "1/8-3/16": 0.30813,
+     "1/4-3/8": 0.33562,
+     "1/2-3/4": 0.24326,
+     "1 and up": 0.29058
+    },
+    "bias_by_vendor": {
+     "Emuge-Franken": 0.22826,
+     "Garr Tool": -0.33986,
+     "Harvey Performance": -0.051732,
+     "Kennametal": -0.11437,
+     "Kyocera": 0.20018,
+     "OSG": -0.18938,
+     "Sandvik": -0.39398,
+     "YG-1": 0.28759
+    }
+   }
+  }
+ },
+ "aggressiveness": {
+  "status": "PROPOSAL for the user (design \u00a73.6); the optimizer still uses the Round 1 placeholder map",
+  "current": {
+   "C2_and_C4_scale": "0.7 + 0.6\u00b7a",
+   "life_ratio": "4^(0.5 \u2212 a)",
+   "C5_margin": "0.2\u00b7(1 \u2212 a)",
+   "lambda": "0.4 \u2212 0.2\u00b7a"
+  },
+  "proposed": {
+   "C2_scale": {
+    "a=0": 0.75742,
+    "a=0.5": 1.0,
+    "a=1": 1.2401,
+    "form": "piecewise linear in a between the points",
+    "source": "the vendor rows' own spread of worst-flute h/D around each band median: p25/median and p75/median, median over bands (calibration_report.json)",
+    "per_band": [
+     {
+      "band": "1/64-3/64",
+      "p25_over_median": 0.74248,
+      "p75_over_median": 1.1736,
+      "n": 147
+     },
+     {
+      "band": "1/16-3/32",
+      "p25_over_median": 0.8187,
+      "p75_over_median": 1.1807,
+      "n": 173
+     },
+     {
+      "band": "1/8-3/16",
+      "p25_over_median": 0.76193,
+      "p75_over_median": 1.201,
+      "n": 257
+     },
+     {
+      "band": "1/4-3/8",
+      "p25_over_median": 0.75291,
+      "p75_over_median": 1.3282,
+      "n": 465
+     },
+     {
+      "band": "1/2-3/4",
+      "p25_over_median": 0.81826,
+      "p75_over_median": 1.3146,
+      "n": 444
+     },
+     {
+      "band": "1 and up",
+      "p25_over_median": 0.67891,
+      "p75_over_median": 1.2793,
+      "n": 240
+     }
+    ]
+   },
+   "C4_limit_mpa": {
+    "a=0": 1254.0,
+    "a=0.5": 1425.0,
+    "a=1": 1596.0,
+    "source": "cited fatigue fractions of TRS 3.8 GPa: 0.33 (Schleinkofer 1996, R = \u22121, 10\u2077, via Preis 2004), 0.375 (Round 4 basis), 0.42 (Kursawe 2001, 10\u2076 cycles \u2248 a tool's life, via Preis 2004). The current \u00d71.3 at a = 1 is 0.49\u00b7TRS, above any cited fully reversed level"
+   },
+   "life_ratio": {
+    "a=0": 2.0,
+    "a=0.5": 1.0,
+    "a=1": 0.5,
+    "form": "4^(0.5 \u2212 a) (unchanged)",
+    "source": "with n = 0.25 this moves speed \u00d70.84\u2026\u00d71.19, about the inter-quartile spread of vendor speed levels (vendor_effect_log in calibration_report.json)"
+   },
+   "lambda": {
+    "a=0": 0.4,
+    "a=1": 0.2,
+    "source": "sourced range, unchanged (C1)"
+   },
+   "C5_margin": {
+    "form": "0.2\u00b7(1 \u2212 a) (unchanged)",
+    "source": "placeholder; the spindle is a hard limit"
+   },
+   "C3": {
+    "form": "not scaled by aggressiveness",
+    "source": "C3 is the user's process requirement (50 % of the stock to leave)"
+   }
+  }
+ },
+ "section5": {
+  "before": {
+   "overall": {
+    "n": 2298,
+    "feasible": 1911,
+    "pass_sfm": 0.21889,
+    "pass_fz": 0.17755,
+    "pass_both": 0.05396,
+    "mal_sfm": 0.47609,
+    "bias_sfm": 0.19192,
+    "mal_fz": 0.3118,
+    "bias_fz": -0.086886,
+    "mal_mrr": 0.63363,
+    "bias_mrr": 0.039379
+   },
+   "holdout": {
+    "n": 714,
+    "feasible": 586,
+    "pass_sfm": 0.19468,
+    "pass_fz": 0.17787,
+    "pass_both": 0.061625,
+    "mal_sfm": 0.54068,
+    "bias_sfm": 0.18004,
+    "mal_fz": 0.31214,
+    "bias_fz": -0.093708,
+    "mal_mrr": 0.68023,
+    "bias_mrr": 0.0095112
+   },
+   "train": {
+    "n": 1584,
+    "feasible": 1325,
+    "pass_sfm": 0.2298,
+    "pass_fz": 0.1774,
+    "pass_both": 0.050505,
+    "mal_sfm": 0.46892,
+    "bias_sfm": 0.19513,
+    "mal_fz": 0.31077,
+    "bias_fz": -0.082374,
+    "mal_mrr": 0.61586,
+    "bias_mrr": 0.049555
+   },
+   "by_band": {
+    "1 and up": {
+     "n": 261,
+     "feasible": 261,
+     "pass_sfm": 0.30651,
+     "pass_fz": 0.28736,
+     "pass_both": 0.11877,
+     "mal_sfm": 0.42377,
+     "bias_sfm": -0.0058286,
+     "mal_fz": 0.25633,
+     "bias_fz": -0.0056677,
+     "mal_mrr": 0.65351,
+     "bias_mrr": 0.021392
+    },
+    "1/16-3/32": {
+     "n": 300,
+     "feasible": 147,
+     "pass_sfm": 0.21333,
+     "pass_fz": 0.07,
+     "pass_both": 0.03,
+     "mal_sfm": 0.5589,
+     "bias_sfm": 0.31658,
+     "mal_fz": 0.5883,
+     "bias_fz": -0.2287,
+     "mal_mrr": 0.81555,
+     "bias_mrr": 0.12922
+    },
+    "1/2-3/4": {
+     "n": 510,
+     "feasible": 510,
+     "pass_sfm": 0.24902,
+     "pass_fz": 0.2451,
+     "pass_both": 0.076471,
+     "mal_sfm": 0.42309,
+     "bias_sfm": 0.068122,
+     "mal_fz": 0.24845,
+     "bias_fz": -0.021262,
+     "mal_mrr": 0.55536,
+     "bias_mrr": -0.0046975
+    },
+    "1/4-3/8": {
+     "n": 591,
+     "feasible": 591,
+     "pass_sfm": 0.21658,
+     "pass_fz": 0.19797,
+     "pass_both": 0.052453,
+     "mal_sfm": 0.4683,
+     "bias_sfm": 0.16239,
+     "mal_fz": 0.32384,
+     "bias_fz": -0.090166,
+     "mal_mrr": 0.59936,
+     "bias_mrr": 0.020742
+    },
+    "1/64-3/64": {
+     "n": 262,
+     "feasible": 54,
+     "pass_sfm": 0.14122,
+     "pass_fz": 0.0038168,
+     "pass_both": 0.0,
+     "mal_sfm": 0.76439,
+     "bias_sfm": 0.64552,
+     "mal_fz": 1.3335,
+     "bias_fz": -1.2674,
+     "mal_mrr": 1.0182,
+     "bias_mrr": 0.19012
+    },
+    "1/8-3/16": {
+     "n": 374,
+     "feasible": 348,
+     "pass_sfm": 0.17914,
+     "pass_fz": 0.18449,
+     "pass_both": 0.037433,
+     "mal_sfm": 0.48044,
+     "bias_sfm": 0.27006,
+     "mal_fz": 0.36426,
+     "bias_fz": -0.13434,
+     "mal_mrr": 0.70408,
+     "bias_mrr": 0.054356
+    }
+   },
+   "by_vendor": {
+    "Emuge-Franken": {
+     "n": 238,
+     "feasible": 229,
+     "pass_sfm": 0.15126,
+     "pass_fz": 0.15126,
+     "pass_both": 0.021008,
+     "mal_sfm": 0.30402,
+     "bias_sfm": -0.18062,
+     "mal_fz": 0.2685,
+     "bias_fz": 0.18152,
+     "mal_mrr": 0.61535,
+     "bias_mrr": 0.036601
+    },
+    "Garr Tool": {
+     "n": 216,
+     "feasible": 180,
+     "pass_sfm": 0.45833,
+     "pass_fz": 0.7037,
+     "pass_both": 0.33333,
+     "mal_sfm": 0.41767,
+     "bias_sfm": 0.029749,
+     "mal_fz": 0.18209,
+     "bias_fz": 0.0040488,
+     "mal_mrr": 0.51021,
+     "bias_mrr": 0.078987
+    },
+    "Harvey Performance": {
+     "n": 726,
+     "feasible": 522,
+     "pass_sfm": 0.067493,
+     "pass_fz": 0.1157,
+     "pass_both": 0.0096419,
+     "mal_sfm": 0.75749,
+     "bias_sfm": 0.6678,
+     "mal_fz": 0.54518,
+     "bias_fz": -0.1391,
+     "mal_mrr": 1.0362,
+     "bias_mrr": 0.25393
+    },
+    "Kennametal": {
+     "n": 256,
+     "feasible": 207,
+     "pass_sfm": 0.48438,
+     "pass_fz": 0.10547,
+     "pass_both": 0.039062,
+     "mal_sfm": 0.22952,
+     "bias_sfm": -0.055632,
+     "mal_fz": 0.31582,
+     "bias_fz": -0.29912,
+     "mal_mrr": 0.46877,
+     "bias_mrr": -0.34438
+    },
+    "Kyocera": {
+     "n": 207,
+     "feasible": 175,
+     "pass_sfm": 0.2657,
+     "pass_fz": 0.18841,
+     "pass_both": 0.057971,
+     "mal_sfm": 0.44801,
+     "bias_sfm": -0.070226,
+     "mal_fz": 0.23168,
+     "bias_fz": 0.17779,
+     "mal_mrr": 0.42935,
+     "bias_mrr": 0.027135
+    },
+    "OSG": {
+     "n": 309,
+     "feasible": 291,
+     "pass_sfm": 0.30744,
+     "pass_fz": 0.1068,
+     "pass_both": 0.035599,
+     "mal_sfm": 0.48731,
+     "bias_sfm": 0.34406,
+     "mal_fz": 0.35873,
+     "bias_fz": -0.16688,
+     "mal_mrr": 0.5567,
+     "bias_mrr": 0.25305
+    },
+    "Sandvik": {
+     "n": 286,
+     "feasible": 247,
+     "pass_sfm": 0.11538,
+     "pass_fz": 0.090909,
+     "pass_both": 0.006993,
+     "mal_sfm": 0.51143,
+     "bias_sfm": -0.25152,
+     "mal_fz": 0.3512,
+     "bias_fz": -0.28356,
+     "mal_mrr": 0.7622,
+     "bias_mrr": -0.39527
+    },
+    "YG-1": {
+     "n": 60,
+     "feasible": 60,
+     "pass_sfm": 0.2,
+     "pass_fz": 0.18333,
+     "pass_both": 0.083333,
+     "mal_sfm": 0.54729,
+     "bias_sfm": 0.15048,
+     "mal_fz": 0.28366,
+     "bias_fz": 0.15017,
+     "mal_mrr": 0.89,
+     "bias_mrr": 0.3437
+    }
+   },
+   "by_family": {
+    "Aluminum - Wrought (6061)": {
+     "n": 79,
+     "feasible": 78,
+     "pass_sfm": 0.0,
+     "pass_fz": 0.025316,
+     "pass_both": 0.0,
+     "mal_sfm": 1.4471,
+     "bias_sfm": -1.4471,
+     "mal_fz": 0.78659,
+     "bias_fz": -0.78659,
+     "mal_mrr": 2.2598,
+     "bias_mrr": -2.2598
+    },
+    "High Temp Nickel Alloy": {
+     "n": 468,
+     "feasible": 360,
+     "pass_sfm": 0.010684,
+     "pass_fz": 0.16026,
+     "pass_both": 0.0021368,
+     "mal_sfm": 1.4306,
+     "bias_sfm": 1.4306,
+     "mal_fz": 0.36483,
+     "bias_fz": 0.051492,
+     "mal_mrr": 1.4568,
+     "bias_mrr": 1.409
+    },
+    "Stainless - 300 Series (316)": {
+     "n": 398,
+     "feasible": 354,
+     "pass_sfm": 0.32412,
+     "pass_fz": 0.20352,
+     "pass_both": 0.077889,
+     "mal_sfm": 0.2639,
+     "bias_sfm": 0.055448,
+     "mal_fz": 0.26914,
+     "bias_fz": -0.10212,
+     "mal_mrr": 0.30178,
+     "bias_mrr": -0.034484
+    },
+    "Stainless - 400 Series (420)": {
+     "n": 29,
+     "feasible": 28,
+     "pass_sfm": 0.37931,
+     "pass_fz": 0.10345,
+     "pass_both": 0.068966,
+     "mal_sfm": 0.13494,
+     "bias_sfm": -0.13267,
+     "mal_fz": 0.29447,
+     "bias_fz": -0.13907,
+     "mal_mrr": 0.30945,
+     "bias_mrr": -0.23399
+    },
+    "Stainless - PH Series (17-4)": {
+     "n": 601,
+     "feasible": 481,
+     "pass_sfm": 0.26789,
+     "pass_fz": 0.20799,
+     "pass_both": 0.064892,
+     "mal_sfm": 0.33457,
+     "bias_sfm": -0.024236,
+     "mal_fz": 0.24072,
+     "bias_fz": -0.060707,
+     "mal_mrr": 0.43379,
+     "bias_mrr": -0.11243
+    },
+    "Steel - Low Carbon (1020)": {
+     "n": 36,
+     "feasible": 31,
+     "pass_sfm": 0.25,
+     "pass_fz": 0.13889,
+     "pass_both": 0.027778,
+     "mal_sfm": 0.82368,
+     "bias_sfm": -0.73178,
+     "mal_fz": 0.36301,
+     "bias_fz": -0.36301,
+     "mal_mrr": 1.0541,
+     "bias_mrr": -1.0541
+    },
+    "Steel - Medium Carbon (1045)": {
+     "n": 100,
+     "feasible": 84,
+     "pass_sfm": 0.08,
+     "pass_fz": 0.06,
+     "pass_both": 0.0,
+     "mal_sfm": 0.5434,
+     "bias_sfm": -0.5415,
+     "mal_fz": 0.4707,
+     "bias_fz": -0.43273,
+     "mal_mrr": 0.94288,
+     "bias_mrr": -0.94288
+    },
+    "Steel - Medium Carbon Alloy (4130)": {
+     "n": 162,
+     "feasible": 153,
+     "pass_sfm": 0.29012,
+     "pass_fz": 0.30864,
+     "pass_both": 0.12346,
+     "mal_sfm": 0.33164,
+     "bias_sfm": -0.27219,
+     "mal_fz": 0.24232,
+     "bias_fz": -0.19847,
+     "mal_mrr": 0.55734,
+     "bias_mrr": -0.49641
+    },
+    "Steel - Tool (H13)": {
+     "n": 425,
+     "feasible": 342,
+     "pass_sfm": 0.31294,
+     "pass_fz": 0.14353,
+     "pass_both": 0.070588,
+     "mal_sfm": 0.50734,
+     "bias_sfm": 0.46908,
+     "mal_fz": 0.41616,
+     "bias_fz": 0.080902,
+     "mal_mrr": 0.73712,
+     "bias_mrr": 0.34323
+    }
+   },
+   "by_operation": {
+    "finish": {
+     "n": 245,
+     "feasible": 242,
+     "pass_sfm": 0.057143,
+     "pass_fz": 0.073469,
+     "pass_both": 0.0,
+     "mal_sfm": 0.76449,
+     "bias_sfm": 0.66013,
+     "mal_fz": 1.7649,
+     "bias_fz": -1.714,
+     "mal_mrr": 1.3477,
+     "bias_mrr": -0.89597
+    },
+    "hem": {
+     "n": 427,
+     "feasible": 405,
+     "pass_sfm": 0.27869,
+     "pass_fz": 0.35831,
+     "pass_both": 0.13583,
+     "mal_sfm": 0.44646,
+     "bias_sfm": -0.0058286,
+     "mal_fz": 0.23665,
+     "bias_fz": 0.021219,
+     "mal_mrr": 0.50767,
+     "bias_mrr": 0.029632
+    },
+    "rough": {
+     "n": 259,
+     "feasible": 178,
+     "pass_sfm": 0.096525,
+     "pass_fz": 0.15058,
+     "pass_both": 0.007722,
+     "mal_sfm": 0.52895,
+     "bias_sfm": 0.48749,
+     "mal_fz": 0.2283,
+     "bias_fz": -0.069981,
+     "mal_mrr": 0.55113,
+     "bias_mrr": 0.43
+    },
+    "side": {
+     "n": 739,
+     "feasible": 663,
+     "pass_sfm": 0.28417,
+     "pass_fz": 0.13532,
+     "pass_both": 0.050068,
+     "mal_sfm": 0.37935,
+     "bias_sfm": 0.13276,
+     "mal_fz": 0.37177,
+     "bias_fz": -0.049621,
+     "mal_mrr": 0.63312,
+     "bias_mrr": 0.20427
+    },
+    "slot": {
+     "n": 628,
+     "feasible": 423,
+     "pass_sfm": 0.21497,
+     "pass_fz": 0.15605,
+     "pass_both": 0.042994,
+     "mal_sfm": 0.45039,
+     "bias_sfm": -0.068229,
+     "mal_fz": 0.25543,
+     "bias_fz": -0.016632,
+     "mal_mrr": 0.56302,
+     "bias_mrr": -0.14397
+    }
+   },
+   "holdout_by_band": {
+    "1/64-3/64": {
+     "n": 90,
+     "feasible": 16,
+     "pass_sfm": 0.14444,
+     "pass_fz": 0.0,
+     "pass_both": 0.0,
+     "mal_sfm": 0.8007,
+     "bias_sfm": 0.5015,
+     "mal_fz": 1.5226,
+     "bias_fz": -1.334,
+     "mal_mrr": 1.4987,
+     "bias_mrr": -0.083668
+    },
+    "1/16-3/32": {
+     "n": 87,
+     "feasible": 41,
+     "pass_sfm": 0.18391,
+     "pass_fz": 0.057471,
+     "pass_both": 0.011494,
+     "mal_sfm": 0.566,
+     "bias_sfm": 0.3258,
+     "mal_fz": 0.87642,
+     "bias_fz": -0.10377,
+     "mal_mrr": 1.0321,
+     "bias_mrr": 0.24135
+    },
+    "1/8-3/16": {
+     "n": 121,
+     "feasible": 113,
+     "pass_sfm": 0.15702,
+     "pass_fz": 0.19835,
+     "pass_both": 0.041322,
+     "mal_sfm": 0.54627,
+     "bias_sfm": 0.46063,
+     "mal_fz": 0.3118,
+     "bias_fz": -0.094307,
+     "mal_mrr": 0.67263,
+     "bias_mrr": 0.24146
+    },
+    "1/4-3/8": {
+     "n": 198,
+     "feasible": 198,
+     "pass_sfm": 0.21212,
+     "pass_fz": 0.24242,
+     "pass_both": 0.080808,
+     "mal_sfm": 0.54483,
+     "bias_sfm": 0.14615,
+     "mal_fz": 0.32535,
+     "bias_fz": -0.090166,
+     "mal_mrr": 0.62467,
+     "bias_mrr": 0.016618
+    },
+    "1/2-3/4": {
+     "n": 145,
+     "feasible": 145,
+     "pass_sfm": 0.21379,
+     "pass_fz": 0.22759,
+     "pass_both": 0.10345,
+     "mal_sfm": 0.42248,
+     "bias_sfm": -0.03221,
+     "mal_fz": 0.29157,
+     "bias_fz": -0.11318,
+     "mal_mrr": 0.57227,
+     "bias_mrr": -0.14075
+    },
+    "1 and up": {
+     "n": 73,
+     "feasible": 73,
+     "pass_sfm": 0.24658,
+     "pass_fz": 0.23288,
+     "pass_both": 0.09589,
+     "mal_sfm": 0.50734,
+     "bias_sfm": -0.12382,
+     "mal_fz": 0.24289,
+     "bias_fz": -0.018739,
+     "mal_mrr": 0.70488,
+     "bias_mrr": -0.01401
+    }
+   },
+   "infeasible_by": {
+    "C8": 185,
+    "C2, C4": 98,
+    "C2": 61,
+    "C4": 41,
+    "C12": 2
+   },
+   "skipped": {
+    "titanium: no mc in the step-3 defaults": 506
+   }
+  },
+  "after": {
+   "overall": {
+    "n": 2804,
+    "feasible": 2344,
+    "pass_sfm": 0.33131,
+    "pass_fz": 0.17725,
+    "pass_both": 0.084879,
+    "mal_sfm": 0.31656,
+    "bias_sfm": 0.074319,
+    "mal_fz": 0.30211,
+    "bias_fz": -0.055492,
+    "mal_mrr": 0.4709,
+    "bias_mrr": -0.018908
+   },
+   "holdout": {
+    "n": 892,
+    "feasible": 733,
+    "pass_sfm": 0.37892,
+    "pass_fz": 0.17265,
+    "pass_both": 0.096413,
+    "mal_sfm": 0.28932,
+    "bias_sfm": 0.038139,
+    "mal_fz": 0.30792,
+    "bias_fz": -0.020922,
+    "mal_mrr": 0.4707,
+    "bias_mrr": -0.0034614
+   },
+   "train": {
+    "n": 1912,
+    "feasible": 1611,
+    "pass_sfm": 0.3091,
+    "pass_fz": 0.17939,
+    "pass_both": 0.079498,
+    "mal_sfm": 0.32864,
+    "bias_sfm": 0.1094,
+    "mal_fz": 0.29243,
+    "bias_fz": -0.068503,
+    "mal_mrr": 0.4711,
+    "bias_mrr": -0.022958
+   },
+   "by_band": {
+    "1 and up": {
+     "n": 318,
+     "feasible": 318,
+     "pass_sfm": 0.53145,
+     "pass_fz": 0.27044,
+     "pass_both": 0.16038,
+     "mal_sfm": 0.22703,
+     "bias_sfm": -0.071223,
+     "mal_fz": 0.26371,
+     "bias_fz": 0.017949,
+     "mal_mrr": 0.43503,
+     "bias_mrr": -0.055614
+    },
+    "1/16-3/32": {
+     "n": 370,
+     "feasible": 190,
+     "pass_sfm": 0.24324,
+     "pass_fz": 0.072973,
+     "pass_both": 0.024324,
+     "mal_sfm": 0.40158,
+     "bias_sfm": 0.23872,
+     "mal_fz": 0.54356,
+     "bias_fz": -0.14075,
+     "mal_mrr": 0.68742,
+     "bias_mrr": 0.15377
+    },
+    "1/2-3/4": {
+     "n": 608,
+     "feasible": 608,
+     "pass_sfm": 0.40296,
+     "pass_fz": 0.24342,
+     "pass_both": 0.12171,
+     "mal_sfm": 0.26427,
+     "bias_sfm": -0.052078,
+     "mal_fz": 0.24465,
+     "bias_fz": -0.012671,
+     "mal_mrr": 0.37454,
+     "bias_mrr": -0.072993
+    },
+    "1/4-3/8": {
+     "n": 711,
+     "feasible": 711,
+     "pass_sfm": 0.35865,
+     "pass_fz": 0.19831,
+     "pass_both": 0.098453,
+     "mal_sfm": 0.30678,
+     "bias_sfm": 0.047364,
+     "mal_fz": 0.31525,
+     "bias_fz": -0.065343,
+     "mal_mrr": 0.47012,
+     "bias_mrr": -0.024154
+    },
+    "1/64-3/64": {
+     "n": 348,
+     "feasible": 82,
+     "pass_sfm": 0.1408,
+     "pass_fz": 0.0028736,
+     "pass_both": 0.0,
+     "mal_sfm": 0.45156,
+     "bias_sfm": 0.33346,
+     "mal_fz": 1.1636,
+     "bias_fz": -0.72318,
+     "mal_mrr": 1.004,
+     "bias_mrr": -0.028739
+    },
+    "1/8-3/16": {
+     "n": 449,
+     "feasible": 435,
+     "pass_sfm": 0.26949,
+     "pass_fz": 0.20935,
+     "pass_both": 0.075724,
+     "mal_sfm": 0.34449,
+     "bias_sfm": 0.1556,
+     "mal_fz": 0.3484,
+     "bias_fz": -0.086886,
+     "mal_mrr": 0.50236,
+     "bias_mrr": 0.09084
+    }
+   },
+   "by_vendor": {
+    "Emuge-Franken": {
+     "n": 288,
+     "feasible": 279,
+     "pass_sfm": 0.29861,
+     "pass_fz": 0.15625,
+     "pass_both": 0.083333,
+     "mal_sfm": 0.17549,
+     "bias_sfm": 0.013472,
+     "mal_fz": 0.26649,
+     "bias_fz": 0.19752,
+     "mal_mrr": 0.4401,
+     "bias_mrr": 0.20045
+    },
+    "Garr Tool": {
+     "n": 240,
+     "feasible": 200,
+     "pass_sfm": 0.75833,
+     "pass_fz": 0.74583,
+     "pass_both": 0.57083,
+     "mal_sfm": 0.22911,
+     "bias_sfm": -0.18103,
+     "mal_fz": 0.17531,
+     "bias_fz": 0.0040488,
+     "mal_mrr": 0.31841,
+     "bias_mrr": -0.21566
+    },
+    "Harvey Performance": {
+     "n": 934,
+     "feasible": 664,
+     "pass_sfm": 0.059957,
+     "pass_fz": 0.11456,
+     "pass_both": 0.003212,
+     "mal_sfm": 0.48503,
+     "bias_sfm": 0.4636,
+     "mal_fz": 0.44921,
+     "bias_fz": -0.13586,
+     "mal_mrr": 0.62249,
+     "bias_mrr": 0.2565
+    },
+    "Kennametal": {
+     "n": 293,
+     "feasible": 250,
+     "pass_sfm": 0.5256,
+     "pass_fz": 0.157,
+     "pass_both": 0.064846,
+     "mal_sfm": 0.26096,
+     "bias_sfm": -0.24051,
+     "mal_fz": 0.27249,
+     "bias_fz": -0.22316,
+     "mal_mrr": 0.48346,
+     "bias_mrr": -0.46426
+    },
+    "Kyocera": {
+     "n": 248,
+     "feasible": 213,
+     "pass_sfm": 0.44758,
+     "pass_fz": 0.15726,
+     "pass_both": 0.072581,
+     "mal_sfm": 0.31407,
+     "bias_sfm": 0.010599,
+     "mal_fz": 0.25275,
+     "bias_fz": 0.21748,
+     "mal_mrr": 0.33458,
+     "bias_mrr": 0.095621
+    },
+    "OSG": {
+     "n": 392,
+     "feasible": 375,
+     "pass_sfm": 0.53061,
+     "pass_fz": 0.09949,
+     "pass_both": 0.048469,
+     "mal_sfm": 0.25785,
+     "bias_sfm": 0.098419,
+     "mal_fz": 0.36301,
+     "bias_fz": -0.12435,
+     "mal_mrr": 0.47012,
+     "bias_mrr": -0.018298
+    },
+    "Sandvik": {
+     "n": 333,
+     "feasible": 287,
+     "pass_sfm": 0.34234,
+     "pass_fz": 0.087087,
+     "pass_both": 0.039039,
+     "mal_sfm": 0.26031,
+     "bias_sfm": -0.15918,
+     "mal_fz": 0.34854,
+     "bias_fz": -0.26367,
+     "mal_mrr": 0.41779,
+     "bias_mrr": -0.29499
+    },
+    "YG-1": {
+     "n": 76,
+     "feasible": 76,
+     "pass_sfm": 0.23684,
+     "pass_fz": 0.17105,
+     "pass_both": 0.065789,
+     "mal_sfm": 0.25168,
+     "bias_sfm": 0.19025,
+     "mal_fz": 0.30828,
+     "bias_fz": 0.16799,
+     "mal_mrr": 0.56139,
+     "bias_mrr": 0.3943
+    }
+   },
+   "by_family": {
+    "Aluminum - Wrought (6061)": {
+     "n": 79,
+     "feasible": 78,
+     "pass_sfm": 0.063291,
+     "pass_fz": 0.025316,
+     "pass_both": 0.0,
+     "mal_sfm": 0.46727,
+     "bias_sfm": 0.11527,
+     "mal_fz": 0.78659,
+     "bias_fz": -0.78659,
+     "mal_mrr": 0.75629,
+     "bias_mrr": -0.67921
+    },
+    "High Temp Nickel Alloy": {
+     "n": 468,
+     "feasible": 369,
+     "pass_sfm": 0.34402,
+     "pass_fz": 0.17094,
+     "pass_both": 0.098291,
+     "mal_sfm": 0.32602,
+     "bias_sfm": 0.19273,
+     "mal_fz": 0.37706,
+     "bias_fz": 0.096164,
+     "mal_mrr": 0.54792,
+     "bias_mrr": 0.2284
+    },
+    "Stainless - 300 Series (316)": {
+     "n": 398,
+     "feasible": 354,
+     "pass_sfm": 0.53769,
+     "pass_fz": 0.20352,
+     "pass_both": 0.10302,
+     "mal_sfm": 0.21269,
+     "bias_sfm": -0.054857,
+     "mal_fz": 0.26978,
+     "bias_fz": -0.087776,
+     "mal_mrr": 0.29268,
+     "bias_mrr": -0.10265
+    },
+    "Stainless - 400 Series (420)": {
+     "n": 29,
+     "feasible": 28,
+     "pass_sfm": 0.44828,
+     "pass_fz": 0.10345,
+     "pass_both": 0.034483,
+     "mal_sfm": 0.12501,
+     "bias_sfm": -0.0076931,
+     "mal_fz": 0.29447,
+     "bias_fz": -0.13907,
+     "mal_mrr": 0.33921,
+     "bias_mrr": -0.10588
+    },
+    "Stainless - PH Series (17-4)": {
+     "n": 601,
+     "feasible": 481,
+     "pass_sfm": 0.23128,
+     "pass_fz": 0.20965,
+     "pass_both": 0.058236,
+     "mal_sfm": 0.35386,
+     "bias_sfm": 0.035603,
+     "mal_fz": 0.23542,
+     "bias_fz": -0.02603,
+     "mal_mrr": 0.47789,
+     "bias_mrr": 0.0019734
+    },
+    "Steel - Low Carbon (1020)": {
+     "n": 36,
+     "feasible": 32,
+     "pass_sfm": 0.30556,
+     "pass_fz": 0.11111,
+     "pass_both": 0.027778,
+     "mal_sfm": 0.9786,
+     "bias_sfm": -0.94161,
+     "mal_fz": 0.29551,
+     "bias_fz": -0.292,
+     "mal_mrr": 1.1053,
+     "bias_mrr": -1.1053
+    },
+    "Steel - Medium Carbon (1045)": {
+     "n": 100,
+     "feasible": 85,
+     "pass_sfm": 0.18,
+     "pass_fz": 0.04,
+     "pass_both": 0.01,
+     "mal_sfm": 0.30136,
+     "bias_sfm": -0.02365,
+     "mal_fz": 0.47085,
+     "bias_fz": -0.42464,
+     "mal_mrr": 0.61193,
+     "bias_mrr": -0.3656
+    },
+    "Steel - Medium Carbon Alloy (4130)": {
+     "n": 162,
+     "feasible": 153,
+     "pass_sfm": 0.56173,
+     "pass_fz": 0.30247,
+     "pass_both": 0.2037,
+     "mal_sfm": 0.19892,
+     "bias_sfm": -0.10273,
+     "mal_fz": 0.2429,
+     "bias_fz": -0.17964,
+     "mal_mrr": 0.38802,
+     "bias_mrr": -0.29941
+    },
+    "Steel - Tool (H13)": {
+     "n": 425,
+     "feasible": 353,
+     "pass_sfm": 0.24471,
+     "pass_fz": 0.15529,
+     "pass_both": 0.084706,
+     "mal_sfm": 0.48337,
+     "bias_sfm": 0.052701,
+     "mal_fz": 0.3934,
+     "bias_fz": 0.13298,
+     "mal_mrr": 0.69572,
+     "bias_mrr": 0.1126
+    },
+    "Titanium Alloy": {
+     "n": 506,
+     "feasible": 411,
+     "pass_sfm": 0.3419,
+     "pass_fz": 0.16206,
+     "pass_both": 0.086957,
+     "mal_sfm": 0.27946,
+     "bias_sfm": 0.20281,
+     "mal_fz": 0.27871,
+     "bias_fz": -0.069967,
+     "mal_mrr": 0.39192,
+     "bias_mrr": 0.17114
+    }
+   },
+   "by_operation": {
+    "finish": {
+     "n": 322,
+     "feasible": 318,
+     "pass_sfm": 0.080745,
+     "pass_fz": 0.071429,
+     "pass_both": 0.0,
+     "mal_sfm": 0.64183,
+     "bias_sfm": 0.59144,
+     "mal_fz": 1.4006,
+     "bias_fz": -1.2958,
+     "mal_mrr": 1.0941,
+     "bias_mrr": -0.88729
+    },
+    "hem": {
+     "n": 524,
+     "feasible": 499,
+     "pass_sfm": 0.50954,
+     "pass_fz": 0.31298,
+     "pass_both": 0.20038,
+     "mal_sfm": 0.25028,
+     "bias_sfm": -0.16454,
+     "mal_fz": 0.26978,
+     "bias_fz": 0.020661,
+     "mal_mrr": 0.3332,
+     "bias_mrr": -0.12595
+    },
+    "rough": {
+     "n": 327,
+     "feasible": 217,
+     "pass_sfm": 0.11315,
+     "pass_fz": 0.16208,
+     "pass_both": 0.0061162,
+     "mal_sfm": 0.44924,
+     "bias_sfm": 0.42869,
+     "mal_fz": 0.21107,
+     "bias_fz": -0.068503,
+     "mal_mrr": 0.4071,
+     "bias_mrr": 0.34703
+    },
+    "side": {
+     "n": 875,
+     "feasible": 807,
+     "pass_sfm": 0.40686,
+     "pass_fz": 0.13943,
+     "pass_both": 0.083429,
+     "mal_sfm": 0.25502,
+     "bias_sfm": 0.030571,
+     "mal_fz": 0.35333,
+     "bias_fz": -0.019178,
+     "mal_mrr": 0.50236,
+     "bias_mrr": 0.0076879
+    },
+    "slot": {
+     "n": 756,
+     "feasible": 503,
+     "pass_sfm": 0.32143,
+     "pass_fz": 0.17857,
+     "pass_both": 0.07672,
+     "mal_sfm": 0.29653,
+     "bias_sfm": 0.075302,
+     "mal_fz": 0.23542,
+     "bias_fz": -1.8922e-05,
+     "mal_mrr": 0.39192,
+     "bias_mrr": 0.020741
+    }
+   },
+   "holdout_by_band": {
+    "1/64-3/64": {
+     "n": 126,
+     "feasible": 28,
+     "pass_sfm": 0.20635,
+     "pass_fz": 0.0,
+     "pass_both": 0.0,
+     "mal_sfm": 0.41015,
+     "bias_sfm": 0.24468,
+     "mal_fz": 1.2034,
+     "bias_fz": -0.50157,
+     "mal_mrr": 1.2983,
+     "bias_mrr": 0.31632
+    },
+    "1/16-3/32": {
+     "n": 116,
+     "feasible": 58,
+     "pass_sfm": 0.26724,
+     "pass_fz": 0.051724,
+     "pass_both": 0.0,
+     "mal_sfm": 0.3867,
+     "bias_sfm": 0.10124,
+     "mal_fz": 0.80718,
+     "bias_fz": -0.033918,
+     "mal_mrr": 0.81956,
+     "bias_mrr": 0.41428
+    },
+    "1/8-3/16": {
+     "n": 143,
+     "feasible": 140,
+     "pass_sfm": 0.34266,
+     "pass_fz": 0.23776,
+     "pass_both": 0.1049,
+     "mal_sfm": 0.3068,
+     "bias_sfm": 0.14466,
+     "mal_fz": 0.26679,
+     "bias_fz": -0.020922,
+     "mal_mrr": 0.48725,
+     "bias_mrr": 0.11863
+    },
+    "1/4-3/8": {
+     "n": 236,
+     "feasible": 236,
+     "pass_sfm": 0.40678,
+     "pass_fz": 0.23729,
+     "pass_both": 0.13983,
+     "mal_sfm": 0.29488,
+     "bias_sfm": 0.010363,
+     "mal_fz": 0.32318,
+     "bias_fz": -0.029165,
+     "mal_mrr": 0.41907,
+     "bias_mrr": -0.024521
+    },
+    "1/2-3/4": {
+     "n": 180,
+     "feasible": 180,
+     "pass_sfm": 0.43889,
+     "pass_fz": 0.21111,
+     "pass_both": 0.13333,
+     "mal_sfm": 0.24116,
+     "bias_sfm": -0.058744,
+     "mal_fz": 0.29078,
+     "bias_fz": -0.0022571,
+     "mal_mrr": 0.40931,
+     "bias_mrr": -0.061684
+    },
+    "1 and up": {
+     "n": 91,
+     "feasible": 91,
+     "pass_sfm": 0.62637,
+     "pass_fz": 0.21978,
+     "pass_both": 0.15385,
+     "mal_sfm": 0.23398,
+     "bias_sfm": -0.16066,
+     "mal_fz": 0.28791,
+     "bias_fz": 0.056721,
+     "mal_mrr": 0.41188,
+     "bias_mrr": -0.11633
+    }
+   },
+   "infeasible_by": {
+    "C8": 235,
+    "C2": 101,
+    "C2, C4": 100,
+    "C4": 20,
+    "C12": 4
+   },
+   "skipped": {}
+  }
+ },
+ "t1_t12": [],
+ "sources": {
+  "probes": "Sandvik CoroPlus ToolGuide cutting-data screens, CoroMill Dura 1K344-0200-XC 1730 (2 mm, 4 FL), 17-4 PH at 200 and 345 HB and 45 NCD 16 at 420 HB (user screenshots 2026-10-15); docs/research/sandvik_toolguide_probes.md",
+  "sandvik_mc": "Sandvik Coromant 'Workpiece materials' MC table (docs/research/data/kc_mc_sources.json, SV-WEB)",
+  "seco_ti": "Seco/Niagara SMG table, SMG 22 (ISO S) Ti6Al-4V annealed: kc1.1 210 ksi (1448 N/mm\u00b2), mc 0.23 (docs/research/data/kc_mc_sources.json, SE-NC; Seco is the independent second source, median ratio 0.97 to Sandvik, kc_mc_survey.md \u00a75)",
+  "k_r": "Kr/Kt 0.34\u20130.38 for carbide end mills in 45 steel (Sun, Ding, Deng, Xiong 2023, Sensors 23:8954, Table 2); Krc/Ktc 0.50 for Ti6Al4V (Li, Zhao, Li, He 2014, J. Vibroeng. 16:2657, citing Altintas, Manufacturing Automation 2nd ed.); no stainless value found",
+  "k_te": "Edge coefficients 12\u201343 N/mm (Ti6Al4V Kte 24 / Kfe 43, Altintas MAL review Table 1; 16MnCr5 28.8 N/mm, Popovi\u0107 et al. 2017 FME Trans. 45:4 Table 1; 1020 steel 12.25 N/mm, Salehi et al. 2018 Procedia CIRP). Sandvik's kc1 is fitted to total force, so adding them double-counts; the ToolGuide probes all sit at one h_m (4.9 \u00b5m), so they cannot separate an edge term",
+  "taylor_n": "n \u2248 0.25 (Tatar & Sj\u00f6berg 2020, Heliyon 6:e04217, Eq. 3, Ti-6Al-4V shoulder milling, coated carbide: ln T = 25.99 \u2212 1.00 ln ae \u2212 4.01 ln vc); carbide range 0.2\u20130.5 (Kalpakjian). Only used to trade life for speed",
+  "rm_hb": "Rm \u2192 HB: HB \u2248 Rm/3.38 (ASTM A370 Table 3 approximate tensile strength vs hardness for steels, Rm/HB 3.33\u20133.42 over 226\u2013371 HB); used only for Seco's Rm-banded rows",
+  "thin_chip": "Kienzle tables stop at h = 0.05\u20130.06 mm (Westermann; Europa); Bir\u00f3 & Szalay 2016 (IJAMT 84:2735) zones h \u2265 0.1, 0.01\u20130.1, 0.003\u20130.01, < 0.003 mm; measured kc keeps rising below the edge radius (de Oliveira et al. 2015 IJMTM 89:39, AISI 1045; Soriano Gonzalez et al. 2023 Micromachines 14:313, CMSX-4); edge-force split F = Kc\u00b7A + Ke\u00b7b (Altintas, MAL review Eq. 1)",
+  "fatigue": "Carbide fatigue / TRS: 0.33\u20130.42 fully reversed or 10\u2076\u201310\u2078 cycles (Schleinkofer 1996, Kursawe 2001, Brookes, Schedler via Preis 2004); 0.375 \u00d7 3.8 GPa = 1425 MPa adopted for C4 (Round 4); docs/research/carbide_and_edge_radius.md \u00a72"
+ }
+}

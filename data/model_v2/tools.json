@@ -1,0 +1,110 @@
+{
+ "version": "2026-10-17.1",
+ "status": "PROPOSED (calibration step 4)",
+ "generated_by": "tools/calibrate_v2.py",
+ "date": "2026-10-17",
+ "carbide": {
+  "E_mpa": {
+   "value": 570000.0,
+   "source": "CERATIZIT p-line 05/2024 p.22, 10 % Co submicron"
+  },
+  "trs_mpa": {
+   "value": 3800.0,
+   "source": "CERATIZIT CT-GS20Y 3800; Hyperion K10F 3700"
+  },
+  "fatigue_fraction": {
+   "value": 0.375,
+   "source": "Carbide fatigue / TRS: 0.33\u20130.42 fully reversed or 10\u2076\u201310\u2078 cycles (Schleinkofer 1996, Kursawe 2001, Brookes, Schedler via Preis 2004); 0.375 \u00d7 3.8 GPa = 1425 MPa adopted for C4 (Round 4); docs/research/carbide_and_edge_radius.md \u00a72"
+  }
+ },
+ "edge_radius_mm": {
+  "value": 0.002,
+  "source": "micro end mills 0.4\u20133.5 \u00b5m (Liang 2018; J\u00e4ckel 2024); no data vs diameter; not calibrated (C1 rarely binds above 1/32\")"
+ },
+ "C2": {
+  "basis": "data/model_v2/chip_limits.json (band median of worst-flute h/D, eccentric runout at TIR 0.0002\")",
+  "source": "confirmed on the hold-out rows against fitted alternatives (calibration_report.json c2)"
+ },
+ "aggressiveness": {
+  "status": "PROPOSAL for the user (design \u00a73.6); the optimizer still uses the Round 1 placeholder map",
+  "current": {
+   "C2_and_C4_scale": "0.7 + 0.6\u00b7a",
+   "life_ratio": "4^(0.5 \u2212 a)",
+   "C5_margin": "0.2\u00b7(1 \u2212 a)",
+   "lambda": "0.4 \u2212 0.2\u00b7a"
+  },
+  "proposed": {
+   "C2_scale": {
+    "a=0": 0.75742,
+    "a=0.5": 1.0,
+    "a=1": 1.2401,
+    "form": "piecewise linear in a between the points",
+    "source": "the vendor rows' own spread of worst-flute h/D around each band median: p25/median and p75/median, median over bands (calibration_report.json)",
+    "per_band": [
+     {
+      "band": "1/64-3/64",
+      "p25_over_median": 0.74248,
+      "p75_over_median": 1.1736,
+      "n": 147
+     },
+     {
+      "band": "1/16-3/32",
+      "p25_over_median": 0.8187,
+      "p75_over_median": 1.1807,
+      "n": 173
+     },
+     {
+      "band": "1/8-3/16",
+      "p25_over_median": 0.76193,
+      "p75_over_median": 1.201,
+      "n": 257
+     },
+     {
+      "band": "1/4-3/8",
+      "p25_over_median": 0.75291,
+      "p75_over_median": 1.3282,
+      "n": 465
+     },
+     {
+      "band": "1/2-3/4",
+      "p25_over_median": 0.81826,
+      "p75_over_median": 1.3146,
+      "n": 444
+     },
+     {
+      "band": "1 and up",
+      "p25_over_median": 0.67891,
+      "p75_over_median": 1.2793,
+      "n": 240
+     }
+    ]
+   },
+   "C4_limit_mpa": {
+    "a=0": 1254.0,
+    "a=0.5": 1425.0,
+    "a=1": 1596.0,
+    "source": "cited fatigue fractions of TRS 3.8 GPa: 0.33 (Schleinkofer 1996, R = \u22121, 10\u2077, via Preis 2004), 0.375 (Round 4 basis), 0.42 (Kursawe 2001, 10\u2076 cycles \u2248 a tool's life, via Preis 2004). The current \u00d71.3 at a = 1 is 0.49\u00b7TRS, above any cited fully reversed level"
+   },
+   "life_ratio": {
+    "a=0": 2.0,
+    "a=0.5": 1.0,
+    "a=1": 0.5,
+    "form": "4^(0.5 \u2212 a) (unchanged)",
+    "source": "with n = 0.25 this moves speed \u00d70.84\u2026\u00d71.19, about the inter-quartile spread of vendor speed levels (vendor_effect_log in calibration_report.json)"
+   },
+   "lambda": {
+    "a=0": 0.4,
+    "a=1": 0.2,
+    "source": "sourced range, unchanged (C1)"
+   },
+   "C5_margin": {
+    "form": "0.2\u00b7(1 \u2212 a) (unchanged)",
+    "source": "placeholder; the spindle is a hard limit"
+   },
+   "C3": {
+    "form": "not scaled by aggressiveness",
+    "source": "C3 is the user's process requirement (50 % of the stock to leave)"
+   }
+  }
+ }
+}
