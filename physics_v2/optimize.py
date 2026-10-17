@@ -704,7 +704,7 @@ def c13_program_size(ap_in, ae_in, volume_in3, limit_bytes, spacing_mm=POINT_SPA
 # per bucket (family, hardness bin, diameter band, operation class, engagement class), each vendor group's median
 # SFM, fz/D and MRR/D³ and their median over the groups (the vendor median, each group counted once).
 CONSENSUS_OPERATION = {"slot": "slot", "rough": "side", "adaptive": "hem", "finish": "finish"}
-SRC["C14"] = ("Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per inch of depth) ≤ "
+SRC["C14"] = ("Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per unit engaged area, i.e. feed) ≤ "
               "consensus_scale(a) × the vendor median of the matching bucket (family, hardness, diameter band, "
               "operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data → "
               "the physics result")
@@ -771,10 +771,11 @@ def c14_feed_checks(pt, fz_in):
     D = ctx.tool.D
     fz_med = cons["fz_over_D"] * D
     mrr = pt.mrr_in3_min(fz_in)
-    if "mrr_per_ap_over_D2" in cons:
-        # MRR per inch of depth: vendors' depth follows their own flute length, not capability, so depth is left
-        # to the physics limits (C3, C4, C6) and the cap is on the removal rate per unit depth.
-        mrr_med = cons["mrr_per_ap_over_D2"] * D ** 2 * pt.ap
+    if "feed_over_D" in cons:
+        # MRR per unit engaged area (ap·ae), i.e. the feed rate: vendors' depth follows their own flute length and
+        # ae varies inside an engagement class, so depth and width are left to the physics limits (C3, C4, C6) and
+        # the cap is on vf/D. In MRR terms the cap at this cut's ap and ae is scale × median(vf/D)·D·ap·ae.
+        mrr_med = cons["feed_over_D"] * D * pt.ap * pt.ae
     else:
         mrr_med = cons["mrr_over_D3"] * D ** 3
     return {

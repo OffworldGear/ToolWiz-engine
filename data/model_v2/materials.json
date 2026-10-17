@@ -22,6 +22,17 @@
    "source": "Edge coefficients 12\u201343 N/mm (Ti6Al4V Kte 24 / Kfe 43, Altintas MAL review Table 1; 16MnCr5 28.8 N/mm, Popovi\u0107 et al. 2017 FME Trans. 45:4 Table 1; 1020 steel 12.25 N/mm, Salehi et al. 2018 Procedia CIRP). Sandvik's kc1 is fitted to total force, so adding them double-counts; the ToolGuide probes all sit at one h_m (4.9 \u00b5m), so they cannot separate an edge term"
   }
  },
+ "consensus_offsets": {
+  "speed": {
+   "value": 1.025,
+   "source": "folded into each family's vc_ref_sfm (vc_ref_sfm_median is the level before it): smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
+  },
+  "c2": {
+   "value": 1.175,
+   "source": "Material.c2_scale on the chip_limits.json band median: smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
+  },
+  "why": "at 75 % C14 caps at 1.00 \u00d7 the vendor median, so the output is min(physics, median); the physics side sits a little above the median so that the 75 % output lands on it (user 2026-10-17)"
+ },
  "speed_diameter": {
   "form": "v \u221d (min(D, D_knee)/D_knee)^m (EMPIRICAL)",
   "m": {
@@ -126,9 +137,13 @@
     "source": "exponent from the family's own Sandvik condition rows (user decision 2026-10-15 (ToolGuide probe)); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 203.09,
-     "at": "slot (ae = D), 325 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 208.16,
+     "at": "slot (ae = D), 325 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 462 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
@@ -167,9 +182,13 @@
     "source": "exponent from the family's own Sandvik condition rows (P5.0 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 416.91,
-     "at": "slot (ae = D), 200 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 427.34,
+     "at": "slot (ae = D), 200 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 21 training rows against their bucket vendor medians (each vendor group counted once; groups Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
@@ -201,9 +220,13 @@
     "source": "exponent from the family's own Sandvik condition rows (M1.0 AQ\u2192PH); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 234.89,
-     "at": "slot (ae = D), 262 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 240.76,
+     "at": "slot (ae = D), 262 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 222 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, OSG, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
@@ -242,9 +265,13 @@
     "source": "exponent from the family's own Sandvik condition rows (P1.1 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 183.08,
-     "at": "slot (ae = D), 271 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 187.66,
+     "at": "slot (ae = D), 271 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 21 training rows against their bucket vendor medians (each vendor group counted once; groups Harvey Performance, OSG); calibration_report.json speed"
     },
     "hb_ref": {
@@ -283,9 +310,13 @@
     "source": "exponent from the family's own Sandvik condition rows (P1.2 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 475.94,
-     "at": "slot (ae = D), 237 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 487.84,
+     "at": "slot (ae = D), 237 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 72 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Harvey Performance, Kennametal, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
@@ -324,9 +355,13 @@
     "source": "exponent from the family's own Sandvik condition rows (P2.1 AN\u2192P2.5 HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 407.1,
-     "at": "slot (ae = D), 294 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 417.28,
+     "at": "slot (ae = D), 294 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 97 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
@@ -379,9 +414,13 @@
     "source": "exponent from the family's own Sandvik condition rows (P3.0 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 231.44,
-     "at": "slot (ae = D), 432 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 237.23,
+     "at": "slot (ae = D), 432 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 304 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
@@ -413,9 +452,13 @@
     "source": "exponent from the family's own Sandvik condition rows (no hardness scaling); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 1576.8,
-     "at": "slot (ae = D), 100 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 1616.3,
+     "at": "slot (ae = D), 100 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 71 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Harvey Performance, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
@@ -454,9 +497,13 @@
     "source": "exponent from the family's own Sandvik condition rows (S2.0 AN\u2192AG); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 74.871,
-     "at": "slot (ae = D), 375 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 76.743,
+     "at": "slot (ae = D), 375 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 314 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
@@ -488,9 +535,13 @@
     "source": "exponent from the family's own Sandvik condition rows (Sandvik prints the same kc1 1400 for S4.3 AN (330 HB) and AG (375 HB)); docs/research/material_mapping_v2.md"
    },
    "speed": {
-    "vc_ref_sfm": {
+    "vc_ref_sfm_median": {
      "value": 183.94,
-     "at": "slot (ae = D), 325 HB, D \u2265 0.5\", the vendor median (75 % aggressiveness)",
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
+    "vc_ref_sfm": {
+     "value": 188.53,
+     "at": "slot (ae = D), 325 HB, D \u2265 0.5\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 328 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
     "hb_ref": {

@@ -789,6 +789,7 @@ def build_consensus(evals):
             "sfm": med(lambda x: x["sfm"]), "fz_over_D": med(lambda x: x["fz"] / x["D"]),
             "mrr_over_D3": med(lambda x: x["mrr"] / x["D"] ** 3),
             "mrr_per_ap_over_D2": med(lambda x: x["mrr"] / (x["ap"] * x["D"] ** 2)),
+            "feed_over_D": med(lambda x: x["mrr"] / (x["ap"] * x["ae"] * x["D"])),
             "n_rows": len(rows), "vendor_groups": sorted(by_vg),
             "family": rows[0]["family"], "D": statistics.median(x["D"] for x in rows),
             "hb": statistics.median(x["hb"] for x in rows), "ae_over_D": statistics.median(x["ae_over_D"] for x in rows),
@@ -797,8 +798,8 @@ def build_consensus(evals):
     return {"version": VERSION, "generated_by": "tools/calibrate_v2.py",
             "status": "C14 vendor-consensus buckets (user decision 2026-10-17)",
             "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry; each vendor group's median, "
-                      "then the median over vendor groups. C14m uses mrr_per_ap_over_D2 (MRR per inch of depth / D²); "
-                      "mrr_over_D3 is kept for reference",
+                      "then the median over vendor groups. C14m uses feed_over_D (MRR per unit engaged area ap·ae, i.e. "
+                      "the feed rate, over D); mrr_over_D3 and mrr_per_ap_over_D2 are kept for reference",
             "bands": [{"band": n, "d_min": lo, "d_max": hi if hi != math.inf else 1e9} for n, lo, hi in BANDS],
             "engagement_classes": [[n, lo, hi] for n, lo, hi in ENGAGEMENT_CLASSES],
             "hb_bin_fine": HB_BIN_FINE, "hb_bin_coarse": HB_BIN_COARSE,
@@ -861,7 +862,7 @@ def fit_consensus_offsets(train, rows_by_id, speed, table, target=-0.02, grid=No
         cap_f = r["cons"]["fz_over_D"] * e["D"]
         sfm = realized_sfm(r, k_s)
         rpm = 12.0 * sfm / (math.pi * e["D"])
-        cap_m = r["cons"]["mrr_per_ap_over_D2"] * e["D"] ** 2 / (e["ae"] * e["z"] * rpm)
+        cap_m = r["cons"]["feed_over_D"] * e["D"] / (e["z"] * rpm)
         return min(fz_c2, cap_f, cap_m)
 
     k_c = grid[-1]
@@ -1091,7 +1092,7 @@ def section5(rows_by_id, evals, bench, train_mask=None, table=None):
             if b["feasible"]:
                 rec["med_fz"] = math.log(b["fz"] / e["D"] / bk["fz_over_D"])
                 mrr = e["mrr"] * (b["sfm"] / e["sfm"]) * (b["fz"] / e["fz"])
-                rec["med_mrr"] = math.log(mrr / (e["ap"] * e["D"] ** 2) / bk["mrr_per_ap_over_D2"])
+                rec["med_mrr"] = math.log(mrr / (e["ap"] * e["ae"] * e["D"]) / bk["feed_over_D"])
         recs.append(rec)
 
     def summarize(sel):
@@ -1276,7 +1277,7 @@ def t1_t12(speed, force, consensus, c2_offset=1.0):
     after = replace(before, tool_factor=force["tool_factor"], k_r=force["k_r"], c2_scale=c2_offset,
                     **speed_kwargs(speed, fam, "unspecified"))
     # The literal MRR/D³ cap, for comparison: the same table without the per-depth MRR medians.
-    literal = dict(consensus, buckets={k: {kk: vv for kk, vv in b.items() if kk != "mrr_per_ap_over_D2"}
+    literal = dict(consensus, buckets={k: {kk: vv for kk, vv in b.items() if kk != "feed_over_D"}
                                        for k, b in consensus["buckets"].items()})
     runs = [("before", before, rigid, o.Margins(0.5), None),
             ("after 50 %", after, bt30, o.Margins(0.5, scheme="consensus"), consensus),
@@ -1526,20 +1527,25 @@ def main(argv=None):
 
     bt30_ref = replace(mach, holder_k_n_um=BT30_K, holder_ktheta_nm_urad=BT30["ktheta_holder_joint_nm_urad"]["value"],
                        holder_basis=BT30_BASIS)
-    variants = [("before (step-3 defaults, 50 %)", before_mat, mach, False, o.Margins(0.5), None),
-                ("after 75 %", after_mat, mach, False, o.Margins(0.75, scheme="consensus"), table_train),
-                ("after 50 %", after_mat, mach, False, o.Margins(0.5, scheme="consensus"), table_train)]
+    hold_rows = [r for r in rows if holdout(r)]
+    # The gate scores the product: C14 from all rows. The hold-out check (generalization of the fitted law and
+    # offsets) runs the hold-out rows with C14 built from the training rows only.
+    variants = [("before (step-3 defaults, 50 %)", before_mat, mach, False, o.Margins(0.5), None, rows),
+                ("after 75 %", after_mat, mach, False, o.Margins(0.75, scheme="consensus"), table_all, rows),
+                ("after 50 %", after_mat, mach, False, o.Margins(0.5, scheme="consensus"), table_all, rows),
+                ("hold-out 75 % (C14 from training rows)", after_mat, mach, False,
+                 o.Margins(0.75, scheme="consensus"), table_train, hold_rows),
+                ("hold-out 50 % (C14 from training rows)", after_mat, mach, False,
+                 o.Margins(0.5, scheme="consensus"), table_train, hold_rows)]
     if not args.quick:
         variants.append(("after 50 %, process (BT30, C3 0.05 mm stock, 5 µm wall)", after_mat, bt30_ref, True,
-                         o.Margins(0.5, scheme="consensus"), table_train))
+                         o.Margins(0.5, scheme="consensus"), table_all, rows))
     results, bench_rows, holdout_s5 = {}, {}, {}
-    for name, fn, machine, c3, mg, cons in variants:
-        b = benchmark(rows, fn, machine, c3, mg, cons)
+    for name, fn, machine, c3, mg, cons, rws in variants:
+        b = benchmark(rws, fn, machine, c3, mg, cons)
         s5, recs = section5(by_id, ok, b, train_mask, table_all)
         results[name] = s5
         bench_rows[name] = b
-        hold = {k: v for k, v in b.items() if k in by_id and holdout(by_id[k])}
-        holdout_s5[name] = section5(by_id, ok, hold, None, table_all)[0]
         ov = s5["overall"]
         print(f"benchmark [{name}]: n {ov['n']}, feasible {ov['feasible']}, pass SFM {ov['pass_sfm']:.1%}, "
               f"fz {ov['pass_fz']:.1%}; median |log| SFM {ov['mal_sfm']:.3f}, fz {ov.get('mal_fz', float('nan')):.3f}; "
@@ -1551,8 +1557,9 @@ def main(argv=None):
                 print(f"    {band:10} SFM {v.get('bias_vs_median_sfm', float('nan')):+.3f} fz "
                       f"{v.get('bias_vs_median_fz', float('nan')):+.3f} MRR {v.get('bias_vs_median_mrr', float('nan')):+.3f}"
                       f" | mal SFM {v['mal_sfm']:.3f} fz {v.get('mal_fz', float('nan')):.3f}")
-    gates = {"all rows": gate(results["after 75 %"], results["after 50 %"], ceiling),
-             "holdout rows": gate(holdout_s5["after 75 %"], holdout_s5["after 50 %"], ceiling)}
+    gates = {"all rows, C14 from all rows (the product)": gate(results["after 75 %"], results["after 50 %"], ceiling),
+             "hold-out rows, C14 from training rows": gate(results["hold-out 75 % (C14 from training rows)"],
+                                                           results["hold-out 50 % (C14 from training rows)"], ceiling)}
     for part, g in gates.items():
         print(f"gate ({part}): " + ", ".join(f"{b} {'PASS' if v['pass'] else 'fail'}" for b, v in g.items()))
     t1t12 = [] if args.quick else t1_t12(speed, force, table_all, offsets["c2_offset"])
@@ -1579,7 +1586,7 @@ def main(argv=None):
                           {"id": rid, "sigma1_mpa": s, "class": outlier_class(by_id[rid])} for rid, s in outliers],
                       "remaining_by_class": dict(collections.Counter(outlier_class(by_id[rid]) for rid, _ in outliers))},
         "c2": c2, "aggressiveness": aggr, "vendor_consensus_ceiling": ceiling, "section5": results,
-        "section5_holdout": holdout_s5, "gate": gates, "speed_law_bias_vs_vendor_median": law_bias,
+        "gate": gates, "speed_law_bias_vs_vendor_median": law_bias,
         "t1_t12": t1t12,
         "sources": SRC,
     }
