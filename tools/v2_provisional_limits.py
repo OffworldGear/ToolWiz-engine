@@ -54,8 +54,19 @@ FAMILY_GROUPS = {
     "High Temp Nickel Alloy": (["S2.0.Z.AN", "S2.0.Z.AG"], 0.27, "S2.0 AN→AG"),
 }
 
-BANDS = [("1/64–3/64", 0.0, 0.05), ("1/16–3/32", 0.05, 0.1), ("1/8–3/16", 0.1, 0.2),
-         ("1/4–3/8", 0.2, 0.4), ("1/2–3/4", 0.4, 0.8), ("1 and up", 0.8, math.inf)]
+# ASCII labels: the data files must read the same under any encoding (a UTF-8 en dash read as cp1252 on
+# Windows shows as "â€“").
+BANDS = [("1/64-3/64", 0.0, 0.05), ("1/16-3/32", 0.05, 0.1), ("1/8-3/16", 0.1, 0.2),
+         ("1/4-3/8", 0.2, 0.4), ("1/2-3/4", 0.4, 0.8), ("1 and up", 0.8, math.inf)]
+
+
+def missing_geometry(row):
+    """Required fields a row lacks (SCHEMA.md allows null LCF/SFDM etc.); such rows are skipped."""
+    t, c = row["tool"], row["cut"]
+    miss = [k for k in ("DC", "LCF", "flutes") if not t.get(k)]
+    miss += [f"cut.{k}" for k in ("ap", "ae") if not c.get(k)]
+    miss += [f"cut.{k}" for k in ("sfm", "fz") if nominal(c.get(k) or {}) is None]
+    return miss
 
 
 def row_hb(hardness):
@@ -108,6 +119,8 @@ def row_tool(row):
 
 
 def nominal(v):
+    if v is None:
+        return None
     if isinstance(v, (int, float)):
         return float(v)
     if v.get("nominal") is not None:
@@ -117,6 +130,9 @@ def nominal(v):
 
 
 def evaluate_row(row, machine):
+    miss = missing_geometry(row)
+    if miss:
+        return {"id": row["id"], "skipped": "missing geometry: " + ", ".join(miss)}
     mat, mat_basis = row_material(row)
     if mat is None:
         return {"id": row["id"], "skipped": mat_basis}
@@ -195,14 +211,16 @@ def main():
     path = os.path.join(ROOT, "data", "model_v2", "provisional_limits.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, indent=1, ensure_ascii=False)
+        json.dump(out, fh, indent=1, ensure_ascii=True)
         fh.write("\n")
     for b in out["bands"]:
         d, s = b["deflection_over_D_spread"], b["sigma1_spread"]
         print(f"{b['band']:10} n {b['n']:3}  δ/D median {d['median']:.5f} (IQR {d['p25']:.5f}–{d['p75']:.5f}, "
               f"{d['min']:.5f}–{d['max']:.5f})  σ1 median {s['median']:5.0f} MPa (IQR {s['p25']:.0f}–{s['p75']:.0f}, "
               f"{s['min']:.0f}–{s['max']:.0f})")
-    print(f"skipped {len(out['skipped'])}: {sorted({e['skipped'] for e in out['skipped']})}")
+    import collections
+    reasons = collections.Counter(e["skipped"] for e in out["skipped"])
+    print(f"skipped {len(out['skipped'])}: " + "; ".join(f"{n} × {r}" for r, n in reasons.most_common()))
     print(f"wrote {path}")
 
 

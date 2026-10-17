@@ -38,7 +38,13 @@ Results are in `docs/research/v2_optimizer_findings.md` (Round 2). Open:
 - C4 = carbide fatigue 1425 MPa on the fluted section.
 - The vendor-median C3/C4 limits are reported only.
 
-Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: finishing C1 (every flute vs the wall-generating flute), measured runout.
+**Round 5 done 2026-10-17:**
+- Merged `toolwiz/v2-data2` (1,466 side and 628 slot rows evaluated); C2 limits regenerated.
+- Review fixes B1–B8.
+- Finishing: C1 needs only the wall flute; the wall tolerance is a target; an optional hard part tolerance.
+- Micro tools report the max feasible TIR.
+
+Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: the C2 basis for micro tools (the nominal basis was evaluated, not adopted), measured runout. Calibration item: the Kienzle size effect at µm chips (stress outliers in Ni micro rows).
 
 Next is step 4, calibration (`tools/calibrate_v2.py`).
 

@@ -20,6 +20,7 @@ stickout 0.5 (tests/test_micro_tools.py). Material 17-4 PH H1025, 356 HB.
 """
 import math
 import unittest
+from dataclasses import replace
 
 from gwizard_physics import BeamDeflectionEngine
 from physics_v2 import forces as f
@@ -80,13 +81,13 @@ class TestConstraintsByHand(unittest.TestCase):
 
     def test_c2_limit_is_the_vendor_chip_median(self):
         band = o.chip_limit(T12.D)
-        self.assertEqual(band["band"], "1/16–3/32")
+        self.assertEqual(band["band"], "1/16-3/32")
         self.assertLess(band["p10"], band["h_worst_over_D"])
         self.assertLess(band["h_worst_over_D"], band["p90"])
         ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
         self.assertAlmostEqual(ctx.h_tooth, band["h_worst_over_D"] * T12.D_mm)
         # Aggressiveness scales it: ×0.7 at 0, ×1.3 at 1.
-        c = o.CutPoint(o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(1.0)), 0.1, 0.01).c2([0.001])
+        c = o.CutPoint(o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(1.0)), 0.1, 0.01).c2_checks(0.0003)["C2"]
         self.assertAlmostEqual(c.limit, 1.3 * ctx.h_tooth)
 
     def test_c3_deflection_check(self):
@@ -154,7 +155,7 @@ class TestConstraintsByHand(unittest.TestCase):
 
     def test_c7_rpm_cap_binds(self):
         # T12 at 0.1·D asks 277.6 SFM = 16,962 rpm; the 16k spindle caps it.
-        rpm, vc, c = o.c7_speed(M17_4, f.engagement_angle(0.1, 1.0), T12.D_mm, 16000.0)
+        rpm, vc, c, _ = o.c7_speed(M17_4, f.engagement_angle(0.1, 1.0), T12.D_mm, 16000.0)
         want = 12.0 * 262.0 * (200.0 / 356.0) * (math.acos(0.8) / math.pi) ** -0.4 / (math.pi * 0.0625)
         self.assertAlmostEqual(want, 16962.0, delta=1.0)
         self.assertEqual(rpm, 16000.0)
@@ -365,7 +366,7 @@ class TestOptimizer(unittest.TestCase):
 
     def test_speed_comes_from_tool_life(self):
         c = self.t12["cut"]
-        rpm, _, _ = o.c7_speed(M17_4, f.engagement_angle(c["ae_in"], T12.D), T12.D_mm, 16000.0,
+        rpm, _, _, _ = o.c7_speed(M17_4, f.engagement_angle(c["ae_in"], T12.D), T12.D_mm, 16000.0,
                                reach_factor=o.reach_sfm_factor(
                                    BeamDeflectionEngine.equivalent_stickout(T12.segments, T12.D, 4, 35.0), T12.D))
         self.assertAlmostEqual(c["rpm"], rpm)
@@ -373,7 +374,7 @@ class TestOptimizer(unittest.TestCase):
     def test_result_carries_provenance_and_robustness(self):
         r = self.t12
         self.assertTrue(any(p.startswith("selection:") for p in r["provenance"]))
-        self.assertTrue(any(p.startswith("binding:") for p in r["provenance"]))
+        self.assertTrue(any(p.startswith("binding") for p in r["provenance"]))
         self.assertEqual(set(r["robustness"]), {"TIR ×2", "K_r 0.6 (top of 0.3–0.6)", "C2 chip limit −25 %",
                                                 "kc +20 % (hardness/tool factor)"})
 
@@ -388,8 +389,8 @@ class TestOptimizer(unittest.TestCase):
         self.assertIsNotNone(o.CutPoint(ctx_w, T12.lcf, 0.25 * T12.D).fz_window()[1])
 
     def test_vendor_median_limits_are_reported_only(self):
-        self.assertEqual(o.provisional_limits(0.0625)["band"], "1/16–3/32")
-        self.assertEqual(o.provisional_limits(0.125)["band"], "1/8–3/16")
+        self.assertEqual(o.provisional_limits(0.0625)["band"], "1/16-3/32")
+        self.assertEqual(o.provisional_limits(0.125)["band"], "1/8-3/16")
         r = self.t12
         band = o.provisional_limits(T12.D)
         cmp = r["vendor_median_comparison"]
@@ -416,12 +417,33 @@ class TestOptimizer(unittest.TestCase):
                             deflection_allow=2 * r["parameters"]["deflection_allow_in"]["value"], robustness=False)
         self.assertGreater(looser["cut"]["fz_in"], c["fz_in"])
 
-    def test_finish_at_0002_runout_cannot_hold_the_finish_tolerance(self):
-        # Every flute needs fz·sin φe ≥ 0.71·TIR; that chip's load already deflects T1 past v1's
-        # 0.00025" finishing limit on a 0.25" wall, so the result is infeasible and says why.
-        r = o.optimize(T1, M17_4, SPEEDIO, "finish", stock=0.005, wall_height=0.25, robustness=False)
-        self.assertFalse(r["feasible"])
-        self.assertIn("C3", r["binding"])
+    def test_finish_wall_target_is_a_target_not_pass_fail(self):
+        # User 2026-10-17: the 0.005 mm wall tolerance is a target. When no feed meets it, the cut with the
+        # smallest predicted wall error is returned with the shortfall, not "infeasible".
+        r = o.optimize(T1, M17_4, SPEEDIO, "finish", stock=0.005, wall_height=0.4, c1_flute="thinnest",
+                       robustness=False, find_tir=False)
+        self.assertTrue(r["feasible"])
+        wt = r["wall_target"]
+        self.assertFalse(wt["met"])
+        self.assertGreater(wt["shortfall_in"], 0.0)
+        self.assertAlmostEqual(wt["shortfall_in"], wt["value_in"] - wt["target_in"])
+        self.assertTrue(any("wall target" in w for w in r["warnings"]))
+        # A hard part tolerance (off by default) turns the same cut infeasible.
+        hard = o.optimize(T1, M17_4, SPEEDIO, "finish", stock=0.005, wall_height=0.4, c1_flute="thinnest",
+                          part_tolerance_in=0.0001, robustness=False, find_tir=False)
+        self.assertFalse(hard["feasible"])
+
+    def test_finish_target_met_at_full_resolution(self):
+        # The feed is placed on the wall target at full resolution, so a cut found on the target at search
+        # resolution does not read "missed by 0.0 µm" (Round 5).
+        r = o.optimize(T12, M17_4, SPEEDIO, "finish", stock=0.05 / 25.4, wall_height=T12.lcf,
+                       robustness=False, find_tir=False)
+        wt = r["wall_target"]
+        self.assertTrue(wt["met"])
+        self.assertEqual(wt["shortfall_in"], 0.0)
+        self.assertLessEqual(wt["value_in"], wt["target_in"] * (1 + 1e-6))
+        self.assertGreater(wt["value_in"], 0.95 * wt["target_in"])           # on the target, not far under
+        self.assertFalse(any("wall target" in w for w in r["warnings"]))
 
     def test_real_depth_gives_even_levels(self):
         r = o.optimize(T12, M17_4, SPEEDIO, "adaptive", depth=0.25, grid=(8, 8), robust=False, robustness=False)
@@ -445,8 +467,8 @@ class TestOptimizer(unittest.TestCase):
         tiny = o.Tool.build(0.03125, 4, 0.09375, 0.5, shank=0.125)
         r = o.optimize(tiny, M17_4, o.speedio_16k(0.002), "adaptive", grid=(4, 4), robustness=False)
         self.assertFalse(r["feasible"])
-        self.assertTrue(r["infeasible_counts"])
-        self.assertTrue(r["binding"])
+        self.assertTrue(r["eliminated_by"])
+        self.assertEqual(r["binding"], [max(r["eliminated_by"], key=r["eliminated_by"].get)])
 
 
 if __name__ == "__main__":
@@ -555,7 +577,8 @@ class TestProgramSizeAndWall(unittest.TestCase):
         w = r["loads"]["wall_error_in"]
         self.assertLessEqual(w["max_in"], r["loads"]["deflection_tip_in"] + 1e-12)
         self.assertGreater(w["mean_in"], 0.0)                 # pushed off the wall: stock left
-        self.assertAlmostEqual(r["checks"]["C3"]["value"], w["max_in"])
+        self.assertAlmostEqual(r["checks"]["C3"]["value"], w["ripple_in"])     # the target metric: the ripple
+        self.assertEqual(r["checks"]["C3"]["kind"], "target")
         rough = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.5, 0.01, 0.0005, rpm=7800)
         self.assertIn("wall_error_in", rough["loads"])
 
@@ -570,11 +593,125 @@ class TestProgramSizeAndWall(unittest.TestCase):
 
 class TestC1WallFlute(unittest.TestCase):
     def test_wall_flute_variant_checks_the_outermost_flute(self):
-        ctx = o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5), c1_flute="wall")
+        ctx = o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5))
+        self.assertEqual(ctx.c1_flute, "wall")                        # finishing default (user 2026-10-17)
         pt = o.CutPoint(ctx, 0.25, 0.002)
-        chips = pt.max_chips_mm(0.0003)
-        k = max(range(4), key=lambda i: pt.offsets[i])
-        self.assertAlmostEqual(pt.lower_checks(chips)["C1"].value, chips[k])
-        thin = o.CutPoint(o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5)), 0.25, 0.002)
-        self.assertLessEqual(thin.fz_window()[0], 1.0)
+        chips, offs = pt.chips_c1(0.0003)
+        k = max(range(4), key=lambda i: offs[i])
+        self.assertAlmostEqual(pt.lower_checks(0.0003)["C1"].value, chips[k])
+        thin = o.CutPoint(o._Context(T1, M17_4, SPEEDIO, "finish", o.Margins(0.5), c1_flute="thinnest"), 0.25, 0.002)
         self.assertLess(pt.fz_window()[0], thin.fz_window()[0])      # fewer flutes to satisfy → lower min fz
+
+    def test_rubbing_flutes_are_a_warning(self):
+        r = o.evaluate_cut(T1, M17_4, SPEEDIO, "finish", 0.25, 0.002, 0.00012, rpm=7800)
+        self.assertTrue(any(w.startswith("WARNING:") and "rub" in w for w in r["warnings"]))
+
+
+class TestRound5ReviewFixes(unittest.TestCase):
+    def test_b1_c7_checks_a_supplied_rpm(self):
+        r = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.25, 0.01, 0.0005, rpm=40000)
+        self.assertIn("C7", r["violated"])
+        life = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.25, 0.01, 0.0005)["cut"]["rpm"]
+        slower = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.25, 0.01, 0.0005, rpm=0.8 * life)
+        self.assertNotIn("C7", slower["violated"])
+        faster = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.25, 0.01, 0.0005, rpm=1.2 * life)
+        self.assertIn("C7", faster["violated"])                       # above the tool-life speed
+
+    def test_b2_c6_bounds_ap_by_the_holder(self):
+        t = o.Tool.build(0.25, 4, 0.75, 0.4)
+        r = o.evaluate_cut(t, M17_4, SPEEDIO, "adaptive", 0.7, 0.02, 0.0005)
+        self.assertIn("C6", r["violated"])
+        self.assertTrue(any("Holder over flutes" in w for w in r["warnings"]))
+        self.assertNotIn("C6", o.evaluate_cut(t, M17_4, SPEEDIO, "adaptive", 0.35, 0.02, 0.0005)["violated"])
+
+    def test_b3_deep_real_depth_is_feasible(self):
+        r = o.optimize(T1, M17_4, SPEEDIO, "adaptive", depth=3.0, grid=(10, 8), robust=False, robustness=False)
+        self.assertTrue(r["feasible"])
+        n = 3.0 / r["cut"]["ap_in"]
+        self.assertAlmostEqual(n, round(n), places=9)
+
+    def test_b5_c2_takes_the_phase_where_the_worst_chip_peaks(self):
+        t3 = o.Tool.build(0.25, 3, 0.75, 1.0)
+        pt = o.CutPoint(o._Context(t3, M17_4, SPEEDIO, "adaptive", o.Margins(0.5)), 0.25, 0.05)
+        geometric = pt.eng.max_chips(0.0005 * 25.4, o.runout_offsets_worst(0.0002 * 25.4, 3))
+        self.assertGreater(max(pt.chips_c2(0.0005)[0]), 1.05 * max(geometric))
+        for offs, ch in pt._phase_chips(0.0005):
+            self.assertLessEqual(max(ch), max(pt.chips_c2(0.0005)[0]) + 1e-12)
+            self.assertGreaterEqual(min(ch), min(pt.chips_c1(0.0005)[0]) - 1e-12)
+
+    def test_b6_wall_deflection_uses_the_fy_centroid(self):
+        e = o.Engagement(3.175, 4, 12.7, 0.5, 35.0)
+        r = e.loads(0.02, [0.0] * 4, M17_4.coefficients(), 144, 48)
+        self.assertEqual(len(r["samples"][0]), 5)
+        self.assertTrue(any(abs(s[4] - s[1]) > 1e-6 for s in r["samples"]))    # differs from the F̂ centroid
+
+    def test_b7_ae_refinement_and_explicit_fz_cap(self):
+        r = o.optimize(T1, M17_4, SPEEDIO, "adaptive", grid=(8, 8), robust=False, robustness=False)
+        self.assertGreaterEqual(r["score"], r["best_score_point"]["score"] * (1 - 1e-3))
+        loose = replace(SPEEDIO, max_feed_ipm=None)
+        ctx = o._Context(T1, M17_4, loose, "rough", o.Margins(0.5), deflection_allow=1.0, stress_limit=1e9,
+                         chip_limit_over_D=100.0, effective_feed_ipm=None)
+        pt = o.CutPoint(ctx, 0.01, 0.002, rpm=10)
+        self.assertEqual(pt.fz_window()[1], o.FZ_MAX_IN)
+        self.assertTrue(pt.fz_capped)
+
+    def test_b8_data_problems_are_reported_not_swallowed(self):
+        r = o.evaluate_cut(T1, M17_4, SPEEDIO, "adaptive", 0.25, 0.01, 0.0005, limits_path="/nonexistent.json")
+        self.assertIsNone(r["vendor_median_comparison"])
+        self.assertTrue(any("vendor-median comparison unavailable" in w for w in r["warnings"]))
+
+    def test_b8_binding_none_reports_margins(self):
+        r = o.optimize(T1, M17_4, SPEEDIO, "adaptive", grid=(6, 6), robust=False, robustness=False)
+        self.assertIn("margins", r)
+        self.assertTrue(r["binding_resolution"])
+
+
+class TestRound5MicroTools(unittest.TestCase):
+    MICRO = o.Tool.build(0.03125, 4, 0.09375, 0.5, shank=0.125, label="1/32")
+
+    def test_tir_mismatch_is_warned(self):
+        r = o.evaluate_cut(T12, M17_4, o.speedio_16k(0.0001), "adaptive", 0.1, 0.01, 0.0004)
+        self.assertTrue(any("chip invariant was built at TIR" in w for w in r["warnings"]))
+        r = o.evaluate_cut(T12, M17_4, SPEEDIO, "adaptive", 0.1, 0.01, 0.0004)
+        self.assertFalse(any("chip invariant was built at TIR" in w for w in r["warnings"]))
+
+    def test_slots_use_the_slot_invariant(self):
+        ctx = o._Context(T12, M17_4, SPEEDIO, "slot", o.Margins(0.5))
+        self.assertEqual(ctx.chip_band["source"], "slot rows")
+        self.assertAlmostEqual(ctx.h_tooth, o.chip_limit(T12.D, key="slot_bands")["h_worst_over_D"] * T12.D_mm)
+
+    def test_nominal_basis_adds_an_overload_check(self):
+        r = o.evaluate_cut(T12, M17_4, SPEEDIO, "adaptive", 0.1, 0.01, 0.0004, c2_basis="nominal")
+        self.assertIn("C2o", r["checks"])
+        nb = o.chip_limit(T12.D, key="nominal_bands")
+        self.assertAlmostEqual(r["checks"]["C2"]["limit"], nb["h_worst_over_D"] * T12.D_mm)
+        self.assertAlmostEqual(r["checks"]["C2"]["value"],
+                               f.max_chip_thickness(0.0004 * 25.4, 0.01 * 25.4, T12.D_mm))
+
+    def test_infeasible_reports_the_largest_feasible_tir(self):
+        r = o.optimize(self.MICRO, M17_4, o.speedio_16k(0.0004), "adaptive", grid=(6, 6), robustness=False)
+        self.assertFalse(r["feasible"])
+        t = r["max_feasible_tir_in"]
+        self.assertIsNotNone(t)
+        self.assertLess(t, 0.0004)
+        ok = o.optimize(self.MICRO, M17_4, o.speedio_16k(t), "adaptive", grid=(8, 8), robust=False,
+                        robustness=False, find_tir=False)
+        self.assertTrue(ok["feasible"])
+
+
+class TestChipLimitsFile(unittest.TestCase):
+    def test_chip_limits_match_the_generator(self):
+        import importlib.util
+        import os
+        spec = importlib.util.spec_from_file_location("v2_invariants", os.path.join(o.ROOT, "tools", "v2_invariants.py"))
+        vi = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(vi)
+        fresh, stored = vi.chip_limits(), o._limits(o.CHIP_LIMITS_PATH)
+        for key in ("bands", "slot_bands", "nominal_bands", "slot_nominal_bands"):
+            self.assertEqual([b["band"] for b in fresh[key]], [b["band"] for b in stored[key]])
+            for a, b in zip(fresh[key], stored[key]):
+                self.assertEqual(a["n"], b["n"])
+                self.assertAlmostEqual(a["h_worst_over_D"], b["h_worst_over_D"], places=9)
+        self.assertEqual(stored["skipped"].get("missing geometry: LCF"), 4)
+        with open(o.CHIP_LIMITS_PATH, "rb") as fh:
+            fh.read().decode("ascii")                                  # pure ASCII: no mojibake on Windows

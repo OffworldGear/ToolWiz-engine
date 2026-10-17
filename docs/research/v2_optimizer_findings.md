@@ -447,3 +447,160 @@ Ready for review and merge by the local session. Items for step 4 (calibration):
 Items still open with the user:
 - finishing C1 (every flute or wall flute);
 - measured runout per tool (Blum).
+
+## Round 5 (2026-10-17): merged data, review fixes, finishing as a target, micro tools
+
+### A. The merged vendor data (`origin/toolwiz/v2-data2`)
+
+| Set | Rows in | Evaluated | Skipped |
+|---|---|---|---|
+| Side / rough / HEM | 1,777 | 1,466 (Round 4: 246) | 307 titanium (no Kienzle mc), 4 Helical GB2016 rows with no LCF |
+| Slot | 756 | 628 | 128 titanium |
+
+**Generator fixes:**
+- **Null LCF/SFDM crash.** Both generators now skip a row missing required geometry and print the counts by reason. The counts are also stored as `skipped` / `skipped_slot` in `chip_limits.json`.
+- **Mojibake en dash.** The file was valid UTF-8. Windows reads it as cp1252, so "–" showed as "â€“". Band labels are now ASCII ("1/64-3/64") and all three files are written with `ensure_ascii=True`. A test checks that the file is pure ASCII and equals the generator's output.
+
+**C2 limits (worst-flute h_max / D at TIR 0.0002", eccentric runout, max over phase):**
+
+| Band | Round 4 median (n 246) | Round 5 n | Round 5 median | p10 | p90 | p90/p10 | B5 phase effect alone |
+|---|---|---|---|---|---|---|---|
+| 1/64-3/64 | 0.00538 | 115 | **0.00863** | 0.00399 | 0.01536 | 3.8 | +19.5 % |
+| 1/16-3/32 | 0.00504 | 149 | **0.00580** | 0.00335 | 0.00791 | 2.4 | +9.0 % |
+| 1/8-3/16 | 0.00544 | 226 | **0.00486** | 0.00256 | 0.00894 | 3.5 | +2.9 % |
+| 1/4-3/8 | 0.00539 | 396 | **0.00441** | 0.00226 | 0.00760 | 3.4 | +1.0 % |
+| 1/2-3/4 | 0.00495 | 382 | **0.00388** | 0.00224 | 0.00669 | 3.0 | 0 |
+| 1 and up | 0.00470 | 198 | **0.00328** | 0.00164 | 0.00525 | 3.2 | 0 |
+
+**How C2 moved:**
+- **What moved it.** The "phase effect" column is the B5 change (worst chip at the worst phase) on the merged data. Everything else is the new data.
+- **Trend with D.** The median used to be flat with D (0.0047–0.0054). It now falls with D, from 0.0086 to 0.0033. At micro sizes the fixed 0.0002" TIR is a large share of the worst-flute chip, so the micro median rises. At 1" and up the new Sandvik, Seco and Kennametal rows run thinner chips.
+- **Spread.** It widened a little: p90/p10 per band is now 2.4–3.8, against 2.2–3.3 in Round 4.
+- **Still the tightest invariant.** h_worst/D is still the best-collapsing quantity of the 15 tested: per-band p90/p10 2.4–3.8, against 2.8–3.4 for edge load per mm and 4.4–8.7 for flute-root stress (`data/model_v2/invariants.json`).
+
+**Slot and runout-free invariants (new, D3):**
+
+| Band | Slot worst-flute median (n) | p10–p90 | Nominal fz·sin φe/D, side (p10–p90) | Nominal, slot |
+|---|---|---|---|---|
+| 1/64-3/64 | 0.00803 (94) | 0.00540–0.01905 | 0.00324 (0.00112–0.00887) | 0.00323 |
+| 1/16-3/32 | 0.00577 (103) | 0.00411–0.00977 | 0.00343 (0.00140–0.00539) | 0.00339 |
+| 1/8-3/16 | 0.00441 (106) | 0.00283–0.00789 | 0.00384 (0.00162–0.00769) | 0.00328 |
+| 1/4-3/8 | 0.00423 (154) | 0.00257–0.00651 | 0.00397 (0.00169–0.00720) | 0.00370 |
+| 1/2-3/4 | 0.00408 (114) | 0.00253–0.00628 | 0.00368 (0.00200–0.00641) | 0.00380 |
+| 1 and up | 0.00332 (57) | 0.00227–0.00534 | 0.00316 (0.00153–0.00513) | 0.00320 |
+
+- Slots now use `slot_bands`. If a band has no slot rows, they fall back to the side bands and the result says so.
+- The nominal chip is flat with D (0.0032–0.0040), but its spread is wider: p90/p10 3.2–4.7, and 7.9 at micro sizes.
+
+**Provisional (vendor-median) C3/C4 on the merged data.** These are reported only, as `vendor_median_comparison`.
+
+| Band | δ/D median | σ1 median (MPa) |
+|---|---|---|
+| 1/64-3/64 | 0.00928 | 1401 |
+| 1/16-3/32 | 0.00591 | 1001 |
+| 1/8-3/16 | 0.00805 | 859 |
+| 1/4-3/8 | 0.00903 | 771 |
+| 1/2-3/4 | 0.00628 | 605 |
+| 1 and up | 0.00348 | 387 |
+
+**Outliers to flag for calibration:**
+- **Stress outliers.** On the fluted section, 162 of 1,466 rows exceed carbide fatigue and 12 exceed TRS (max 7,085 MPa). They are mostly Harvey nickel-alloy micro rows (1/64–1/32" at 50 SFM, fz 5e-5–1.4e-4") and the SF_711700 5×LOC HEM rows.
+- **Why.** The Kienzle size effect (mc 0.25 for the S2.0 group) extrapolated to chips of a few µm overstates force. This is a step-4 calibration item, not a reason to loosen C4.
+- **Deflection outliers.** The provisional δ/D has absurd outliers, up to 1.26·D, for the same reason. It stays reported only.
+
+### B. Review fixes
+
+| # | Fix | Check |
+|---|---|---|
+| B1 | **C7 checks a supplied rpm.** The limit is machine max when rpm ≤ the tool-life rpm, else min(machine max, tool-life rpm). | T1 at 40,000 rpm fails C7. So does 12,000 rpm, which is above the 7,802 rpm tool-life speed. |
+| B2 | **C6 bounds ap by the exposed flute.** ap ≤ min(LCF, depth, flute exposed below the holder), from ToolProfile. ToolProfile warnings such as "Holder over flutes" appear in the result. | ap 0.7" on a tool with 0.4" stickout fails C6 and carries the warning. |
+| B3 | **Wider depth search.** The Z-level grid now spans N = n_min … depth/ap_floor, log-spaced. Slot depth caps (C8) apply as the top of the grid. | A 1/8" tool at depth 3.0" was falsely "infeasible" and is now feasible at N = 6. |
+| B4 | **Per-constraint infeasibility.** "Infeasible" now names the constraint that eliminated the most candidates. `eliminated_by` counts each constraint separately, and the checks are shown at the closest candidate. | |
+| B5 | **C2 uses the worst phase.** It takes the worst flute's chip at the runout phase that maximizes it (24 phases). The invariant is regenerated the same way. | A 3-flute worst chip is 17.8 % higher at the worst phase than at phase 0. |
+| B6 | **C3 wall-normal uses the fy-only centroid.** The deflection uses cen_y = m_y/F_y, not the resultant's centroid. | |
+| B7 | **Local ae refinement and an explicit fz cap.** A golden-section search on ae (log) runs between the chosen cut's grid neighbours. FZ_MAX_IN = 0.1" is now an explicit ceiling, warned when reached. | |
+| B8 | **Binding at the search resolution.** Binding is judged at the resolution the window was found at, or at full resolution after fz backs off, and the result labels which (`binding_resolution`). With no active limit it reports "binding: none" with the margins. | `_Context` no longer swallows OSError/ValueError: a failed vendor-median load is logged and noted in the result. |
+
+**Finishing feed placed at full resolution.** The finishing feed is also placed on the wall target at full resolution. This removes the earlier "target missed by 0.0 µm" readout.
+
+### C. Finishing (user decisions 2026-10-17)
+
+- **C1:** only the wall-generating flute must form a chip. Flutes that rub are a `WARNING: n flute(s) rub` in the result.
+- **Wall target:** the 0.005 mm wall tolerance is a **target**. The optimizer takes the fastest feed that meets it. If no feed does, it returns the feed with the smallest predicted wall error and reports the shortfall. It never returns "infeasible" for this.
+- **Hard part tolerance:** `part_tolerance_in` is optional and off by default. When set, it is a hard C3 limit.
+- **What the target is checked on:** the ripple (`wall_metric="ripple"`) counts fully against the target. The mean is reported separately as `mean_blum_compensable_in`, together with max and ripple, under `wall_target`.
+
+### D. Micro tools (reported; the C2 basis is unchanged)
+
+- **Max feasible TIR.** Every infeasible cut now reports `max_feasible_tir_in`, found by bisection over coarse runs. This is the runout a holder or Blum check must show for the cut to work.
+- **TIR mismatch.** When the machine TIR differs from the TIR `chip_limits.json` was built at (0.0002"), the result notes that the worst-flute limit is not like-for-like.
+- **Slot invariant:** see A.
+- **Alternative C2 basis** (`c2_basis="nominal"`):
+  - C2 is checked on the runout-free chip fz·sin φe/D against the band median.
+  - A second check, C2o, requires the worst-flute chip ≤ the band p90.
+  - It was evaluated but **not adopted**.
+
+| Tool, op | Worst-flute basis (adopted): MRR at TIR 0.0002 / 0.0001 | Nominal basis: MRR at TIR 0.0002 / 0.0001 |
+|---|---|---|
+| T12 adaptive | 0.0341 / 0.0428 | 0.0334 / 0.0359 (ae 0.211·D at 0.0001) |
+| T12 slot | 0.0103 / 0.0136 | 0.0099 / 0.0099 |
+| 1/32" adaptive | infeasible (max TIR 0.00017") / 0.0047 | infeasible (max TIR 0.00011") / 0.0041 (ae 0.155·D) |
+| 1/32" slot | infeasible (max TIR 0.00016") / 0.0016 | infeasible (max TIR 0.00011") / 0.0009 |
+| 1/64" adaptive | infeasible at both (max TIR 0.00008") | infeasible at both (max TIR 0.00004") |
+| 1/64" slot | infeasible at both (max TIR 0.00007") | infeasible at both (max TIR 0.00004") |
+
+**Why micro tools fail, and why the basis doesn't fix it:**
+- Every-flute C1 in roughing needs the thinnest flute to cut. That forces fz·sin φe ≥ about 0.71·TIR plus the edge-radius minimum chip.
+- At TIR 0.0002" and D < ~1/16", that exceeds the vendor *nominal* median chip, so the nominal basis is stricter there, not looser.
+- So runout decides micro feasibility, not the C2 basis. The useful output is `max_feasible_tir_in`.
+
+### E. Reruns
+
+Conditions: 17-4 H1025, Speedio 16k, aggressiveness 50 %, stock to leave 0.05 mm (C3 0.000984"). Finishing is a full-flute wall with 0.05 mm stock. The 1/32" tool is 4FL, LCF 0.09375" (3·D), 1/8" shank, 0.5" stickout.
+
+| Tool | Op | TIR | Cut | fz | SFM | IPM | MRR in³/min | MB/in³ at s 0.22 / 0.04 mm | Binding / wall |
+|---|---|---|---|---|---|---|---|---|---|
+| T1 | adaptive | 0.0002 | 4·D × 0.026·D | 0.00147 | 255 | 45.8 | 0.0738 | 1.91 / 10.5 | C2, C3, C6 |
+| T1 | adaptive | 0.0001 | 4·D × 0.024·D | 0.00175 | 255 | 54.6 | 0.0822 | 2.04 / 11.2 | C2, C3, C6 |
+| T1 | slot | 0.0002 | 0.14·D × D | 0.00034 | 135 | 5.6 | 0.0122 | 1.39 / 7.7 | C3 |
+| T1 | slot | 0.0001 | 0.14·D × D | 0.00041 | 135 | 6.7 | 0.0148 | 1.39 / 7.7 | C3 |
+| T1 | finish | 0.0002 | 4·D × 0.016·D | 0.00029 | 255 | 9.2 | 0.0090 | 3.12 / 17.1 | ripple 5.0 µm (met), mean 2.6, max 5.2; 2 flutes rub |
+| T1 | finish | 0.0001 | 4·D × 0.016·D | 0.00046 | 255 | 14.4 | 0.0142 | 3.12 / 17.1 | ripple 5.0 (met), mean 4.0, max 6.7 |
+| T12 | adaptive | 0.0002 | 3·D × 0.172·D | 0.00029 | 236 | 16.9 | 0.0341 | 1.52 / 8.4 | C2, C3, C6 |
+| T12 | adaptive | 0.0001 | 3·D × 0.151·D | 0.00041 | 243 | 24.2 | 0.0428 | 1.74 / 9.5 | C2, C3, C4, C6 |
+| T12 | slot | 0.0002 | 0.35·D × D | 0.00022 | 141 | 7.5 | 0.0103 | 2.24 / 12.3 | C2, C8 |
+| T12 | slot | 0.0001 | 0.35·D × D | 0.00029 | 141 | 10.0 | 0.0136 | 2.24 / 12.3 | C2, C8 |
+| T12 | finish | 0.0002 | 3·D × 0.031·D | 0.00037 | 262 | 24.0 | 0.0089 | 8.31 / 45.7 | ripple 5.0 (met), mean 2.9, max 5.7; 1 flute rubs |
+| T12 | finish | 0.0001 | 3·D × 0.031·D | 0.00064 | 262 | 40.7 | 0.0150 | 8.31 / 45.7 | ripple 5.0 (met), mean 4.7, max 7.3 |
+| 1/32" | adaptive | 0.0002 | **infeasible**: eliminated by C2 320, C4 79, C3 27; max feasible TIR 0.00017" | | | | | | C2 |
+| 1/32" | adaptive | 0.0001 | 3·D × 0.061·D | 0.00041 | 131 | 26.5 | 0.0047 | 17.2 / 94.3 | C2, C4, C6, C7 |
+| 1/32" | slot | 0.0002 | **infeasible**: C2; max feasible TIR 0.00016" | | | | | | C2 |
+| 1/32" | slot | 0.0001 | 0.14·D × D (C8) | 0.00018 | 131 | 11.5 | 0.0016 | 22.4 / 123.4 | C2, C7, C8 |
+| 1/32" | finish | 0.0002 | 3·D × 0.063·D | 0.00015 | 131 | 9.9 | 0.0018 | 16.6 / 91.4 | ripple 5.0 (met), mean 2.4, max 5.0; 2 flutes rub |
+| 1/32" | finish | 0.0001 | 3·D × 0.063·D | 0.00023 | 131 | 14.8 | 0.0027 | 16.6 / 91.4 | ripple 5.0 (met), mean 3.5, max 6.2 |
+
+**Against Round 4** (same conditions):
+- **T1 adaptive** 0.0768 → 0.0738. The 1/8" C2 band fell from 0.00544 to 0.00486.
+- **T12 adaptive** 0.0269 → 0.0341 at TIR 0.0002", and 0.0362 → 0.0428 at 0.0001". The 1/16" band rose from 0.00504 to 0.00580.
+- **T1 slot** 0.0147 → 0.0122. The slot band is 0.00441 and C3 now binds.
+- **T12 slot** 0.0081 → 0.0103 (slot band 0.00577).
+- **Finishing.** Every case now meets 5 µm, because C1 needs only the wall flute. T12 finishes at 24.0 IPM at TIR 0.0002", against 19.7 IPM for Round 4's wall-flute variant.
+
+**Against v1:** v1 gives T12 adaptive 0.0064, T1 adaptive 0.0194, T12 slot 0.0063 and T1 slot 0.0139 in³/min. Against those:
+- T12 adaptive: 5.3× v1;
+- T1 adaptive: 3.8× v1;
+- T12 slot: 1.6× v1;
+- T1 slot: 0.88× v1, since the new slot invariant is thinner than the side band it used before.
+
+### Step 3 status
+
+Round 5 items A–E are done. Items for step 4 (calibration):
+- the 0.79 force factor;
+- K_r;
+- the Taylor constants and engagement exponent;
+- the aggressiveness map;
+- the Kienzle size effect at µm chips (the stress outliers above).
+
+Items open with the user:
+- whether to change the C2 basis for micro tools (evidence above: runout decides, not the basis);
+- measured runout per tool.

@@ -48,6 +48,7 @@ QUANTITIES = [
     ("F_mean", "F mean", "N"), ("F_peak", "F peak", "N"), ("F_over_D2", "F mean / D²", "N/mm²"),
     ("h_worst", "worst-flute h_max", "mm"), ("h_thin", "thinnest-flute h_max", "mm"), ("h_m", "h_m", "mm"),
     ("h_m_over_D", "h_m / D", ""), ("h_worst_over_D", "h_worst / D", ""),
+    ("h_nominal_over_D", "nominal chip fz·sin φe / D", ""),
     ("q_edge", "F_t per tooth per mm of edge", "N/mm"), ("P_over_D2", "power / D²", "W/mm²"),
 ]
 
@@ -75,7 +76,28 @@ def sigma1(m_nmm, t_nmm, I, c, J):
     return s / 2.0 + math.hypot(s / 2.0, tau)
 
 
-def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1.0, n_theta=360, n_quad=64):
+def chip_row(row, machine):
+    """Chip quantities only (no forces): worst-flute h_max at the worst-chip phase, nominal fz·sin φe."""
+    if pl.missing_geometry(row):
+        return None
+    mat, _ = pl.row_material(row)
+    if mat is None:
+        return None
+    tool, _ = pl.row_tool(row)
+    c = row["cut"]
+    sfm, fz = pl.nominal(c["sfm"]), pl.nominal(c["fz"])
+    ap, ae = min(float(c["ap"]), tool.lcf), min(float(c["ae"]), tool.D)
+    ctx = o._Context(tool, mat, machine, "rough", o.Margins(0.5), 24, 12, deflection_allow=1.0, stress_limit=1e9,
+                     effective_feed_ipm=None, chip_limit_over_D=1.0)
+    pt = o.CutPoint(ctx, ap, ae, 12.0 * sfm / (math.pi * tool.D))
+    D_mm = tool.D * MM
+    return {"id": row["id"], "D": tool.D, "h_worst_over_D": max(pt.chips_c2(fz)[0]) / D_mm,
+            "h_nominal_over_D": o.forces.max_chip_thickness(fz * MM, ae * MM, D_mm) / D_mm}
+
+
+def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1.0, n_theta=144, n_quad=48):
+    if pl.missing_geometry(row):
+        return None
     mat, mat_basis = pl.row_material(row)
     if mat is None:
         return None
@@ -95,7 +117,9 @@ def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1
     ctx = o._Context(tool, mat, machine, "rough", o.Margins(0.5), n_theta, n_quad,
                      deflection_allow=1.0, stress_limit=1e9, effective_feed_ipm=None, chip_limit_over_D=1.0)
     pt = o.CutPoint(ctx, ap, ae, rpm)
-    chips = pt.max_chips_mm(fz)
+    # Like-for-like with the optimizer: the worst chip at the runout phase where it peaks (C2), the thinnest
+    # at the phase where it is smallest (C1).
+    chips, thin = pt.chips_c2(fz)[0], pt.chips_c1(fz)[0]
     f = pt.loads(fz)
     beam = pt._beam(f)
     segs = tool.segments
@@ -104,7 +128,7 @@ def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1
     I, cc, J = section_props(segs[0], D, tool.z, tool.helix_deg, section, tool.core())
     I_s = math.pi * (shank_seg.d0 * MM) ** 4 / 64.0
     s_root = s_shank = 0.0
-    for mag, cen, tq, _ in f["samples"]:
+    for mag, cen, tq, _, _ in f["samples"]:
         a = cen / MM
         if root_x > a:
             s_root = max(s_root, sigma1(mag * (root_x - a) * MM, abs(tq) * 1000.0, I, cc, J))
@@ -120,8 +144,10 @@ def evaluate(row, machine, mat_over=None, section="v1_section", stickout_extra=1
         "delta_in": beam["delta_in"], "delta_over_D": beam["delta_in"] / D,
         "sigma_root": s_root, "sigma_shank": s_shank,
         "F_mean": f["mean_n"], "F_peak": f["peak_n"], "F_over_D2": f["mean_n"] / D_mm ** 2,
-        "h_worst": max(chips), "h_thin": min(chips), "h_m": h_m,
+        "h_worst": max(chips), "h_thin": min(thin), "h_m": h_m,
         "h_m_over_D": h_m / D_mm, "h_worst_over_D": max(chips) / D_mm,
+        "h_nominal_over_D": o.forces.max_chip_thickness(fz * MM, ae * MM, D_mm) / D_mm,
+        "operation": row["operation"],
         "q_edge": ctx.coeffs.kc(h_m) * h_m + ctx.coeffs.k_te,
         "P_over_D2": f["power_kw"] * 1000.0 / D_mm ** 2,
     }
@@ -138,13 +164,26 @@ def stats(vals):
             "p10": q[0], "p90": q[-1], "p90_p10": q[-1] / q[0], "max": vals[-1]}
 
 
-def load_rows():
+def load_rows(operations=pl.OPERATIONS):
     import glob
     rows = []
     for path in sorted(glob.glob(os.path.join(ROOT, "tests", "benchmarks", "v2", "*.json"))):
         with open(path, encoding="utf-8") as fh:
-            rows += [r for r in json.load(fh)["rows"] if r["operation"] in pl.OPERATIONS]
+            rows += [r for r in json.load(fh)["rows"] if r["operation"] in operations]
     return rows
+
+
+def skipped_counts(rows):
+    """Why rows are left out: missing required geometry, or no Kienzle mapping with mc (titanium)."""
+    import collections
+    c = collections.Counter()
+    for r in rows:
+        miss = pl.missing_geometry(r)
+        if miss:
+            c["missing geometry: " + ", ".join(miss)] += 1
+        elif pl.row_material(r)[0] is None:
+            c[pl.row_material(r)[1]] += 1
+    return dict(c)
 
 
 def invariants(rows, tir=0.0002):
@@ -215,26 +254,47 @@ def stickout_sensitivity(rows):
     return out
 
 
-def chip_limits(rows, tir=0.0002):
-    """C2's basis (user decision 2026-10-16): worst-flute h_max / D per band (p10, median, p90)."""
-    inv, ev = invariants(rows, tir)
+def _chip_bands(ev, key):
     bands = []
     for name, lo, hi in pl.BANDS:
-        st = inv["bands"][name]["h_worst_over_D"]
+        st = stats([e[key] for e in ev if lo <= e["D"] < hi])
+        if st.get("n", 0) < 2:
+            continue
         bands.append({"band": name, "d_min": lo, "d_max": hi if hi != math.inf else 1e9, "n": st["n"],
-                      "h_worst_over_D": st["median"], "p10": st["p10"], "p90": st["p90"]})
+                      "h_worst_over_D": st["median"], "p10": st["p10"], "p90": st["p90"], "cv": st["cv"]})
+    return bands
+
+
+def chip_limits(rows=None, slot_rows=None, tir=0.0002):
+    """C2's basis (user decision 2026-10-16) and the Round 5 alternatives, per diameter band (p10/median/p90).
+
+    bands: worst-flute h_max / D (eccentric runout at its worst-chip phase) over side/rough/HEM rows (the
+    adopted C2); slot_bands: the same over slot rows (C2 for slots); nominal_bands / slot_nominal_bands:
+    the runout-free fz·sin φe / D (the evaluated alternative). The key "h_worst_over_D" holds the median in
+    every table.
+    """
+    rows = rows if rows is not None else load_rows()
+    slot_rows = slot_rows if slot_rows is not None else load_rows(("slot",))
+    mach = o.speedio_16k(tir)
+    ev = [e for e in (chip_row(r, mach) for r in rows) if e]
+    evs = [e for e in (chip_row(r, mach) for r in slot_rows) if e]
     return {"status": "C2 basis (user decision 2026-10-16): vendor median worst-flute chip / D per band",
             "generated_by": "tools/v2_invariants.py",
-            "quantity": "worst flute's h_max (eccentric runout at TIR 0.0002\", worst phase) / D, over the vendor "
-                        "side/rough/HEM rows on their own catalog geometry and material",
-            "tir_in": tir, "overall": inv["overall"]["h_worst_over_D"], "bands": bands}
+            "quantity": "worst flute's h_max (eccentric runout at TIR 0.0002\", the phase where the worst chip "
+                        "peaks) / D, over vendor rows on their own catalog geometry and material",
+            "tir_in": tir, "n_rows": len(ev), "n_slot_rows": len(evs),
+            "skipped": skipped_counts(rows), "skipped_slot": skipped_counts(slot_rows),
+            "overall": stats([e["h_worst_over_D"] for e in ev]),
+            "bands": _chip_bands(ev, "h_worst_over_D"), "slot_bands": _chip_bands(evs, "h_worst_over_D"),
+            "nominal_bands": _chip_bands(ev, "h_nominal_over_D"),
+            "slot_nominal_bands": _chip_bands(evs, "h_nominal_over_D")}
 
 
 def write_chip_limits(rows=None):
     out = chip_limits(rows or load_rows())
     path = os.path.join(ROOT, "data", "model_v2", "chip_limits.json")
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, indent=1, ensure_ascii=False)
+        json.dump(out, fh, indent=1, ensure_ascii=True)
         fh.write("\n")
     return out, path
 
@@ -242,9 +302,13 @@ def write_chip_limits(rows=None):
 def main():
     rows = load_rows()
     chips, chip_path = write_chip_limits(rows)
-    print("C2 chip limits (worst-flute h_max / D):")
-    for b in chips["bands"]:
-        print(f"  {b['band']:10} n {b['n']:3} median {b['h_worst_over_D']:.5f} (p10 {b['p10']:.5f}, p90 {b['p90']:.5f})")
+    for key in ("bands", "slot_bands", "nominal_bands", "slot_nominal_bands"):
+        print(f"C2 {key}:")
+        for b in chips[key]:
+            print(f"  {b['band']:10} n {b['n']:4} median {b['h_worst_over_D']:.5f} (p10 {b['p10']:.5f}, "
+                  f"p90 {b['p90']:.5f}, p90/p10 {b['p90'] / b['p10']:.1f})")
+    print(f"rows {chips['n_rows']} side/rough/HEM, {chips['n_slot_rows']} slot; skipped {chips['skipped']} / "
+          f"slot {chips['skipped_slot']}")
     print(f"wrote {chip_path}")
     if "--chip-only" in sys.argv:
         return
@@ -256,7 +320,7 @@ def main():
               "rows": ev}
     path = os.path.join(ROOT, "data", "model_v2", "invariants.json")
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(result, fh, indent=1, ensure_ascii=False)
+        json.dump(result, fh, indent=1, ensure_ascii=True)
         fh.write("\n")
     print(f"{'quantity':32} {'overall CV':>10} {'p90/p10':>8} | per band p90/p10")
     for key, label, unit in QUANTITIES:
