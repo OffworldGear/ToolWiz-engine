@@ -698,10 +698,17 @@ def fit_level_consensus(train, base, hb_ref, families, knees=(0.125, 0.25, 0.5, 
     table = build_consensus(train)
     eng, hard = base["engagement"], base["hardness"]
     obs = []
+    single = collections.Counter()
     for e in train:
         b = row_consensus(table, e)
         if not b:
-            continue
+            # No 2-group consensus even after widening: the level target falls back to the exact cell's own
+            # vendor median (one vendor group), so every family keeps a fitted level. Counted and reported.
+            b = o.consensus_lookup(table, e["family"], e["hb"], e["D"], OPERATION[e["operation"]], e["ae_over_D"],
+                                   min_groups=1)
+            if not b:
+                continue
+            single[e["family"]] += 1
         y = (math.log(b["sfm"] / e["c9"]) + eng["k"] * math.log(max(e["ae_over_D"], eng["ae_min"]))
              + hard[e["family"]]["q"] * math.log(e["hb"] / hb_ref[e["family"]]))
         obs.append((e, y))
@@ -717,6 +724,7 @@ def fit_level_consensus(train, base, hb_ref, families, knees=(0.125, 0.25, 0.5, 
         speed = dict(base, families={f: {"vc_ref_sfm": math.exp(coef[i]), "hb_ref": hb_ref[f],
                                          "q": hard[f]["q"], "q_basis": hard[f]["basis"],
                                          "n_rows": sum(1 for e, _ in obs if e["family"] == f),
+                                         "n_rows_single_vendor_target": single.get(f, 0),
                                          "vendor_groups": sorted({e["vendor_group"] for e, _ in obs
                                                                   if e["family"] == f})}
                                      for i, f in enumerate(families)},
@@ -1172,10 +1180,19 @@ def gate(s5_75, s5_50, ceiling):
             row[f"mal_{q}_75"] = mal
             row[f"ceiling_{q}"] = ceil
             row[f"mal_{q}_ok"] = mal is not None and ceil is not None and mal <= ceil
-        row["bias_mrr_vs_median_mrr_75"] = a.get("bias_vs_median_mrr_own")
-        row["bias_mrr_vs_median_mrr_50"] = h.get("bias_vs_median_mrr_own")
+        # MRR (R-B, option a): against median speed × median chip, i.e. the band's SFM bias + fz bias. The row-level
+        # median against that product and the gap to the median MRR are reported, not gated.
+        for tag, src in (("75", a), ("50", h)):
+            row[f"mrr_rowwise_vs_product_{tag}"] = src.get("bias_vs_median_mrr")
+            row[f"mrr_vs_median_mrr_{tag}"] = src.get("bias_vs_median_mrr_own")
+        mrr = {tag: (src.get("bias_vs_median_sfm") + src.get("bias_vs_median_fz")
+                     if src.get("bias_vs_median_sfm") is not None and src.get("bias_vs_median_fz") is not None else None)
+               for tag, src in (("75", a), ("50", h))}
         for q in ("sfm", "fz", "mrr"):
-            b75, b50 = a.get("bias_vs_median_" + q), h.get("bias_vs_median_" + q)
+            if q == "mrr":
+                b75, b50 = mrr["75"], mrr["50"]
+            else:
+                b75, b50 = a.get("bias_vs_median_" + q), h.get("bias_vs_median_" + q)
             row[f"bias_{q}_75"], row[f"bias_{q}_50"] = b75, b50
             row[f"bias_{q}_75_ok"] = b75 is not None and abs(b75) <= 0.10
             row[f"bias_{q}_50_ok"] = b50 is not None and -0.20 <= b50 <= 0.0

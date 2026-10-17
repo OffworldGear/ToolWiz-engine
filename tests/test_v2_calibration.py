@@ -126,6 +126,19 @@ class TestParameterFiles(unittest.TestCase):
                        robustness=False, find_tir=False, grid=(6, 4))
         self.assertTrue(r["feasible"])
 
+    def test_every_family_has_a_sensible_speed_level(self):
+        p = params.load()
+        for fam, f in p["families"].items():
+            if "speed" in f:
+                self.assertGreater(f["speed"]["vc_ref_sfm"]["value"], 30.0, fam)
+
+    def test_profile_validation_keeps_holder_stiffness(self):
+        import machine_profiles
+        with open(os.path.join(machine_profiles.BUILTIN_DIR, "speedio_s500x2.json"), encoding="utf-8") as fh:
+            clean, errors = machine_profiles.validate_profile(json.load(fh))
+        self.assertEqual(errors, [])
+        self.assertIn("k_n_um", clean["holder_stiffness"])
+
     def test_machine_profile_holder_stiffness(self):
         m = params.machine()
         self.assertGreater(m.holder_k_n_um, 0)
