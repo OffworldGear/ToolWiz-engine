@@ -50,7 +50,9 @@ Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: th
 
 **Step 4 round 2 (2026-10-17):** aggressiveness is anchored to the vendor consensus: 75 % = vendor median, 50 % = 0.92×. Also new: the C14 vendor-consensus guardrail (`data/model_v2/consensus.json`), a provisional BT30 compliance in C3, and an empirical diameter term in C7. Speed and chip load meet the new §5 gate in every band; MRR does not, for a structural reason. Six round-2 decisions (R-A…R-F) are in `docs/research/v2_calibration_findings.md` §R2.9. User action: measure BT30 stiffness on the Speedio (tap test or static push).
 
-Next is step 5, pipeline integration, once those decisions are made.
+**Step 4 round 3 (2026-10-17): complete.** The user's R-A…R-F decisions are applied. C14 now needs ≥ 2 independent vendor groups and widens stepwise (diameter band, then engagement class, then hardness bin). MRR is gated against median speed × median chip. BT30 stiffness is the `holder_stiffness` field of `machines/speedio_s500x2.json` (provisional until the user's push-load test). `physics_v2/params.py` loads the calibrated defaults. The §5 gate passes in 5 of 6 bands; 1/16–3/32" misses by 0.011 on MRR at 50 % because of the runout chip floor. See `docs/research/v2_calibration_findings.md` Round 3.
+
+Next is step 5, pipeline integration behind TOOLWIZ_MODEL=v2.
 
 ## User actions
 

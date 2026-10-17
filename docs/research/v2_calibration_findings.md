@@ -2,6 +2,145 @@
 
 _2026-10-17. Design step 4 of §6 in `docs/PHYSICS_MODEL_DESIGN.md`. Branch `toolwiz/v2-step4` from `toolwiz/hardening` (b03ee1b). The v1 engine and the pipeline are unchanged._
 
+## Round 3 (2026-10-17): the user's decisions applied; step 4 complete
+
+**Decisions applied (user, via the local session):**
+
+| # | Decision | Applied as |
+|---|---|---|
+| R-A | Accept the aggressiveness points (0.76 / 0.92 / 1.00 / 1.10) and the C4 ramp | `optimize.Margins(scheme="consensus")`, unchanged from Round 2 |
+| R-B | Gate MRR against median speed × median chip, and keep reporting the gap to the median MRR | MRR gate bias = the band's SFM bias + fz bias. The row-wise figure and the gap to the median MRR are in `calibration_report.json` (`gate`) |
+| R-C | C14 needs ≥ 2 independent vendor groups; when fewer, widen stepwise and report the widening; physics only after that | `optimize.consensus_lookup` (below) |
+| R-D | Keep the per-area, per-flute MRR comparison | Unchanged (C14m on feed per flute fz·n) |
+| R-E | BT30 static stiffness to be measured by the user; keep the provisional ~31 N/µm as a machine-profile field | `machines/speedio_s500x2.json` `holder_stiffness` |
+| R-F | Accept the slow-side hold-out speed margin; report whether R-C reduces it | It does (R3.4) |
+
+**R-C details:**
+- **Vendor groups:** Harvey + Helical count as one group, Sandvik + Seco as one.
+- **Widening steps** (cumulative): the neighbouring diameter band, then the neighbouring engagement class, then the neighbouring hardness bin.
+- **Output:** each C14 check names the bucket, the widening used and the vendor groups. When fewer than 2 groups remain, the check says so and the physics result stands.
+
+**R-E details:**
+- `holder_stiffness` holds k 31.4 N/µm, k_θ 0.126 N·m/µrad and the status/source text.
+- `machine_profiles.validate_profile` now keeps the field, so a profile saved from the web editor retains it.
+- `optimize.speedio_16k(holder=True)` and `params.machine()` read it. **Replace the two numbers with the push-load result.**
+
+**The calibrated defaults are what `physics_v2/params.py` loads:**
+- `params.material(family, hb, coating)`: calibrated Kienzle, tool factor 0.791, speed law, consensus offsets.
+- `params.margins(a)`: the consensus scheme.
+- `params.machine()`: the Speedio with the profile's holder stiffness.
+- `params.optimize(tool, material, operation, aggressiveness)`: all of these plus C14 from `data/model_v2/consensus.json`.
+
+`optimize.optimize` called directly keeps the step-3 defaults (legacy margins, no C14, rigid holder) until step 5 switches the pipeline.
+
+### R3.1 What changed in the fit
+
+- **The level target is now the 2-group consensus.** The C7 level is fitted (least absolute deviations over the training rows) against each row's ≥ 2-group, widened vendor median, as C14 finds it.
+- **Rows with no 2-group consensus** fall back to their exact cell's single-vendor median. That is 203 of the 1,912 training rows, counted per family in `calibration_report.json`. For 420 stainless it is all 21 rows: no 420 cell has two vendor groups. Without the fallback the 420 level was undefined; a guard test now checks every family's level.
+- **The empirical diameter term goes to zero:** the grid picks m = 0. Round 2's D^0.075 was an artefact of single-vendor buckets, mostly Harvey's slow micro series counted as a consensus. With two independent groups the micro bands sit on the median without it.
+- **Consensus offsets:** speed ×1.025, C2 ×1.125 (Round 2: 1.025, 1.075).
+
+**Levels** (slot, at the family's median HB; vendor median → with the speed offset):
+
+| Family | SFM | Family | SFM |
+|---|---|---|---|
+| 17-4 PH | 185 → 190 | H13 | 196 → 201 |
+| 316 | 223 → 229 | Ti alloys | 178 → 182 |
+| 420 (single-vendor target) | 417 → 427 | Nickel alloys | 75 → 77 |
+| 4130/4140 | 340 → 348 | 6061 | 1562 → 1602 |
+| 1045 | 450 → 462 | 1020 | 179 → 184 |
+
+### R3.2 How often C14 had to widen
+
+Rows' own cuts:
+
+| | Exact bucket | + band | + engagement | + hardness | None (physics) |
+|---|---|---|---|---|---|
+| All rows, C14 from all rows | 1,760 | 227 | 362 | 268 | 187 |
+| Hold-out rows, C14 from training rows | 313 | 103 | 104 | 229 | 143 |
+
+### R3.3 The §5 gate (the product: all rows, C14 from all rows)
+
+| Band | Median \|log\| SFM / fz at 75 % (vendors' own) | Bias at 75 %: SFM / fz / MRR | Bias at 50 %: SFM / fz / MRR | Gap to median MRR at 75 % / 50 % (reported) | Gate |
+|---|---|---|---|---|---|
+| 1/64–3/64 | 0.37 / 0.44 (0.72 / 1.10) | 0.000 / −0.089 / −0.089 | −0.083 / −0.088 / −0.172 | −0.24 / −0.35 | **PASS** |
+| 1/16–3/32 | 0.33 / 0.29 (0.73 / 0.65) | 0.000 / −0.025 / −0.025 | −0.083 / −0.127 / **−0.211** | −0.18 / −0.40 | fails by 0.011 on MRR at 50 % |
+| 1/8–3/16 | 0.29 / 0.29 (0.45 / 0.39) | 0.000 / −0.014 / −0.014 | −0.083 / −0.084 / −0.168 | −0.15 / −0.31 | **PASS** |
+| 1/4–3/8 | 0.29 / 0.25 (0.38 / 0.35) | −0.015 / −0.001 / −0.016 | −0.098 / −0.085 / −0.182 | −0.16 / −0.33 | **PASS** |
+| 1/2–3/4 | 0.27 / 0.20 (0.29 / 0.30) | −0.025 / −0.028 / −0.053 | −0.108 / −0.085 / −0.193 | −0.15 / −0.32 | **PASS** |
+| ≥ 1 | 0.23 / 0.19 (0.27 / 0.27) | −0.004 / −0.011 / −0.015 | −0.087 / −0.085 / −0.172 | −0.14 / −0.31 | **PASS** |
+
+- **The 1/16–3/32" exception** is chip load at 50 %: −0.127 against the scale's −0.083. In that band the every-flute chip at 0.0002" TIR (C1) and the worst-flute chip limit (C2) hold fz below 0.92 × the median on many rows.
+  - C1 is a physics limit and is never relaxed.
+  - A smaller measured runout (Blum) moves it. At 75 % the band is on the median.
+- **Accuracy is worse than Round 2:** median |log| at 75 % is 0.28 / 0.25 overall (Round 2 0.19 / 0.20), because the target is now a 2-group consensus rather than each row's own vendor. It is still inside the vendors' own disagreement in every band.
+- **Pass rates** (±10 % of each vendor's range) at 75 %: 38 % SFM, 23 % fz. The vendor-consensus ceiling is 30 % / 17 %.
+
+### R3.4 Hold-out (C14 from the training rows) and R-F
+
+The slow-side SFM margin at 75 %, Round 2 → Round 3:
+
+| Band | 1/64–3/64 | 1/16–3/32 | 1/8–3/16 | 1/4–3/8 | 1/2–3/4 | ≥ 1 |
+|---|---|---|---|---|---|---|
+| Round 2 (single-vendor buckets allowed) | −0.256 | −0.266 | −0.113 | −0.123 | −0.105 | −0.168 |
+| **Round 3 (≥ 2 groups, widened)** | −0.121 | −0.055 | −0.113 | −0.131 | −0.138 | −0.165 |
+
+**The R-C widening reduces the margin** most in the micro bands: by 0.135 at 1/64–3/64 and 0.21 at 1/16–3/32. From 1/8" up it is unchanged within ±0.03. That is the accepted document-to-document spread.
+
+**Fast side, flagged:** at 1/64–3/64" hold-out chip load runs +0.19 (75 %) and +0.15 (50 %) above the median, on 126 micro rows. The training buckets there come mostly from widening across hardness and band, so out of sample they can sit above a specific micro chart. It does not appear in the product (C14 from all rows): −0.089. **The physics limits (C1, C2, C4) still apply on top.**
+
+### R3.5 T1 and T12 in 17-4 H1025 (356 HB), Speedio 16k with the profile's BT30 stiffness, TIR 0.0002", stock 0.05 mm
+
+"Before" is the step-3 defaults with a rigid holder.
+
+| Tool | Op | Model | ap | ae | fz | SFM | IPM | MRR in³/min | Binding | Holder share of wall |
+|---|---|---|---|---|---|---|---|---|---|---|
+| T1 | adaptive | before | 4·D | 0.026·D | 0.00147 | 255 | 45.8 | 0.0738 | C2, C3, C6 | — |
+| T1 | adaptive | 50 % | 4·D | 0.056·D | 0.00059 | 213 | 15.4 | **0.0541** | C3, C6, C14f | 8 % |
+| T1 | adaptive | 75 % | 4·D | 0.053·D | 0.00064 | 234 | 18.4 | **0.0610** | C3, C6, C14f | 8 % |
+| T1 | slot | before | 0.14·D | D | 0.00034 | 135 | 5.6 | 0.0122 | C3 | — |
+| T1 | slot | 50 % | 0.19·D | D | 0.00029 | 129 | 4.5 | 0.0132 | C3, C14v | 4 % |
+| T1 | slot | 75 % | 0.14·D | D | 0.00043 | 140 | 7.3 | 0.0160 | C14f, C14v | 4 % |
+| T1 | finish | before | 4·D | 0.016·D | 0.00029 | 255 | 9.2 | 0.0090 | C3, C6 | — |
+| T1 | finish | 50 % | 4·D | 0.016·D | 0.00040 | 217 | 10.6 | 0.0105 | C3 (5 µm ripple met), C6 | 6 % |
+| T1 | finish | 75 % | 4·D | 0.016·D | 0.00040 | 236 | 11.6 | 0.0114 | C3, C6 | 6 % |
+| T12 | adaptive | before | 3·D | 0.172·D | 0.00029 | 236 | 16.9 | 0.0341 | C2, C3, C6 | — |
+| T12 | adaptive | 50 % | 3·D | 0.209·D | 0.00029 | 180 | 12.7 | 0.0310 | C2, C3, C6 | 7 % |
+| T12 | adaptive | 75 % | 3·D | 0.186·D | 0.00034 | 200 | 16.7 | 0.0364 | C2, C3, C6 | 7 % |
+| T12 | slot | before | 0.35·D | D | 0.00022 | 141 | 7.5 | 0.0103 | C2, C8 | — |
+| T12 | slot | 50 % | 0.35·D | D | 0.00023 | 141 | 8.0 | 0.0109 | C2, C8 | 5 % |
+| T12 | slot | 75 % | 0.35·D | D | 0.00026 | 153 | 9.9 | 0.0136 | C2, C8 | 5 % |
+| T12 | finish | before | 3·D | 0.031·D | 0.00037 | 262 | 24.0 | 0.0089 | C3, C6, C7 | — |
+| T12 | finish | 50 % | 3·D | 0.031·D | 0.00052 | 225 | 28.8 | 0.0106 | C3 (5 µm met), C6 | 6 % |
+| T12 | finish | 75 % | 3·D | 0.031·D | 0.00052 | 245 | 31.3 | 0.0115 | C3, C6 | 6 % |
+
+**The two cuts the user asked about (R-C):**
+
+| Cut | Round 2 cap | Round 3 cap |
+|---|---|---|
+| **T1 adaptive** | 3 Harvey rows at 140 SFM, fz 0.00045 | Bucket 17-4, 350–399 HB, 1/8–3/16", HEM, light engagement, widened to the neighbouring hardness bin: **23 rows from 4 vendor groups (Garr, Kennametal, Kyocera, Sandvik)**. Vendor median 390 SFM (not binding: C7 gives 213 / 234), fz 0.000644" (binding at 75 %; 0.000592" = 0.92× at 50 %). MRR 0.054 / 0.061 in³/min: 2.8× / 3.1× v1, against 0.029 / 0.032 in Round 2 |
+| **T12 finishing** | Harvey only, about 100 SFM | **No 2-group consensus**, even after widening to the neighbouring band, engagement and hardness: only Harvey publishes 17-4 finishing at 1/16" light engagement there. **The physics result stands**: C7 speed 225 / 245 SFM, fz on the 5 µm wall target. The C14 check says so |
+
+**Other caps:**
+- **T1 slot:** the exact bucket, Harvey + OSG, 7 rows. Median 140 SFM, fz 0.000425".
+- **T12 adaptive:** 3 groups (Garr, Kennametal, Kyocera), widened to hardness. Median 371 SFM, not binding; fz 0.000375", not binding (C2 and C3 bind).
+- **T12 slot:** Garr + Harvey, exact bucket. Not binding (C2, C8).
+
+**BT30 compliance:** 4–8 % of the wall deflection, through C3 wherever C3 binds.
+
+### R3.6 Status
+
+**Step 4 is complete.** What the local session takes into step 5:
+- the code in `physics_v2/` (`optimize.py`, `params.py`, `forces.py`);
+- the data in `data/model_v2/` (`materials.json`, `tools.json`, `consensus.json`, `chip_limits.json`);
+- the machine-profile field `holder_stiffness`;
+- `tools/calibrate_v2.py`, which regenerates everything from the benchmark rows.
+
+**Open, outside step 4:**
+- the measured BT30 stiffness (user);
+- a measured runout per tool (Blum), which is what moves the 1/16–3/32" chip floor;
+- Round 1's finishing speed question is settled by C14 where ≥ 2 vendor groups publish finishing; elsewhere C7's engagement credit stands.
+
 ## Round 2 (2026-10-17): aggressiveness anchored to the vendor consensus
 
 The user's refinement replaces items 4, 5 and 6 of Round 1's decisions (speed levels and coating, the aggressiveness map, C2 per band). **Round 1 (§1–§9 below) is kept as the record.** Its force scale, thin-chip, titanium, engagement and hardness results stand. Its speed level (§4 "Level"), aggressiveness map (§5), benchmark tables (§7) and T1/T12 (§8) are superseded by this section.

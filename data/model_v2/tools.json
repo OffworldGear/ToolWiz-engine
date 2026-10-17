@@ -111,7 +111,7 @@
  },
  "C14": {
   "basis": "data/model_v2/consensus.json",
-  "source": "Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per unit engaged area and flute) \u2264 consensus_scale(a) \u00d7 the vendor median of the matching bucket (family, hardness, diameter band, operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data \u2192 the physics result"
+  "source": "Vendor consensus (user decisions 2026-10-17): speed, chip load and MRR (per unit engaged area and flute) \u2264 consensus_scale(a) \u00d7 the vendor median of the matching bucket (family, hardness, diameter band, operation, engagement) with \u2265 2 independent vendor groups, widened stepwise (diameter band, engagement, hardness) when fewer; data/model_v2/consensus.json from the benchmark rows; none \u2192 the physics result"
  },
  "machine_bt30": {
   "k_spindle_n_um": {
@@ -130,6 +130,7 @@
    "value": 31.368,
    "source": "series of the two translational values above"
   },
-  "status": "PROVISIONAL BT30: spindle \u226580 N/\u00b5m (NK Enginex spec) in series with a holder-tool joint 51.6 N/\u00b5m and 0.126 N\u00b7m/\u00b5rad (\u00d6z\u015fahin et al. 2009, BT40, 16 mm tool); measure on the Speedio"
+  "status": "PROVISIONAL BT30: spindle \u226580 N/\u00b5m (NK Enginex spec) in series with a holder-tool joint 51.6 N/\u00b5m and 0.126 N\u00b7m/\u00b5rad (\u00d6z\u015fahin et al. 2009, BT40, 16 mm tool); measure on the Speedio",
+  "stored_in": "machines/speedio_s500x2.json holder_stiffness (user-editable machine profile field; optimize.speedio_16k(holder=True), params.machine())"
  }
 }
