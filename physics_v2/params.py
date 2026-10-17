@@ -84,6 +84,9 @@ def material(family, hb=None, coating=None, path=None, **overrides):
         dia = p.get("speed_diameter")
         if dia:
             kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))
+    off = p.get("consensus_offsets")
+    if off:
+        kw["c2_scale"] = float(off["c2"]["value"])
     kw.update(overrides)
     return o.Material(**kw)
 

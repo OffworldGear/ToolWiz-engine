@@ -704,9 +704,10 @@ def c13_program_size(ap_in, ae_in, volume_in3, limit_bytes, spacing_mm=POINT_SPA
 # per bucket (family, hardness bin, diameter band, operation class, engagement class), each vendor group's median
 # SFM, fz/D and MRR/D³ and their median over the groups (the vendor median, each group counted once).
 CONSENSUS_OPERATION = {"slot": "slot", "rough": "side", "adaptive": "hem", "finish": "finish"}
-SRC["C14"] = ("Vendor consensus (user decision 2026-10-17): speed, chip load and MRR ≤ consensus_scale(a) × the "
-              "vendor median of the matching bucket (family, hardness, diameter band, operation, engagement), "
-              "data/model_v2/consensus.json from the benchmark rows; no matching vendor data → the physics result")
+SRC["C14"] = ("Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per inch of depth) ≤ "
+              "consensus_scale(a) × the vendor median of the matching bucket (family, hardness, diameter band, "
+              "operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data → "
+              "the physics result")
 
 
 def load_consensus(path):
@@ -770,7 +771,12 @@ def c14_feed_checks(pt, fz_in):
     D = ctx.tool.D
     fz_med = cons["fz_over_D"] * D
     mrr = pt.mrr_in3_min(fz_in)
-    mrr_med = cons["mrr_over_D3"] * D ** 3
+    if "mrr_per_ap_over_D2" in cons:
+        # MRR per inch of depth: vendors' depth follows their own flute length, not capability, so depth is left
+        # to the physics limits (C3, C4, C6) and the cap is on the removal rate per unit depth.
+        mrr_med = cons["mrr_per_ap_over_D2"] * D ** 2 * pt.ap
+    else:
+        mrr_med = cons["mrr_over_D3"] * D ** 3
     return {
         "C14f": Check("C14f", "vendor-consensus chip load", "max", fz_in, s * fz_med, "in", SRC["C14"],
                       detail=_c14_detail(cons, f"fz {fz_in:.6f}\" vs {s:.2f} × vendor median {fz_med:.6f}\"")),

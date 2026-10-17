@@ -183,10 +183,11 @@ class TestConsensusScheme(unittest.TestCase):
         self.assertAlmostEqual(v_small / v_big, 0.25 ** 0.1, places=9)
         self.assertAlmostEqual(o.taylor_speed_m_min(m, phi, D_mm=25.4, speed_scale=0.92) / v_big, 0.92, places=12)
 
-    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9):
+    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9, mrr_per_ap_over_D2=1e9):
         bands = [{"band": "1/8-3/16", "d_min": 0.1, "d_max": 0.2}]
         eng = [["light", 0.0, 0.1], ["medium", 0.1, 0.25], ["heavy", 0.25, 0.99], ["slot", 0.99, 1e9]]
-        b = {"sfm": sfm, "fz_over_D": fz_over_D, "mrr_over_D3": mrr_over_D3, "n_rows": 5,
+        b = {"sfm": sfm, "fz_over_D": fz_over_D, "mrr_over_D3": mrr_over_D3,
+             "mrr_per_ap_over_D2": mrr_per_ap_over_D2, "n_rows": 5,
              "vendor_groups": ["A", "B"]}
         return {"bands": bands, "engagement_classes": eng, "hb_bin_fine": 50, "hb_bin_coarse": 100,
                 "buckets": {"L1|Stainless - PH Series (17-4)|7|1/8-3/16|slot|slot": b}}

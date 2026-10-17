@@ -788,6 +788,7 @@ def build_consensus(evals):
         buckets[key] = {
             "sfm": med(lambda x: x["sfm"]), "fz_over_D": med(lambda x: x["fz"] / x["D"]),
             "mrr_over_D3": med(lambda x: x["mrr"] / x["D"] ** 3),
+            "mrr_per_ap_over_D2": med(lambda x: x["mrr"] / (x["ap"] * x["D"] ** 2)),
             "n_rows": len(rows), "vendor_groups": sorted(by_vg),
             "family": rows[0]["family"], "D": statistics.median(x["D"] for x in rows),
             "hb": statistics.median(x["hb"] for x in rows), "ae_over_D": statistics.median(x["ae_over_D"] for x in rows),
@@ -796,7 +797,8 @@ def build_consensus(evals):
     return {"version": VERSION, "generated_by": "tools/calibrate_v2.py",
             "status": "C14 vendor-consensus buckets (user decision 2026-10-17)",
             "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry; each vendor group's median, "
-                      "then the median over vendor groups",
+                      "then the median over vendor groups. C14m uses mrr_per_ap_over_D2 (MRR per inch of depth / D²); "
+                      "mrr_over_D3 is kept for reference",
             "bands": [{"band": n, "d_min": lo, "d_max": hi if hi != math.inf else 1e9} for n, lo, hi in BANDS],
             "engagement_classes": [[n, lo, hi] for n, lo, hi in ENGAGEMENT_CLASSES],
             "hb_bin_fine": HB_BIN_FINE, "hb_bin_coarse": HB_BIN_COARSE,
@@ -804,6 +806,75 @@ def build_consensus(evals):
                        "L2": "family, 100-HB bin, band, operation class, engagement class",
                        "L3": "family, 100-HB bin, band, any operation, engagement class"},
             "buckets": buckets}
+
+
+def fit_consensus_offsets(train, rows_by_id, speed, table, target=-0.02, grid=None):
+    """Offsets on the C7 level and the C2 limit so that, AFTER the C14 caps, the 75 % output sits on the vendor
+    median in every band (user, 2026-10-17: bias ≈ 0 at 75 %).
+
+    At 75 % C14 caps speed, chip load and MRR at 1.00 × the bucket median, so the output is min(physics,
+    median). A law centred on the median would leave half the rows below it and a negative median bias; the
+    physics side must sit a little above the median for the caps to land the output on it. Each offset is the
+    smallest (on the grid) that brings every band's median realized bias on the training rows to ≥ `target`.
+    The realized values are computed directly: SFM = min(law·offset, cap); fz = min(C2 fz at the scaled limit,
+    the C14 chip cap, the C14 MRR cap at that SFM). C4/C5 are left to the benchmark that follows.
+    """
+    grid = grid or [1.0 + 0.025 * i for i in range(41)]
+    mach = reference_machine()
+    recs = []
+    for e in train:
+        cons = o.consensus_lookup(table, e["family"], e["hb"], e["D"], OPERATION[e["operation"]], e["ae_over_D"])
+        if not cons:
+            continue
+        key = "slot_bands" if e["operation"] == "slot" else "bands"
+        band = o.chip_limit(e["D"], key=key)
+        if band.get("n", 0) < 3:
+            band = o.chip_limit(e["D"])
+        recs.append({"e": e, "cons": cons, "law": predict_sfm(speed, e), "h_band": band["h_worst_over_D"]})
+
+    def realized_sfm(r, k):
+        return min(r["law"] * k, r["cons"]["sfm"])
+
+    def band_bias(vals):
+        by = collections.defaultdict(list)
+        for r, v in vals:
+            by[r["e"]["band"]].append(v)
+        return {b: statistics.median(v) for b, v in by.items()}
+
+    k_s = grid[-1]
+    for k in grid:
+        bb = band_bias([(r, math.log(realized_sfm(r, k) / r["cons"]["sfm"])) for r in recs])
+        if min(bb.values()) >= target:
+            k_s = k
+            break
+    sfm_bias = band_bias([(r, math.log(realized_sfm(r, k_s) / r["cons"]["sfm"])) for r in recs])
+    cache = {}
+    fz_unit = {}
+    for r in recs:
+        e = r["e"]
+        # fz at which the worst-flute chip equals the band limit (scale 1); C2 fz scales almost linearly with it
+        fz_unit[e["id"]] = _fz_for_worst_chip(rows_by_id[e["id"]], e, r["h_band"] * e["D"] * MM, mach, cache)
+
+    def realized_fz(r, k_c):
+        e = r["e"]
+        fz_c2 = _fz_for_worst_chip(rows_by_id[e["id"]], e, k_c * r["h_band"] * e["D"] * MM, mach, cache)
+        cap_f = r["cons"]["fz_over_D"] * e["D"]
+        sfm = realized_sfm(r, k_s)
+        rpm = 12.0 * sfm / (math.pi * e["D"])
+        cap_m = r["cons"]["mrr_per_ap_over_D2"] * e["D"] ** 2 / (e["ae"] * e["z"] * rpm)
+        return min(fz_c2, cap_f, cap_m)
+
+    k_c = grid[-1]
+    for k in grid:
+        bb = band_bias([(r, math.log(realized_fz(r, k) / (r["cons"]["fz_over_D"] * r["e"]["D"]))) for r in recs])
+        if min(bb.values()) >= target:
+            k_c = k
+            break
+    fz_bias = band_bias([(r, math.log(realized_fz(r, k_c) / (r["cons"]["fz_over_D"] * r["e"]["D"]))) for r in recs])
+    return {"speed_offset": k_s, "c2_offset": k_c, "target_band_bias": target, "n_rows": len(recs),
+            "predicted_band_bias_75": {"sfm": sfm_bias, "fz": fz_bias},
+            "basis": "smallest grid value (1.000–2.000 by 0.025) bringing every band's median realized bias on the "
+                     "training rows to ≥ the target, with C14 capping at 1.00 × the training-bucket vendor median"}
 
 
 def consensus_spread(evals):
@@ -1020,7 +1091,7 @@ def section5(rows_by_id, evals, bench, train_mask=None, table=None):
             if b["feasible"]:
                 rec["med_fz"] = math.log(b["fz"] / e["D"] / bk["fz_over_D"])
                 mrr = e["mrr"] * (b["sfm"] / e["sfm"]) * (b["fz"] / e["fz"])
-                rec["med_mrr"] = math.log(mrr / e["D"] ** 3 / bk["mrr_over_D3"])
+                rec["med_mrr"] = math.log(mrr / (e["ap"] * e["D"] ** 2) / bk["mrr_per_ap_over_D2"])
         recs.append(rec)
 
     def summarize(sel):
@@ -1194,7 +1265,7 @@ def speedio_bt30(tir=TIR_IN):
                    holder_ktheta_nm_urad=BT30["ktheta_holder_joint_nm_urad"]["value"], holder_basis=BT30_BASIS)
 
 
-def t1_t12(speed, force, consensus):
+def t1_t12(speed, force, consensus, c2_offset=1.0):
     """T1 and T12 in 17-4 H1025: before (step-3 defaults, rigid holder) and after at 50 % and 75 % (consensus
     scheme, C14, calibrated material, Speedio with the provisional BT30 compliance)."""
     T1 = o.Tool.build(0.125, 4, 0.5, 0.6, shank=0.125, label="T1")
@@ -1202,11 +1273,15 @@ def t1_t12(speed, force, consensus):
     rigid, bt30 = o.speedio_16k(TIR_IN), speedio_bt30()
     fam = "Stainless - PH Series (17-4)"
     before = o.material_17_4(356.0)
-    after = replace(before, tool_factor=force["tool_factor"], k_r=force["k_r"],
+    after = replace(before, tool_factor=force["tool_factor"], k_r=force["k_r"], c2_scale=c2_offset,
                     **speed_kwargs(speed, fam, "unspecified"))
+    # The literal MRR/D³ cap, for comparison: the same table without the per-depth MRR medians.
+    literal = dict(consensus, buckets={k: {kk: vv for kk, vv in b.items() if kk != "mrr_per_ap_over_D2"}
+                                       for k, b in consensus["buckets"].items()})
     runs = [("before", before, rigid, o.Margins(0.5), None),
             ("after 50 %", after, bt30, o.Margins(0.5, scheme="consensus"), consensus),
-            ("after 75 %", after, bt30, o.Margins(0.75, scheme="consensus"), consensus)]
+            ("after 75 %", after, bt30, o.Margins(0.75, scheme="consensus"), consensus),
+            ("after 50 %, MRR/D³ cap", after, bt30, o.Margins(0.5, scheme="consensus"), literal)]
     out = []
     for tool in (T1, T12):
         for op in ("adaptive", "slot", "finish"):
@@ -1292,9 +1367,11 @@ def materials_file(force, speed):
         s = speed["families"].get(fam)
         if s:
             entry["speed"] = {
+                "vc_ref_sfm_median": {"value": s["vc_ref_sfm_median"], "source": "the level fitted to the bucket "
+                                                                               "vendor medians, before the consensus offset"},
                 "vc_ref_sfm": {"value": s["vc_ref_sfm"],
                                "at": f"slot (ae = D), {s['hb_ref']:.0f} HB, D ≥ {speed['diameter']['knee_in']:g}\", the "
-                                     f"vendor median (75 % aggressiveness)",
+                                     f"the vendor median × the consensus speed offset (75 % aggressiveness)",
                                "source": f"least absolute deviations over {s['n_rows']} training rows against their "
                                          f"bucket vendor medians (each vendor group counted once; groups "
                                          f"{', '.join(s['vendor_groups'])}); calibration_report.json speed"},
@@ -1315,6 +1392,15 @@ def materials_file(force, speed):
             "k_r": {"value": force["k_r"], "source": SRC["k_r"] + "; 0.4 kept (inside 0.34–0.50)"},
             "k_te_n_mm": {"value": 0.0, "source": SRC["k_te"]},
             "k_re_n_mm": {"value": 0.0, "source": SRC["k_te"]},
+        },
+        "consensus_offsets": {
+            "speed": {"value": speed["consensus_offset"]["speed_offset"],
+                      "source": "folded into each family's vc_ref_sfm (vc_ref_sfm_median is the level before it): " +
+                                speed["consensus_offset"]["basis"]},
+            "c2": {"value": speed["consensus_offset"]["c2_offset"],
+                   "source": "Material.c2_scale on the chip_limits.json band median: " + speed["consensus_offset"]["basis"]},
+            "why": "at 75 % C14 caps at 1.00 × the vendor median, so the output is min(physics, median); the physics "
+                   "side sits a little above the median so that the 75 % output lands on it (user 2026-10-17)",
         },
         "speed_diameter": {
             "form": speed["diameter"]["form"],
@@ -1413,6 +1499,13 @@ def main(argv=None):
                 for part, sel in (("train", train_mask), ("holdout", lambda e: not train_mask(e)))}
     for part, b in law_bias.items():
         print(f"  speed law vs bucket vendor median ({part}): " + ", ".join(f"{k} {v:+.3f}" for k, v in b.items()))
+    offsets = fit_consensus_offsets([e for e in ok if train_mask(e)], by_id, speed, table_train)
+    speed["consensus_offset"] = offsets
+    for f in speed["families"].values():
+        f["vc_ref_sfm_median"] = f["vc_ref_sfm"]
+        f["vc_ref_sfm"] = f["vc_ref_sfm"] * offsets["speed_offset"]
+    print(f"  consensus offsets: speed ×{offsets['speed_offset']:.3f}, C2 ×{offsets['c2_offset']:.3f}; predicted 75 % "
+          f"band bias {json.dumps(_round(offsets['predicted_band_bias_75'], 3))}")
 
     aggr = aggressiveness_map(ok)
     ceiling = vendor_consensus_ceiling(by_id, ok)
@@ -1428,7 +1521,8 @@ def main(argv=None):
         return m, info
 
     def after_mat(r):
-        return row_material(r, speed=speed, force=force)
+        m, info = row_material(r, speed=speed, force=force)
+        return (replace(m, c2_scale=offsets["c2_offset"]) if m else m), info
 
     bt30_ref = replace(mach, holder_k_n_um=BT30_K, holder_ktheta_nm_urad=BT30["ktheta_holder_joint_nm_urad"]["value"],
                        holder_basis=BT30_BASIS)
@@ -1461,7 +1555,7 @@ def main(argv=None):
              "holdout rows": gate(holdout_s5["after 75 %"], holdout_s5["after 50 %"], ceiling)}
     for part, g in gates.items():
         print(f"gate ({part}): " + ", ".join(f"{b} {'PASS' if v['pass'] else 'fail'}" for b, v in g.items()))
-    t1t12 = [] if args.quick else t1_t12(speed, force, table_all)
+    t1t12 = [] if args.quick else t1_t12(speed, force, table_all, offsets["c2_offset"])
     for r in t1t12:
         print(f"  {r['tool']:3} {r['operation']:8} {r['model']:10} ap {r['ap_over_D']:.2f}·D ae {r['ae_over_D']:.3f}·D "
               f"fz {r['fz_in']:.5f} SFM {r['sfm']:.0f} IPM {r['ipm']:.1f} MRR {r['mrr_in3_min']:.4f} {r['binding']}"
