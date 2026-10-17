@@ -60,6 +60,7 @@ The strategy, engagement, material and hardness all change; the mean chip does n
 
 45 NCD 16 (a Ni-Cr-Mo low-alloy steel, Sandvik P2, not stainless) at 420 HB has an implied dynamic kc of 5156 N/mm² at the same h_m.
 - Using P2.5.Z.HT (2000 at 330 HB) with the same 0.79 tool factor gives 4838. That implies kc ∝ HB^0.26 from 330 to 420 HB.
+  - **Correction (step 4, 2026-10-17):** that arithmetic used mc 0.21. Sandvik prints mc **0.25** for P2.5.Z.HT. With 0.25 the model gives 8066 N/mm² at this h_m, so the ratio is 0.64, not 0.79. The calculator behaves as if mc were 0.21 for this steel too. Calibration therefore takes the tool factor from the three 17-4 readings only (0.791). See `v2_calibration_findings.md` §1.
 - Sandvik's own table gives exactly 0.26 for P2 (P2.1.Z.AN → P2.5.Z.HT), and 0.49 for P5 (P5.0.Z.AN → HT) against the calculator's 0.41 for 17-4.
 
 **Working hypothesis:** the calculator's hardness correction is about the exponent implied by each family's own annealed/hardened rows. Speed also stays higher for the low-alloy steel (212 SFM at 420 HB helical) than for 17-4 (142 at 345 HB). Stainless carries its own speed penalty on top of hardness.

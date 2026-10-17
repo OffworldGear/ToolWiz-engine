@@ -219,6 +219,8 @@ class Material:
     vc_hardness_exp: float = 1.0        # PLACEHOLDER
     vc_engagement_exp: float = 0.4      # PLACEHOLDER
     vc_engagement_ae_min: float = 0.1   # no speed credit below the lightest sourced engagement (ae/D)
+    vc_engagement_basis: str = "phi"    # "phi": (φe/π)^−k; "ae": (ae/D)^−k (calibration, step 4)
+    vc_hb_ref: Optional[float] = None   # hardness the speed anchor is quoted at (None: hb_ref)
     taylor_n: float = 0.25              # PLACEHOLDER
     k_r: float = 0.4                    # PLACEHOLDER
     k_te: float = 0.0                   # edge force N/mm (calibration; 0 reproduces Sandvik)
@@ -463,16 +465,30 @@ def c6_geometry(ap_in, ae_in, D_in, lcf_in, depth_in=None, slot=False, flute_exp
                         f"ae {ae_in:.4f}\" of D {D_in:.4f}\"")
 
 
-def taylor_speed_m_min(material, phi_e, life_ratio=1.0):
-    """C7 speed: v_ref·(HB_ref/HB)^q·(φe/π)^(−k)·(T/T_ref)^(−n), m/min.
+def engagement_speed_factor(material, phi_e):
+    """C7's engagement factor: (φe/π)^(−k) (basis "phi") or (ae/D)^(−k) (basis "ae"), 1 for a slot.
 
-    φe is held at or above the engagement of ae = vc_engagement_ae_min·D (0.1·D, the lightest
-    engagement in Sandvik's Dura sheet): the placeholder exponent gives no speed credit beyond its data.
+    The engagement is held at or above ae = vc_engagement_ae_min·D: no speed credit beyond the data.
+    """
+    if material.vc_engagement_basis == "ae":
+        ae_over_d = (1.0 - math.cos(phi_e)) / 2.0
+        return max(ae_over_d, material.vc_engagement_ae_min) ** (-material.vc_engagement_exp)
+    if material.vc_engagement_basis != "phi":
+        raise ValueError("vc_engagement_basis must be 'phi' or 'ae'")
+    floor = forces.engagement_angle(material.vc_engagement_ae_min, 1.0)
+    return (max(phi_e, floor) / math.pi) ** (-material.vc_engagement_exp)
+
+
+def taylor_speed_m_min(material, phi_e, life_ratio=1.0):
+    """C7 speed: v_ref·(HB_ref/HB)^q·g(engagement)·(T/T_ref)^(−n), m/min.
+
+    g is `engagement_speed_factor`. By default (basis "phi") φe is held at or above the engagement of
+    ae = vc_engagement_ae_min·D (0.1·D, the lightest engagement in Sandvik's Dura sheet): the placeholder
+    exponent gives no speed credit beyond its data. HB_ref is vc_hb_ref when given, else hb_ref.
     """
     v = material.vc_ref_sfm / FT_PER_M
-    v *= (material.hb_ref / material.hb) ** material.vc_hardness_exp
-    floor = forces.engagement_angle(material.vc_engagement_ae_min, 1.0)
-    v *= (max(phi_e, floor) / math.pi) ** (-material.vc_engagement_exp)
+    v *= ((material.vc_hb_ref or material.hb_ref) / material.hb) ** material.vc_hardness_exp
+    v *= engagement_speed_factor(material, phi_e)
     v *= life_ratio ** (-material.taylor_n)
     return v
 
@@ -488,8 +504,11 @@ def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0):
     rpm = min(rpm_want, max_rpm)
     vc = math.pi * D_mm * rpm / 1000.0
     chk = Check("C7", "speed (tool life, rpm cap)", "max", rpm, max_rpm, "rpm", SRC["C7"],
-                detail=f"v_c = {material.vc_ref_sfm:g} SFM·({material.hb_ref:g}/{material.hb:g})^"
-                       f"{material.vc_hardness_exp:g}·(φe/π = {phi_e / math.pi:.3f})^−{material.vc_engagement_exp:g}"
+                detail=f"v_c = {material.vc_ref_sfm:g} SFM·({material.vc_hb_ref or material.hb_ref:g}/{material.hb:g})^"
+                       f"{material.vc_hardness_exp:g}·" + (
+                           f"(ae/D = {(1.0 - math.cos(phi_e)) / 2.0:.3f}, ≥ {material.vc_engagement_ae_min:g})"
+                           if material.vc_engagement_basis == "ae" else f"(φe/π = {phi_e / math.pi:.3f})")
+                       + f"^−{material.vc_engagement_exp:g}"
                        f"·(T/T_ref = {life_ratio:.2f})^−{material.taylor_n:g}·C9 {reach_factor:.2f} = "
                        f"{vc_life * FT_PER_M:.0f} SFM → {rpm_want:.0f} rpm; used {rpm:.0f} rpm "
                        f"({vc * FT_PER_M:.0f} SFM)")
