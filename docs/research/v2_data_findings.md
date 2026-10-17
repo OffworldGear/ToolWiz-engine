@@ -1,13 +1,13 @@
 # v2 data step: what was found and what is missing
 
-_Research, 2026-10-15. Design step 1 of §6 in `docs/PHYSICS_MODEL_DESIGN.md`. The v1 engine is unchanged._
+_Research, 2026-10-15; dataset extended 2026-10-16 (§1). Design step 1 of §6 in `docs/PHYSICS_MODEL_DESIGN.md`. The v1 engine is unchanged._
 
 ## Files
 
 | What | Where |
 |---|---|
 | Benchmark row schema | `tests/benchmarks/v2/SCHEMA.md` |
-| Benchmark rows | `tests/benchmarks/v2/{harvey,helical,osg,sandvik,kennametal}.json` |
+| Benchmark rows | `tests/benchmarks/v2/{harvey,helical,osg,sandvik,seco,kennametal,emuge,garr,kyocera_sgs,yg1}.json` |
 | Row validator (runs with the full suite) | `tests/test_v2_benchmark_dataset.py` |
 | Coverage report | `python tools\v2_coverage.py` |
 | Kienzle kc1.1 / mc survey (Sandvik plus four second sources) | `kc_mc_survey.md`, `data/kc_mc_sources.json` |
@@ -17,45 +17,101 @@ _Research, 2026-10-15. Design step 1 of §6 in `docs/PHYSICS_MODEL_DESIGN.md`. T
 
 ## 1. Benchmark dataset
 
+_Updated 2026-10-16 (data step 2, branch `toolwiz/v2-data2`): 2,277 rows added from five new vendor files and new documents for the five existing vendors. No existing row was changed._
+
 ### Rows
 
-578 rows from 4 independent vendor groups, all square end mills:
+2,855 rows from 9 independent vendor groups. Most are square end mills; the exceptions are listed under "Classification notes".
 
-| File | Rows | Main documents |
-|---|---|---|
-| harvey.json | 165 | SF_73000, SF_72000, SF_47800, SF_34600 (generic miniature charts); SF_875400 (variable helix, high-temp alloys, names 17-4 and 17-7); SF_958500 (variable helix, medium alloy, 316) |
-| helical.json | 124 | HEV-5, HSV-4, HEV-6, HVTI-6, H45AL-3 speeds & feeds sheets |
-| osg.json | 123 | AE-VMS 8200/8205/8225, AE-VMSS 8206, AE-VTSS 8233/8333, EXOCARB WXL 3604, MAX-HARD 9140, WXL-4D-DE 3723, AERO 2022/8120 technical pages |
-| sandvik.json | 74 | CoroMill Plura HD (2P342) and CoroMill Dura cutting-data sheets |
-| kennametal.json | 92 | HARVI I TE, HARVI III, GOmill GP product-page tables |
+| File | Vendor group | Rows (was) | Main documents |
+|---|---|---|---|
+| harvey.json | Harvey Performance | 741 (165) | Generic miniature charts SF_73000, SF_72000, SF_47800, SF_34600. Material-specific sheets: SF_875400 and SF_958500; **new:** hardened steels 45–68 Rc (7-flute and 5-flute), variable-helix high-temp alloys (regular, plus 3×, 5×, 8×, 12× and 15× long reach), titanium SF_711700 (HEM column) |
+| helical.json | Harvey Performance | 232 (124) | HEV-5, HSV-4, HEV-6, HVTI-6, H45AL-3. **New:** Machining Guidebook (2016) p.25 HEM case studies; HEM sheets HVSS-6, HVAL-5, HVNI-6/8, more HVTI-6 cells, HVTI-RN-6 reduced neck; HEV-7 |
+| osg.json | OSG | 392 (123) | AE-VMS, AE-VMSS, AE-VTSS, EXOCARB WXL, MAX-HARD, WXL-4D-DE, AERO. **New:** HY-PRO CARB VGM5/VGM5-LN/VGM7, VGX VG441, HP441, AE-VML, AE-MS-H, AE-ML-H, Standard 404, UVX-Ti and AE-VTS-N reduced neck |
+| sandvik.json | Sandvik | 168 (74) | Plura HD and Dura cutting-data sheets. **New:** Dura 1K354/1K365 dynamic-milling columns at 2, 3, 6, 12 and 20 mm; Dura 1–2×D light radial; more Plura HD side/slot cells; geometry from Sandvik's product-data API |
+| seco.json **(new)** | Sandvik | 177 | Seco Solid End Mills catalog 2023.2: Jabro JS554/JS754/JS720 "Advanced roughing" (dynamic milling), JHP770/780, JHP170 hardened, JME542/JME142 micro (necked) |
+| kennametal.json | Kennametal | 293 (92) | HARVI I TE, HARVI III, GOmill GP. **New:** more HARVI I TE inch and metric (necked), HARVI II TE, HARVI IV, GOmill PRO, KenCut MM micro 0.4–1.5 mm, Innovations 2020 case studies |
+| emuge.json **(new)** | Emuge-Franken | 288 | TiNox-Cut brochure (Trochoidal 2577/2579/2581TZ, TiNox-Cut N) and TOP-Cut VAR brochure (standard, long and extra-long) |
+| garr.json **(new)** | Garr Tool | 240 | Milling guides for X3, X5, X7, V5, VRX-6 and VRX ("Profile/Trochoidal" columns) |
+| kyocera_sgs.json **(new)** | Kyocera | 248 | Global Catalog v26.1 (H-Carb 77, T-Carb 51, Z-Carb-HPR, -XPR, -AP), Micro Tools Catalog v26.1 (derived via its feed multipliers), Z-Carb-XPR brochure case study |
+| yg1.json **(new)** | YG-1 | 76 | TitaNox-Power (HHK82 trochoidal, EMI42 peel milling) and Alu-Power HPC (JAG95) catalogs |
 
-- **Citations:** every row quotes the published cells and carries the part number and the catalog geometry (DC, LCF, shank, OAL, and neck where published).
-- **Derived rows:** 46 rows apply a vendor's own printed rule, flagged in `source.derivation`. They are Kennametal slot rows (side IPT × 0.8), Kennametal HEM rows (its Ae/D adjustment factors) and Sandvik's +20% fz for its short tool.
-- **Harvey and Helical** are one vendor group (Harvey Performance) when counting independent sources.
+- **Citations:** every row quotes the published cells and carries a real part number with catalog geometry. The exception is the four Helical Guidebook case-study rows, where the guidebook names only series and diameter, so part number and LOC are null and listed in `missing`.
+- **Rendered-page checks:** every lookup checked its tables against rendered pages. The reviewer re-checked these against renders:
+  - Helical: HVSS-6, HVNI-6 and Guidebook p.25.
+  - Harvey: SF_711700, SF_749800 and SF_985400.
+  - OSG: VGM5 p.1389.
+  - Sandvik: Dura p.A2.
+  - Kennametal: Innovations p.20 and p.22.
+  - Seco: catalog p.99.
+  - Emuge: TiNox p.16.
+  - Kyocera SGS: Global Catalog p.96.
+- **Derived rows:** 203 (was 46) apply a vendor's own printed rule, flagged in `source.derivation`:
+  - Kennametal Ae/D factors and slot × 0.8.
+  - Sandvik +20% fz.
+  - OSG VGM5-LN L/D 6 reduction.
+  - Seco LV3/LV5 reach rules and JME142 recalculation.
+  - Kyocera SGS micro feed multipliers and the Z-Carb-AP 1/64" footnote.
+- **Long reach / necked:** 559 rows carry LB.
+  - **Neck diameter is published** by Sandvik, Seco, Kennametal, OSG VGM5-LN/UVX-Ti/AE-VTS-N and Helical RN.
+  - **Neck diameter is not published** by Harvey: its long-reach rows have LB (the printed overall reach) but `neck_diameter` is null.
+  - Harvey publishes one sheet per reach multiple instead of a reduction factor.
+- **Vendor groups:** Seco is owned by Sandvik, so `seco.json` uses vendor_group "Sandvik" and adds no independent vendor to a cell. Harvey and Helical remain one group.
 
 ### Coverage
 
-The design's target is 8 materials × 7 diameters × 4 operations = 224 cells, each with two independent vendor groups.
+Target: 8 materials × 7 diameters × 4 operations = 224 cells, each with two independent vendor groups.
 
-- **Well covered:** 77 cells have two or more groups. Slot and side/rough at 1/8–1/2" are well covered for 17-4 PH, 316, 1018/1045 and 4140 (3–4 groups each).
-- **17-4 PH at 1/64–1/16":** two groups, Harvey and OSG. OSG's 0.4 and 0.8 mm rows come from a lumped "stainless" column (low confidence).
+**Cells with two or more groups: 149 of 224 (was 77).**
 
-**Gaps:**
+| Operation | Was | Now |
+|---|---|---|
+| slot | 31 | 51 |
+| side/rough | 34 | 51 |
+| hem | 2 | 27 |
+| finish | 10 | 20 |
 
-| Gap | Detail |
-|---|---|
-| HEM / adaptive | Almost empty. Published HEM rows come only from Helical HVTI-6 (Ti, Inconel), Sandvik Dura's light-engagement columns, and Kennametal (derived). Harvey and OSG publish no HEM table for these tools. HEM calibration will have to rely on the side-milling rows at small ae plus the HEM Guidebook envelope. |
-| Micro (1/64–1/32") | Steels and stainless only (Harvey, OSG 3723, Kennametal GOmill GP). Nothing for Ti, H13 or Inconel. Sandvik starts at 1–2 mm and Kennametal HARVI at 1/8". |
-| H13 at 45–50 HRC | 1/4" and 1/2" (OSG 3604/9140, Helical 36–50 HRC, Kennametal H1 44–48 HRC). No micro sizes. |
-| Ti-6Al-4V, Inconel 718 | 1/4" and 1/2" only, no 1". |
-| 1" | Only OSG, Helical (17-4), Kennametal, Sandvik (25 mm). |
-| Long reach / necked tools | Only Helical reduced-neck rows and Harvey SF_34600 (8× reach). OSG long-neck pages (AE-VML, AE-ML, AE-CPR4-H) were not found as technical pages. The C9 chatter rule (OSG overhang) is unchanged. |
-| Side milling vs roughing | Harvey and Helical print "Roughing" (a deep, narrow side cut), not a side-milling column. The coverage report merges side and rough. |
+HEM cells (number of independent vendor groups, old→new):
+
+| Material | 1/64 | 1/32 | 1/16 | 1/8 | 1/4 | 1/2 | 1 |
+|---|---|---|---|---|---|---|---|
+| 6061 | 0 | 0 | 0 | 0→2 | 0→3 | 0→3 | 0→1 |
+| 1018/1045 | 0 | 0 | 0 | 0 | 0→2 | 0→2 | 0→1 |
+| 4140 | 0 | 0→1 | 0→1 | 0→4 | 1→4 | 1→4 | 0→3 |
+| 17-4 PH | 0 | 0→1 | 0→1 | 0→5 | 1→7 | 1→7 | 0→4 |
+| 316 | 0 | 0→1 | 0→1 | 0→7 | 2→8 | 2→8 | 0→6 |
+| Ti-6Al-4V | 0 | 0→1 | 0→2 | 0→6 | 1→7 | 1→7 | 0→5 |
+| H13 45-50 | 0 | 0 | 0 | 0 | 0→1 | 0→1 | 0 |
+| Inconel 718 | 0 | 0→1 | 0→2 | 0→6 | 1→7 | 0→8 | 0→5 |
+
+- **Slot and side/rough** now have at least 2 groups for every target material from 1/16" to 1" except 6061 at 1/16". Ti, H13 and Inconel now reach down to 1/64" with 2–4 groups (Harvey, OSG, Kennametal KenCut MM, Seco JME542, Kyocera SGS micro).
+- **HEM strength of evidence.** 573 HEM rows in all:
+
+| Basis | Rows | Sources |
+|---|---|---|
+| Labelled HEM, dynamic or trochoidal by the vendor | 341 | Helical, Harvey SF_711700, Sandvik Dura A2 ("Dynamic milling / Small engagements"), Seco "Advanced roughing", Emuge Trochoidal, Garr "Profile/Trochoidal", YG-1 HHK82, Kennametal and Helical case studies |
+| Labelled otherwise, filed as `hem` on engagement plus product description | 191 | Kyocera SGS "HSM" (108); OSG VGM "Side Milling" (51, product sold "for Dynamic Milling"); YG-1 peel milling and "HSM (Light)" (20); Helical HVNI (12; the column header prints "Slot" but the legend defines only HEM/Rgh/Fin) |
+| Derived by a vendor rule | 37 | Kennametal Ae/D factors, OSG VGM5-LN L/D 6, Seco |
+| Light-radial rows already in the file but not labelled HEM | 4 | Sandvik Dura A1 `sv_Dura_p1_*` |
+
+  Each inferred row says so in `notes`. Counting only vendor-labelled HEM rows, 23 HEM cells still have two or more groups. 17-4 PH and 316 at 1/4–1/2" have 5 groups each.
 
 ### Classification notes
 
 - OSG's "High Speed Light Milling" rows (ae = 0.01–0.10 D at about 1,200 SFM) are filed as `finish`. Physically they are a thin-chip, high-speed regime; the calibration step should treat them as such.
-- Sandvik has no explicit 17-4 PH group. Its ferritic/martensitic rows (P5.0.Z.AN, 200 HB) are filed under the 420 family.
+- Sandvik has no explicit 17-4 PH group. Its ferritic/martensitic rows (P5.0.Z.AN, 200 HB) are filed under the 420 family. Seco's SMG P12 (reference X5CrNiCuNb16-4) and H12 (aged PH, 1200–1650 N/mm²) are filed as 17-4.
+- **Not square end:**
+  - Helical HVSS-6 and HVNI-6/8 exist only with a corner radius (R.010–.030); they are `end: "corner_radius"`. They are the only Helical HEM data for 316, 17-4 and Inconel.
+  - Sandvik 1K354 at 2 and 3 mm has R0.2.
+  - Kyocera SGS Z-Carb-AP at 1/64" and 1/8" is a corner-radius part.
+  - Filter on `tool.end` for square-only work.
+- **Helical HEV-7** is filed as `rough`. Its sheet prints "Rgh (Traditional Roughing)", ADOC up to max LOC and RDOC 10–15%.
+- **Case studies, not charts:** Helical Guidebook p.25, Kennametal Innovations 2020 and the Kyocera SGS XPR brochure each give one shop cut with its outcome. The Guidebook's 1/2" HEV-5 in 17-4 at 36 HRC runs at 785 SFM (6,000 rpm, 80 IPM, RDOC .062, ADOC .500). That is about 4× Helical's own chart SFM for PH stainless, so the calibration step should weight it as one shop result.
+- **Hardness:**
+  - Harvey's "45–55 Rc" and Emuge's H1.1 "44–50 HRC" (example Weldox 1100) are filed under H13 by hardness. Harvey's cell also lists titanium and nickel alloys. Seco H8 spans 38–64 HRC.
+  - Garr (">40 HRC", no upper bound), Kyocera SGS (≤ 40 HRC) and YG-1 (no hardness) H13 rows do not count toward the 45–50 HRC cell.
+  - Sandvik P3.0 "high alloyed steel" (320/380 HB) is filed under H13 but is not in the 45–50 band.
+- **Kennametal AMS 5540** (one HEM case study) is alloy 600, not 718. It is filed under High Temp Nickel Alloy with a note.
 
 ### Corrections made during review
 
@@ -66,6 +122,49 @@ The design's target is 8 materials × 7 diameters × 4 operations = 224 cells, e
   - CERATIZIT: the property table.
   
   All matched the agents' rows.
+- **Seco JS554-3C M3 (2026-10-16).** The inch line prints "330 (300 - 320) sf/min", a value outside its own range. The numeric SFM is taken from the metric line (90–100 m/min = 295–328 SFM).
+- **Source quirks noted and skipped:** OSG HP441 1/8" at 30–45 HRC (rpm inconsistent with the header SFM), OSG AE-VML 3D Ar 0.15D PH column, Harvey SF_859400 38–44 Rc profiling RDOC "1 x Dia", Seco JHP770 side (ap/DC 1.8 vs 1.6), Kennametal HARVI II TE "M" row, and one self-contradictory Kennametal case study.
+
+### Step 2 (2026-10-16): what was found and what is still missing
+
+**Found**
+- **HEM:** explicit HEM, dynamic or trochoidal tables from 8 vendor groups:
+  - Helical HVSS/HVAL/HVTI/HVNI and Harvey SF_711700.
+  - Sandvik Dura 1K354/1K365.
+  - Seco Jabro Advanced roughing.
+  - Emuge TiNox-Cut Trochoidal (17-4 named).
+  - Garr X/V/VRX Profile/Trochoidal.
+  - YG-1 HHK82.
+  - Kyocera SGS HSM charts (H-Carb, T-Carb and HPR; filed as `hem`, labelled "HSM").
+  - OSG VGM (inferred).
+  - Kennametal publishes no HEM table, only its Ae/D factor rule and one dynamic-milling case study.
+- **17-4 PH HEM** at 1/8–1": Helical HVSS-6, Emuge, Garr, Kyocera SGS, Seco (P12/H12), YG-1, Kennametal (derived), and Helical's 36 HRC guidebook case.
+- **Micro Ti/Inconel/H13:**
+  - Harvey: variable-helix high-temp alloys, plus hardened-steel sheets from 0.015".
+  - OSG: HP441 and AE-MS-H.
+  - Kennametal: KenCut MM (H only).
+  - Seco: JME542 (0.4 and 0.8 mm).
+  - Kyocera SGS: micro catalog.
+- **Long reach:**
+  - Harvey: 3×–15× reach sheets for Ti, Inconel and 17-4 (LB only).
+  - OSG: VGM5-LN with its printed L/D reduction chart.
+  - Seco: LV3/LV5 rules.
+  - Kennametal: necked HARVI I TE metric with "reach > 5×D: fz −30%".
+  - Helical: HVTI-RN-6 at 3×D.
+  - Sandvik: necked Dura.
+
+**Still missing**
+- **HEM below 1/8".** At 1/32" every HEM cell has a single group (Garr X3 "Profile/Trochoidal"). At 1/16" only Ti and Inconel have two groups (Harvey SF_711700 and Garr). No vendor prints HEM at 1/64". This matches Harvey's guidance that HEM below 1/32" is not recommended.
+- **H13 at 45–50 HRC HEM.** Only Seco H8 (38–64 HRC) covers it, at 1/4" and 1/2". Helical's hardened-steel HEM sheet (HVHS-6) covers 50–60 HRC without naming H13 and was not used.
+- **6061 and 1018/1045 micro.** Nothing below 1/16" for 6061.
+- **Harvey neck diameters.** Not published on Harvey's tool pages, so Harvey's long-reach rows lack neck diameter.
+- **Generic reach reductions.** Helical says only that IPT "should be reduced" past 3×D, with no number. Harvey publishes per-reach sheets instead of a factor.
+- **Sources not reached:**
+  - Iscar: its site is behind a Cloudflare challenge.
+  - Harvey Performance's official HEM Guidebook: gated by a lead form, not submitted.
+  - Seco's online cutting-data engine: reports itself offline. The Seco catalog PDF was used instead.
+  - OSG AE-VMSX: Lists 8240/8340 are 404 on osgtool.com, and the Cloudinary copy is blocked.
+  - Kennametal master catalog: both copies 404.
 
 ## 2. What the data already says about v1 and about the physics
 
