@@ -913,7 +913,7 @@ def vendor_consensus_ceiling(rows_by_id, evals):
         cells[cell(e)][e["vendor_group"]].append(e)
     out = {}
     for q in ("sfm", "fz"):
-        errs, passed = [], 0
+        errs, passed, by_band = [], 0, collections.defaultdict(list)
         for e in evals:
             others = [statistics.median(x[q] for x in es) for vg, es in cells[cell(e)].items()
                       if vg != e["vendor_group"]]
@@ -921,9 +921,12 @@ def vendor_consensus_ceiling(rows_by_id, evals):
                 continue
             pred = statistics.median(others)
             errs.append(abs(math.log(pred / e[q])))
+            by_band[e["band"]].append(errs[-1])
             passed += within_range(pred, rows_by_id[e["id"]]["cut"][q])
         out[q] = {"rows_with_another_vendor": len(errs), "of": len(evals), "pass": passed / len(errs),
-                  "median_abs_log": statistics.median(errs)}
+                  "median_abs_log": statistics.median(errs),
+                  "median_abs_log_by_band": {b: statistics.median(by_band[b]) for b, _, _ in BANDS if by_band[b]},
+                  "rows_by_band": {b: len(by_band[b]) for b, _, _ in BANDS}}
     return out
 
 

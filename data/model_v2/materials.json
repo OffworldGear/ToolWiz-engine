@@ -51,7 +51,7 @@
   "AlCrN": {
    "value": 1.2051,
    "fitted": 1.2051,
-   "source": "applied: \u2265 2 vendor groups and |t| \u2265 2",
+   "source": "applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts)",
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
@@ -61,7 +61,7 @@
   "Si-doped": {
    "value": 1.2,
    "fitted": 1.2,
-   "source": "applied: \u2265 2 vendor groups and |t| \u2265 2",
+   "source": "applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts)",
    "vendor_groups": [
     "Garr Tool",
     "Sandvik"
@@ -70,15 +70,15 @@
   "uncoated": {
    "value": 1.0,
    "fitted": 1.2926,
-   "source": "not applied (1.0): one vendor group, |t| < 2, or no chemistry",
+   "source": "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry",
    "vendor_groups": [
     "Harvey Performance"
    ]
   },
   "DLC": {
-   "value": 3.2946,
+   "value": 1.0,
    "fitted": 3.2946,
-   "source": "applied: \u2265 2 vendor groups and |t| \u2265 2",
+   "source": "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry",
    "vendor_groups": [
     "OSG",
     "YG-1"
@@ -87,7 +87,7 @@
   "unspecified": {
    "value": 1.0,
    "fitted": 1.0436,
-   "source": "not applied (1.0): one vendor group, |t| < 2, or no chemistry",
+   "source": "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry",
    "vendor_groups": [
     "Harvey Performance",
     "Kennametal",
