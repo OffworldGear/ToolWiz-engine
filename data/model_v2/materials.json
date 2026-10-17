@@ -28,7 +28,7 @@
    "source": "folded into each family's vc_ref_sfm (vc_ref_sfm_median is the level before it): smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
   },
   "c2": {
-   "value": 1.175,
+   "value": 1.125,
    "source": "Material.c2_scale on the chip_limits.json band median: smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
   },
   "why": "at 75 % C14 caps at 1.00 \u00d7 the vendor median, so the output is min(physics, median); the physics side sits a little above the median so that the 75 % output lands on it (user 2026-10-17)"

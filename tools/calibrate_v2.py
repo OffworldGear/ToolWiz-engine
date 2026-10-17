@@ -790,6 +790,7 @@ def build_consensus(evals):
             "mrr_over_D3": med(lambda x: x["mrr"] / x["D"] ** 3),
             "mrr_per_ap_over_D2": med(lambda x: x["mrr"] / (x["ap"] * x["D"] ** 2)),
             "feed_over_D": med(lambda x: x["mrr"] / (x["ap"] * x["ae"] * x["D"])),
+            "feed_per_flute_ipm": med(lambda x: x["fz"] * 12.0 * x["sfm"] / (math.pi * x["D"])),
             "n_rows": len(rows), "vendor_groups": sorted(by_vg),
             "family": rows[0]["family"], "D": statistics.median(x["D"] for x in rows),
             "hb": statistics.median(x["hb"] for x in rows), "ae_over_D": statistics.median(x["ae_over_D"] for x in rows),
@@ -798,8 +799,8 @@ def build_consensus(evals):
     return {"version": VERSION, "generated_by": "tools/calibrate_v2.py",
             "status": "C14 vendor-consensus buckets (user decision 2026-10-17)",
             "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry; each vendor group's median, "
-                      "then the median over vendor groups. C14m uses feed_over_D (MRR per unit engaged area ap·ae, i.e. "
-                      "the feed rate, over D); mrr_over_D3 and mrr_per_ap_over_D2 are kept for reference",
+                      "then the median over vendor groups. C14m uses feed_per_flute_ipm (MRR per unit engaged area and per "
+                      "flute: fz·n); mrr_over_D3, mrr_per_ap_over_D2 and feed_over_D are kept for reference",
             "bands": [{"band": n, "d_min": lo, "d_max": hi if hi != math.inf else 1e9} for n, lo, hi in BANDS],
             "engagement_classes": [[n, lo, hi] for n, lo, hi in ENGAGEMENT_CLASSES],
             "hb_bin_fine": HB_BIN_FINE, "hb_bin_coarse": HB_BIN_COARSE,
@@ -862,7 +863,7 @@ def fit_consensus_offsets(train, rows_by_id, speed, table, target=-0.02, grid=No
         cap_f = r["cons"]["fz_over_D"] * e["D"]
         sfm = realized_sfm(r, k_s)
         rpm = 12.0 * sfm / (math.pi * e["D"])
-        cap_m = r["cons"]["feed_over_D"] * e["D"] / (e["z"] * rpm)
+        cap_m = r["cons"]["feed_per_flute_ipm"] / rpm
         return min(fz_c2, cap_f, cap_m)
 
     k_c = grid[-1]
@@ -1091,8 +1092,9 @@ def section5(rows_by_id, evals, bench, train_mask=None, table=None):
             rec["med_sfm"] = math.log(b["sfm"] / bk["sfm"])
             if b["feasible"]:
                 rec["med_fz"] = math.log(b["fz"] / e["D"] / bk["fz_over_D"])
-                mrr = e["mrr"] * (b["sfm"] / e["sfm"]) * (b["fz"] / e["fz"])
-                rec["med_mrr"] = math.log(mrr / (e["ap"] * e["ae"] * e["D"]) / bk["feed_over_D"])
+                # MRR like-for-like: per unit engaged area and per flute (fz·n), the C14m quantity.
+                fpf = b["fz"] * 12.0 * b["sfm"] / (math.pi * e["D"])
+                rec["med_mrr"] = math.log(fpf / bk["feed_per_flute_ipm"])
         recs.append(rec)
 
     def summarize(sel):
@@ -1277,7 +1279,7 @@ def t1_t12(speed, force, consensus, c2_offset=1.0):
     after = replace(before, tool_factor=force["tool_factor"], k_r=force["k_r"], c2_scale=c2_offset,
                     **speed_kwargs(speed, fam, "unspecified"))
     # The literal MRR/D³ cap, for comparison: the same table without the per-depth MRR medians.
-    literal = dict(consensus, buckets={k: {kk: vv for kk, vv in b.items() if kk != "feed_over_D"}
+    literal = dict(consensus, buckets={k: {kk: vv for kk, vv in b.items() if kk != "feed_per_flute_ipm"}
                                        for k, b in consensus["buckets"].items()})
     runs = [("before", before, rigid, o.Margins(0.5), None),
             ("after 50 %", after, bt30, o.Margins(0.5, scheme="consensus"), consensus),

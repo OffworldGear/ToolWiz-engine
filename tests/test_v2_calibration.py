@@ -183,11 +183,11 @@ class TestConsensusScheme(unittest.TestCase):
         self.assertAlmostEqual(v_small / v_big, 0.25 ** 0.1, places=9)
         self.assertAlmostEqual(o.taylor_speed_m_min(m, phi, D_mm=25.4, speed_scale=0.92) / v_big, 0.92, places=12)
 
-    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9, feed_over_D=1e9):
+    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9, feed_per_flute_ipm=1e9):
         bands = [{"band": "1/8-3/16", "d_min": 0.1, "d_max": 0.2}]
         eng = [["light", 0.0, 0.1], ["medium", 0.1, 0.25], ["heavy", 0.25, 0.99], ["slot", 0.99, 1e9]]
         b = {"sfm": sfm, "fz_over_D": fz_over_D, "mrr_over_D3": mrr_over_D3,
-             "feed_over_D": feed_over_D, "n_rows": 5,
+             "feed_per_flute_ipm": feed_per_flute_ipm, "n_rows": 5,
              "vendor_groups": ["A", "B"]}
         return {"bands": bands, "engagement_classes": eng, "hb_bin_fine": 50, "hb_bin_coarse": 100,
                 "buckets": {"L1|Stainless - PH Series (17-4)|7|1/8-3/16|slot|slot": b}}
@@ -205,13 +205,14 @@ class TestConsensusScheme(unittest.TestCase):
                            consensus=self._table())
         self.assertIn("vendor median", r["checks"]["C14f"]["detail"])
 
-    def test_c14_feed_cap_is_mrr_per_engaged_area(self):
+    def test_c14_mrr_cap_is_feed_per_flute(self):
         mat = o.material_17_4(356.0)
         mg = o.Margins(0.5, scheme="consensus")
-        ctx = o._Context(self.T1, mat, o.speedio_16k(), "slot", mg, 72, 24, consensus=self._table(feed_over_D=40.0))
+        ctx = o._Context(self.T1, mat, o.speedio_16k(), "slot", mg, 72, 24,
+                         consensus=self._table(feed_per_flute_ipm=1.5))
         pt = o.CutPoint(ctx, 0.02, 0.125)
         s = o.consensus_scale(0.5)
-        fz_cap = s * 40.0 * 0.125 / (4 * pt.rpm)
+        fz_cap = s * 1.5 / pt.rpm
         c = pt.c14_checks(fz_cap)["C14m"]
         self.assertAlmostEqual(c.value, c.limit, delta=1e-9 * c.limit)
         self.assertLessEqual(pt.fz_window()[1], fz_cap * (1 + 1e-6))

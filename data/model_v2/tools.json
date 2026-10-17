@@ -111,7 +111,7 @@
  },
  "C14": {
   "basis": "data/model_v2/consensus.json",
-  "source": "Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per inch of depth) \u2264 consensus_scale(a) \u00d7 the vendor median of the matching bucket (family, hardness, diameter band, operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data \u2192 the physics result"
+  "source": "Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per unit engaged area, i.e. feed) \u2264 consensus_scale(a) \u00d7 the vendor median of the matching bucket (family, hardness, diameter band, operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data \u2192 the physics result"
  },
  "machine_bt30": {
   "k_spindle_n_um": {
