@@ -13,12 +13,15 @@ use one construction.
 """
 import json
 import os
+from dataclasses import replace
 
 from physics_v2 import forces
 from physics_v2 import optimize as o
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MATERIALS_PATH = os.path.join(ROOT, "data", "model_v2", "materials.json")
+TOOLS_PATH = os.path.join(ROOT, "data", "model_v2", "tools.json")
+CONSENSUS_PATH = o.CONSENSUS_DEFAULT_PATH
 _CACHE = {}
 
 
@@ -64,6 +67,7 @@ def material(family, hb=None, coating=None, path=None, **overrides):
                        (("code", g["code"]), ("hardness", f"{g['hb_ref']:g} HB"), ("source", g["source"])))
     force = p["force"]
     kw = dict(name=f"{family}, {hb or g['hb_ref']:g} HB (calibrated {p['version']}, {g['code']})", kienzle=k,
+              family=family,
               hb_ref=float(g["hb_ref"]), hb=float(hb or g["hb_ref"]),
               kc_hardness_exp=float(fam["kc_hardness_exp"]["value"]),
               tool_factor=float(force["tool_factor"]["value"]), k_r=float(force["k_r"]["value"]),
@@ -77,5 +81,21 @@ def material(family, hb=None, coating=None, path=None, **overrides):
                   vc_hardness_exp=float(sp["vc_hardness_exp"]["value"]), taylor_n=float(sp["taylor_n"]["value"]),
                   vc_engagement_exp=float(eng["k"]["value"]), vc_engagement_ae_min=float(eng["ae_min"]["value"]),
                   vc_engagement_basis=eng["basis"])
+        dia = p.get("speed_diameter")
+        if dia:
+            kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))
     kw.update(overrides)
     return o.Material(**kw)
+
+
+def margins(aggressiveness=0.5):
+    """The consensus aggressiveness scheme (user decision 2026-10-17): 75 % ≈ the vendor median."""
+    return o.Margins(aggressiveness, scheme="consensus")
+
+
+def speedio_bt30(tir_in=0.0002, path=None):
+    """The Speedio 16k with the provisional BT30 spindle/holder compliance from tools.json (C3, in series)."""
+    t = load(path or TOOLS_PATH)["machine_bt30"]
+    return replace(o.speedio_16k(tir_in), holder_k_n_um=float(t["combined_k_n_um"]["value"]),
+                   holder_ktheta_nm_urad=float(t["ktheta_holder_joint_nm_urad"]["value"]),
+                   holder_basis=t["status"])

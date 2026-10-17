@@ -134,6 +134,7 @@ PROGRAM_LIMIT_BYTES = 6_000_000
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIMITS_PATH = os.path.join(ROOT, "data", "model_v2", "provisional_limits.json")
 CHIP_LIMITS_PATH = os.path.join(ROOT, "data", "model_v2", "chip_limits.json")
+CONSENSUS_DEFAULT_PATH = os.path.join(ROOT, "data", "model_v2", "consensus.json")
 V1_OPERATION_NAME = {"rough": "Roughing", "adaptive": "Adaptive Roughing", "slot": "Slotting",
                      "finish": "Finishing"}
 
@@ -221,6 +222,9 @@ class Material:
     vc_engagement_ae_min: float = 0.1   # no speed credit below the lightest sourced engagement (ae/D)
     vc_engagement_basis: str = "phi"    # "phi": (φe/π)^−k; "ae": (ae/D)^−k (calibration, step 4)
     vc_hb_ref: Optional[float] = None   # hardness the speed anchor is quoted at (None: hb_ref)
+    vc_diameter_exp: float = 0.0        # C7 level ×(min(D, vc_d_knee_in)/vc_d_knee_in)^m (calibration, step 4)
+    vc_d_knee_in: float = 1.0
+    family: Optional[str] = None        # GWizard family, for the C14 vendor-consensus lookup
     taylor_n: float = 0.25              # PLACEHOLDER
     k_r: float = 0.4                    # PLACEHOLDER
     k_te: float = 0.0                   # edge force N/mm (calibration; 0 reproduces Sandvik)
@@ -260,7 +264,7 @@ def material_17_4(hb=356.0, **overrides):
     H1025 is 356 HB (ToolWiz alloy table, '17-4 PH', 'H 1025').
     """
     kw = dict(name=f"17-4 PH, {hb:g} HB (P5.0.Z.AN scaled)", kienzle=forces.load_kienzle("P5.0.Z.AN"),
-              hb_ref=200.0, hb=float(hb))
+              hb_ref=200.0, hb=float(hb), family="Stainless - PH Series (17-4)")
     kw.update(overrides)
     return Material(**kw)
 
@@ -324,6 +328,20 @@ class Machine:
     runout_model: str = "eccentric"     # physical default (user, 2026-10-16); "bound" is reported only
     label: str = ""
     max_feed_ipm: Optional[float] = None
+    # Spindle + holder compliance in series with the tool (C3), at the holder face: translational stiffness
+    # (N/µm) and tilting stiffness (N·m/µrad). None = rigid (the step-3 model).
+    holder_k_n_um: Optional[float] = None
+    holder_ktheta_nm_urad: Optional[float] = None
+    holder_basis: str = ""
+
+    def holder_compliance_mm(self, lever_mm):
+        """Deflection (mm per N) at a load lever_mm out from the holder face: 1/k + L²/k_θ."""
+        c = 0.0
+        if self.holder_k_n_um:
+            c += 1.0 / (self.holder_k_n_um * 1000.0)
+        if self.holder_ktheta_nm_urad:
+            c += (lever_mm / 1000.0) ** 2 / (self.holder_ktheta_nm_urad * 1e6) * 1000.0
+        return c
 
 
 def speedio_16k(tir_in=0.0002, rating="continuous", runout_model="eccentric"):
@@ -336,24 +354,97 @@ def speedio_16k(tir_in=0.0002, rating="continuous", runout_model="eccentric"):
                    feed / MM_PER_IN if feed else None)
 
 
+# Consensus aggressiveness (user, 2026-10-17): the scale on the vendor-median C7 speed level, the C2 chip limit
+# and the C14 caps. 75 % ≈ the vendor median, 50 % (default, the Speedio BT30 starting point) a little below,
+# 100 % = vendors' "may increase 10–20 %" (low end), 0 % = the vendors' lower quartile. Monotone cubic
+# (Fritsch–Carlson) between the points.
+CONSENSUS_SCALE_POINTS = ((0.0, 0.76), (0.5, 0.92), (0.75, 1.00), (1.0, 1.10))
+# C4 under the consensus scheme: never above the physics limit (fatigue 0.375·TRS); at a = 0 the lower cited
+# fully reversed level 0.33·TRS (Schleinkofer 1996 via Preis 2004) = 0.88 of it. Linear.
+CONSENSUS_STRESS_POINTS = ((0.0, 0.88), (1.0, 1.0))
+# C1 under the consensus scheme: λ is fixed (C1 is never relaxed by aggressiveness), the centre of the
+# sourced 0.2–0.4 (the step-3 value at a = 0.5).
+CONSENSUS_LAMBDA = 0.3
+MARGIN_SCHEMES = ("legacy", "consensus")
+
+
+def pchip(points, x):
+    """Monotone cubic Hermite interpolation (Fritsch & Carlson 1980) through (x, y) points; clamped."""
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    if x <= xs[0]:
+        return ys[0]
+    if x >= xs[-1]:
+        return ys[-1]
+    n = len(xs)
+    if n == 2:
+        return ys[0] + (ys[1] - ys[0]) * (x - xs[0]) / (xs[1] - xs[0])
+    h = [xs[i + 1] - xs[i] for i in range(n - 1)]
+    d = [(ys[i + 1] - ys[i]) / h[i] for i in range(n - 1)]
+    m = [0.0] * n
+    for i in range(1, n - 1):
+        if d[i - 1] * d[i] > 0:
+            w1, w2 = 2 * h[i] + h[i - 1], h[i] + 2 * h[i - 1]
+            m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i])
+    m[0] = ((2 * h[0] + h[1]) * d[0] - h[0] * d[1]) / (h[0] + h[1])
+    if m[0] * d[0] <= 0:
+        m[0] = 0.0
+    elif d[0] * d[1] <= 0 and abs(m[0]) > abs(3 * d[0]):
+        m[0] = 3 * d[0]
+    m[-1] = ((2 * h[-1] + h[-2]) * d[-1] - h[-1] * d[-2]) / (h[-1] + h[-2])
+    if m[-1] * d[-1] <= 0:
+        m[-1] = 0.0
+    elif d[-1] * d[-2] <= 0 and abs(m[-1]) > abs(3 * d[-1]):
+        m[-1] = 3 * d[-1]
+    i = max(k for k in range(n - 1) if xs[k] <= x)
+    t = (x - xs[i]) / h[i]
+    h00, h10 = 2 * t ** 3 - 3 * t ** 2 + 1, t ** 3 - 2 * t ** 2 + t
+    h01, h11 = -2 * t ** 3 + 3 * t ** 2, t ** 3 - t ** 2
+    return h00 * ys[i] + h10 * h[i] * m[i] + h01 * ys[i + 1] + h11 * h[i] * m[i + 1]
+
+
+def consensus_scale(aggressiveness):
+    return pchip(CONSENSUS_SCALE_POINTS, aggressiveness)
+
+
 @dataclass(frozen=True)
 class Margins:
-    """Safety margins from aggressiveness a ∈ [0, 1] (design §3.6). The mapping is a placeholder."""
+    """Safety margins from aggressiveness a ∈ [0, 1] (design §3.6).
+
+    scheme "legacy" (the step-3 default, a placeholder): C2 and C4 ×(0.7 + 0.6·a), tool life ×4^(0.5 − a), λ
+    from 0.4 to 0.2. scheme "consensus" (user, 2026-10-17): the C7 speed level, the C2 chip limit and the C14
+    caps ×consensus_scale(a) (1.00 at a = 0.75, the vendor median); C4 ≤ the fatigue limit
+    (×0.88…1.0); λ fixed. Physics limits (C1, C3, C4, C5, C9) are never relaxed by aggressiveness there.
+    """
     aggressiveness: float = 0.5
-    limit_scale: float = None           # on the C2 and C4 limits
+    limit_scale: float = None           # on the C2 limit (and C4 under "legacy")
     life_ratio: float = None            # T / T_ref in C7
     limit_margin: float = None          # on C5
+    scheme: str = "legacy"
+    speed_scale: float = None           # on the C7 speed level ("consensus"; 1.0 under "legacy")
+    stress_scale: float = None          # on the C4 fatigue limit (None: limit_scale)
+    lambda_value: float = None          # fixed λ for C1 (None: the material's range by aggressiveness)
+    consensus_cap_scale: float = None   # C14: caps at this × the vendor median
 
     def __post_init__(self):
         a = self.aggressiveness
         if not 0.0 <= a <= 1.0:
             raise ValueError("aggressiveness must be in [0, 1]")
-        if self.limit_scale is None:
-            object.__setattr__(self, "limit_scale", 0.7 + 0.6 * a)
-        if self.life_ratio is None:
-            object.__setattr__(self, "life_ratio", 4.0 ** (0.5 - a))
-        if self.limit_margin is None:
-            object.__setattr__(self, "limit_margin", 0.2 * (1.0 - a))
+        if self.scheme not in MARGIN_SCHEMES:
+            raise ValueError(f"scheme must be one of {MARGIN_SCHEMES}")
+        cons = self.scheme == "consensus"
+        s = consensus_scale(a)
+        defaults = {
+            "limit_scale": s if cons else 0.7 + 0.6 * a,
+            "life_ratio": 1.0 if cons else 4.0 ** (0.5 - a),
+            "limit_margin": 0.2 * (1.0 - a),
+            "speed_scale": s if cons else 1.0,
+            "stress_scale": pchip(CONSENSUS_STRESS_POINTS, a) if cons else None,
+            "lambda_value": CONSENSUS_LAMBDA if cons else None,
+            "consensus_cap_scale": s,
+        }
+        for k, v in defaults.items():
+            if getattr(self, k) is None:
+                object.__setattr__(self, k, v)
 
 
 # ---------------------------------------------------------------------------
@@ -479,27 +570,38 @@ def engagement_speed_factor(material, phi_e):
     return (max(phi_e, floor) / math.pi) ** (-material.vc_engagement_exp)
 
 
-def taylor_speed_m_min(material, phi_e, life_ratio=1.0):
-    """C7 speed: v_ref·(HB_ref/HB)^q·g(engagement)·(T/T_ref)^(−n), m/min.
+def diameter_speed_factor(material, D_mm):
+    """C7 level's diameter term (min(D, D_knee)/D_knee)^m; 1 when m = 0 or D is not given."""
+    if not material.vc_diameter_exp or D_mm is None:
+        return 1.0
+    knee = material.vc_d_knee_in * MM_PER_IN
+    return (min(D_mm, knee) / knee) ** material.vc_diameter_exp
+
+
+def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1.0):
+    """C7 speed: v_ref·(HB_ref/HB)^q·g(engagement)·f(D)·(T/T_ref)^(−n)·s, m/min.
 
     g is `engagement_speed_factor`. By default (basis "phi") φe is held at or above the engagement of
     ae = vc_engagement_ae_min·D (0.1·D, the lightest engagement in Sandvik's Dura sheet): the placeholder
-    exponent gives no speed credit beyond its data. HB_ref is vc_hb_ref when given, else hb_ref.
+    exponent gives no speed credit beyond its data. HB_ref is vc_hb_ref when given, else hb_ref. f(D) is
+    `diameter_speed_factor`. s is the consensus scheme's speed scale (the tool-life target expressed as speed,
+    T/T_ref = s^(−1/n)).
     """
     v = material.vc_ref_sfm / FT_PER_M
     v *= ((material.vc_hb_ref or material.hb_ref) / material.hb) ** material.vc_hardness_exp
     v *= engagement_speed_factor(material, phi_e)
+    v *= diameter_speed_factor(material, D_mm)
     v *= life_ratio ** (-material.taylor_n)
-    return v
+    return v * speed_scale
 
 
-def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0):
+def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0, speed_scale=1.0):
     """C7: v_c from tool life (and the C9 factor); rpm = v_c/(π·D), capped at the machine's max.
 
     Returns (rpm_used, v_c_m_min_used, Check, rpm_tool_life). The check's value is the rpm used, so it binds
     (margin 0) when the spindle's max rpm caps the tool-life speed.
     """
-    vc_life = taylor_speed_m_min(material, phi_e, life_ratio) * reach_factor
+    vc_life = taylor_speed_m_min(material, phi_e, life_ratio, D_mm, speed_scale) * reach_factor
     rpm_want = 1000.0 * vc_life / (math.pi * D_mm)
     rpm = min(rpm_want, max_rpm)
     vc = math.pi * D_mm * rpm / 1000.0
@@ -509,7 +611,11 @@ def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0):
                            f"(ae/D = {(1.0 - math.cos(phi_e)) / 2.0:.3f}, ≥ {material.vc_engagement_ae_min:g})"
                            if material.vc_engagement_basis == "ae" else f"(φe/π = {phi_e / math.pi:.3f})")
                        + f"^−{material.vc_engagement_exp:g}"
-                       f"·(T/T_ref = {life_ratio:.2f})^−{material.taylor_n:g}·C9 {reach_factor:.2f} = "
+                       + (f"·D-term {diameter_speed_factor(material, D_mm):.3f}" if material.vc_diameter_exp else "")
+                       + f"·(T/T_ref = {life_ratio:.2f})^−{material.taylor_n:g}"
+                       + (f"·consensus scale {speed_scale:.3f} (T/T_ref = {speed_scale ** (-1.0 / material.taylor_n):.2f})"
+                          if speed_scale != 1.0 else "")
+                       + f"·C9 {reach_factor:.2f} = "
                        f"{vc_life * FT_PER_M:.0f} SFM → {rpm_want:.0f} rpm; used {rpm:.0f} rpm "
                        f"({vc * FT_PER_M:.0f} SFM)")
     return rpm, vc, chk, rpm_want
@@ -592,6 +698,85 @@ def c13_program_size(ap_in, ae_in, volume_in3, limit_bytes, spacing_mm=POINT_SPA
                  detail=(f"{size / 1e6:.2f} MB for {volume_in3:g} in³ at s = {spacing_mm:g} mm; limit "
                          f"{limit_bytes / 1e6:.1f} MB" if applies else
                          f"{size / 1e6:.2f} MB per in³ at s = {spacing_mm:g} mm (limit off)"))
+
+
+# C14: vendor-consensus guardrail (user, 2026-10-17). data/model_v2/consensus.json (tools/calibrate_v2.py) holds,
+# per bucket (family, hardness bin, diameter band, operation class, engagement class), each vendor group's median
+# SFM, fz/D and MRR/D³ and their median over the groups (the vendor median, each group counted once).
+CONSENSUS_OPERATION = {"slot": "slot", "rough": "side", "adaptive": "hem", "finish": "finish"}
+SRC["C14"] = ("Vendor consensus (user decision 2026-10-17): speed, chip load and MRR ≤ consensus_scale(a) × the "
+              "vendor median of the matching bucket (family, hardness, diameter band, operation, engagement), "
+              "data/model_v2/consensus.json from the benchmark rows; no matching vendor data → the physics result")
+
+
+def load_consensus(path):
+    return _limits(path)
+
+
+def engagement_class(ae_over_D, edges):
+    for name, lo, hi in edges:
+        if lo <= ae_over_D < hi:
+            return name
+    return edges[-1][0]
+
+
+def consensus_lookup(table, family, hb, D_in, operation, ae_over_D):
+    """The finest bucket with vendor data: exact hardness bin, then the wider bin, then any operation."""
+    band = _band_for(table["bands"], D_in)
+    if band is None:
+        return None
+    eng = engagement_class(ae_over_D, table["engagement_classes"])
+    opc = CONSENSUS_OPERATION.get(operation, operation)
+    keys = [("L1", family, str(int(hb // table["hb_bin_fine"])), band["band"], opc, eng),
+            ("L2", family, str(int(hb // table["hb_bin_coarse"])), band["band"], opc, eng),
+            ("L3", family, str(int(hb // table["hb_bin_coarse"])), band["band"], "any", eng)]
+    for k in keys:
+        b = table["buckets"].get("|".join(k))
+        if b:
+            return dict(b, key="|".join(k), level=k[0])
+    return None
+
+
+def _c14_detail(cons, what):
+    groups = cons["vendor_groups"]
+    return (f"{what}; bucket {cons['key']} ({cons['n_rows']} rows, {len(groups)} vendor group"
+            f"{'s' if len(groups) != 1 else ''}: {', '.join(groups)})")
+
+
+def c14_speed(pt, rpm_given=False):
+    """C14v: SFM ≤ scale × the bucket's vendor-median SFM. Caps the C7 speed; a given rpm is only checked."""
+    ctx, cons = pt.ctx, pt.cons
+    if not cons:
+        return Check("C14v", "vendor-consensus speed", "max", 0.0, None, "SFM", SRC["C14"], applies=False,
+                     detail=("no vendor data matches this bucket; the physics (C7) speed stands"
+                             if ctx.consensus else "consensus guardrail off"))
+    s = ctx.mg.consensus_cap_scale
+    med = cons["sfm"]
+    cap_sfm = s * med
+    D_in = ctx.tool.D
+    sfm = math.pi * D_in * pt.rpm / 12.0
+    if sfm > cap_sfm * (1 + 1e-9) and not rpm_given:
+        pt.rpm = 12.0 * cap_sfm / (math.pi * D_in)
+        sfm = cap_sfm
+    return Check("C14v", "vendor-consensus speed", "max", sfm, cap_sfm, "SFM", SRC["C14"],
+                 detail=_c14_detail(cons, f"SFM {sfm:.0f} vs {s:.2f} × vendor median {med:.0f} = {cap_sfm:.0f}"))
+
+
+def c14_feed_checks(pt, fz_in):
+    ctx, cons = pt.ctx, pt.cons
+    if not cons:
+        return {}
+    s = ctx.mg.consensus_cap_scale
+    D = ctx.tool.D
+    fz_med = cons["fz_over_D"] * D
+    mrr = pt.mrr_in3_min(fz_in)
+    mrr_med = cons["mrr_over_D3"] * D ** 3
+    return {
+        "C14f": Check("C14f", "vendor-consensus chip load", "max", fz_in, s * fz_med, "in", SRC["C14"],
+                      detail=_c14_detail(cons, f"fz {fz_in:.6f}\" vs {s:.2f} × vendor median {fz_med:.6f}\"")),
+        "C14m": Check("C14m", "vendor-consensus MRR", "max", mrr, s * mrr_med, "in³/min", SRC["C14"],
+                      detail=_c14_detail(cons, f"MRR {mrr:.4f} vs {s:.2f} × vendor median {mrr_med:.4f} in³/min")),
+    }
 
 
 def runout_offsets_worst(tir_mm, z, model="eccentric"):
@@ -950,7 +1135,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "program_limit_bytes": PROGRAM_LIMIT_BYTES, "removal_volume_in3": None,
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
-                   "wall_metric": "ripple"}
+                   "wall_metric": "ripple", "consensus": None}
 
 
 class _Context:
@@ -993,7 +1178,7 @@ class _Context:
         self.tool, self.mat, self.mach, self.op, self.mg = tool, material, machine, operation, margins
         self.n_theta, self.n_quad = n_theta, n_quad
         self.coeffs = material.coefficients(tool.rake_deg)
-        self.lam = material.lam(margins.aggressiveness)
+        self.lam = margins.lambda_value if margins.lambda_value is not None else material.lam(margins.aggressiveness)
         tir_mm = machine.tir_in * MM_PER_IN
         if machine.runout_model == "eccentric" and tir_mm > 0:
             self.phase_offsets = [forces.runout_offsets(tir_mm, tool.z, "eccentric",
@@ -1049,9 +1234,10 @@ class _Context:
         if o["stress_limit"] is not None:
             self.stress_limit, self.stress_basis = o["stress_limit"], "given"
         else:
-            self.stress_limit = fatigue * margins.limit_scale
+            st = margins.stress_scale if margins.stress_scale is not None else margins.limit_scale
+            self.stress_limit = fatigue * st
             self.stress_basis = (f"carbide fatigue 10⁷: {tool.fatigue_fraction:g}·{tool.trs_mpa:g} = {fatigue:.0f} MPa"
-                                 f" ×{margins.limit_scale:.2f}")
+                                 f" ×{st:.2f}")
         # The Round 2 vendor-median limits, reported only.
         try:
             self.band = provisional_limits(tool.D, o["limits_path"])
@@ -1068,6 +1254,23 @@ class _Context:
         self.eq_stickout = eq if eq else tool.stickout
         self.reach_factor, self.c9 = c9_stickout(self.eq_stickout, tool.D)
         self._speed = {}
+        # C14: the vendor-consensus guardrail (user, 2026-10-17), on when a consensus table is given.
+        self.consensus = None
+        if o["consensus"] is not None:
+            src = CONSENSUS_DEFAULT_PATH if o["consensus"] == "default" else o["consensus"]
+            self.consensus = src if isinstance(src, dict) else load_consensus(src)
+            if not material.family:
+                self.notes.append("C14 inactive: the material names no family for the vendor-consensus lookup")
+        if machine.holder_k_n_um or machine.holder_ktheta_nm_urad:
+            self.notes.append(f"C3 includes the spindle/holder compliance in series with the tool: "
+                              f"k {machine.holder_k_n_um or 0:g} N/µm, k_θ {machine.holder_ktheta_nm_urad or 0:g} N·m/µrad"
+                              + (f" ({machine.holder_basis})" if machine.holder_basis else ""))
+
+    def consensus_for(self, ae_in):
+        """The C14 bucket for this cut (family, hardness, band, operation, engagement), or None."""
+        if not self.consensus or not self.mat.family:
+            return None
+        return consensus_lookup(self.consensus, self.mat.family, self.mat.hb, self.tool.D, self.op, ae_in / self.tool.D)
 
     def _chip_band(self, data, kind, basis):
         """The C2 band for this diameter: slot rows for slots when that band has data, else side rows."""
@@ -1086,7 +1289,7 @@ class _Context:
         if key not in self._speed:
             phi_e = forces.engagement_angle(ae_in * MM_PER_IN, self.tool.D_mm)
             self._speed[key] = c7_speed(self.mat, phi_e, self.tool.D_mm, self.mach.max_rpm,
-                                        self.mg.life_ratio, self.reach_factor)
+                                        self.mg.life_ratio, self.reach_factor, self.mg.speed_scale)
         return self._speed[key]
 
 
@@ -1104,6 +1307,9 @@ class CutPoint:
             self.c7 = c7_check(self.rpm, rpm_life, ctx.mach.max_rpm, c7.detail)
         else:
             self.rpm, self.c7 = rpm_used, c7
+        # C14 (vendor consensus): the speed is capped at scale × the bucket's vendor-median SFM.
+        self.cons = ctx.consensus_for(ae_in)
+        self.c14v = c14_speed(self, rpm_given=bool(rpm))
         self.eng = Engagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb)
         self.c6 = c6_geometry(self.ap, self.ae, t.D, t.lcf, ctx.depth, ctx.op == "slot", ctx.flute_exposed)
         self.c8 = c8_slot_depth(self.ap, t.D, ctx.op)
@@ -1169,10 +1375,18 @@ class CutPoint:
         samples = f["samples"]
         delta, gov_d = -1.0, None
         walls = []
+        mach = self.ctx.mach
+        holder = bool(mach.holder_k_n_um or mach.holder_ktheta_nm_urad)
+        so_mm = t.stickout * MM_PER_IN
         for mag, cen, tq, fy, cen_y in samples:
             a_in = cen / MM_PER_IN
             d = mag * self._compliance(a_in) / t.E_psi / N_PER_LBF
-            walls.append(fy * self._compliance(cen_y / MM_PER_IN) / t.E_psi / N_PER_LBF)
+            w = fy * self._compliance(cen_y / MM_PER_IN) / t.E_psi / N_PER_LBF
+            if holder:
+                # Spindle/holder in series: the holder face moves and tilts under the load (lever from it).
+                d += mag * mach.holder_compliance_mm(so_mm - cen) / MM_PER_IN
+                w += fy * mach.holder_compliance_mm(so_mm - cen_y) / MM_PER_IN
+            walls.append(w)
             if d > delta:
                 delta, gov_d = d, (mag, a_in, tq)
         s1_max, gov_s = -1.0, None
@@ -1249,14 +1463,22 @@ class CutPoint:
         out.update(fc)
         out.update({"C6": self.c6, "C7": self.c7, "C8": self.c8, "C9": self.ctx.c9, "C11": self.c11(fz_in),
                     "C12": self.c12, "C13": self.c13})
+        if self.ctx.consensus is not None:
+            out["C14v"] = self.c14v
+            out.update(self.c14_checks(fz_in))
         chips = {"c2": self.chips_c2(fz_in)[0], "c1": self.chips_c1(fz_in)[0]}
         return {k: out[k] for k in sorted(out, key=_check_key)}, f, beam, chips
 
     def geometry_ok(self):
-        return all(c.ok for c in (self.c6, self.c7, self.c8, self.c12, self.c13))
+        return all(c.ok for c in (self.c6, self.c7, self.c8, self.c12, self.c13, self.c14v))
+
+    def c14_checks(self, fz_in):
+        """C14f (chip load) and C14m (MRR) against scale × the bucket's vendor median."""
+        return c14_feed_checks(self, fz_in)
 
     def upper_ok(self, fz_in):
-        if not (self.c11(fz_in).ok and all(c.ok for c in self.c2_checks(fz_in).values())):
+        if not (self.c11(fz_in).ok and all(c.ok for c in self.c2_checks(fz_in).values())
+                and all(c.ok for c in self.c14_checks(fz_in).values())):
             return False
         return all(c.ok for c in self.force_checks(fz_in)[0].values())
 
@@ -1266,6 +1488,7 @@ class CutPoint:
     def failing_upper(self, fz_in):
         """The upper constraints (C2, C2o, C3–C5, C11) that fail at fz."""
         out = [k for k, c in self.c2_checks(fz_in).items() if not c.ok]
+        out += [k for k, c in self.c14_checks(fz_in).items() if not c.ok]
         if not self.c11(fz_in).ok:
             out.append("C11")
         out += [k for k, c in self.force_checks(fz_in)[0].items() if not c.ok]
@@ -1428,7 +1651,9 @@ def _parameters(tool, material, machine, mg, ctx):
     out = {k: {"value": v, "placeholder": True, "basis": PLACEHOLDERS[k]} for k, v in p.items()}
     out.update({
         "aggressiveness": {"value": mg.aggressiveness, "placeholder": False, "basis": "input"},
-        "aggressiveness_map": {"value": {"limit_scale": mg.limit_scale, "life_ratio": mg.life_ratio,
+        "aggressiveness_map": {"value": {"scheme": mg.scheme, "limit_scale": mg.limit_scale,
+                                         "life_ratio": mg.life_ratio, "speed_scale": mg.speed_scale,
+                                         "stress_scale": mg.stress_scale, "consensus_cap_scale": mg.consensus_cap_scale,
                                          "limit_margin": mg.limit_margin, "lambda": ctx.lam},
                                "placeholder": True, "basis": PLACEHOLDERS["aggressiveness_map"]},
         "kc1_1_at_hb": {"value": ctx.coeffs.kienzle.kc1_1, "placeholder": False,
@@ -1487,8 +1712,9 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             f"material: {material.name}; kc1.1 = {ctx.coeffs.kienzle.kc1_1:.0f} N/mm², mc {material.kienzle.mc:g}",
             f"machine: {machine.label or 'spindle'}, max {machine.max_rpm:.0f} rpm, C5 {machine.rating}, "
             f"TIR {machine.tir_in:.5f}\" ({machine.runout_model})",
-            f"margins (aggressiveness {mg.aggressiveness:.2f}): λ {ctx.lam:.2f}, tool life ×{mg.life_ratio:.2f}, "
-            f"C2/C4 ×{mg.limit_scale:.2f}, C5 margin {mg.limit_margin:.0%}; C2 ({ctx.c2_basis} basis) "
+            f"margins (aggressiveness {mg.aggressiveness:.2f}, {mg.scheme} scheme): λ {ctx.lam:.2f}, tool life "
+            f"×{mg.life_ratio:.2f}, speed ×{mg.speed_scale:.2f}, C2 ×{mg.limit_scale:.2f}, C5 margin "
+            f"{mg.limit_margin:.0%}; C2 ({ctx.c2_basis} basis) "
             f"{(ctx.h_nominal if ctx.c2_basis == 'nominal' else ctx.h_tooth) / MM_PER_IN:.6f}\" "
             f"({ctx.h_nominal_basis if ctx.c2_basis == 'nominal' else ctx.h_tooth_basis}); "
             f"C3 {ctx.delta_allow:.6f}\" ({ctx.delta_basis}); C4 {ctx.stress_limit:.0f} MPa ({ctx.stress_basis})",
@@ -1656,8 +1882,8 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
 def _eliminators(pt, win):
     """The constraint(s) that remove a candidate (ap, ae), each named on its own."""
     if win is None:
-        geo = [k for k, c in (("C6", pt.c6), ("C7", pt.c7), ("C8", pt.c8), ("C12", pt.c12), ("C13", pt.c13))
-               if not c.ok]
+        geo = [k for k, c in (("C6", pt.c6), ("C7", pt.c7), ("C8", pt.c8), ("C12", pt.c12), ("C13", pt.c13),
+                              ("C14v", pt.c14v)) if not c.ok]
         if geo:
             return geo
         return [k for k, c in pt.lower_checks(FZ_MAX_IN).items() if not c.ok] or ["C1"]
@@ -1837,7 +2063,7 @@ def robustness_report(tool, material, machine, operation, cut, ctx, n_theta=360,
         "C2 chip limit −25 %": (tool, replace(material, c2_scale=material.c2_scale * 0.75), machine),
         "kc +20 % (hardness/tool factor)": (tool, replace(material, tool_factor=material.tool_factor * 1.2), machine),
     }
-    nominal = Margins(ctx.mg.aggressiveness, ctx.mg.limit_scale, ctx.mg.life_ratio, 0.0)
+    nominal = replace(ctx.mg, limit_margin=0.0)
     opts = dict(ctx.opts, deflection_allow=ctx.delta_allow, stress_limit=ctx.stress_limit)
     out = {}
     for name, (t, m, mc) in scenarios.items():

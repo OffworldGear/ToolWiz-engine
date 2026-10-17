@@ -191,7 +191,7 @@ def row_material(row, speed=None, force=None):
     cands = [(c, kienzle(c)) for c in codes]
     cands = [(c, k, pl.group_hb(k)) for c, k in cands]
     code, k, ref = min(cands, key=lambda g: abs(g[2] - hb)) if hb else cands[0]
-    kw = dict(name=f"{fam} via {code}", kienzle=k, hb_ref=ref, hb=hb or ref, kc_hardness_exp=p)
+    kw = dict(name=f"{fam} via {code}", kienzle=k, hb_ref=ref, hb=hb or ref, kc_hardness_exp=p, family=fam)
     if force:
         kw.update(tool_factor=force["tool_factor"], k_r=force["k_r"])
     if speed:
@@ -200,11 +200,14 @@ def row_material(row, speed=None, force=None):
 
 
 def speed_kwargs(speed, fam, coat):
+    """Material keyword arguments for the fitted speed law. The level is fitted to bucket vendor medians,
+    which mix coatings, so no coating factor is applied (speed["coating"] is reported only)."""
     f = speed["families"][fam]
-    c = speed["coating"].get(coat, {}).get("applied", 1.0)
-    return dict(vc_ref_sfm=f["vc_ref_sfm"] * c, vc_hb_ref=f["hb_ref"], vc_hardness_exp=f["q"],
+    d = speed["diameter"]
+    return dict(vc_ref_sfm=f["vc_ref_sfm"], vc_hb_ref=f["hb_ref"], vc_hardness_exp=f["q"],
                 vc_engagement_exp=speed["engagement"]["k"], vc_engagement_ae_min=speed["engagement"]["ae_min"],
-                vc_engagement_basis="ae", taylor_n=speed["taylor_n"])
+                vc_engagement_basis="ae", taylor_n=speed["taylor_n"], vc_diameter_exp=d["m"],
+                vc_d_knee_in=d["knee_in"])
 
 
 # ---------------------------------------------------------------------------
@@ -246,6 +249,7 @@ def evaluate(row, machine, force=None, n_theta=144, n_quad=48):
         "derived": bool(row["source"].get("derivation")), "holdout": holdout(row),
         "ap": ap, "ae": ae, "ap_over_D": ap / tool.D, "ae_over_D": ae / tool.D, "sfm": sfm, "fz": fz,
         "c9": ctx.reach_factor,
+        "mrr": ap * ae * fz * tool.z * 12.0 * sfm / (math.pi * tool.D),
         "h_worst_over_D": max(chips) / D_mm, "h_m_mm": h_m, "sigma1_mpa": top["sigma1_mpa"],
         "section": top["kind"], "deflection_in": beam["delta_in"], "power_w": f["power_kw"] * 1000.0,
     }
@@ -647,25 +651,179 @@ def fit_speed(evals, train_mask):
                                  "applied: ≥ 2 vendor groups, ≥ 2 families and |t| ≥ 2; confounded with tool "
                                  "series (within-vendor contrasts)" if supported else
                                  "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry")}
-    fam_out = {}
-    for i, f in enumerate(families):
-        n = sum(1 for e in data if e["family"] == f)
-        fam_out[f] = {"vc_ref_sfm": math.exp(coef[i] + anchor), "se_log": se[i], "hb_ref": hb_ref[f],
-                      "q": hard[f]["q"], "q_basis": hard[f]["basis"], "n_rows": n,
-                      "vendor_groups": sorted({e["vendor_group"] for e in data if e["family"] == f})}
-    return {"engagement": {"k": k, "ae_min": a0, "basis": "ae", **{kk: v for kk, v in eng.items()
+    vendor_fe = {f: math.exp(coef[i] + anchor) for i, f in enumerate(families)}
+    base = {"engagement": {"k": k, "ae_min": a0, "basis": "ae", **{kk: v for kk, v in eng.items()
                                                                    if kk not in ("k", "ae_min")}},
-            "hardness": hard, "families": fam_out, "coating": coat_out,
+            "hardness": hard, "coating": coat_out,
             "vendor_effect_log": {v: e - anchor for v, e in vendor_eff.items()},
-            "anchor": "median vendor group (decision §7.1: vendor-typical life)", "taylor_n": 0.25}
+            "vendor_fe_level_sfm": vendor_fe, "taylor_n": 0.25,
+            "anchor": "the bucket vendor median (each vendor group counted once), = 75 % aggressiveness "
+                      "(user decision 2026-10-17)"}
+    level = fit_level_consensus(train, base, hb_ref, families)
+    base.update(level)
+    return base
+
+
+def _level_target(b, base, hb_ref):
+    """A bucket's vendor-median SFM with the engagement, hardness and C9 terms taken out (log)."""
+    eng, hard = base["engagement"], base["hardness"]
+    return (math.log(b["sfm"] / b["c9"]) + eng["k"] * math.log(max(b["ae_over_D"], eng["ae_min"]))
+            + hard[b["family"]]["q"] * math.log(b["hb"] / hb_ref[b["family"]]))
+
+
+def irls_l1(X, y, iters=40, eps=1e-3):
+    """Least absolute deviations by iteratively reweighted least squares (a median fit)."""
+    w = [1.0] * len(y)
+    coef = None
+    for _ in range(iters):
+        coef, se = wls(X, y, w)
+        res = [yi - sum(c * x for c, x in zip(coef, xi)) for xi, yi in zip(X, y)]
+        w = [1.0 / max(abs(r), eps) for r in res]
+    return coef, se
+
+
+def fit_level_consensus(train, base, hb_ref, families, knees=(0.125, 0.25, 0.5, 1.0)):
+    """The C7 level per family plus a diameter term, fitted so the law sits at the vendor median.
+
+    Target (the user's §5 definition): each training row's L1 bucket vendor median (family, 50-HB bin, band,
+    operation class, engagement class; each vendor group's median, then the median over groups), with the
+    row's own engagement, hardness and C9 terms taken out. Least absolute deviations over rows, so the fit's
+    per-band median bias and the gate's are the same statistic. Model: level_f·(min(D, D_knee)/D_knee)^m.
+
+    The D term is EMPIRICAL: within a chart vendors print one SFM for every diameter (slope −0.001 ± 0.002), so
+    the trend is between tool series. No cited physical law was found (the likeliest cause is the rpm a micro
+    tool can actually get). D_knee by grid, judged by the largest per-band bias on the training rows; m = 0 is
+    reported for comparison.
+    """
+    table = build_consensus(train)
+    eng, hard = base["engagement"], base["hardness"]
+    obs = []
+    for e in train:
+        b = table["buckets"].get(bucket_keys(e)[0])
+        if not b:
+            continue
+        y = (math.log(b["sfm"] / e["c9"]) + eng["k"] * math.log(max(e["ae_over_D"], eng["ae_min"]))
+             + hard[e["family"]]["q"] * math.log(e["hb"] / hb_ref[e["family"]]))
+        obs.append((e, y))
+    results = []
+    for knee in (None,) + tuple(knees):
+        def x(e, knee=knee):
+            row = [1.0 if e["family"] == f else 0.0 for f in families]
+            if knee:
+                row.append(math.log(min(e["D"], knee) / knee))
+            return row
+        coef, se = irls_l1([x(e) for e, _ in obs], [y for _, y in obs])
+        m = coef[len(families)] if knee else 0.0
+        speed = dict(base, families={f: {"vc_ref_sfm": math.exp(coef[i]), "hb_ref": hb_ref[f],
+                                         "q": hard[f]["q"], "q_basis": hard[f]["basis"],
+                                         "n_rows": sum(1 for e, _ in obs if e["family"] == f),
+                                         "vendor_groups": sorted({e["vendor_group"] for e, _ in obs
+                                                                  if e["family"] == f})}
+                                     for i, f in enumerate(families)},
+                     diameter={"m": m, "knee_in": knee or 1.0})
+        bias = band_bias_vs_median(speed, train, table)
+        results.append((max(abs(v) for v in bias.values()), knee, speed, bias))
+    best = min(results, key=lambda r: r[0])
+    speed = best[2]
+    speed["diameter"].update(
+        form="v ∝ (min(D, D_knee)/D_knee)^m (EMPIRICAL)",
+        basis="least absolute deviations over training rows against their bucket vendor medians; D_knee by grid "
+              "(smallest worst per-band bias)",
+        grid=[{"knee_in": r[1], "m": r[2]["diameter"]["m"], "max_abs_band_bias": r[0], "band_bias": r[3]}
+              for r in results])
+    speed["n_level_rows"] = len(obs)
+    return speed
 
 
 def predict_sfm(speed, e):
+    """The C7 speed law at 75 % (scale 1.0) for a row's own cut, C9 included."""
     f = speed["families"][e["family"]]
-    c = speed["coating"].get(e["coating"], {}).get("applied", 1.0)
     eng = speed["engagement"]
-    return (f["vc_ref_sfm"] * c * (f["hb_ref"] / e["hb"]) ** f["q"]
-            * max(e["ae_over_D"], eng["ae_min"]) ** (-eng["k"]) * e["c9"])
+    d = speed.get("diameter", {"m": 0.0, "knee_in": 1.0})
+    return (f["vc_ref_sfm"] * (f["hb_ref"] / e["hb"]) ** f["q"]
+            * max(e["ae_over_D"], eng["ae_min"]) ** (-eng["k"]) * e["c9"]
+            * (min(e["D"], d["knee_in"]) / d["knee_in"]) ** d["m"])
+
+
+def band_bias_vs_median(speed, items, table):
+    """Median over rows in each band of log(predicted SFM / the row's L1 bucket vendor-median SFM)."""
+    by = collections.defaultdict(list)
+    for e in items:
+        b = table["buckets"].get(bucket_keys(e)[0])
+        if b:
+            by[e["band"]].append(math.log(predict_sfm(speed, e) / b["sfm"]))
+    return {b: statistics.median(v) for b, v in by.items()}
+
+
+# ---------------------------------------------------------------------------
+# C14: vendor-consensus buckets
+# ---------------------------------------------------------------------------
+
+ENGAGEMENT_CLASSES = [("light", 0.0, 0.1), ("medium", 0.1, 0.25), ("heavy", 0.25, 0.99), ("slot", 0.99, 1e9)]
+OPERATION_CLASS = {"slot": "slot", "side": "side", "rough": "side", "hem": "hem", "finish": "finish"}
+HB_BIN_FINE, HB_BIN_COARSE = 50, 100
+
+
+def bucket_keys(e):
+    """L1 (50-HB bin, operation class), L2 (100-HB bin), L3 (100-HB bin, any operation); optimize.consensus_lookup."""
+    eng = o.engagement_class(e["ae_over_D"], ENGAGEMENT_CLASSES)
+    opc = OPERATION_CLASS[e["operation"]]
+    fam, band = e["family"], e["band"]
+    return ["|".join(("L1", fam, str(int(e["hb"] // HB_BIN_FINE)), band, opc, eng)),
+            "|".join(("L2", fam, str(int(e["hb"] // HB_BIN_COARSE)), band, opc, eng)),
+            "|".join(("L3", fam, str(int(e["hb"] // HB_BIN_COARSE)), band, "any", eng))]
+
+
+def build_consensus(evals):
+    """Per bucket: each vendor group's median SFM, fz/D and MRR/D³, and the median over the groups."""
+    groups = collections.defaultdict(lambda: collections.defaultdict(list))
+    for e in evals:
+        for k in bucket_keys(e):
+            groups[k][e["vendor_group"]].append(e)
+    buckets = {}
+    for key, by_vg in groups.items():
+        def med(f, by_vg=by_vg):
+            return statistics.median(statistics.median(f(x) for x in es) for es in by_vg.values())
+        rows = [x for es in by_vg.values() for x in es]
+        buckets[key] = {
+            "sfm": med(lambda x: x["sfm"]), "fz_over_D": med(lambda x: x["fz"] / x["D"]),
+            "mrr_over_D3": med(lambda x: x["mrr"] / x["D"] ** 3),
+            "n_rows": len(rows), "vendor_groups": sorted(by_vg),
+            "family": rows[0]["family"], "D": statistics.median(x["D"] for x in rows),
+            "hb": statistics.median(x["hb"] for x in rows), "ae_over_D": statistics.median(x["ae_over_D"] for x in rows),
+            "c9": statistics.median(x["c9"] for x in rows),
+        }
+    return {"version": VERSION, "generated_by": "tools/calibrate_v2.py",
+            "status": "C14 vendor-consensus buckets (user decision 2026-10-17)",
+            "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry; each vendor group's median, "
+                      "then the median over vendor groups",
+            "bands": [{"band": n, "d_min": lo, "d_max": hi if hi != math.inf else 1e9} for n, lo, hi in BANDS],
+            "engagement_classes": [[n, lo, hi] for n, lo, hi in ENGAGEMENT_CLASSES],
+            "hb_bin_fine": HB_BIN_FINE, "hb_bin_coarse": HB_BIN_COARSE,
+            "levels": {"L1": "family, 50-HB bin, band, operation class, engagement class",
+                       "L2": "family, 100-HB bin, band, operation class, engagement class",
+                       "L3": "family, 100-HB bin, band, any operation, engagement class"},
+            "buckets": buckets}
+
+
+def consensus_spread(evals):
+    """How far vendor groups sit from their bucket median: p25 and p75 of group-median / bucket-median for SFM
+    and fz/D over L1 buckets with ≥ 3 vendor groups (checks the aggressiveness points)."""
+    groups = collections.defaultdict(lambda: collections.defaultdict(list))
+    for e in evals:
+        groups[bucket_keys(e)[0]][e["vendor_group"]].append(e)
+    out = {}
+    for name, f in (("sfm", lambda x: x["sfm"]), ("fz_over_D", lambda x: x["fz"] / x["D"])):
+        ratios = []
+        for by_vg in groups.values():
+            if len(by_vg) < 3:
+                continue
+            meds = [statistics.median(f(x) for x in es) for es in by_vg.values()]
+            m = statistics.median(meds)
+            ratios += [v / m for v in meds]
+        out[name] = {"p10": quantile(ratios, 0.10), "p25": quantile(ratios, 0.25), "p75": quantile(ratios, 0.75),
+                     "p90": quantile(ratios, 0.90), "n_group_medians": len(ratios)}
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -786,7 +944,7 @@ def within_range(pred, cell, slack=0.10):
     return lo / (1 + slack) <= pred <= hi * (1 + slack)
 
 
-def benchmark_row(row, material, machine, c3_on=False, n_theta=72, n_quad=24):
+def benchmark_row(row, material, machine, c3_on=False, margins=None, consensus=None, n_theta=72, n_quad=24):
     """The optimizer's choice at the vendor's ap and ae: speed from C7, fz the largest that meets every
     constraint.
 
@@ -798,10 +956,10 @@ def benchmark_row(row, material, machine, c3_on=False, n_theta=72, n_quad=24):
     c = row["cut"]
     ap, ae = min(float(c["ap"]), tool.lcf), min(float(c["ae"]), tool.D)
     op = OPERATION[row["operation"]]
-    opts = {"effective_feed_ipm": None}
+    opts = {"effective_feed_ipm": None, "consensus": consensus}
     if not c3_on and op != "finish":
         opts["deflection_allow"] = 1.0
-    ctx = o._Context(tool, material, machine, op, o.Margins(0.5), n_theta, n_quad, **opts)
+    ctx = o._Context(tool, material, machine, op, margins or o.Margins(0.5), n_theta, n_quad, **opts)
     pt = o.CutPoint(ctx, ap, ae)
     # C8 (empirical micro slot depth) and C12 (ae ≥ 2·TIR) judge the vendor's chosen ap/ae, not fz or speed:
     # the comparison is made at the vendor's engagement regardless, and the conflict is recorded.
@@ -817,11 +975,14 @@ def benchmark_row(row, material, machine, c3_on=False, n_theta=72, n_quad=24):
     if op == "finish" and c3_on:
         fz, _ = o._finish_target(pt, win[0], win[1], ctx)
     checks = pt.checks(fz)[0]
-    return {"feasible": True, "sfm": sfm, "fz": fz, "binding": o._binding(checks),
-            "capped": pt.fz_capped, "conflicts": conflicts}
+    out = {"feasible": True, "sfm": sfm, "fz": fz, "binding": o._binding(checks),
+           "capped": pt.fz_capped, "conflicts": conflicts}
+    if pt.cons:
+        out["c14_bucket"] = pt.cons["key"]
+    return out
 
 
-def benchmark(rows, material_fn, machine, c3_on=False):
+def benchmark(rows, material_fn, machine, c3_on=False, margins=None, consensus=None):
     out = {}
     for r in rows:
         if r["tool"].get("end") != "square" or pl.missing_geometry(r):
@@ -830,13 +991,16 @@ def benchmark(rows, material_fn, machine, c3_on=False):
         if mat is None:
             out[r["id"]] = {"skip": info["skip"]}
             continue
-        out[r["id"]] = benchmark_row(r, mat, machine, c3_on)
+        out[r["id"]] = benchmark_row(r, mat, machine, c3_on, margins, consensus)
     return out
 
 
-def section5(rows_by_id, evals, bench, train_mask=None):
+def section5(rows_by_id, evals, bench, train_mask=None, table=None):
     """§5 metrics: pass rate (range ±10 %, no slack), median |log error| per band, signed bias by vendor,
-    band and material, for SFM, fz and MRR (at the vendor's engagement MRR ∝ SFM·fz)."""
+    band and material, for SFM, fz and MRR (at the vendor's engagement MRR ∝ SFM·fz).
+
+    With `table` (the consensus buckets from all rows), also the bias against the vendor median: the median
+    over rows of log(model / the row's L1 bucket vendor median), for SFM, fz (fz/D) and MRR (MRR/D³)."""
     ev = {e["id"]: e for e in evals if "skip" not in e}
     recs = []
     for rid, b in bench.items():
@@ -850,6 +1014,13 @@ def section5(rows_by_id, evals, bench, train_mask=None):
             rec["log_fz"] = math.log(b["fz"] / e["fz"])
             rec["log_mrr"] = rec["log_sfm"] + rec["log_fz"]
             rec["fz_ok"] = within_range(b["fz"], row["cut"]["fz"])
+        bk = table["buckets"].get(bucket_keys(e)[0]) if table else None
+        if bk:
+            rec["med_sfm"] = math.log(b["sfm"] / bk["sfm"])
+            if b["feasible"]:
+                rec["med_fz"] = math.log(b["fz"] / e["D"] / bk["fz_over_D"])
+                mrr = e["mrr"] * (b["sfm"] / e["sfm"]) * (b["fz"] / e["fz"])
+                rec["med_mrr"] = math.log(mrr / e["D"] ** 3 / bk["mrr_over_D3"])
         recs.append(rec)
 
     def summarize(sel):
@@ -868,6 +1039,10 @@ def section5(rows_by_id, evals, bench, train_mask=None):
                        bias_fz=statistics.median(r["log_fz"] for r in f),
                        mal_mrr=statistics.median(abs(r["log_mrr"]) for r in f),
                        bias_mrr=statistics.median(r["log_mrr"] for r in f))
+        for q in ("sfm", "fz", "mrr"):
+            v = [r["med_" + q] for r in s if "med_" + q in r]
+            if v:
+                res["bias_vs_median_" + q] = statistics.median(v)
         return res
     out = {"overall": summarize(lambda r: True)}
     if train_mask:
@@ -897,7 +1072,41 @@ def section5(rows_by_id, evals, bench, train_mask=None):
             fz_fail[("over" if r["log_fz"] > 0 else "under") + ": " + (", ".join(b["binding"]) or "none")] += 1
     out["fz_outside_range_by_binding"] = dict(fz_fail.most_common(12))
     out["skipped"] = dict(collections.Counter(b["skip"] for b in bench.values() if "skip" in b))
+    c14 = collections.Counter()
+    for b in bench.values():
+        for k in b.get("binding", ()) if b.get("feasible") else ():
+            if k.startswith("C14"):
+                c14[k] += 1
+    out["c14_binding"] = dict(c14)
+    out["c14_no_bucket"] = sum(1 for b in bench.values() if b.get("feasible") is not None and "skip" not in b
+                               and "c14_bucket" not in b and b.get("feasible"))
     return out, recs
+
+
+def gate(s5_75, s5_50, ceiling):
+    """The §5 gate (user, 2026-10-17), per band: median |log error| vs rows ≤ the vendors' own disagreement in
+    that band (vendor_consensus_ceiling), for SFM and fz; at 75 % |bias vs vendor median| ≤ 0.10; at 50 %
+    −0.20 ≤ bias ≤ 0. Bias for SFM, fz and MRR. Vendor bias is reported, not gated."""
+    out = {}
+    for band, _, _ in BANDS:
+        a, h = s5_75["by_band"].get(band), s5_50["by_band"].get(band)
+        if not a or not h:
+            continue
+        row = {}
+        for q in ("sfm", "fz"):
+            ceil = ceiling[q]["median_abs_log_by_band"].get(band)
+            mal = a.get("mal_" + q)
+            row[f"mal_{q}_75"] = mal
+            row[f"ceiling_{q}"] = ceil
+            row[f"mal_{q}_ok"] = mal is not None and ceil is not None and mal <= ceil
+        for q in ("sfm", "fz", "mrr"):
+            b75, b50 = a.get("bias_vs_median_" + q), h.get("bias_vs_median_" + q)
+            row[f"bias_{q}_75"], row[f"bias_{q}_50"] = b75, b50
+            row[f"bias_{q}_75_ok"] = b75 is not None and abs(b75) <= 0.10
+            row[f"bias_{q}_50_ok"] = b50 is not None and -0.20 <= b50 <= 0.0
+        row["pass"] = all(v for k, v in row.items() if k.endswith("_ok"))
+        out[band] = row
+    return out
 
 
 def vendor_consensus_ceiling(rows_by_id, evals):
@@ -934,41 +1143,31 @@ def vendor_consensus_ceiling(rows_by_id, evals):
 # 5. Aggressiveness map (proposal)
 # ---------------------------------------------------------------------------
 
-def aggressiveness_proposal(evals):
-    """C2: the band's own vendor quantiles; C4: cited fatigue levels; life and λ as now."""
-    side = [e for e in evals if "skip" not in e and e["operation"] in ("side", "rough", "hem")]
-    ratios = []
-    for name, lo, hi in BANDS:
-        v = [e["h_worst_over_D"] for e in side if e["band"] == name]
-        if len(v) < 10:
-            continue
-        m = statistics.median(v)
-        ratios.append((name, quantile(v, 0.25) / m, quantile(v, 0.75) / m, len(v)))
-    p25 = statistics.median(r[1] for r in ratios)
-    p75 = statistics.median(r[2] for r in ratios)
+def aggressiveness_map(evals):
+    """The consensus aggressiveness map (user decision 2026-10-17, accepted in principle), with the vendor
+    spread it is checked against."""
+    spread = consensus_spread(evals)
+    pts = {f"a={a:g}": o.consensus_scale(a) for a in (0.0, 0.25, 0.5, 0.75, 1.0)}
     return {
-        "status": "PROPOSAL for the user (design §3.6); the optimizer still uses the Round 1 placeholder map",
-        "current": {"C2_and_C4_scale": "0.7 + 0.6·a", "life_ratio": "4^(0.5 − a)", "C5_margin": "0.2·(1 − a)",
-                    "lambda": "0.4 − 0.2·a"},
-        "proposed": {
-            "C2_scale": {"a=0": p25, "a=0.5": 1.0, "a=1": p75, "form": "piecewise linear in a between the points",
-                         "source": "the vendor rows' own spread of worst-flute h/D around each band median: "
-                                   "p25/median and p75/median, median over bands (calibration_report.json)",
-                         "per_band": [{"band": n, "p25_over_median": a, "p75_over_median": b, "n": k}
-                                      for n, a, b, k in ratios]},
-            "C4_limit_mpa": {"a=0": 0.33 * TRS_MPA, "a=0.5": FATIGUE_MPA, "a=1": 0.42 * TRS_MPA,
-                             "source": "cited fatigue fractions of TRS 3.8 GPa: 0.33 (Schleinkofer 1996, R = −1, 10⁷, "
-                                       "via Preis 2004), 0.375 (Round 4 basis), 0.42 (Kursawe 2001, 10⁶ cycles ≈ a "
-                                       "tool's life, via Preis 2004). The current ×1.3 at a = 1 is 0.49·TRS, above "
-                                       "any cited fully reversed level"},
-            "life_ratio": {"a=0": 2.0, "a=0.5": 1.0, "a=1": 0.5, "form": "4^(0.5 − a) (unchanged)",
-                           "source": "with n = 0.25 this moves speed ×0.84…×1.19, about the inter-quartile spread "
-                                     "of vendor speed levels (vendor_effect_log in calibration_report.json)"},
-            "lambda": {"a=0": 0.4, "a=1": 0.2, "source": "sourced range, unchanged (C1)"},
-            "C5_margin": {"form": "0.2·(1 − a) (unchanged)", "source": "placeholder; the spindle is a hard limit"},
-            "C3": {"form": "not scaled by aggressiveness", "source": "C3 is the user's process requirement "
-                                                                     "(50 % of the stock to leave)"},
-        },
+        "status": "user decision 2026-10-17 (points accepted in principle); optimize.Margins(scheme='consensus')",
+        "scale_points": {"value": [list(p) for p in o.CONSENSUS_SCALE_POINTS],
+                         "source": "user 2026-10-17: 75 % ≈ vendor median (1.00), 50 % default 0.92 (Speedio BT30 "
+                                   "starting point), 100 % 1.10 (vendors' 'may increase 10–20 %', e.g. Harvey "
+                                   "speeds-feeds page), 0 % 0.76 (vendor lower quartile; worst-flute h/D p25/median "
+                                   "0.76, calibration_report.json)"},
+        "interpolation": "monotone cubic (Fritsch–Carlson) through the points",
+        "scale_at": pts,
+        "applies_to": ["C7 speed level (the tool-life target as speed: T/T_ref = scale^(−1/n))", "C2 chip limit",
+                       "C14 caps on SFM, fz and MRR (scale × the bucket vendor median)"],
+        "C4": {"value": [list(p) for p in o.CONSENSUS_STRESS_POINTS],
+               "source": "× the fatigue limit 1425 MPa, never above it: 0.88 = 0.33/0.375 at a = 0 (Schleinkofer 1996, "
+                         "R = −1, via Preis 2004), 1.0 at a = 1; linear"},
+        "lambda": {"value": o.CONSENSUS_LAMBDA, "source": "fixed (C1 never relaxed); centre of 0.2–0.4 "
+                                                         "(Wojciechowski 2022)"},
+        "C5_margin": {"value": "0.2·(1 − a)", "source": "unchanged; the spindle is a hard limit"},
+        "never_relaxed": ["C1", "C3 (with the spindle/holder compliance)", "C4", "C5", "C9"],
+        "vendor_spread_check": {"value": spread,
+                                "source": "vendor-group median / bucket vendor median over L1 buckets with ≥ 3 groups"},
     }
 
 
@@ -976,31 +1175,64 @@ def aggressiveness_proposal(evals):
 # T1 / T12
 # ---------------------------------------------------------------------------
 
-def t1_t12(speed, force, quick=False):
+# Provisional BT30 spindle + holder compliance (no measured BT30 value was found; measure on the Speedio):
+BT30 = {
+    "k_spindle_n_um": {"value": 80.0, "source": "NK Enginex ATC-BT30 spindle spec 'Radial stiffness ≥80 N/μm' "
+                                                "(vendor minimum, not Brother; https://nkenginex.com/products/cnc-atc-bt30-spindle)"},
+    "k_holder_joint_n_um": {"value": 51.6, "source": "holder-tool joint k_yf 5.1581e7 N/m, carbide 16 mm tool in a BT40 "
+                                                     "holder (Özşahin, Ertürk, Özgüven, Budak 2009, IJMTM 49:25, Table 2)"},
+    "ktheta_holder_joint_nm_urad": {"value": 0.12631, "source": "holder-tool joint k_θm 1.2631e5 N·m/rad, same paper "
+                                                                "and table; no size-30 taper rotational value was found"},
+}
+BT30_K = 1.0 / (1.0 / BT30["k_spindle_n_um"]["value"] + 1.0 / BT30["k_holder_joint_n_um"]["value"])
+BT30_BASIS = ("PROVISIONAL BT30: spindle ≥80 N/µm (NK Enginex spec) in series with a holder-tool joint 51.6 N/µm and "
+              "0.126 N·m/µrad (Özşahin et al. 2009, BT40, 16 mm tool); measure on the Speedio")
+
+
+def speedio_bt30(tir=TIR_IN):
+    return replace(o.speedio_16k(tir), holder_k_n_um=BT30_K,
+                   holder_ktheta_nm_urad=BT30["ktheta_holder_joint_nm_urad"]["value"], holder_basis=BT30_BASIS)
+
+
+def t1_t12(speed, force, consensus):
+    """T1 and T12 in 17-4 H1025: before (step-3 defaults, rigid holder) and after at 50 % and 75 % (consensus
+    scheme, C14, calibrated material, Speedio with the provisional BT30 compliance)."""
     T1 = o.Tool.build(0.125, 4, 0.5, 0.6, shank=0.125, label="T1")
     T12 = o.Tool.build(0.0625, 4, 0.1875, 0.5, shank=0.125, label="T12")
-    mach = o.speedio_16k(TIR_IN)
+    rigid, bt30 = o.speedio_16k(TIR_IN), speedio_bt30()
     fam = "Stainless - PH Series (17-4)"
     before = o.material_17_4(356.0)
     after = replace(before, tool_factor=force["tool_factor"], k_r=force["k_r"],
                     **speed_kwargs(speed, fam, "unspecified"))
+    runs = [("before", before, rigid, o.Margins(0.5), None),
+            ("after 50 %", after, bt30, o.Margins(0.5, scheme="consensus"), consensus),
+            ("after 75 %", after, bt30, o.Margins(0.75, scheme="consensus"), consensus)]
     out = []
-    ops = ("adaptive", "slot", "finish")
     for tool in (T1, T12):
-        for op in ops:
-            for label, mat in (("before", before), ("after", after)):
+        for op in ("adaptive", "slot", "finish"):
+            for label, mat, mach, mg, cons in runs:
                 kw = {"stock": 0.05 / MM} if op == "finish" else {}
-                r = o.optimize(tool, mat, mach, op, 0.5, robustness=False, find_tir=False, **kw)
+                r = o.optimize(tool, mat, mach, op, margins=mg, robustness=False, find_tir=False,
+                               consensus=cons, **kw)
                 c = r["cut"]
                 rec = {"tool": tool.label, "operation": op, "model": label, "feasible": r["feasible"],
                        "ap_over_D": c["ap_over_D"], "ae_over_D": c["ae_over_D"], "fz_in": c["fz_in"],
                        "sfm": c["sfm"], "ipm": c["feed_ipm"], "mrr_in3_min": c["mrr_in3_min"],
                        "MB_per_in3_s0.22": c["program"]["bytes_per_in3"]["s=0.22mm"] / 1e6,
                        "binding": r["binding"], "sigma1_mpa": r["checks"]["C4"]["value"],
-                       "wall_deflection_in": r["loads"]["wall_error_in"]["max_in"]}
+                       "wall_deflection_in": r["loads"]["wall_error_in"]["max_in"],
+                       "c14": {k: r["checks"][k]["detail"] for k in ("C14v", "C14f", "C14m") if k in r["checks"]}}
+                if mach.holder_k_n_um:
+                    # The holder's share: the same cut on a rigid holder.
+                    rr = o.evaluate_cut(tool, mat, rigid, op, c["ap_in"], c["ae_in"], c["fz_in"], c["rpm"], margins=mg,
+                                        consensus=cons)
+                    w_rigid = rr["loads"]["wall_error_in"]["max_in"]
+                    rec["wall_deflection_rigid_in"] = w_rigid
+                    rec["holder_share_of_wall"] = 1.0 - w_rigid / rec["wall_deflection_in"] if rec["wall_deflection_in"] else 0.0
                 if op == "finish" and "wall_target" in r:
                     wt = r["wall_target"]
-                    rec["wall_um"] = {"ripple": wt["ripple_in"] * MM * 1000, "mean": wt["mean_blum_compensable_in"] * MM * 1000,
+                    rec["wall_um"] = {"ripple": wt["ripple_in"] * MM * 1000,
+                                      "mean": wt["mean_blum_compensable_in"] * MM * 1000,
                                       "max": wt["max_in"] * MM * 1000, "met": wt["met"]}
                 out.append(rec)
     return out
@@ -1060,11 +1292,12 @@ def materials_file(force, speed):
         s = speed["families"].get(fam)
         if s:
             entry["speed"] = {
-                "vc_ref_sfm": {"value": s["vc_ref_sfm"], "at": f"slot (ae = D), {s['hb_ref']:.0f} HB, AlTiN/TiAlN "
-                                                              f"or unspecified coating, median vendor group",
-                               "source": f"fit to {s['n_rows']} non-finishing training rows from "
-                                         f"{', '.join(s['vendor_groups'])} (vendor fixed effects, equal vendor "
-                                         f"weights, anchored at the median vendor; calibration_report.json speed)"},
+                "vc_ref_sfm": {"value": s["vc_ref_sfm"],
+                               "at": f"slot (ae = D), {s['hb_ref']:.0f} HB, D ≥ {speed['diameter']['knee_in']:g}\", the "
+                                     f"vendor median (75 % aggressiveness)",
+                               "source": f"least absolute deviations over {s['n_rows']} training rows against their "
+                                         f"bucket vendor medians (each vendor group counted once; groups "
+                                         f"{', '.join(s['vendor_groups'])}); calibration_report.json speed"},
                 "hb_ref": {"value": s["hb_ref"], "source": "median hardness of the family's benchmark rows"},
                 "vc_hardness_exp": {"value": s["q"], "source": s["q_basis"] + " (calibration_report.json "
                                                                              "speed.hardness)"},
@@ -1083,6 +1316,14 @@ def materials_file(force, speed):
             "k_te_n_mm": {"value": 0.0, "source": SRC["k_te"]},
             "k_re_n_mm": {"value": 0.0, "source": SRC["k_te"]},
         },
+        "speed_diameter": {
+            "form": speed["diameter"]["form"],
+            "m": {"value": speed["diameter"]["m"], "source": "EMPIRICAL; " + speed["diameter"]["basis"]},
+            "knee_in": {"value": speed["diameter"]["knee_in"], "source": speed["diameter"]["basis"]},
+            "why_empirical": "within a chart vendors print one SFM for all diameters; the trend is between tool "
+                             "series. No cited physical law was found (lookup: no vc ∝ D^m in the literature; micro "
+                             "tools are 'starved for spindle rpm', MSC/Iscar, second-hand)",
+        },
         "speed_engagement": {
             "basis": "ae", "form": "v ∝ max(ae/D, ae_min)^(−k)",
             "k": {"value": speed["engagement"]["k"],
@@ -1090,13 +1331,15 @@ def materials_file(force, speed):
                             f"{speed['engagement']['groups']} charts, equal vendor weights"},
             "ae_min": {"value": speed["engagement"]["ae_min"], "source": "grid search on the within-chart residual"},
         },
-        "coating_speed_factor": {c: {"value": v["applied"], "fitted": v["factor"], "source": v["basis"],
+        "coating_speed_factor": {c: {"value": 1.0, "fitted": v["factor"],
+                                     "source": "not applied: the speed level is fitted to bucket vendor medians, "
+                                               "which mix coatings; fitted within-vendor factor reported (" + v["basis"] + ")",
                                      "vendor_groups": v["vendor_groups"]} for c, v in speed["coating"].items()},
         "families": fams,
     }
 
 
-def tools_file(aggr):
+def tools_file(aggr, bt30=None):
     return {
         "version": VERSION, "status": "PROPOSED (calibration step 4)", "generated_by": "tools/calibrate_v2.py",
         "date": datetime.date.today().isoformat(),
@@ -1111,6 +1354,10 @@ def tools_file(aggr):
                         "TIR 0.0002\")", "source": "confirmed on the hold-out rows against fitted alternatives "
                                                    "(calibration_report.json c2)"},
         "aggressiveness": aggr,
+        "C14": {"basis": "data/model_v2/consensus.json", "source": o.SRC["C14"]},
+        "machine_bt30": dict(BT30, combined_k_n_um={"value": BT30_K, "source": "series of the two translational "
+                                                                               "values above"},
+                             status=BT30_BASIS),
     }
 
 
@@ -1155,11 +1402,24 @@ def main(argv=None):
     for k, v in c2.items():
         print(f"  C2 {k:40} hold-out {v['holdout']['median_abs_log']:.3f} train {v['train']['median_abs_log']:.3f}")
 
-    aggr = aggressiveness_proposal(ok)
+    d = speed["diameter"]
+    print(f"speed level (bucket vendor medians, {speed['n_level_rows']} rows): D term m {d['m']:.3f}, "
+          f"knee {d['knee_in']:g}\"")
+    for f, s_ in speed["families"].items():
+        print(f"  {f:38} vc_ref {s_['vc_ref_sfm']:6.0f} SFM at {s_['hb_ref']:.0f} HB, q {s_['q']:.2f}")
+    table_all = build_consensus(ok)
+    table_train = build_consensus([e for e in ok if train_mask(e)])
+    law_bias = {part: band_bias_vs_median(speed, [e for e in ok if sel(e)], table_all)
+                for part, sel in (("train", train_mask), ("holdout", lambda e: not train_mask(e)))}
+    for part, b in law_bias.items():
+        print(f"  speed law vs bucket vendor median ({part}): " + ", ".join(f"{k} {v:+.3f}" for k, v in b.items()))
+
+    aggr = aggressiveness_map(ok)
     ceiling = vendor_consensus_ceiling(by_id, ok)
     print(f"vendor-consensus ceiling: SFM pass {ceiling['sfm']['pass']:.1%} (median |log| "
           f"{ceiling['sfm']['median_abs_log']:.3f}), fz pass {ceiling['fz']['pass']:.1%} "
           f"({ceiling['fz']['median_abs_log']:.3f})")
+    print("vendor spread (group median / bucket median): " + json.dumps(_round(aggr["vendor_spread_check"]["value"], 3)))
 
     def before_mat(r):
         if r["material"]["toolwiz_family"] == TITANIUM:
@@ -1170,28 +1430,47 @@ def main(argv=None):
     def after_mat(r):
         return row_material(r, speed=speed, force=force)
 
-    results = {}
-    variants = [("before", before_mat, False), ("after", after_mat, False)]
+    bt30_ref = replace(mach, holder_k_n_um=BT30_K, holder_ktheta_nm_urad=BT30["ktheta_holder_joint_nm_urad"]["value"],
+                       holder_basis=BT30_BASIS)
+    variants = [("before (step-3 defaults, 50 %)", before_mat, mach, False, o.Margins(0.5), None),
+                ("after 75 %", after_mat, mach, False, o.Margins(0.75, scheme="consensus"), table_train),
+                ("after 50 %", after_mat, mach, False, o.Margins(0.5, scheme="consensus"), table_train)]
     if not args.quick:
-        variants.append(("after, process (C3 0.05 mm stock, 5 µm wall)", after_mat, True))
-    bench_rows = {}
-    for name, fn, c3 in variants:
-        b = benchmark(rows, fn, mach, c3)
-        s5, recs = section5(by_id, ok, b, train_mask)
+        variants.append(("after 50 %, process (BT30, C3 0.05 mm stock, 5 µm wall)", after_mat, bt30_ref, True,
+                         o.Margins(0.5, scheme="consensus"), table_train))
+    results, bench_rows, holdout_s5 = {}, {}, {}
+    for name, fn, machine, c3, mg, cons in variants:
+        b = benchmark(rows, fn, machine, c3, mg, cons)
+        s5, recs = section5(by_id, ok, b, train_mask, table_all)
         results[name] = s5
         bench_rows[name] = b
+        hold = {k: v for k, v in b.items() if k in by_id and holdout(by_id[k])}
+        holdout_s5[name] = section5(by_id, ok, hold, None, table_all)[0]
         ov = s5["overall"]
         print(f"benchmark [{name}]: n {ov['n']}, feasible {ov['feasible']}, pass SFM {ov['pass_sfm']:.1%}, "
-              f"fz {ov['pass_fz']:.1%}, both {ov['pass_both']:.1%}; median |log| SFM {ov['mal_sfm']:.3f}, "
-              f"fz {ov.get('mal_fz', float('nan')):.3f}")
-    t1t12 = [] if args.quick else t1_t12(speed, force)
+              f"fz {ov['pass_fz']:.1%}; median |log| SFM {ov['mal_sfm']:.3f}, fz {ov.get('mal_fz', float('nan')):.3f}; "
+              f"bias vs vendor median SFM {ov.get('bias_vs_median_sfm', float('nan')):+.3f}, "
+              f"fz {ov.get('bias_vs_median_fz', float('nan')):+.3f}, MRR {ov.get('bias_vs_median_mrr', float('nan')):+.3f}; "
+              f"C14 binding {s5['c14_binding']}")
+        for band, v in s5["by_band"].items():
+            if v:
+                print(f"    {band:10} SFM {v.get('bias_vs_median_sfm', float('nan')):+.3f} fz "
+                      f"{v.get('bias_vs_median_fz', float('nan')):+.3f} MRR {v.get('bias_vs_median_mrr', float('nan')):+.3f}"
+                      f" | mal SFM {v['mal_sfm']:.3f} fz {v.get('mal_fz', float('nan')):.3f}")
+    gates = {"all rows": gate(results["after 75 %"], results["after 50 %"], ceiling),
+             "holdout rows": gate(holdout_s5["after 75 %"], holdout_s5["after 50 %"], ceiling)}
+    for part, g in gates.items():
+        print(f"gate ({part}): " + ", ".join(f"{b} {'PASS' if v['pass'] else 'fail'}" for b, v in g.items()))
+    t1t12 = [] if args.quick else t1_t12(speed, force, table_all)
     for r in t1t12:
-        print(f"  {r['tool']:3} {r['operation']:8} {r['model']:6} ap {r['ap_over_D']:.2f}·D ae {r['ae_over_D']:.3f}·D "
-              f"fz {r['fz_in']:.5f} SFM {r['sfm']:.0f} IPM {r['ipm']:.1f} MRR {r['mrr_in3_min']:.4f} {r['binding']}")
+        print(f"  {r['tool']:3} {r['operation']:8} {r['model']:10} ap {r['ap_over_D']:.2f}·D ae {r['ae_over_D']:.3f}·D "
+              f"fz {r['fz_in']:.5f} SFM {r['sfm']:.0f} IPM {r['ipm']:.1f} MRR {r['mrr_in3_min']:.4f} {r['binding']}"
+              + (f" holder {r['holder_share_of_wall']:.0%} of wall" if "holder_share_of_wall" in r else ""))
 
     os.makedirs(OUT_DIR, exist_ok=True)
     write_json("materials.json", materials_file(force, speed))
     write_json("tools.json", tools_file(aggr))
+    write_json("consensus.json", table_all)
     outliers = sorted(((rid, s) for rid, s in thin_rows[f"TIR 0 + tool factor {force['tool_factor']:.2f}"].items()
                        if s > FATIGUE_MPA), key=lambda kv: -kv[1])
     report = {
@@ -1206,6 +1485,7 @@ def main(argv=None):
                           {"id": rid, "sigma1_mpa": s, "class": outlier_class(by_id[rid])} for rid, s in outliers],
                       "remaining_by_class": dict(collections.Counter(outlier_class(by_id[rid]) for rid, _ in outliers))},
         "c2": c2, "aggressiveness": aggr, "vendor_consensus_ceiling": ceiling, "section5": results,
+        "section5_holdout": holdout_s5, "gate": gates, "speed_law_bias_vs_vendor_median": law_bias,
         "t1_t12": t1t12,
         "sources": SRC,
     }

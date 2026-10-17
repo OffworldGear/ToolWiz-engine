@@ -126,12 +126,101 @@ class TestParameterFiles(unittest.TestCase):
                        robustness=False, find_tir=False, grid=(6, 4))
         self.assertTrue(r["feasible"])
 
+    def test_bt30_machine_and_consensus_file(self):
+        m = params.speedio_bt30()
+        self.assertGreater(m.holder_k_n_um, 0)
+        self.assertIn("PROVISIONAL", m.holder_basis)
+        with open(params.CONSENSUS_PATH, encoding="utf-8") as fh:
+            table = json.load(fh)
+        b = o.consensus_lookup(table, "Stainless - PH Series (17-4)", 356.0, 0.25, "slot", 1.0)
+        self.assertIsNotNone(b)
+        self.assertGreater(b["sfm"], 0)
+        mat = params.material("Stainless - PH Series (17-4)", hb=356.0)
+        r = o.optimize(o.Tool.build(0.25, 4, 0.75, 1.0), mat, m, "slot", margins=params.margins(0.5),
+                       consensus="default", robustness=False, find_tir=False, grid=(6, 4))
+        self.assertIn("C14v", r["checks"])
+
     def test_coating_class(self):
         self.assertEqual(params.coating_class("BALIQ ALCRONOS (AlCrN)"), "AlCrN")
         self.assertEqual(params.coating_class("PVD TiAlSiN"), "Si-doped")
         self.assertEqual(params.coating_class("AlTiN Nano (C6)"), "AlTiN/TiAlN")
         self.assertEqual(params.coating_class("DUARISE"), "unspecified")
         self.assertEqual(params.coating_class(None), "unspecified")
+
+
+class TestConsensusScheme(unittest.TestCase):
+    T1 = o.Tool.build(0.125, 4, 0.5, 0.6, shank=0.125, label="T1")
+
+    def test_scale_points_and_monotone(self):
+        for a, v in o.CONSENSUS_SCALE_POINTS:
+            self.assertAlmostEqual(o.consensus_scale(a), v, places=12)
+        xs = [i / 100 for i in range(101)]
+        ys = [o.consensus_scale(x) for x in xs]
+        self.assertTrue(all(b >= a - 1e-12 for a, b in zip(ys, ys[1:])))
+        self.assertLessEqual(o.consensus_scale(0.5), 1.0)
+
+    def test_margins_consensus_never_relaxes_physics(self):
+        for a in (0.0, 0.25, 0.5, 0.75, 1.0):
+            m = o.Margins(a, scheme="consensus")
+            self.assertLessEqual(m.stress_scale, 1.0)
+            self.assertEqual(m.lambda_value, o.CONSENSUS_LAMBDA)
+            self.assertAlmostEqual(m.limit_scale, o.consensus_scale(a))
+            self.assertAlmostEqual(m.speed_scale, o.consensus_scale(a))
+            self.assertEqual(m.life_ratio, 1.0)
+        self.assertAlmostEqual(o.Margins(0.75, scheme="consensus").limit_scale, 1.0)
+        legacy = o.Margins(0.5)
+        self.assertEqual((legacy.limit_scale, legacy.speed_scale, legacy.lambda_value), (1.0, 1.0, None))
+        with self.assertRaises(ValueError):
+            o.Margins(0.5, scheme="nope")
+
+    def test_speed_scale_and_diameter_term(self):
+        m = replace(o.material_17_4(300.0), vc_diameter_exp=0.1, vc_d_knee_in=0.5)
+        phi = math.pi
+        v_big = o.taylor_speed_m_min(m, phi, D_mm=25.4)
+        v_small = o.taylor_speed_m_min(m, phi, D_mm=0.125 * 25.4)
+        self.assertAlmostEqual(v_small / v_big, 0.25 ** 0.1, places=9)
+        self.assertAlmostEqual(o.taylor_speed_m_min(m, phi, D_mm=25.4, speed_scale=0.92) / v_big, 0.92, places=12)
+
+    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9):
+        bands = [{"band": "1/8-3/16", "d_min": 0.1, "d_max": 0.2}]
+        eng = [["light", 0.0, 0.1], ["medium", 0.1, 0.25], ["heavy", 0.25, 0.99], ["slot", 0.99, 1e9]]
+        b = {"sfm": sfm, "fz_over_D": fz_over_D, "mrr_over_D3": mrr_over_D3, "n_rows": 5,
+             "vendor_groups": ["A", "B"]}
+        return {"bands": bands, "engagement_classes": eng, "hb_bin_fine": 50, "hb_bin_coarse": 100,
+                "buckets": {"L1|Stainless - PH Series (17-4)|7|1/8-3/16|slot|slot": b}}
+
+    def test_c14_caps_speed_and_chip(self):
+        mat = o.material_17_4(356.0)
+        mg = o.Margins(0.75, scheme="consensus")
+        ctx = o._Context(self.T1, mat, o.speedio_16k(), "slot", mg, 72, 24, consensus=self._table())
+        pt = o.CutPoint(ctx, 0.02, 0.125)
+        self.assertAlmostEqual(math.pi * 0.125 * pt.rpm / 12.0, 100.0, places=6)
+        self.assertEqual(pt.c14v.limit, 100.0)
+        win = pt.fz_window()
+        self.assertLessEqual(win[1], 0.002 * 0.125 * (1 + 1e-6))
+        r = o.evaluate_cut(self.T1, mat, o.speedio_16k(), "slot", 0.02, 0.125, 0.0003, margins=mg,
+                           consensus=self._table())
+        self.assertIn("vendor median", r["checks"]["C14f"]["detail"])
+
+    def test_c14_without_matching_bucket_uses_physics(self):
+        mat = o.material_17_4(356.0)
+        ctx = o._Context(self.T1, mat, o.speedio_16k(), "adaptive", o.Margins(0.5, scheme="consensus"), 72, 24,
+                         consensus=self._table())
+        pt = o.CutPoint(ctx, 0.2, 0.01)
+        self.assertFalse(pt.c14v.applies)
+        self.assertIn("no vendor data", pt.c14v.detail)
+        self.assertEqual(pt.c14_checks(0.001), {})
+
+    def test_holder_compliance_in_series(self):
+        m = o.Machine({}, 1e9, holder_k_n_um=20.0, holder_ktheta_nm_urad=0.1)
+        self.assertAlmostEqual(m.holder_compliance_mm(0.0), 1.0 / 20000.0)
+        self.assertAlmostEqual(m.holder_compliance_mm(10.0), 1.0 / 20000.0 + 0.01 ** 2 / 1e5 * 1000.0)
+        mat = o.material_17_4(356.0)
+        rigid, soft = o.speedio_16k(), replace(o.speedio_16k(), holder_k_n_um=20.0, holder_ktheta_nm_urad=0.1)
+        a = o.evaluate_cut(self.T1, mat, rigid, "rough", 0.25, 0.01, 0.001, n_theta=144, n_quad=48)
+        b = o.evaluate_cut(self.T1, mat, soft, "rough", 0.25, 0.01, 0.001, n_theta=144, n_quad=48)
+        self.assertGreater(b["loads"]["wall_error_in"]["max_in"], a["loads"]["wall_error_in"]["max_in"])
+        self.assertEqual(a["checks"]["C4"]["value"], b["checks"]["C4"]["value"])
 
 
 if __name__ == "__main__":
