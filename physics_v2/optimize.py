@@ -344,14 +344,22 @@ class Machine:
         return c
 
 
-def speedio_16k(tir_in=0.0002, rating="continuous", runout_model="eccentric"):
-    """Brother Speedio S500X2 with the 16k non-dual-contact spindle (machines/speedio_s500x2.json)."""
+def speedio_16k(tir_in=0.0002, rating="continuous", runout_model="eccentric", holder=False):
+    """Brother Speedio S500X2 with the 16k non-dual-contact spindle (machines/speedio_s500x2.json).
+
+    holder=True adds the profile's spindle/holder stiffness (`holder_stiffness`: k N/µm, k_θ N·m/µrad) in series
+    with the tool in C3; False keeps the step-3 rigid holder."""
     with open(os.path.join(machine_profiles.BUILTIN_DIR, "speedio_s500x2.json"), encoding="utf-8") as fh:
         prof = json.load(fh)
     sp = prof["spindle_options"]["optional_16k"]
     feed = prof.get("max_cutting_feed_mm_min")
-    return Machine(sp, float(sp["max_rpm"]), rating, float(tir_in), runout_model, "Speedio S500X2 16k",
-                   feed / MM_PER_IN if feed else None)
+    m = Machine(sp, float(sp["max_rpm"]), rating, float(tir_in), runout_model, "Speedio S500X2 16k",
+                feed / MM_PER_IN if feed else None)
+    hs = prof.get("holder_stiffness") if holder else None
+    if hs:
+        m = replace(m, holder_k_n_um=hs.get("k_n_um"), holder_ktheta_nm_urad=hs.get("ktheta_nm_urad"),
+                    holder_basis=hs.get("status", ""))
+    return m
 
 
 # Consensus aggressiveness (user, 2026-10-17): the scale on the vendor-median C7 speed level, the C2 chip limit
@@ -704,10 +712,10 @@ def c13_program_size(ap_in, ae_in, volume_in3, limit_bytes, spacing_mm=POINT_SPA
 # per bucket (family, hardness bin, diameter band, operation class, engagement class), each vendor group's median
 # SFM, fz/D and MRR/D³ and their median over the groups (the vendor median, each group counted once).
 CONSENSUS_OPERATION = {"slot": "slot", "rough": "side", "adaptive": "hem", "finish": "finish"}
-SRC["C14"] = ("Vendor consensus (user decision 2026-10-17): speed, chip load and MRR (per unit engaged area and flute) ≤ "
-              "consensus_scale(a) × the vendor median of the matching bucket (family, hardness, diameter band, "
-              "operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data → "
-              "the physics result")
+SRC["C14"] = ("Vendor consensus (user decisions 2026-10-17): speed, chip load and MRR (per unit engaged area and flute) "
+              "≤ consensus_scale(a) × the vendor median of the matching bucket (family, hardness, diameter band, "
+              "operation, engagement) with ≥ 2 independent vendor groups, widened stepwise (diameter band, engagement, "
+              "hardness) when fewer; data/model_v2/consensus.json from the benchmark rows; none → the physics result")
 
 
 def load_consensus(path):
@@ -721,27 +729,74 @@ def engagement_class(ae_over_D, edges):
     return edges[-1][0]
 
 
-def consensus_lookup(table, family, hb, D_in, operation, ae_over_D):
-    """The finest bucket with vendor data: exact hardness bin, then the wider bin, then any operation."""
+CONSENSUS_MIN_GROUPS = 2   # user decision 2026-10-17 (R-C): ≥ 2 independent vendor groups (Harvey + Helical = one)
+CONSENSUS_WIDENING = ("exact bucket", "+ neighbouring diameter band", "+ neighbouring engagement class",
+                      "+ neighbouring hardness bin")
+# Row values stored per cell and vendor group in consensus.json: [SFM, fz/D, fz·n (in/min), MRR/D³].
+CONSENSUS_FIELDS = ("sfm", "fz_over_D", "feed_per_flute_ipm", "mrr_over_D3")
+
+
+def _neighbours(names, name, widen):
+    i = names.index(name) if name in names else None
+    if i is None:
+        return [name]
+    return names[max(0, i - 1):i + 2] if widen else [name]
+
+
+def consensus_lookup(table, family, hb, D_in, operation, ae_over_D, min_groups=None):
+    """The vendor consensus for a cut (user decisions 2026-10-17, R-C).
+
+    The exact bucket is (family, 50-HB bin, diameter band, operation class, engagement class). With fewer than
+    `min_groups` independent vendor groups it widens stepwise and cumulatively: the neighbouring diameter bands,
+    then the neighbouring engagement classes, then the neighbouring hardness bins. Each vendor group's median is
+    taken over its pooled rows, then the median over the groups. Returns None when even the widest step has too
+    few groups (the caller then uses the physics result and says so)."""
+    min_groups = min_groups or table.get("min_vendor_groups", CONSENSUS_MIN_GROUPS)
     band = _band_for(table["bands"], D_in)
     if band is None:
         return None
+    bands = [b["band"] for b in table["bands"]]
+    engs = [e[0] for e in table["engagement_classes"]]
     eng = engagement_class(ae_over_D, table["engagement_classes"])
     opc = CONSENSUS_OPERATION.get(operation, operation)
-    keys = [("L1", family, str(int(hb // table["hb_bin_fine"])), band["band"], opc, eng),
-            ("L2", family, str(int(hb // table["hb_bin_coarse"])), band["band"], opc, eng),
-            ("L3", family, str(int(hb // table["hb_bin_coarse"])), band["band"], "any", eng)]
-    for k in keys:
-        b = table["buckets"].get("|".join(k))
-        if b:
-            return dict(b, key="|".join(k), level=k[0])
+    hbin = int(hb // table["hb_bin"])
+    cells = table["cells"]
+    for step, label in enumerate(CONSENSUS_WIDENING):
+        bset = _neighbours(bands, band["band"], step >= 1)
+        eset = _neighbours(engs, eng, step >= 2)
+        hset = [hbin - 1, hbin, hbin + 1] if step >= 3 else [hbin]
+        pooled, used = {}, []
+        for b in bset:
+            for e in eset:
+                for h in hset:
+                    key = "|".join((family, str(h), b, opc, e))
+                    c = cells.get(key)
+                    if c:
+                        used.append(key)
+                        for vg, rows in c.items():
+                            pooled.setdefault(vg, []).extend(rows)
+        if len(pooled) < min_groups:
+            continue
+        out = {}
+        for i, f in enumerate(CONSENSUS_FIELDS):
+            meds = [_median([r[i] for r in rows]) for rows in pooled.values()]
+            out[f] = _median(meds)
+        exact = "|".join((family, str(hbin), band["band"], opc, eng))
+        return dict(out, key=exact, widening=label, step=step, cells=used, vendor_groups=sorted(pooled),
+                    n_rows=sum(len(r) for r in pooled.values()))
     return None
+
+
+def _median(vals):
+    v = sorted(vals)
+    n = len(v)
+    return v[n // 2] if n % 2 else 0.5 * (v[n // 2 - 1] + v[n // 2])
 
 
 def _c14_detail(cons, what):
     groups = cons["vendor_groups"]
-    return (f"{what}; bucket {cons['key']} ({cons['n_rows']} rows, {len(groups)} vendor group"
-            f"{'s' if len(groups) != 1 else ''}: {', '.join(groups)})")
+    return (f"{what}; bucket {cons['key']}, {cons['widening']} ({cons['n_rows']} rows, {len(groups)} vendor groups: "
+            f"{', '.join(groups)})")
 
 
 def c14_speed(pt, rpm_given=False):
@@ -749,8 +804,9 @@ def c14_speed(pt, rpm_given=False):
     ctx, cons = pt.ctx, pt.cons
     if not cons:
         return Check("C14v", "vendor-consensus speed", "max", 0.0, None, "SFM", SRC["C14"], applies=False,
-                     detail=("no vendor data matches this bucket; the physics (C7) speed stands"
-                             if ctx.consensus else "consensus guardrail off"))
+                     detail=(f"fewer than {ctx.consensus.get('min_vendor_groups', CONSENSUS_MIN_GROUPS)} vendor groups "
+                             f"match this cut even after widening (band, engagement, hardness); the physics (C7) "
+                             f"speed and limits stand" if ctx.consensus else "consensus guardrail off"))
     s = ctx.mg.consensus_cap_scale
     med = cons["sfm"]
     cap_sfm = s * med
@@ -1264,6 +1320,7 @@ class _Context:
         self._speed = {}
         # C14: the vendor-consensus guardrail (user, 2026-10-17), on when a consensus table is given.
         self.consensus = None
+        self._cons_cache = {}
         if o["consensus"] is not None:
             src = CONSENSUS_DEFAULT_PATH if o["consensus"] == "default" else o["consensus"]
             self.consensus = src if isinstance(src, dict) else load_consensus(src)
@@ -1278,7 +1335,12 @@ class _Context:
         """The C14 bucket for this cut (family, hardness, band, operation, engagement), or None."""
         if not self.consensus or not self.mat.family:
             return None
-        return consensus_lookup(self.consensus, self.mat.family, self.mat.hb, self.tool.D, self.op, ae_in / self.tool.D)
+        aeD = ae_in / self.tool.D
+        key = engagement_class(aeD, self.consensus["engagement_classes"])
+        if key not in self._cons_cache:
+            self._cons_cache[key] = consensus_lookup(self.consensus, self.mat.family, self.mat.hb, self.tool.D,
+                                                     self.op, aeD)
+        return self._cons_cache[key]
 
     def _chip_band(self, data, kind, basis):
         """The C2 band for this diameter: slot rows for slots when that band has data, else side rows."""

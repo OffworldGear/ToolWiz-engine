@@ -699,7 +699,7 @@ def fit_level_consensus(train, base, hb_ref, families, knees=(0.125, 0.25, 0.5, 
     eng, hard = base["engagement"], base["hardness"]
     obs = []
     for e in train:
-        b = table["buckets"].get(bucket_keys(e)[0])
+        b = row_consensus(table, e)
         if not b:
             continue
         y = (math.log(b["sfm"] / e["c9"]) + eng["k"] * math.log(max(e["ae_over_D"], eng["ae_min"]))
@@ -746,10 +746,10 @@ def predict_sfm(speed, e):
 
 
 def band_bias_vs_median(speed, items, table):
-    """Median over rows in each band of log(predicted SFM / the row's L1 bucket vendor-median SFM)."""
+    """Median over rows in each band of log(predicted SFM / the row's vendor-median SFM, as C14 finds it)."""
     by = collections.defaultdict(list)
     for e in items:
-        b = table["buckets"].get(bucket_keys(e)[0])
+        b = row_consensus(table, e)
         if b:
             by[e["band"]].append(math.log(predict_sfm(speed, e) / b["sfm"]))
     return {b: statistics.median(v) for b, v in by.items()}
@@ -761,53 +761,49 @@ def band_bias_vs_median(speed, items, table):
 
 ENGAGEMENT_CLASSES = [("light", 0.0, 0.1), ("medium", 0.1, 0.25), ("heavy", 0.25, 0.99), ("slot", 0.99, 1e9)]
 OPERATION_CLASS = {"slot": "slot", "side": "side", "rough": "side", "hem": "hem", "finish": "finish"}
-HB_BIN_FINE, HB_BIN_COARSE = 50, 100
+HB_BIN = 50
 
 
-def bucket_keys(e):
-    """L1 (50-HB bin, operation class), L2 (100-HB bin), L3 (100-HB bin, any operation); optimize.consensus_lookup."""
-    eng = o.engagement_class(e["ae_over_D"], ENGAGEMENT_CLASSES)
-    opc = OPERATION_CLASS[e["operation"]]
-    fam, band = e["family"], e["band"]
-    return ["|".join(("L1", fam, str(int(e["hb"] // HB_BIN_FINE)), band, opc, eng)),
-            "|".join(("L2", fam, str(int(e["hb"] // HB_BIN_COARSE)), band, opc, eng)),
-            "|".join(("L3", fam, str(int(e["hb"] // HB_BIN_COARSE)), band, "any", eng))]
+def cell_key(e):
+    """The exact consensus cell: family, 50-HB bin, band, operation class, engagement class."""
+    return "|".join((e["family"], str(int(e["hb"] // HB_BIN)), e["band"], OPERATION_CLASS[e["operation"]],
+                     o.engagement_class(e["ae_over_D"], ENGAGEMENT_CLASSES)))
+
+
+def row_consensus(table, e):
+    """C14's vendor consensus for a row's own cut (≥ 2 vendor groups, widened as needed), or None."""
+    return o.consensus_lookup(table, e["family"], e["hb"], e["D"], OPERATION[e["operation"]], e["ae_over_D"])
 
 
 def build_consensus(evals):
-    """Per bucket: each vendor group's median SFM, fz/D and MRR/D³, and the median over the groups."""
-    groups = collections.defaultdict(lambda: collections.defaultdict(list))
+    """Rows per exact cell and vendor group, for optimize.consensus_lookup (which widens and takes the medians).
+
+    Each row stores [SFM, fz/D, fz·n (in/min), MRR/D³] on its own catalog geometry."""
+    cells = collections.defaultdict(lambda: collections.defaultdict(list))
     for e in evals:
-        for k in bucket_keys(e):
-            groups[k][e["vendor_group"]].append(e)
-    buckets = {}
-    for key, by_vg in groups.items():
-        def med(f, by_vg=by_vg):
-            return statistics.median(statistics.median(f(x) for x in es) for es in by_vg.values())
-        rows = [x for es in by_vg.values() for x in es]
-        buckets[key] = {
-            "sfm": med(lambda x: x["sfm"]), "fz_over_D": med(lambda x: x["fz"] / x["D"]),
-            "mrr_over_D3": med(lambda x: x["mrr"] / x["D"] ** 3),
-            "mrr_per_ap_over_D2": med(lambda x: x["mrr"] / (x["ap"] * x["D"] ** 2)),
-            "feed_over_D": med(lambda x: x["mrr"] / (x["ap"] * x["ae"] * x["D"])),
-            "feed_per_flute_ipm": med(lambda x: x["fz"] * 12.0 * x["sfm"] / (math.pi * x["D"])),
-            "n_rows": len(rows), "vendor_groups": sorted(by_vg),
-            "family": rows[0]["family"], "D": statistics.median(x["D"] for x in rows),
-            "hb": statistics.median(x["hb"] for x in rows), "ae_over_D": statistics.median(x["ae_over_D"] for x in rows),
-            "c9": statistics.median(x["c9"] for x in rows),
-        }
+        cells[cell_key(e)][e["vendor_group"]].append(
+            [e["sfm"], e["fz"] / e["D"], e["fz"] * 12.0 * e["sfm"] / (math.pi * e["D"]), e["mrr"] / e["D"] ** 3])
     return {"version": VERSION, "generated_by": "tools/calibrate_v2.py",
-            "status": "C14 vendor-consensus buckets (user decision 2026-10-17)",
-            "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry; each vendor group's median, "
-                      "then the median over vendor groups. C14m uses feed_per_flute_ipm (MRR per unit engaged area and per "
-                      "flute: fz·n); mrr_over_D3, mrr_per_ap_over_D2 and feed_over_D are kept for reference",
+            "status": "C14 vendor consensus (user decisions 2026-10-17: ≥ 2 independent vendor groups, stepwise widening)",
+            "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry. optimize.consensus_lookup pools "
+                      "the rows of the exact cell, widening to the neighbouring diameter band, then engagement class, "
+                      "then hardness bin until ≥ min_vendor_groups vendor groups match; each group's median, then the "
+                      "median over groups. C14m uses feed_per_flute_ipm (MRR per unit engaged area and per flute)",
+            "fields": list(o.CONSENSUS_FIELDS), "min_vendor_groups": o.CONSENSUS_MIN_GROUPS,
+            "widening": list(o.CONSENSUS_WIDENING),
             "bands": [{"band": n, "d_min": lo, "d_max": hi if hi != math.inf else 1e9} for n, lo, hi in BANDS],
             "engagement_classes": [[n, lo, hi] for n, lo, hi in ENGAGEMENT_CLASSES],
-            "hb_bin_fine": HB_BIN_FINE, "hb_bin_coarse": HB_BIN_COARSE,
-            "levels": {"L1": "family, 50-HB bin, band, operation class, engagement class",
-                       "L2": "family, 100-HB bin, band, operation class, engagement class",
-                       "L3": "family, 100-HB bin, band, any operation, engagement class"},
-            "buckets": buckets}
+            "hb_bin": HB_BIN,
+            "cells": {k: dict(v) for k, v in cells.items()}}
+
+
+def widening_stats(table, items):
+    """How often each widening step was needed for the rows' own cuts, and how many found no consensus."""
+    c = collections.Counter()
+    for e in items:
+        b = row_consensus(table, e)
+        c[b["widening"] if b else "none (physics result)"] += 1
+    return dict(c)
 
 
 def fit_consensus_offsets(train, rows_by_id, speed, table, target=-0.02, grid=None):
@@ -884,7 +880,7 @@ def consensus_spread(evals):
     and fz/D over L1 buckets with ≥ 3 vendor groups (checks the aggressiveness points)."""
     groups = collections.defaultdict(lambda: collections.defaultdict(list))
     for e in evals:
-        groups[bucket_keys(e)[0]][e["vendor_group"]].append(e)
+        groups[cell_key(e)][e["vendor_group"]].append(e)
     out = {}
     for name, f in (("sfm", lambda x: x["sfm"]), ("fz_over_D", lambda x: x["fz"] / x["D"])):
         ratios = []
@@ -1087,14 +1083,16 @@ def section5(rows_by_id, evals, bench, train_mask=None, table=None):
             rec["log_fz"] = math.log(b["fz"] / e["fz"])
             rec["log_mrr"] = rec["log_sfm"] + rec["log_fz"]
             rec["fz_ok"] = within_range(b["fz"], row["cut"]["fz"])
-        bk = table["buckets"].get(bucket_keys(e)[0]) if table else None
+        bk = row_consensus(table, e) if table else None
         if bk:
             rec["med_sfm"] = math.log(b["sfm"] / bk["sfm"])
             if b["feasible"]:
                 rec["med_fz"] = math.log(b["fz"] / e["D"] / bk["fz_over_D"])
-                # MRR like-for-like: per unit engaged area and per flute (fz·n), the C14m quantity.
+                # MRR like-for-like (per unit engaged area and per flute, fz·n). Gated against median speed × median
+                # chip (user decision R-B); the gap to the median MRR is reported alongside.
                 fpf = b["fz"] * 12.0 * b["sfm"] / (math.pi * e["D"])
-                rec["med_mrr"] = math.log(fpf / bk["feed_per_flute_ipm"])
+                rec["med_mrr"] = math.log(fpf / (bk["sfm"] * bk["fz_over_D"] * 12.0 / math.pi))
+                rec["med_mrr_own"] = math.log(fpf / bk["feed_per_flute_ipm"])
         recs.append(rec)
 
     def summarize(sel):
@@ -1113,7 +1111,7 @@ def section5(rows_by_id, evals, bench, train_mask=None, table=None):
                        bias_fz=statistics.median(r["log_fz"] for r in f),
                        mal_mrr=statistics.median(abs(r["log_mrr"]) for r in f),
                        bias_mrr=statistics.median(r["log_mrr"] for r in f))
-        for q in ("sfm", "fz", "mrr"):
+        for q in ("sfm", "fz", "mrr", "mrr_own"):
             v = [r["med_" + q] for r in s if "med_" + q in r]
             if v:
                 res["bias_vs_median_" + q] = statistics.median(v)
@@ -1160,7 +1158,8 @@ def section5(rows_by_id, evals, bench, train_mask=None, table=None):
 def gate(s5_75, s5_50, ceiling):
     """The §5 gate (user, 2026-10-17), per band: median |log error| vs rows ≤ the vendors' own disagreement in
     that band (vendor_consensus_ceiling), for SFM and fz; at 75 % |bias vs vendor median| ≤ 0.10; at 50 %
-    −0.20 ≤ bias ≤ 0. Bias for SFM, fz and MRR. Vendor bias is reported, not gated."""
+    −0.20 ≤ bias ≤ 0. Bias for SFM, fz and MRR; MRR against median speed × median chip (R-B), with the gap to the
+    median MRR reported, not gated. Vendor bias is reported, not gated."""
     out = {}
     for band, _, _ in BANDS:
         a, h = s5_75["by_band"].get(band), s5_50["by_band"].get(band)
@@ -1173,6 +1172,8 @@ def gate(s5_75, s5_50, ceiling):
             row[f"mal_{q}_75"] = mal
             row[f"ceiling_{q}"] = ceil
             row[f"mal_{q}_ok"] = mal is not None and ceil is not None and mal <= ceil
+        row["bias_mrr_vs_median_mrr_75"] = a.get("bias_vs_median_mrr_own")
+        row["bias_mrr_vs_median_mrr_50"] = h.get("bias_vs_median_mrr_own")
         for q in ("sfm", "fz", "mrr"):
             b75, b50 = a.get("bias_vs_median_" + q), h.get("bias_vs_median_" + q)
             row[f"bias_{q}_75"], row[f"bias_{q}_50"] = b75, b50
@@ -1269,22 +1270,18 @@ def speedio_bt30(tir=TIR_IN):
 
 
 def t1_t12(speed, force, consensus, c2_offset=1.0):
-    """T1 and T12 in 17-4 H1025: before (step-3 defaults, rigid holder) and after at 50 % and 75 % (consensus
-    scheme, C14, calibrated material, Speedio with the provisional BT30 compliance)."""
+    """T1 and T12 in 17-4 H1025: before (step-3 defaults, rigid holder) and the calibrated defaults at 50 % and 75 %
+    (consensus scheme, C14 from all rows, the Speedio profile's provisional BT30 stiffness)."""
     T1 = o.Tool.build(0.125, 4, 0.5, 0.6, shank=0.125, label="T1")
     T12 = o.Tool.build(0.0625, 4, 0.1875, 0.5, shank=0.125, label="T12")
-    rigid, bt30 = o.speedio_16k(TIR_IN), speedio_bt30()
+    rigid, bt30 = o.speedio_16k(TIR_IN), o.speedio_16k(TIR_IN, holder=True)
     fam = "Stainless - PH Series (17-4)"
     before = o.material_17_4(356.0)
     after = replace(before, tool_factor=force["tool_factor"], k_r=force["k_r"], c2_scale=c2_offset,
                     **speed_kwargs(speed, fam, "unspecified"))
-    # The literal MRR/D³ cap, for comparison: the same table without the per-depth MRR medians.
-    literal = dict(consensus, buckets={k: {kk: vv for kk, vv in b.items() if kk != "feed_per_flute_ipm"}
-                                       for k, b in consensus["buckets"].items()})
     runs = [("before", before, rigid, o.Margins(0.5), None),
-            ("after 50 %", after, bt30, o.Margins(0.5, scheme="consensus"), consensus),
-            ("after 75 %", after, bt30, o.Margins(0.75, scheme="consensus"), consensus),
-            ("after 50 %, MRR/D³ cap", after, bt30, o.Margins(0.5, scheme="consensus"), literal)]
+            ("50 %", after, bt30, o.Margins(0.5, scheme="consensus"), consensus),
+            ("75 %", after, bt30, o.Margins(0.75, scheme="consensus"), consensus)]
     out = []
     for tool in (T1, T12):
         for op in ("adaptive", "slot", "finish"):
@@ -1301,7 +1298,6 @@ def t1_t12(speed, force, consensus, c2_offset=1.0):
                        "wall_deflection_in": r["loads"]["wall_error_in"]["max_in"],
                        "c14": {k: r["checks"][k]["detail"] for k in ("C14v", "C14f", "C14m") if k in r["checks"]}}
                 if mach.holder_k_n_um:
-                    # The holder's share: the same cut on a rigid holder.
                     rr = o.evaluate_cut(tool, mat, rigid, op, c["ap_in"], c["ae_in"], c["fz_in"], c["rpm"], margins=mg,
                                         consensus=cons)
                     w_rigid = rr["loads"]["wall_error_in"]["max_in"]
@@ -1446,7 +1442,9 @@ def tools_file(aggr, bt30=None):
         "C14": {"basis": "data/model_v2/consensus.json", "source": o.SRC["C14"]},
         "machine_bt30": dict(BT30, combined_k_n_um={"value": BT30_K, "source": "series of the two translational "
                                                                                "values above"},
-                             status=BT30_BASIS),
+                             status=BT30_BASIS,
+                             stored_in="machines/speedio_s500x2.json holder_stiffness (user-editable machine profile "
+                                       "field; optimize.speedio_16k(holder=True), params.machine())"),
     }
 
 
@@ -1498,6 +1496,9 @@ def main(argv=None):
         print(f"  {f:38} vc_ref {s_['vc_ref_sfm']:6.0f} SFM at {s_['hb_ref']:.0f} HB, q {s_['q']:.2f}")
     table_all = build_consensus(ok)
     table_train = build_consensus([e for e in ok if train_mask(e)])
+    widening = {"all rows, C14 from all rows": widening_stats(table_all, ok),
+                "hold-out rows, C14 from training rows": widening_stats(table_train, [e for e in ok if not train_mask(e)])}
+    print("C14 widening used: " + json.dumps(widening))
     law_bias = {part: band_bias_vs_median(speed, [e for e in ok if sel(e)], table_all)
                 for part, sel in (("train", train_mask), ("holdout", lambda e: not train_mask(e)))}
     for part, b in law_bias.items():
@@ -1588,7 +1589,7 @@ def main(argv=None):
                           {"id": rid, "sigma1_mpa": s, "class": outlier_class(by_id[rid])} for rid, s in outliers],
                       "remaining_by_class": dict(collections.Counter(outlier_class(by_id[rid]) for rid, _ in outliers))},
         "c2": c2, "aggressiveness": aggr, "vendor_consensus_ceiling": ceiling, "section5": results,
-        "gate": gates, "speed_law_bias_vs_vendor_median": law_bias,
+        "gate": gates, "c14_widening": widening, "speed_law_bias_vs_vendor_median": law_bias,
         "t1_t12": t1t12,
         "sources": SRC,
     }

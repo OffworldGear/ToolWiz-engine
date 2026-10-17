@@ -13,7 +13,6 @@ use one construction.
 """
 import json
 import os
-from dataclasses import replace
 
 from physics_v2 import forces
 from physics_v2 import optimize as o
@@ -96,9 +95,17 @@ def margins(aggressiveness=0.5):
     return o.Margins(aggressiveness, scheme="consensus")
 
 
-def speedio_bt30(tir_in=0.0002, path=None):
-    """The Speedio 16k with the provisional BT30 spindle/holder compliance from tools.json (C3, in series)."""
-    t = load(path or TOOLS_PATH)["machine_bt30"]
-    return replace(o.speedio_16k(tir_in), holder_k_n_um=float(t["combined_k_n_um"]["value"]),
-                   holder_ktheta_nm_urad=float(t["ktheta_holder_joint_nm_urad"]["value"]),
-                   holder_basis=t["status"])
+def machine(tir_in=0.0002):
+    """The Speedio 16k with the machine profile's spindle/holder stiffness (holder_stiffness in
+    machines/speedio_s500x2.json, provisional BT30 until the user's push-load test) in series in C3."""
+    return o.speedio_16k(tir_in, holder=True)
+
+
+speedio_bt30 = machine
+
+
+def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_=None, **kw):
+    """optimize.optimize with the calibrated defaults (user decisions 2026-10-17): the consensus aggressiveness
+    scheme, C14 from data/model_v2/consensus.json and the machine profile's holder stiffness."""
+    kw.setdefault("consensus", CONSENSUS_PATH)
+    return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)

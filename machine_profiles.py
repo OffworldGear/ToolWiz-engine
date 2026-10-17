@@ -210,7 +210,7 @@ def validate_profile(raw):
         if txt:
             profile[field] = txt
     # Pass through other simple published facts (feeds, rapids) without interpreting them.
-    for field in ("max_cutting_feed_mm_min", "rapid_m_min"):
+    for field in ("max_cutting_feed_mm_min", "rapid_m_min", "holder_stiffness"):
         if field in raw and isinstance(raw[field], (int, float, dict)):
             profile[field] = raw[field]
     return (profile if not errors else None), errors

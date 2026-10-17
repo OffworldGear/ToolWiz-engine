@@ -126,21 +126,25 @@ class TestParameterFiles(unittest.TestCase):
                        robustness=False, find_tir=False, grid=(6, 4))
         self.assertTrue(r["feasible"])
 
-    def test_bt30_machine_and_consensus_file(self):
-        if not os.path.exists(params.CONSENSUS_PATH) or "machine_bt30" not in params.load(params.TOOLS_PATH):
-            self.skipTest("run tools/calibrate_v2.py (consensus.json, tools.json machine_bt30)")
-        m = params.speedio_bt30()
+    def test_machine_profile_holder_stiffness(self):
+        m = params.machine()
         self.assertGreater(m.holder_k_n_um, 0)
         self.assertIn("PROVISIONAL", m.holder_basis)
+        self.assertIsNone(o.speedio_16k().holder_k_n_um)   # the step-3 rigid default is unchanged
+
+    def test_calibrated_defaults_and_consensus_file(self):
         with open(params.CONSENSUS_PATH, encoding="utf-8") as fh:
             table = json.load(fh)
+        if "cells" not in table:
+            self.skipTest("run tools/calibrate_v2.py (consensus.json in the round-3 format)")
         b = o.consensus_lookup(table, "Stainless - PH Series (17-4)", 356.0, 0.25, "slot", 1.0)
         self.assertIsNotNone(b)
-        self.assertGreater(b["sfm"], 0)
+        self.assertGreaterEqual(len(b["vendor_groups"]), 2)
         mat = params.material("Stainless - PH Series (17-4)", hb=356.0)
-        r = o.optimize(o.Tool.build(0.25, 4, 0.75, 1.0), mat, m, "slot", margins=params.margins(0.5),
-                       consensus="default", robustness=False, find_tir=False, grid=(6, 4))
+        r = params.optimize(o.Tool.build(0.25, 4, 0.75, 1.0), mat, "slot", 0.5, robustness=False, find_tir=False,
+                            grid=(6, 4))
         self.assertIn("C14v", r["checks"])
+        self.assertEqual(r["parameters"]["aggressiveness_map"]["value"]["scheme"], "consensus")
 
     def test_coating_class(self):
         self.assertEqual(params.coating_class("BALIQ ALCRONOS (AlCrN)"), "AlCrN")
@@ -183,14 +187,35 @@ class TestConsensusScheme(unittest.TestCase):
         self.assertAlmostEqual(v_small / v_big, 0.25 ** 0.1, places=9)
         self.assertAlmostEqual(o.taylor_speed_m_min(m, phi, D_mm=25.4, speed_scale=0.92) / v_big, 0.92, places=12)
 
-    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9, feed_per_flute_ipm=1e9):
-        bands = [{"band": "1/8-3/16", "d_min": 0.1, "d_max": 0.2}]
-        eng = [["light", 0.0, 0.1], ["medium", 0.1, 0.25], ["heavy", 0.25, 0.99], ["slot", 0.99, 1e9]]
-        b = {"sfm": sfm, "fz_over_D": fz_over_D, "mrr_over_D3": mrr_over_D3,
-             "feed_per_flute_ipm": feed_per_flute_ipm, "n_rows": 5,
-             "vendor_groups": ["A", "B"]}
-        return {"bands": bands, "engagement_classes": eng, "hb_bin_fine": 50, "hb_bin_coarse": 100,
-                "buckets": {"L1|Stainless - PH Series (17-4)|7|1/8-3/16|slot|slot": b}}
+    BANDS = [{"band": "1/16-3/32", "d_min": 0.05, "d_max": 0.1}, {"band": "1/8-3/16", "d_min": 0.1, "d_max": 0.2},
+             {"band": "1/4-3/8", "d_min": 0.2, "d_max": 0.4}]
+    ENG = [["light", 0.0, 0.1], ["medium", 0.1, 0.25], ["heavy", 0.25, 0.99], ["slot", 0.99, 1e9]]
+    FAM = "Stainless - PH Series (17-4)"
+
+    def _table(self, sfm=100.0, fz_over_D=0.002, mrr_over_D3=1e9, feed_per_flute_ipm=1e9, cells=None):
+        row = [sfm, fz_over_D, feed_per_flute_ipm, mrr_over_D3]
+        cells = cells or {f"{self.FAM}|7|1/8-3/16|slot|slot": {"A": [row], "B": [row]}}
+        return {"bands": self.BANDS, "engagement_classes": self.ENG, "hb_bin": 50, "min_vendor_groups": 2,
+                "cells": cells}
+
+    def test_c14_needs_two_vendor_groups_and_widens_stepwise(self):
+        r = [100.0, 0.002, 1.0, 1.0]
+        one = self._table(cells={f"{self.FAM}|7|1/8-3/16|slot|slot": {"A": [r, r]}})
+        self.assertIsNone(o.consensus_lookup(one, self.FAM, 356.0, 0.125, "slot", 1.0))
+        band = self._table(cells={f"{self.FAM}|7|1/8-3/16|slot|slot": {"A": [r]},
+                                  f"{self.FAM}|7|1/4-3/8|slot|slot": {"B": [[200.0, 0.004, 2.0, 2.0]]}})
+        b = o.consensus_lookup(band, self.FAM, 356.0, 0.125, "slot", 1.0)
+        self.assertEqual(b["widening"], "+ neighbouring diameter band")
+        self.assertEqual(b["vendor_groups"], ["A", "B"])
+        self.assertAlmostEqual(b["sfm"], 150.0)
+        eng = self._table(cells={f"{self.FAM}|7|1/8-3/16|hem|light": {"A": [r]},
+                                 f"{self.FAM}|7|1/8-3/16|hem|medium": {"B": [r]}})
+        self.assertEqual(o.consensus_lookup(eng, self.FAM, 356.0, 0.125, "adaptive", 0.05)["widening"],
+                         "+ neighbouring engagement class")
+        hard = self._table(cells={f"{self.FAM}|7|1/8-3/16|hem|light": {"A": [r]},
+                                  f"{self.FAM}|8|1/16-3/32|hem|medium": {"B": [r]}})
+        self.assertEqual(o.consensus_lookup(hard, self.FAM, 356.0, 0.125, "adaptive", 0.05)["widening"],
+                         "+ neighbouring hardness bin")
 
     def test_c14_caps_speed_and_chip(self):
         mat = o.material_17_4(356.0)
@@ -223,7 +248,8 @@ class TestConsensusScheme(unittest.TestCase):
                          consensus=self._table())
         pt = o.CutPoint(ctx, 0.2, 0.01)
         self.assertFalse(pt.c14v.applies)
-        self.assertIn("no vendor data", pt.c14v.detail)
+        self.assertIn("physics", pt.c14v.detail)
+        self.assertIn("fewer than 2 vendor groups", pt.c14v.detail)
         self.assertEqual(pt.c14_checks(0.001), {})
 
     def test_holder_compliance_in_series(self):
