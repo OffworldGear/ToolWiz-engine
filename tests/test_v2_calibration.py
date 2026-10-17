@@ -127,6 +127,8 @@ class TestParameterFiles(unittest.TestCase):
         self.assertTrue(r["feasible"])
 
     def test_bt30_machine_and_consensus_file(self):
+        if not os.path.exists(params.CONSENSUS_PATH) or "machine_bt30" not in params.load(params.TOOLS_PATH):
+            self.skipTest("run tools/calibrate_v2.py (consensus.json, tools.json machine_bt30)")
         m = params.speedio_bt30()
         self.assertGreater(m.holder_k_n_um, 0)
         self.assertIn("PROVISIONAL", m.holder_basis)
