@@ -2,7 +2,197 @@
 
 _2026-10-17. Design step 4 of §6 in `docs/PHYSICS_MODEL_DESIGN.md`. Branch `toolwiz/v2-step4` from `toolwiz/hardening` (b03ee1b). The v1 engine and the pipeline are unchanged._
 
-## Summary for the user
+## Round 2 (2026-10-17): aggressiveness anchored to the vendor consensus
+
+The user's refinement replaces items 4, 5 and 6 of Round 1's decisions (speed levels and coating, the aggressiveness map, C2 per band). **Round 1 (§1–§9 below) is kept as the record.** Its force scale, thin-chip, titanium, engagement and hardness results stand. Its speed level (§4 "Level"), aggressiveness map (§5), benchmark tables (§7) and T1/T12 (§8) are superseded by this section.
+
+### R2.1 What was built
+
+| Piece | Where | What it does |
+|---|---|---|
+| Consensus aggressiveness | `optimize.Margins(a, scheme="consensus")`, `CONSENSUS_SCALE_POINTS`, `pchip` | Scale on the C7 speed level, the C2 chip limit and the C14 caps: **0.76 / 0.92 / 1.00 / 1.10 at 0 / 50 / 75 / 100 %**, monotone cubic (Fritsch–Carlson) between the points. The tool-life target is that speed scale: T/T_ref = scale^(−1/n). |
+| Physics never relaxed | same | C4 ≤ the fatigue limit, ×0.88 (0.33·TRS) at 0 % rising linearly to ×1.00 at 100 %. λ fixed at 0.3. C1, C3, C5 and C9 are not scaled up. |
+| **C14** vendor-consensus guardrail | `optimize.consensus_lookup`, `c14_speed`, `c14_feed_checks`; option `consensus=` (a path, `"default"` or a dict) | Caps at scale(a) × the bucket's vendor median: SFM (C14v caps the C7 speed), fz (C14f) and MRR (C14m, see R2.5). When it binds, the check shows the median, the bucket and its vendor groups. With no matching data: "no vendor data matches this bucket; the physics (C7) speed stands". |
+| Consensus buckets | `data/model_v2/consensus.json` (from `tools/calibrate_v2.py`) | 1,986 buckets at three levels. Per bucket: each vendor group's median, then the median over groups (each group counted once). |
+| BT30 compliance | `optimize.Machine.holder_k_n_um`, `holder_ktheta_nm_urad`; `params.speedio_bt30()` | The spindle/holder in series with the tool in C3: tip deflection += F·(1/k + L²/k_θ), with L measured from the holder face. Stress is unchanged. |
+| C7 diameter term | `Material.vc_diameter_exp`, `vc_d_knee_in` | Level ×(min(D, D_knee)/D_knee)^m, **empirical** (R2.3). |
+| Gate | `calibrate_v2.gate` | Your §5 gate, per band (R2.6). |
+
+**Bucket levels:**
+- L1: family, 50-HB bin, diameter band, operation class (slot / side / HEM / finish), engagement class (slot ≥ 0.99·D; heavy 0.25–0.99; medium 0.10–0.25; light < 0.10).
+- L2: the same with a 100-HB bin.
+- L3: L2 with any operation.
+
+**Defaults are unchanged.** `Margins()` is still the legacy scheme, C14 is off, and the holder is rigid, so every step-3 test stands. Step 5 switches them; `physics_v2/params.py` gives `margins(a)`, `speedio_bt30()` and `material(...)` for it.
+
+### R2.2 The aggressiveness points against the vendor spread
+
+Spread of each vendor group's median around its bucket median (L1 buckets with ≥ 3 groups, 333 group medians):
+
+| | p10 | p25 | p75 | p90 |
+|---|---|---|---|---|
+| SFM | 0.64 | 0.82 | 1.09 | 1.38 |
+| fz/D | 0.70 | 0.89 | 1.15 | 1.45 |
+
+**The data does not argue for moving the points:**
+- 100 % at 1.10 sits at the vendor-group p75 for speed (1.09), just under it for chip load (1.15), and at the low end of vendors' "may increase 10–20 %".
+- 0 % at 0.76 is below the speed and chip p25 (0.82, 0.89) and equal to the worst-flute h/D p25 (0.76, Round 1).
+- **Kept as given:** 75 % = 1.00, 50 % = 0.92.
+
+### R2.3 Speed level against the vendor median, and the diameter term
+
+**Level.** The C7 level is now fitted directly to the target, not to rows with vendor fixed effects. For each training row the target is its L1 bucket's vendor median, with the row's own engagement, hardness and C9 terms taken out. The fit is least absolute deviations, so the fit's per-band median and the gate's are the same statistic.
+
+**What that changed:** with the Round 1 level the micro bands ran +0.24…+0.33 fast against the vendor rows, and the step-3 defaults +0.23…+0.49 against the vendor median. Most of that was Harvey's slow micro charts counted once per row instead of once per vendor group. On the new basis the bands sit within ±0.13 without any diameter term.
+
+**Diameter term:** **v ∝ (min(D, 0.5")/0.5")^0.075**, i.e. a 1/16" tool runs 0.86× a ½" tool. It is **empirical**:
+- Within a chart vendors print one SFM for every diameter (within-chart slope −0.001 ± 0.002), so the trend is between tool series.
+- The cited lookup found no v_c ∝ D^m law. The micro-milling literature explains thinner allowable chips (h/r_β), not slower speeds.
+- The likeliest cause is that micro tools are "starved for spindle rpm" (MSC/Iscar, second-hand). One vendor-adjacent source (an Autodesk class handout citing Harvey) argues the opposite.
+- The knee was chosen by grid (0.125 / 0.25 / 0.5 / 1"), judged by the worst per-band bias on the training rows.
+
+| Speed law alone vs bucket vendor median (log) | 1/64–3/64 | 1/16–3/32 | 1/8–3/16 | 1/4–3/8 | 1/2–3/4 | ≥ 1 |
+|---|---|---|---|---|---|---|
+| Training rows | −0.012 | −0.015 | +0.001 | −0.009 | 0.000 | −0.006 |
+| Hold-out rows | −0.171 | −0.123 | +0.002 | −0.091 | −0.085 | −0.141 |
+
+**On hold-out the law runs 0.09–0.17 slow** in five bands. A hold-out group is a whole document for one material, so this is the document-to-document spread of vendor speed levels, which no level can absorb.
+
+**Levels** (slot, at the family's median HB, D ≥ ½", vendor median → ×1.025 consensus offset, R2.4):
+
+| Family | SFM | HB_ref |
+|---|---|---|
+| 17-4 PH | 203 → 208 | 325 |
+| 316 | 235 → 241 | 262 |
+| 420 | 417 → 427 | 200 |
+| 4130/4140 | 407 → 417 | 294 |
+| 1045 | 476 → 488 | 237 |
+| 1020 | 183 → 188 | 271 |
+| H13 | 231 → 237 | 432 |
+| Ti alloys | 184 → 189 | 325 |
+| Nickel alloys | 75 → 77 | 375 |
+| 6061 | 1577 → 1616 | 100 |
+
+**Coating** factors are reported but no longer applied: the level is fitted to bucket medians, which mix coatings.
+
+### R2.4 Why the physics side sits a little above the median (consensus offsets)
+
+- **The problem:** at 75 % C14 caps at 1.00 × the bucket median, so the output is min(physics, median). A physics value centred on the median leaves half the rows below it, which gives a negative median bias.
+- **The fix:** for the 75 % output to land on the median, the physics side has to sit a little above it. Two offsets were fitted on the training rows against the realized (after-C14) bias, each the smallest that brings every band to ≥ −0.02:
+  - **C7 level ×1.025.**
+  - **C2 limit ×1.075** on the chip_limits.json band median.
+- **Where it shows:** both offsets only matter where no vendor bucket exists, which is when C14 doesn't cap. They are in `materials.json` `consensus_offsets`, and `params.material` applies the C2 one.
+
+### R2.5 The MRR cap: what "MRR" has to mean
+
+**The literal cap fails.** Vendors' depth follows their own flute length and their flute counts differ, so their MRR is not comparable across those. With MRR/D³ as the cap, the optimizer gives up T1's deep, narrow cut: at 50 % it picks 0.14·D × 0.90·D at **0.015 in³/min**, half the 0.029 it gets otherwise.
+
+**What was tried in order:**
+1. MRR/D³ (literal).
+2. MRR per inch of depth.
+3. MRR per unit engaged area (the feed rate).
+4. **MRR per unit engaged area and per flute = the feed per flute fz·n (in/min), which is scale-free in D.** This is what C14m now compares. In MRR terms the cap at a cut is scale × median(fz·n)·z·ap·ae.
+
+**The structural MRR finding.**
+- Within a bucket, vendors who run faster also run thicker chips: the correlation of log SFM and log fz/D across vendor groups is **+0.24**.
+- So the median of the products (speed × chip) is higher than the product of the medians.
+- With speed and chip each capped at their own median, MRR lands **≈ 0.15 below the MRR median at 75 %** and about 0.32 below at 50 %. That holds even with speed and chip bias ≈ 0.
+- This is a property of the vendors' data, not of the fit (decision R-B).
+
+### R2.6 The new gate (§5, user 2026-10-17)
+
+**Gate rules, per band:**
+- median |log error| vs rows ≤ the vendors' own disagreement in that band;
+- at 75 %: |bias vs vendor median| ≤ 0.10;
+- at 50 %: −0.20 ≤ bias ≤ 0;
+- applied to SFM, fz and MRR (like-for-like, R2.5). Vendor bias is reported, not gated.
+
+**The product: all 2,804 rows, C14 from all rows:**
+
+| Band | Median \|log\| SFM / fz at 75 % (vendors' own) | Bias at 75 %: SFM / fz / MRR | Bias at 50 %: SFM / fz / MRR | Gate |
+|---|---|---|---|---|
+| 1/64–3/64 | 0.16 / 0.31 (0.72 / 1.10) | −0.045 / −0.045 / **−0.196** | −0.129 / −0.088 / **−0.319** | fails on MRR |
+| 1/16–3/32 | 0.20 / 0.21 (0.73 / 0.65) | −0.042 / −0.011 / **−0.258** | −0.125 / −0.085 / **−0.400** | fails on MRR |
+| 1/8–3/16 | 0.18 / 0.24 (0.45 / 0.39) | −0.000 / −0.009 / −0.084 | −0.083 / −0.085 / **−0.251** | fails on MRR at 50 % |
+| 1/4–3/8 | 0.21 / 0.22 (0.38 / 0.35) | −0.000 / −0.021 / **−0.153** | −0.083 / −0.085 / **−0.325** | fails on MRR |
+| 1/2–3/4 | 0.20 / 0.18 (0.29 / 0.30) | −0.000 / −0.022 / **−0.151** | −0.083 / −0.085 / **−0.320** | fails on MRR |
+| ≥ 1 | 0.17 / 0.15 (0.27 / 0.27) | −0.026 / −0.001 / **−0.155** | −0.110 / −0.084 / **−0.325** | fails on MRR |
+
+- **Speed and chip load pass in every band at both settings, and the accuracy criterion passes everywhere.**
+- **MRR fails** for the structural reason in R2.5.
+- **Overall at 75 %:** 52 % of rows within ±10 % on SFM (Round 1: 33 %) and 30 % on fz (19 %); median |log| 0.19 / 0.20 (0.32 / 0.28).
+
+**Generalization: hold-out rows, C14 built from the training rows only.**
+- At 75 % the SFM bias is −0.11 to −0.27 (fails); fz −0.02 to −0.10 (passes).
+- At 50 % SFM is −0.19 to −0.35 (fails in 4 bands); fz −0.05 to −0.14 (passes).
+- C14 can only lower a value, so when the training buckets miss a hold-out document's faster vendor, the output lands below that document's median. The product uses every row's data, so this is the out-of-sample margin, not the product's behaviour.
+
+**Process variant** (BT30, C3 at 0.05 mm stock, 5 µm wall, 50 %): fz −0.25 to −2.4 against the vendor median. These are your process limits, which vendor charts do not assume; the largest tools lose most to the 25 µm roughing wall limit.
+
+### R2.7 BT30 compliance (provisional; measure it)
+
+**No measured BT30 spindle/taper stiffness was found.** The values used, in series:
+
+| Element | Stiffness | Source |
+|---|---|---|
+| Spindle | ≥ 80 N/µm radial | NK Enginex ATC-BT30 spindle spec; a vendor minimum, not Brother |
+| Holder-tool joint | 51.6 N/µm and 0.126 N·m/µrad | Özşahin, Ertürk, Özgüven, Budak 2009, IJMTM 49:25, Table 2: a 16 mm carbide tool in a BT40 holder |
+| **Combined translational** | **31.4 N/µm** | the two above in series |
+
+**Measurement to make:** a tap test or a static push with a dial indicator on the Speedio would replace these (Duncan/Schmitz receptance coupling). On T1/T12 the holder is **4–8 % of the wall deflection** (table below), so the provisional value moves results little.
+
+### R2.8 T1 and T12 in 17-4 H1025 (356 HB), Speedio 16k + provisional BT30, TIR 0.0002", stock 0.05 mm
+
+"Before" is the step-3 defaults with a rigid holder. "After" uses the calibrated material, the consensus scheme and C14 from all rows.
+
+| Tool | Op | Model | ap | ae | fz | SFM | IPM | MRR in³/min | Binding | Holder share of wall | C14 bucket (vendor groups) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| T1 | adaptive | before | 4·D | 0.026·D | 0.00147 | 255 | 45.8 | 0.0738 | C2, C3, C6 | — | — |
+| T1 | adaptive | 50 % | 4·D | 0.071·D | 0.00041 | 129 | 6.5 | **0.0290** | C3, C6, **C14f, C14v** | 7 % | L3 17-4 1/8" light, **Harvey only (3 rows)**: SFM 140, fz 0.00045 |
+| T1 | adaptive | 75 % | 4·D | 0.067·D | 0.00045 | 140 | 7.7 | 0.0324 | C3, C6, C14f, C14m, C14v | 8 % | same |
+| T1 | adaptive | 50 %, literal MRR/D³ cap | 0.14·D | 0.90·D | 0.00045 | 137 | 7.5 | 0.0148 | C2, C3, C14f | 4 % | L3 heavy (4 groups) |
+| T1 | slot | before | 0.14·D | D | 0.00034 | 135 | 5.6 | 0.0122 | C3 | — | — |
+| T1 | slot | 50 % | 0.19·D | D | 0.00029 | 129 | 4.5 | 0.0132 | C3, C14v | 4 % | L1 slot, Harvey + OSG: SFM 140, fz 0.000425 |
+| T1 | slot | 75 % | 0.14·D | D | 0.00043 | 140 | 7.3 | 0.0160 | C14f, C14v | 4 % | same |
+| T1 | finish | before | 4·D | 0.016·D | 0.00029 | 255 | 9.2 | 0.0090 | C3, C6 | — | — |
+| T1 | finish | 50 % | 4·D | 0.016·D | 0.00040 | 113 | 5.5 | 0.0054 | C3 (5 µm met), C6, C14v | 6 % | L1 finish, Harvey only: SFM 122 |
+| T1 | finish | 75 % | 4·D | 0.016·D | 0.00040 | 122 | 6.0 | 0.0059 | C3, C6, C14v | 6 % | same |
+| T12 | adaptive | before | 3·D | 0.172·D | 0.00029 | 236 | 16.9 | 0.0341 | C2, C3, C6 | — | — |
+| T12 | adaptive | 50 % | 3·D | 0.223·D | 0.00026 | 168 | 10.7 | **0.0279** | C2, C3, C6 | 7 % | L1 HEM medium, **Garr only (2 rows)**: SFM 341, not binding |
+| T12 | adaptive | 75 % | 3·D | 0.198·D | 0.00031 | 186 | 14.1 | 0.0328 | C2, C3, C6 | 7 % | same |
+| T12 | slot | before | 0.35·D | D | 0.00022 | 141 | 7.5 | 0.0103 | C2, C8 | — | — |
+| T12 | slot | 50 % | 0.35·D | D | 0.00022 | 132 | 7.0 | 0.0095 | C2, C8 | 5 % | L1 slot, Garr + Harvey: SFM 182, not binding |
+| T12 | slot | 75 % | 0.35·D | D | 0.00025 | 144 | 8.7 | 0.0118 | C2, C8 | 5 % | same |
+| T12 | finish | before | 3·D | 0.031·D | 0.00037 | 262 | 24.0 | 0.0089 | C3, C6, C7 | — | — |
+| T12 | finish | 50 % | 3·D | 0.031·D | 0.00029 | 92 | 6.6 | 0.0024 | C6, C14f, C14v | 5 % | L1 finish, Harvey only: SFM 100, fz 0.000318 |
+| T12 | finish | 75 % | 3·D | 0.031·D | 0.00032 | 100 | 7.8 | 0.0029 | C6, C14f, C14m, C14v | 5 % | same |
+
+**Reading:**
+- **T1 adaptive** is now held by C14 to the vendor median for 17-4 at 1/8" and light engagement: 140 SFM and 0.00045" at 75 %. Its MRR is 0.029–0.032 in³/min, 0.4× the uncapped physics (0.074) and 1.5× v1 (0.019).
+  - That bucket has one vendor group (Harvey, 3 rows), because no L1/L2 light-engagement 1/8" 17-4 bucket exists at 350–399 HB. Decision R-C.
+- **T12 adaptive** stays physics-bound (C2, C3): 0.028 / 0.033 in³/min, 4.4× / 5.1× v1. C14's only bucket there is two Garr rows at 341 SFM, which do not bind.
+- **Finishing speed falls** to the vendors' finishing SFM (Harvey only: 100–122). Vendors run finishing passes at their roughing speed or slower, as Round 1 found.
+- **The BT30 compliance** adds 4–8 % to the wall deflection. It binds through C3 wherever C3 binds (T1 adaptive at both settings, T1 slot at 50 %, T12 adaptive), without changing which constraint binds.
+
+### R2.9 Decisions for you (Round 2)
+
+- **R-A. Accept the four aggressiveness points** (R2.2: the data supports them as given) and the C4 ramp ×0.88 → ×1.00 with λ fixed. Recommended: yes.
+- **R-B. The MRR gate,** given the +0.24 speed–chip correlation (R2.5). Options:
+  - (a) Gate MRR against the product of the speed and chip medians (consistent with capping each). Then MRR bias = SFM bias + fz bias, and the gate passes in every band except 1/64–3/32" at 50 %. There it gives −0.22 / −0.21, because the runout chip limit (C2/C1, a physics floor) holds fz below 0.92× the median.
+  - (b) Keep MRR against its own median, and let 75 % run speed and chip at about ×1.075 their medians each. They stay within your ±0.10, and MRR lands on its median. 50 % then sits near −0.01 / −0.01 / −0.17.
+  - (c) Accept the MRR shortfall as a deliberate conservatism of capping speed and chip separately.
+
+  Recommended: (a). It is what capping two medians implies.
+- **R-C. Single-vendor buckets.** C14 now accepts a bucket with one vendor group: T1 adaptive is capped by 3 Harvey rows, and T12 finishing by Harvey alone. Options:
+  - require ≥ 2 vendor groups at a level, falling back to the next level and then to physics;
+  - or keep single-vendor buckets but report them as weak.
+
+  Recommended: require 2 groups.
+- **R-D. The MRR cap's meaning** (R2.5). Per unit engaged area and per flute (as built), or the literal MRR/D³, which ends T1's deep, narrow roughing. Recommended: as built.
+- **R-E. Measure BT30 stiffness** on the Speedio (R2.7). Until then the values are provisional and marked so.
+- **R-F. The hold-out margin:** −0.11 to −0.27 on SFM out of sample (R2.6). Accept, or widen the buckets (fewer, larger cells generalize better but follow the user's material less closely).
+
+## Summary for the user (Round 1)
 
 - **Everything below is a proposal.** The optimizer's defaults are unchanged. The calibrated values sit in `data/model_v2/materials.json` and `tools.json`, marked PROPOSED. `physics_v2/params.py` builds optimizer inputs from them for step 5.
 - **The §5 gate is not met as written, and on this data it cannot be.** The gate asks for each row within the vendor's own range ±10 % and a median error ≤ 25 % per band. The vendors themselves are further apart than that:

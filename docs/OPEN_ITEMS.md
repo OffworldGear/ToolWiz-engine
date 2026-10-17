@@ -48,6 +48,8 @@ Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: th
 
 **Step 4 done 2026-10-17** (`toolwiz/v2-step4`, `tools/calibrate_v2.py`). The parameters are proposed in `data/model_v2/materials.json` and `tools.json`, not adopted. Ten decisions for the user are in `docs/research/v2_calibration_findings.md` §9: the tool factor, the 17-4 speed hardness exponent (1.82 fitted vs 1.0 prior), the engagement law, the aggressiveness map, and a data-based §5 gate.
 
+**Step 4 round 2 (2026-10-17):** aggressiveness is anchored to the vendor consensus: 75 % = vendor median, 50 % = 0.92×. Also new: the C14 vendor-consensus guardrail (`data/model_v2/consensus.json`), a provisional BT30 compliance in C3, and an empirical diameter term in C7. Speed and chip load meet the new §5 gate in every band; MRR does not, for a structural reason. Six round-2 decisions (R-A…R-F) are in `docs/research/v2_calibration_findings.md` §R2.9. User action: measure BT30 stiffness on the Speedio (tap test or static push).
+
 Next is step 5, pipeline integration, once those decisions are made.
 
 ## User actions
