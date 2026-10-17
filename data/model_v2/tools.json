@@ -26,85 +26,110 @@
   "source": "confirmed on the hold-out rows against fitted alternatives (calibration_report.json c2)"
  },
  "aggressiveness": {
-  "status": "PROPOSAL for the user (design \u00a73.6); the optimizer still uses the Round 1 placeholder map",
-  "current": {
-   "C2_and_C4_scale": "0.7 + 0.6\u00b7a",
-   "life_ratio": "4^(0.5 \u2212 a)",
-   "C5_margin": "0.2\u00b7(1 \u2212 a)",
-   "lambda": "0.4 \u2212 0.2\u00b7a"
-  },
-  "proposed": {
-   "C2_scale": {
-    "a=0": 0.75742,
-    "a=0.5": 1.0,
-    "a=1": 1.2401,
-    "form": "piecewise linear in a between the points",
-    "source": "the vendor rows' own spread of worst-flute h/D around each band median: p25/median and p75/median, median over bands (calibration_report.json)",
-    "per_band": [
-     {
-      "band": "1/64-3/64",
-      "p25_over_median": 0.74248,
-      "p75_over_median": 1.1736,
-      "n": 147
-     },
-     {
-      "band": "1/16-3/32",
-      "p25_over_median": 0.8187,
-      "p75_over_median": 1.1807,
-      "n": 173
-     },
-     {
-      "band": "1/8-3/16",
-      "p25_over_median": 0.76193,
-      "p75_over_median": 1.201,
-      "n": 257
-     },
-     {
-      "band": "1/4-3/8",
-      "p25_over_median": 0.75291,
-      "p75_over_median": 1.3282,
-      "n": 465
-     },
-     {
-      "band": "1/2-3/4",
-      "p25_over_median": 0.81826,
-      "p75_over_median": 1.3146,
-      "n": 444
-     },
-     {
-      "band": "1 and up",
-      "p25_over_median": 0.67891,
-      "p75_over_median": 1.2793,
-      "n": 240
-     }
+  "status": "user decision 2026-10-17 (points accepted in principle); optimize.Margins(scheme='consensus')",
+  "scale_points": {
+   "value": [
+    [
+     0.0,
+     0.76
+    ],
+    [
+     0.5,
+     0.92
+    ],
+    [
+     0.75,
+     1.0
+    ],
+    [
+     1.0,
+     1.1
     ]
+   ],
+   "source": "user 2026-10-17: 75 % \u2248 vendor median (1.00), 50 % default 0.92 (Speedio BT30 starting point), 100 % 1.10 (vendors' 'may increase 10\u201320 %', e.g. Harvey speeds-feeds page), 0 % 0.76 (vendor lower quartile; worst-flute h/D p25/median 0.76, calibration_report.json)"
+  },
+  "interpolation": "monotone cubic (Fritsch\u2013Carlson) through the points",
+  "scale_at": {
+   "a=0": 0.76,
+   "a=0.25": 0.84,
+   "a=0.5": 0.92,
+   "a=0.75": 1.0,
+   "a=1": 1.1
+  },
+  "applies_to": [
+   "C7 speed level (the tool-life target as speed: T/T_ref = scale^(\u22121/n))",
+   "C2 chip limit",
+   "C14 caps on SFM, fz and MRR (scale \u00d7 the bucket vendor median)"
+  ],
+  "C4": {
+   "value": [
+    [
+     0.0,
+     0.88
+    ],
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "source": "\u00d7 the fatigue limit 1425 MPa, never above it: 0.88 = 0.33/0.375 at a = 0 (Schleinkofer 1996, R = \u22121, via Preis 2004), 1.0 at a = 1; linear"
+  },
+  "lambda": {
+   "value": 0.3,
+   "source": "fixed (C1 never relaxed); centre of 0.2\u20130.4 (Wojciechowski 2022)"
+  },
+  "C5_margin": {
+   "value": "0.2\u00b7(1 \u2212 a)",
+   "source": "unchanged; the spindle is a hard limit"
+  },
+  "never_relaxed": [
+   "C1",
+   "C3 (with the spindle/holder compliance)",
+   "C4",
+   "C5",
+   "C9"
+  ],
+  "vendor_spread_check": {
+   "value": {
+    "sfm": {
+     "p10": 0.63709,
+     "p25": 0.82051,
+     "p75": 1.0927,
+     "p90": 1.3787,
+     "n_group_medians": 333
+    },
+    "fz_over_D": {
+     "p10": 0.70343,
+     "p25": 0.88889,
+     "p75": 1.1514,
+     "p90": 1.4516,
+     "n_group_medians": 333
+    }
    },
-   "C4_limit_mpa": {
-    "a=0": 1254.0,
-    "a=0.5": 1425.0,
-    "a=1": 1596.0,
-    "source": "cited fatigue fractions of TRS 3.8 GPa: 0.33 (Schleinkofer 1996, R = \u22121, 10\u2077, via Preis 2004), 0.375 (Round 4 basis), 0.42 (Kursawe 2001, 10\u2076 cycles \u2248 a tool's life, via Preis 2004). The current \u00d71.3 at a = 1 is 0.49\u00b7TRS, above any cited fully reversed level"
-   },
-   "life_ratio": {
-    "a=0": 2.0,
-    "a=0.5": 1.0,
-    "a=1": 0.5,
-    "form": "4^(0.5 \u2212 a) (unchanged)",
-    "source": "with n = 0.25 this moves speed \u00d70.84\u2026\u00d71.19, about the inter-quartile spread of vendor speed levels (vendor_effect_log in calibration_report.json)"
-   },
-   "lambda": {
-    "a=0": 0.4,
-    "a=1": 0.2,
-    "source": "sourced range, unchanged (C1)"
-   },
-   "C5_margin": {
-    "form": "0.2\u00b7(1 \u2212 a) (unchanged)",
-    "source": "placeholder; the spindle is a hard limit"
-   },
-   "C3": {
-    "form": "not scaled by aggressiveness",
-    "source": "C3 is the user's process requirement (50 % of the stock to leave)"
-   }
+   "source": "vendor-group median / bucket vendor median over L1 buckets with \u2265 3 groups"
   }
+ },
+ "C14": {
+  "basis": "data/model_v2/consensus.json",
+  "source": "Vendor consensus (user decision 2026-10-17): speed, chip load and MRR \u2264 consensus_scale(a) \u00d7 the vendor median of the matching bucket (family, hardness, diameter band, operation, engagement), data/model_v2/consensus.json from the benchmark rows; no matching vendor data \u2192 the physics result"
+ },
+ "machine_bt30": {
+  "k_spindle_n_um": {
+   "value": 80.0,
+   "source": "NK Enginex ATC-BT30 spindle spec 'Radial stiffness \u226580 N/\u03bcm' (vendor minimum, not Brother; https://nkenginex.com/products/cnc-atc-bt30-spindle)"
+  },
+  "k_holder_joint_n_um": {
+   "value": 51.6,
+   "source": "holder-tool joint k_yf 5.1581e7 N/m, carbide 16 mm tool in a BT40 holder (\u00d6z\u015fahin, Ert\u00fcrk, \u00d6zg\u00fcven, Budak 2009, IJMTM 49:25, Table 2)"
+  },
+  "ktheta_holder_joint_nm_urad": {
+   "value": 0.12631,
+   "source": "holder-tool joint k_\u03b8m 1.2631e5 N\u00b7m/rad, same paper and table; no size-30 taper rotational value was found"
+  },
+  "combined_k_n_um": {
+   "value": 31.368,
+   "source": "series of the two translational values above"
+  },
+  "status": "PROVISIONAL BT30: spindle \u226580 N/\u00b5m (NK Enginex spec) in series with a holder-tool joint 51.6 N/\u00b5m and 0.126 N\u00b7m/\u00b5rad (\u00d6z\u015fahin et al. 2009, BT40, 16 mm tool); measure on the Speedio"
  }
 }
