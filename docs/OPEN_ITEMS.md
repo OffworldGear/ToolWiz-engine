@@ -12,7 +12,41 @@ Why: ToolWiz v1 is GWizard's tables plus stacked rules. For tools of 1/8" and sm
 - All data decisions are made: 17-4 → P5.0.Z.AN scaled by hardness; Harvey generic charts at normal weight; C5 on the continuous rating.
 - The optimizer objective is agreed (design §3.6): MRR, with speed set from tool life.
 
-Next is step 3, constraints and optimizer (`physics_v2/optimize.py`).
+**Done 2026-10-16:** step 3, constraints and optimizer (`physics_v2/optimize.py`, `docs/research/v2_optimizer_findings.md`). T12 and T1 adaptive come out deep (full LCF) and narrow, limited by C3.
+
+**Round 2 done 2026-10-16** (user decisions):
+- C1 on every flute, eccentric runout;
+- provisional C3/C4 from the vendor rows (`data/model_v2/provisional_limits.json`);
+- C11 feed caps and C12 ae ≥ 2·TIR.
+
+Results are in `docs/research/v2_optimizer_findings.md` (Round 2). Open:
+- Program size: at the C3-limited feed, toolpath length is free in the time objective. T12's v2 cut has 28 % more toolpath per in³ than v1.
+- Finishing at 0.0002" TIR is infeasible under every-flute C1 plus v1's tolerance limit; a rule is needed.
+- A measured TIR (Blum) moves every micro result.
+
+**Round 3 done 2026-10-16.** Vendors design to the worst-flute chip (h_worst ≈ 0.005·D in every band), not to deflection or stress. The C4 flute root now uses the deflection's own fluted section. Proposed, not applied: C2 from the chip invariant, C4 = carbide fatigue, C3 = a process requirement. Under that basis T12 runs 3·D × 0.12·D at 6× v1's MRR with 8× less toolpath. See `docs/research/v2_optimizer_findings.md` (Round 3).
+
+**Program size and finishing (2026-10-16), from the user's NC files:**
+- Program-size model 23.1 bytes/line × L_cut/s; optional C13 "Limit program size" (6 MB).
+- Finishing C3 = the user's wall tolerance (0.005 mm default), with the wall error reported as mean (Blum-compensable) and ripple.
+- At 0.0002" TIR no finishing pass holds 5 µm; at 0.0001" a 0.002" stock pass does.
+- CAM-side: Fusion Fine Stepdown 0.002–0.005 mm made the largest files; keep it at least ¼ of the stepdown and never under 0.05 mm.
+
+**Round 4 done 2026-10-16: adopted basis.**
+- C2 = vendor-median worst-flute chip/D per band.
+- C3 = wall deflection ≤ 50 % of the stock to leave (roughing) or the wall tolerance (finishing).
+- C4 = carbide fatigue 1425 MPa on the fluted section.
+- The vendor-median C3/C4 limits are reported only.
+
+**Round 5 done 2026-10-17:**
+- Merged `toolwiz/v2-data2` (1,466 side and 628 slot rows evaluated); C2 limits regenerated.
+- Review fixes B1–B8.
+- Finishing: C1 needs only the wall flute; the wall tolerance is a target; an optional hard part tolerance.
+- Micro tools report the max feasible TIR.
+
+Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: the C2 basis for micro tools (the nominal basis was evaluated, not adopted), measured runout. Calibration item: the Kienzle size effect at µm chips (stress outliers in Ni micro rows).
+
+Next is step 4, calibration (`tools/calibrate_v2.py`).
 
 ## User actions
 

@@ -1,6 +1,6 @@
 # v2 benchmark dataset: row schema
 
-Design reference: `docs/PHYSICS_MODEL_DESIGN.md` §4.2. One file per vendor (`harvey.json`, `helical.json`, `osg.json`, `sandvik.json`, `kennametal.json`). These rows calibrate and validate the v2 model. They are never model inputs.
+Design reference: `docs/PHYSICS_MODEL_DESIGN.md` §4.2. One file per vendor (`harvey.json`, `helical.json`, `osg.json`, `sandvik.json`, `seco.json`, `kennametal.json`, `emuge.json`, `garr.json`, `kyocera_sgs.json`, `yg1.json`). These rows calibrate and validate the v2 model. They are never model inputs.
 
 ## Rules
 
