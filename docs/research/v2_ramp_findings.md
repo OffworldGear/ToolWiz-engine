@@ -124,7 +124,46 @@ Reported only: the ramp end chip h_a/D is 1.8·10⁻⁴ (≤ 3/32", Kyocera M4 a
 | 1/8" | 3.0° | Kyocera 5, Sandvik 5, Harvey 3, Emuge 2, Kennametal 2 (at ≥ 3/8") | 1.2·D | 0.20 (OSG, Kennametal) |
 | 1/4"–1/2" | 3.0° | Kennametal 2, Kyocera 6, Emuge 2, Harvey 3, Sandvik 5 | 1.2·D | 0.20 |
 
-RESIDUALS_PLACEHOLDER
+**Residuals of the ramp angle** (`ramp_calibration_report.json` `residuals`):
+- The metric is log(model angle / the vendor's maximum angle) on each vendor row's own tool geometry and material.
+- There are 248 rows, run as unique tool/material combinations. 23 are skipped: 16 have no calibrated v2 family (graphite, cast aluminium, the Nickel Alloy family) and 7 are infeasible.
+- "Inside" means the model angle falls within that vendor's own published range.
+
+| Run | n | Median log ratio | Median abs log | Inside |
+|---|---|---|---|---|
+| All rows, tables from all rows, 75 % | 248 | −0.013 | 0.42 | 13 % |
+| All rows, 50 % | 248 | −0.095 | 0.42 | 13 % |
+| Hold-out rows (30 %, hashed by vendor group/document/family), tables from training rows, 75 % | 52 | −0.23 | 0.69 | 6 % |
+| Physics only (R14 off), 75 % | 248 | +1.53 | 1.53 | 0 % |
+
+By vendor at 75 %, the median log ratio is:
+- Emuge −0.01 (62 % inside);
+- Harvey +0.50 and Kennametal +0.45 (their 2–3° sit under the cross-vendor median, and R1 lifts micro tools);
+- Kyocera −0.23 and Sandvik −0.12 (their 5–20° maxima sit above it).
+
+By band: 1/16–3/32" is +0.54 (R1 lifts micro tools above the vendors); 1/8" and up is −0.01 to −0.04.
+
+By family: 17-4 is −0.013 (91 rows), 316 −0.010, 4130 −0.12, H13 −0.19, Ti −0.12, Inconel +0.25.
+
+**What this says:**
+1. **At 75 % the model sits on the vendor median** (bias −1 %). At 50 % it sits 9 % below it, as the aggressiveness rule asks.
+2. **The spread is the vendors' own.** Their maximum angles for comparable tools run from 1° (SGS H-Carb, M4 micro) to 20° (Sandvik Dura), so no single angle can fall inside most vendors' ranges. The hold-out bias (−0.23) is driven by Sandvik rows (−1.6) judged against a consensus built without Sandvik's documents.
+3. **Physics alone does not bound the angle from above.** With R14 off, the end-edge limit (plunge chips) and the side checks allow angles about 4.6× the vendors' (e^1.53). The vendors' angle limits encode chip evacuation, heat and practice that the force model doesn't capture.
+   - **Physics sets the floor: R1 (rubbing).** It binds on 21 of 248 rows, mostly micro tools.
+   - **The consensus sets the ceiling: R14a.** It binds or is overridden on 236 rows.
+
+   This mirrors C14's role for the cut. The cap is what keeps the angle at the vendors' level, so it should stay on; D2 covers what happens when it is below the floor.
+4. Binding counts at 75 % (beyond R14a): R14p 212, C14f 142, C14v 131, C2 109, R6 91, C14m 90, R2p 36, C7 25, R1 21, C3 10, C5 8.
+
+**Margins at the ramp for T1/T12** (1 − value/limit):
+
+| | C2 | C3 | C4 | C5 | C8 |
+|---|---|---|---|---|---|
+| T1 50 % | 0.07 | 0.27 | 0.82 | 0.99 | — |
+| T1 75 % | 0.09 | 0.29 | 0.83 | 1.00 | — |
+| T12 50 % | 0.00 (binding) | 0.29 | 0.45 | 1.00 | 0.08 |
+| T12 75 % | 0.00 (binding) | 0.33 | 0.50 | 1.00 | 0.19 |
+
 
 ## 5. T1 and T12 in 17-4 H1025 (356 HB), Speedio 16k, provisional BT30
 

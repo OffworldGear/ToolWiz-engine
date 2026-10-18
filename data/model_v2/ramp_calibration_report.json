@@ -717,7 +717,7 @@
     "fz_in": 0.00059192
    },
    "v2_ramp": {
-    "feasible": false,
+    "feasible": true,
     "ramp_angle_deg": 3.4672,
     "helix_diameter_over_D": 0.6,
     "helix_diameter_in": 0.075,
@@ -739,7 +739,6 @@
      "C14f",
      "R1",
      "R14a",
-     "R14f",
      "R14p"
     ],
     "conflicts": [
@@ -817,11 +816,6 @@
      "limit": 2.76,
      "ok": false
     },
-    "R14f": {
-     "value": 6.1503,
-     "limit": 5.6582,
-     "ok": false
-    },
     "R14p": {
      "value": 1.0609,
      "limit": 1.0609,
@@ -878,7 +872,6 @@
      "C14f",
      "R1",
      "R14a",
-     "R14f",
      "R14p"
     ],
     "conflicts": [
@@ -956,11 +949,6 @@
      "limit": 3.0,
      "ok": false
     },
-    "R14f": {
-     "value": 7.2487,
-     "limit": 7.2487,
-     "ok": true
-    },
     "R14p": {
      "value": 1.3591,
      "limit": 1.3591,
@@ -995,7 +983,7 @@
     "fz_in": 0.00028745
    },
    "v2_ramp": {
-    "feasible": false,
+    "feasible": true,
     "ramp_angle_deg": 5.8745,
     "helix_diameter_over_D": 1.0,
     "helix_diameter_in": 0.0625,
@@ -1016,7 +1004,6 @@
      "C2",
      "R1",
      "R14a",
-     "R14f",
      "R14p"
     ],
     "conflicts": [
@@ -1099,11 +1086,6 @@
      "limit": 2.76,
      "ok": false
     },
-    "R14f": {
-     "value": 7.9631,
-     "limit": 7.3261,
-     "ok": false
-    },
     "R14p": {
      "value": 1.4506,
      "limit": 1.4506,
@@ -1159,7 +1141,6 @@
      "C2",
      "R1",
      "R14a",
-     "R14f",
      "R14p"
     ],
     "conflicts": [
@@ -1241,11 +1222,6 @@
      "value": 5.1311,
      "limit": 3.0,
      "ok": false
-    },
-    "R14f": {
-     "value": 9.9058,
-     "limit": 9.9058,
-     "ok": true
     },
     "R14p": {
      "value": 1.9613,
@@ -1911,5 +1887,565 @@
    "h_a": 0.00018564,
    "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
   }
- ]
+ ],
+ "residuals": {
+  "all_0.75": {
+   "label": "all rows, tables from all rows, 75%",
+   "aggressiveness": 0.75,
+   "overall": {
+    "n": 248,
+    "median_log_ratio": -0.012676,
+    "median_abs_log": 0.41816,
+    "inside_vendor_range": 0.13306
+   },
+   "skipped": {
+    "no calibrated v2 family 'Nickel Alloy'": 5,
+    "infeasible": 7,
+    "no calibrated v2 family 'Graphite'": 8,
+    "no calibrated v2 family 'Aluminum - Cast'": 3
+   },
+   "by_vendor": {
+    "Emuge-Franken": {
+     "n": 39,
+     "median_log_ratio": -0.012741,
+     "median_abs_log": 0.25599,
+     "inside_vendor_range": 0.61538
+    },
+    "Harvey Performance": {
+     "n": 41,
+     "median_log_ratio": 0.50276,
+     "median_abs_log": 0.50276,
+     "inside_vendor_range": 0.21951
+    },
+    "Kennametal": {
+     "n": 20,
+     "median_log_ratio": 0.45225,
+     "median_abs_log": 0.55188,
+     "inside_vendor_range": 0.0
+    },
+    "Kyocera": {
+     "n": 63,
+     "median_log_ratio": -0.23112,
+     "median_abs_log": 0.41344,
+     "inside_vendor_range": 0.0
+    },
+    "Sandvik": {
+     "n": 82,
+     "median_log_ratio": -0.11616,
+     "median_abs_log": 0.69427,
+     "inside_vendor_range": 0.0
+    },
+    "YG-1": {
+     "n": 3,
+     "median_log_ratio": -0.010236,
+     "median_abs_log": 0.010236,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_band": {
+    "1/16-3/32": {
+     "n": 18,
+     "median_log_ratio": 0.53659,
+     "median_abs_log": 0.53687,
+     "inside_vendor_range": 0.0
+    },
+    "1/8-3/16": {
+     "n": 45,
+     "median_log_ratio": -0.042786,
+     "median_abs_log": 0.39281,
+     "inside_vendor_range": 0.13333
+    },
+    "1/4-3/8": {
+     "n": 90,
+     "median_log_ratio": -0.010236,
+     "median_abs_log": 0.41817,
+     "inside_vendor_range": 0.17778
+    },
+    "1/2-3/4": {
+     "n": 90,
+     "median_log_ratio": -0.012676,
+     "median_abs_log": 0.41344,
+     "inside_vendor_range": 0.12222
+    },
+    "1 and up": {
+     "n": 5,
+     "median_log_ratio": -0.24383,
+     "median_abs_log": 0.30376,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_family": {
+    "Aluminum - Wrought (6061)": {
+     "n": 16,
+     "median_log_ratio": -0.010236,
+     "median_abs_log": 0.010236,
+     "inside_vendor_range": 0.0
+    },
+    "High Temp Nickel Alloy": {
+     "n": 10,
+     "median_log_ratio": 0.24501,
+     "median_abs_log": 0.25541,
+     "inside_vendor_range": 0.3
+    },
+    "Stainless - 300 Series (316)": {
+     "n": 20,
+     "median_log_ratio": -0.010161,
+     "median_abs_log": 0.39281,
+     "inside_vendor_range": 0.0
+    },
+    "Stainless - PH Series (17-4)": {
+     "n": 91,
+     "median_log_ratio": -0.012741,
+     "median_abs_log": 0.48091,
+     "inside_vendor_range": 0.065934
+    },
+    "Steel - Medium Carbon Alloy (4130)": {
+     "n": 48,
+     "median_log_ratio": -0.12089,
+     "median_abs_log": 0.50276,
+     "inside_vendor_range": 0.125
+    },
+    "Steel - Tool (H13)": {
+     "n": 38,
+     "median_log_ratio": -0.19134,
+     "median_abs_log": 0.41691,
+     "inside_vendor_range": 0.39474
+    },
+    "Titanium Alloy": {
+     "n": 25,
+     "median_log_ratio": -0.11802,
+     "median_abs_log": 0.41136,
+     "inside_vendor_range": 0.12
+    }
+   },
+   "binding": {
+    "C14v": 131,
+    "C14f": 142,
+    "C14m": 90,
+    "R1": 21,
+    "R6": 91,
+    "R14a": 236,
+    "R14p": 212,
+    "C2": 109,
+    "C7": 25,
+    "R2p": 36,
+    "C3": 10,
+    "C5": 8
+   }
+  },
+  "all_0.5": {
+   "label": "all rows, tables from all rows, 50%",
+   "aggressiveness": 0.5,
+   "overall": {
+    "n": 248,
+    "median_log_ratio": -0.094549,
+    "median_abs_log": 0.4216,
+    "inside_vendor_range": 0.125
+   },
+   "skipped": {
+    "no calibrated v2 family 'Nickel Alloy'": 5,
+    "infeasible": 7,
+    "no calibrated v2 family 'Graphite'": 8,
+    "no calibrated v2 family 'Aluminum - Cast'": 3
+   },
+   "by_vendor": {
+    "Emuge-Franken": {
+     "n": 39,
+     "median_log_ratio": -0.089229,
+     "median_abs_log": 0.31627,
+     "inside_vendor_range": 0.61538
+    },
+    "Harvey Performance": {
+     "n": 41,
+     "median_log_ratio": 0.41628,
+     "median_abs_log": 0.4216,
+     "inside_vendor_range": 0.17073
+    },
+    "Kennametal": {
+     "n": 20,
+     "median_log_ratio": 0.39313,
+     "median_abs_log": 0.4973,
+     "inside_vendor_range": 0.0
+    },
+    "Kyocera": {
+     "n": 63,
+     "median_log_ratio": -0.31791,
+     "median_abs_log": 0.49473,
+     "inside_vendor_range": 0.0
+    },
+    "Sandvik": {
+     "n": 82,
+     "median_log_ratio": -0.19456,
+     "median_abs_log": 0.69214,
+     "inside_vendor_range": 0.0
+    },
+    "YG-1": {
+     "n": 3,
+     "median_log_ratio": -0.093719,
+     "median_abs_log": 0.093719,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_band": {
+    "1/16-3/32": {
+     "n": 18,
+     "median_log_ratio": 0.67214,
+     "median_abs_log": 0.67214,
+     "inside_vendor_range": 0.0
+    },
+    "1/8-3/16": {
+     "n": 45,
+     "median_log_ratio": -0.093719,
+     "median_abs_log": 0.41628,
+     "inside_vendor_range": 0.088889
+    },
+    "1/4-3/8": {
+     "n": 90,
+     "median_log_ratio": -0.094549,
+     "median_abs_log": 0.4216,
+     "inside_vendor_range": 0.17778
+    },
+    "1/2-3/4": {
+     "n": 90,
+     "median_log_ratio": -0.094549,
+     "median_abs_log": 0.4216,
+     "inside_vendor_range": 0.12222
+    },
+    "1 and up": {
+     "n": 5,
+     "median_log_ratio": -0.23333,
+     "median_abs_log": 0.3172,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_family": {
+    "Aluminum - Wrought (6061)": {
+     "n": 16,
+     "median_log_ratio": -0.093719,
+     "median_abs_log": 0.093719,
+     "inside_vendor_range": 0.0
+    },
+    "High Temp Nickel Alloy": {
+     "n": 10,
+     "median_log_ratio": 0.16352,
+     "median_abs_log": 0.25541,
+     "inside_vendor_range": 0.3
+    },
+    "Stainless - 300 Series (316)": {
+     "n": 20,
+     "median_log_ratio": -0.094768,
+     "median_abs_log": 0.30938,
+     "inside_vendor_range": 0.0
+    },
+    "Stainless - PH Series (17-4)": {
+     "n": 91,
+     "median_log_ratio": -0.094549,
+     "median_abs_log": 0.4216,
+     "inside_vendor_range": 0.065934
+    },
+    "Steel - Medium Carbon Alloy (4130)": {
+     "n": 48,
+     "median_log_ratio": -0.20348,
+     "median_abs_log": 0.43441,
+     "inside_vendor_range": 0.125
+    },
+    "Steel - Tool (H13)": {
+     "n": 38,
+     "median_log_ratio": -0.17904,
+     "median_abs_log": 0.49672,
+     "inside_vendor_range": 0.34211
+    },
+    "Titanium Alloy": {
+     "n": 25,
+     "median_log_ratio": -0.20142,
+     "median_abs_log": 0.49473,
+     "inside_vendor_range": 0.12
+    }
+   },
+   "binding": {
+    "C14v": 132,
+    "C14f": 148,
+    "R1": 29,
+    "R6": 81,
+    "R14a": 236,
+    "R14p": 212,
+    "C2": 120,
+    "C7": 24,
+    "R2p": 36,
+    "C14m": 8,
+    "C3": 5,
+    "C5": 8
+   }
+  },
+  "holdout_0.75": {
+   "label": "hold-out rows, tables from training rows, 75%",
+   "aggressiveness": 0.75,
+   "overall": {
+    "n": 52,
+    "median_log_ratio": -0.23348,
+    "median_abs_log": 0.68517,
+    "inside_vendor_range": 0.057692
+   },
+   "skipped": {
+    "infeasible": 2,
+    "no calibrated v2 family 'Graphite'": 8
+   },
+   "by_vendor": {
+    "Emuge-Franken": {
+     "n": 3,
+     "median_log_ratio": -0.23584,
+     "median_abs_log": 0.23584,
+     "inside_vendor_range": 1.0
+    },
+    "Harvey Performance": {
+     "n": 5,
+     "median_log_ratio": 0.68291,
+     "median_abs_log": 0.68291,
+     "inside_vendor_range": 0.0
+    },
+    "Kennametal": {
+     "n": 8,
+     "median_log_ratio": 0.68517,
+     "median_abs_log": 0.68517,
+     "inside_vendor_range": 0.0
+    },
+    "Kyocera": {
+     "n": 16,
+     "median_log_ratio": -0.65743,
+     "median_abs_log": 0.70568,
+     "inside_vendor_range": 0.0
+    },
+    "Sandvik": {
+     "n": 20,
+     "median_log_ratio": -1.6153,
+     "median_abs_log": 1.6153,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_band": {
+    "1/16-3/32": {
+     "n": 2,
+     "median_log_ratio": 0.016747,
+     "median_abs_log": 1.6321,
+     "inside_vendor_range": 0.0
+    },
+    "1/8-3/16": {
+     "n": 10,
+     "median_log_ratio": -1.2838,
+     "median_abs_log": 1.2838,
+     "inside_vendor_range": 0.0
+    },
+    "1/4-3/8": {
+     "n": 19,
+     "median_log_ratio": -0.23112,
+     "median_abs_log": 0.68291,
+     "inside_vendor_range": 0.10526
+    },
+    "1/2-3/4": {
+     "n": 19,
+     "median_log_ratio": -0.012741,
+     "median_abs_log": 0.68517,
+     "inside_vendor_range": 0.052632
+    },
+    "1 and up": {
+     "n": 2,
+     "median_log_ratio": -0.28851,
+     "median_abs_log": 0.28851,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_family": {
+    "Aluminum - Wrought (6061)": {
+     "n": 5,
+     "median_log_ratio": 0.68291,
+     "median_abs_log": 0.68291,
+     "inside_vendor_range": 0.0
+    },
+    "High Temp Nickel Alloy": {
+     "n": 3,
+     "median_log_ratio": -0.23584,
+     "median_abs_log": 0.23584,
+     "inside_vendor_range": 1.0
+    },
+    "Stainless - 300 Series (316)": {
+     "n": 4,
+     "median_log_ratio": 0.97339,
+     "median_abs_log": 0.97339,
+     "inside_vendor_range": 0.0
+    },
+    "Stainless - PH Series (17-4)": {
+     "n": 11,
+     "median_log_ratio": -0.012741,
+     "median_abs_log": 0.012741,
+     "inside_vendor_range": 0.0
+    },
+    "Steel - Medium Carbon Alloy (4130)": {
+     "n": 28,
+     "median_log_ratio": -0.73783,
+     "median_abs_log": 0.90606,
+     "inside_vendor_range": 0.0
+    },
+    "Steel - Tool (H13)": {
+     "n": 1,
+     "median_log_ratio": 1.6488,
+     "median_abs_log": 1.6488,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "binding": {
+    "C14v": 26,
+    "C14m": 13,
+    "R14a": 45,
+    "R14p": 37,
+    "R6": 21,
+    "C2": 35,
+    "C7": 4,
+    "R2p": 15,
+    "R2": 2,
+    "C14f": 20,
+    "C5": 4,
+    "C3": 2,
+    "R1": 3
+   }
+  },
+  "physics_only_0.75": {
+   "label": "physics only (R14 off), 75%",
+   "aggressiveness": 0.75,
+   "overall": {
+    "n": 248,
+    "median_log_ratio": 1.5294,
+    "median_abs_log": 1.5294,
+    "inside_vendor_range": 0.0
+   },
+   "skipped": {
+    "infeasible": 7
+   },
+   "by_vendor": {
+    "Emuge-Franken": {
+     "n": 39,
+     "median_log_ratio": 1.7689,
+     "median_abs_log": 1.7689,
+     "inside_vendor_range": 0.0
+    },
+    "Harvey Performance": {
+     "n": 41,
+     "median_log_ratio": 2.0469,
+     "median_abs_log": 2.0469,
+     "inside_vendor_range": 0.0
+    },
+    "Kennametal": {
+     "n": 20,
+     "median_log_ratio": 1.106,
+     "median_abs_log": 1.106,
+     "inside_vendor_range": 0.0
+    },
+    "Kyocera": {
+     "n": 63,
+     "median_log_ratio": 1.4692,
+     "median_abs_log": 1.4692,
+     "inside_vendor_range": 0.0
+    },
+    "Sandvik": {
+     "n": 82,
+     "median_log_ratio": 0.90613,
+     "median_abs_log": 0.90613,
+     "inside_vendor_range": 0.0
+    },
+    "YG-1": {
+     "n": 3,
+     "median_log_ratio": 0.20713,
+     "median_abs_log": 0.20713,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_band": {
+    "1/16-3/32": {
+     "n": 18,
+     "median_log_ratio": 2.0756,
+     "median_abs_log": 2.0756,
+     "inside_vendor_range": 0.0
+    },
+    "1/8-3/16": {
+     "n": 45,
+     "median_log_ratio": 1.6982,
+     "median_abs_log": 1.6982,
+     "inside_vendor_range": 0.0
+    },
+    "1/4-3/8": {
+     "n": 90,
+     "median_log_ratio": 1.5985,
+     "median_abs_log": 1.5985,
+     "inside_vendor_range": 0.0
+    },
+    "1/2-3/4": {
+     "n": 90,
+     "median_log_ratio": 1.2266,
+     "median_abs_log": 1.2266,
+     "inside_vendor_range": 0.0
+    },
+    "1 and up": {
+     "n": 5,
+     "median_log_ratio": -0.11051,
+     "median_abs_log": 0.30376,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_family": {
+    "Aluminum - Wrought (6061)": {
+     "n": 16,
+     "median_log_ratio": 0.38264,
+     "median_abs_log": 0.38264,
+     "inside_vendor_range": 0.0
+    },
+    "High Temp Nickel Alloy": {
+     "n": 10,
+     "median_log_ratio": 1.5206,
+     "median_abs_log": 1.5206,
+     "inside_vendor_range": 0.0
+    },
+    "Stainless - 300 Series (316)": {
+     "n": 20,
+     "median_log_ratio": 1.4147,
+     "median_abs_log": 1.4147,
+     "inside_vendor_range": 0.0
+    },
+    "Stainless - PH Series (17-4)": {
+     "n": 91,
+     "median_log_ratio": 1.6051,
+     "median_abs_log": 1.6051,
+     "inside_vendor_range": 0.0
+    },
+    "Steel - Medium Carbon Alloy (4130)": {
+     "n": 48,
+     "median_log_ratio": 1.5122,
+     "median_abs_log": 1.5122,
+     "inside_vendor_range": 0.0
+    },
+    "Steel - Tool (H13)": {
+     "n": 38,
+     "median_log_ratio": 1.7453,
+     "median_abs_log": 1.7453,
+     "inside_vendor_range": 0.0
+    },
+    "Titanium Alloy": {
+     "n": 25,
+     "median_log_ratio": 1.5158,
+     "median_abs_log": 1.5158,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "binding": {
+    "C14v": 131,
+    "C14f": 141,
+    "C14m": 90,
+    "R6": 239,
+    "R2p": 248,
+    "C2": 109,
+    "C7": 25,
+    "R2": 121,
+    "C5": 18,
+    "C3": 7
+   }
+  }
+ }
 }
