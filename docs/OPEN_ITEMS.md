@@ -62,6 +62,24 @@ Step 5 (integration) built 2026-10-17: pick "v2 (physics, beta)" in Machine & Cu
   - Both are audited and included in snapshots. Not yet checked in Fusion.
 - **Next:** step 6, the v1-vs-v2 comparison report on the user's real tools, then retiring v1.
 
+## Where we stopped (2026-10-18)
+
+- **toolwiz/hardening:** steps 1–5 of v2 plus add-in ramp-angle writing (dcae990).
+- **Ramp model** (cloud, branch `toolwiz/v2-ramp`, 3f0214b): NOT merged.
+  - It test-merges cleanly apart from one trivial app.py conflict (keep both sides' ramp fields); 652 tests OK.
+  - It is waiting on the user's D1–D9 decisions. The local session's recommendations:
+    - D2 / D1: the vendor cap wins over the rubbing floor for ramps; use a sourced edge radius instead of the 2 µm placeholder.
+    - D4: keep the ramp at the operation rpm and return the matching ramp feed.
+    - Bring the ramp search under 0.5 s.
+  - The paste text for the ramp session is in the 2026-10-18 conversation. Re-derive it from docs/research/v2_ramp_findings.md §decisions if needed.
+- **Until it's merged:** under v2 the ramp angle is still v1's rule (T12 0.75°, T1 ~2°), and the add-in writes that.
+- **User testing the add-in:**
+  - Restart Tool Wizard and reload the add-in.
+  - Select v2 in Machine & Cut Parameters.
+  - Set aggressiveness to ~50.
+  - Auto-Set T1/T12 adaptive and check DOC/WOC, fine stepdown, ramp angle, program size and the message.
+  - Consider a 1 mm feed height for micro adaptive ops.
+
 ## User actions
 
 - **Correct T12 in Fusion** (1/16" 4FL rougher). Its Shaft diameter is 0.0625; most likely it should be 0.125, and the neck should match the real tool. With a 1/8" shank the adaptive stepdown goes from 0.0019" to about 0.0125".
