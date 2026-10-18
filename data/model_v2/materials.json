@@ -22,6 +22,29 @@
    "source": "Edge coefficients 12\u201343 N/mm (Ti6Al4V Kte 24 / Kfe 43, Altintas MAL review Table 1; 16MnCr5 28.8 N/mm, Popovi\u0107 et al. 2017 FME Trans. 45:4 Table 1; 1020 steel 12.25 N/mm, Salehi et al. 2018 Procedia CIRP). Sandvik's kc1 is fitted to total force, so adding them double-counts; the ToolGuide probes all sit at one h_m (4.9 \u00b5m), so they cannot separate an edge term"
   }
  },
+ "consensus_offsets": {
+  "speed": {
+   "value": 1.025,
+   "source": "folded into each family's vc_ref_sfm (vc_ref_sfm_median is the level before it): smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
+  },
+  "c2": {
+   "value": 1.125,
+   "source": "Material.c2_scale on the chip_limits.json band median: smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
+  },
+  "why": "at 75 % C14 caps at 1.00 \u00d7 the vendor median, so the output is min(physics, median); the physics side sits a little above the median so that the 75 % output lands on it (user 2026-10-17)"
+ },
+ "speed_diameter": {
+  "form": "v \u221d (min(D, D_knee)/D_knee)^m (EMPIRICAL)",
+  "m": {
+   "value": 0.0,
+   "source": "EMPIRICAL; least absolute deviations over training rows against their bucket vendor medians; D_knee by grid (smallest worst per-band bias)"
+  },
+  "knee_in": {
+   "value": 1.0,
+   "source": "least absolute deviations over training rows against their bucket vendor medians; D_knee by grid (smallest worst per-band bias)"
+  },
+  "why_empirical": "within a chart vendors print one SFM for all diameters; the trend is between tool series. No cited physical law was found (lookup: no vc \u221d D^m in the literature; micro tools are 'starved for spindle rpm', MSC/Iscar, second-hand)"
+ },
  "speed_engagement": {
   "basis": "ae",
   "form": "v \u221d max(ae/D, ae_min)^(\u2212k)",
@@ -38,7 +61,7 @@
   "AlTiN/TiAlN": {
    "value": 1.0,
    "fitted": 1.0,
-   "source": "reference class",
+   "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (reference class)",
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
@@ -49,9 +72,9 @@
    ]
   },
   "AlCrN": {
-   "value": 1.2051,
+   "value": 1.0,
    "fitted": 1.2051,
-   "source": "applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts)",
+   "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts))",
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
@@ -59,9 +82,9 @@
    ]
   },
   "Si-doped": {
-   "value": 1.2,
+   "value": 1.0,
    "fitted": 1.2,
-   "source": "applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts)",
+   "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts))",
    "vendor_groups": [
     "Garr Tool",
     "Sandvik"
@@ -70,7 +93,7 @@
   "uncoated": {
    "value": 1.0,
    "fitted": 1.2926,
-   "source": "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry",
+   "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry)",
    "vendor_groups": [
     "Harvey Performance"
    ]
@@ -78,7 +101,7 @@
   "DLC": {
    "value": 1.0,
    "fitted": 3.2946,
-   "source": "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry",
+   "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry)",
    "vendor_groups": [
     "OSG",
     "YG-1"
@@ -87,7 +110,7 @@
   "unspecified": {
    "value": 1.0,
    "fitted": 1.0436,
-   "source": "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry",
+   "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry)",
    "vendor_groups": [
     "Harvey Performance",
     "Kennametal",
@@ -114,10 +137,14 @@
     "source": "exponent from the family's own Sandvik condition rows (user decision 2026-10-15 (ToolGuide probe)); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 185.02,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 182.83,
-     "at": "slot (ae = D), 325 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 387 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 189.65,
+     "at": "slot (ae = D), 325 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 462 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 325.0,
@@ -155,10 +182,14 @@
     "source": "exponent from the family's own Sandvik condition rows (P5.0 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 416.6,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 306.45,
-     "at": "slot (ae = D), 200 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 21 non-finishing training rows from Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 427.01,
+     "at": "slot (ae = D), 200 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 21 training rows against their bucket vendor medians (each vendor group counted once; groups Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 200.0,
@@ -189,10 +220,14 @@
     "source": "exponent from the family's own Sandvik condition rows (M1.0 AQ\u2192PH); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 223.27,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 206.16,
-     "at": "slot (ae = D), 262 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 215 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, OSG, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 228.85,
+     "at": "slot (ae = D), 262 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 222 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, OSG, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 262.5,
@@ -230,10 +265,14 @@
     "source": "exponent from the family's own Sandvik condition rows (P1.1 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 179.49,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 195.87,
-     "at": "slot (ae = D), 271 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 17 non-finishing training rows from Harvey Performance, OSG (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 183.98,
+     "at": "slot (ae = D), 271 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 21 training rows against their bucket vendor medians (each vendor group counted once; groups Harvey Performance, OSG); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 271.0,
@@ -271,10 +310,14 @@
     "source": "exponent from the family's own Sandvik condition rows (P1.2 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 450.29,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 387.64,
-     "at": "slot (ae = D), 237 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 62 non-finishing training rows from Emuge-Franken, Harvey Performance, Kennametal, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 461.55,
+     "at": "slot (ae = D), 237 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 72 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Harvey Performance, Kennametal, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 237.25,
@@ -312,10 +355,14 @@
     "source": "exponent from the family's own Sandvik condition rows (P2.1 AN\u2192P2.5 HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 340.0,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 351.94,
-     "at": "slot (ae = D), 294 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 94 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 348.5,
+     "at": "slot (ae = D), 294 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 97 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 293.5,
@@ -367,10 +414,14 @@
     "source": "exponent from the family's own Sandvik condition rows (P3.0 AN\u2192HT); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 195.75,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 189.83,
-     "at": "slot (ae = D), 432 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 288 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 200.64,
+     "at": "slot (ae = D), 432 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 304 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 432.0,
@@ -401,10 +452,14 @@
     "source": "exponent from the family's own Sandvik condition rows (no hardness scaling); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 1562.5,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 918.05,
-     "at": "slot (ae = D), 100 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 65 non-finishing training rows from Emuge-Franken, Harvey Performance, OSG, Sandvik, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 1601.5,
+     "at": "slot (ae = D), 100 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 71 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Harvey Performance, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 100.0,
@@ -442,10 +497,14 @@
     "source": "exponent from the family's own Sandvik condition rows (S2.0 AN\u2192AG); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 74.942,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 78.538,
-     "at": "slot (ae = D), 375 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 267 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 76.815,
+     "at": "slot (ae = D), 375 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 314 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 375.0,
@@ -476,10 +535,14 @@
     "source": "exponent from the family's own Sandvik condition rows (Sandvik prints the same kc1 1400 for S4.3 AN (330 HB) and AG (375 HB)); docs/research/material_mapping_v2.md"
    },
    "speed": {
+    "vc_ref_sfm_median": {
+     "value": 177.6,
+     "source": "the level fitted to the bucket vendor medians, before the consensus offset"
+    },
     "vc_ref_sfm": {
-     "value": 203.03,
-     "at": "slot (ae = D), 325 HB, AlTiN/TiAlN or unspecified coating, median vendor group",
-     "source": "fit to 282 non-finishing training rows from Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1 (vendor fixed effects, equal vendor weights, anchored at the median vendor; calibration_report.json speed)"
+     "value": 182.04,
+     "at": "slot (ae = D), 325 HB, D \u2265 1\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
+     "source": "least absolute deviations over 328 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
     "hb_ref": {
      "value": 325.0,

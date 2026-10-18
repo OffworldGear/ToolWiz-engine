@@ -8,6 +8,12 @@
     "y": 50,
     "z": 56
   },
+  "holder_stiffness": {
+    "k_n_um": 31.4,
+    "ktheta_nm_urad": 0.126,
+    "status": "PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool)",
+    "used_by": "physics_v2 C3 (spindle/holder compliance in series with the tool); replace with the measured values"
+  },
   "spindle_options": {
     "standard_10k": {
       "label": "10k standard",

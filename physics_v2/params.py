@@ -19,6 +19,8 @@ from physics_v2 import optimize as o
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MATERIALS_PATH = os.path.join(ROOT, "data", "model_v2", "materials.json")
+TOOLS_PATH = os.path.join(ROOT, "data", "model_v2", "tools.json")
+CONSENSUS_PATH = o.CONSENSUS_DEFAULT_PATH
 _CACHE = {}
 
 
@@ -64,6 +66,7 @@ def material(family, hb=None, coating=None, path=None, **overrides):
                        (("code", g["code"]), ("hardness", f"{g['hb_ref']:g} HB"), ("source", g["source"])))
     force = p["force"]
     kw = dict(name=f"{family}, {hb or g['hb_ref']:g} HB (calibrated {p['version']}, {g['code']})", kienzle=k,
+              family=family,
               hb_ref=float(g["hb_ref"]), hb=float(hb or g["hb_ref"]),
               kc_hardness_exp=float(fam["kc_hardness_exp"]["value"]),
               tool_factor=float(force["tool_factor"]["value"]), k_r=float(force["k_r"]["value"]),
@@ -77,5 +80,32 @@ def material(family, hb=None, coating=None, path=None, **overrides):
                   vc_hardness_exp=float(sp["vc_hardness_exp"]["value"]), taylor_n=float(sp["taylor_n"]["value"]),
                   vc_engagement_exp=float(eng["k"]["value"]), vc_engagement_ae_min=float(eng["ae_min"]["value"]),
                   vc_engagement_basis=eng["basis"])
+        dia = p.get("speed_diameter")
+        if dia:
+            kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))
+    off = p.get("consensus_offsets")
+    if off:
+        kw["c2_scale"] = float(off["c2"]["value"])
     kw.update(overrides)
     return o.Material(**kw)
+
+
+def margins(aggressiveness=0.5):
+    """The consensus aggressiveness scheme (user decision 2026-10-17): 75 % ≈ the vendor median."""
+    return o.Margins(aggressiveness, scheme="consensus")
+
+
+def machine(tir_in=0.0002):
+    """The Speedio 16k with the machine profile's spindle/holder stiffness (holder_stiffness in
+    machines/speedio_s500x2.json, provisional BT30 until the user's push-load test) in series in C3."""
+    return o.speedio_16k(tir_in, holder=True)
+
+
+speedio_bt30 = machine
+
+
+def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_=None, **kw):
+    """optimize.optimize with the calibrated defaults (user decisions 2026-10-17): the consensus aggressiveness
+    scheme, C14 from data/model_v2/consensus.json and the machine profile's holder stiffness."""
+    kw.setdefault("consensus", CONSENSUS_PATH)
+    return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)
