@@ -1023,10 +1023,18 @@ def _selected_name(dropdown):
 LIMIT_LABELS = {
     "deflection": "tool deflection", "power": "spindle power", "flute_length": "flute length",
     "geometry_rule": "tool geometry", "operation_depth_rule": "operation depth rule",
+    # v2 constraints (physics_v2/optimize.py)
+    "C1": "every flute cuts (runout)", "C2": "chip thickness (tooth strength)", "C3": "tool deflection",
+    "C4": "bending stress", "C5": "spindle power/torque", "C6": "flute length", "C7": "cutting speed (tool life)",
+    "C8": "slot depth", "C9": "chatter (reach)", "C10": "work-hardening chip", "C11": "feed cap",
+    "C12": "stepover vs runout", "C13": "program size", "C14v": "vendor-average speed",
+    "C14f": "vendor-average chip load", "C14m": "vendor-average removal rate",
 }
 
 
 def _limited_by_text(limited):
+    if isinstance(limited, str) and "," in limited:
+        limited = [x.strip() for x in limited.split(",")]
     if isinstance(limited, (list, tuple)):
         limited = ", ".join(LIMIT_LABELS.get(str(x), str(x)) for x in limited if x)
     elif limited:
@@ -1060,13 +1068,18 @@ def format_provenance_line(provenance, top_n=3):
 
 
 def format_autoset_message(t_label, geo, material_label, strategy, rpm, feed, ipt,
-                           doc=None, woc=None, limited_by=None, provenance=None, preset_note=""):
+                           doc=None, woc=None, limited_by=None, provenance=None, preset_note="",
+                           model=None, model_note=""):
     """Concise success text for the Speeds & Feeds auto-setter. `doc` / `woc` are None when
-    they were not written to the operation."""
+    they were not written to the operation. `model` is the cutting model that produced the numbers."""
     lines = [
         f"{t_label} · {geo.get('diameter', 0.0):.3f}\" {geo.get('flutes', '?')}FL · {material_label} — {strategy}",
         f"{rpm:,.0f} RPM · {feed:.1f} IPM · {ipt:.4f} IPT",
     ]
+    if model:
+        lines.insert(1, "Model: v2 (physics)" if model == "v2" else "Model: v1 (GWizard tables + rules)")
+        if model == "v1" and model_note:
+            lines.insert(2, model_note)
     cuts = []
     if doc is not None:
         cuts.append(f"DOC {doc:.4f}\"")
@@ -2325,7 +2338,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         tool_label(t_num), geo_payload, material_label, strategy, rpm, feed, ipt,
         doc=doc if doc_applied else None, woc=woc if woc_applied else None,
         limited_by=calc_result.get("limited_by"), provenance=calc_result.get("provenance"),
-        preset_note=preset_note,
+        preset_note=preset_note, model=calc_result.get("model"), model_note=calc_result.get("model_note", ""),
     )
     for w in tool_profile_warnings(calc_result):
         msg += "\n\nCheck: " + w

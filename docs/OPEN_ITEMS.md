@@ -52,7 +52,11 @@ Step 3 is ready to review and merge (`toolwiz/v2-step3`). Open with the user: th
 
 **Step 4 round 3 (2026-10-17): complete.** The user's R-A…R-F decisions are applied. C14 now needs ≥ 2 independent vendor groups and widens stepwise (diameter band, then engagement class, then hardness bin). MRR is gated against median speed × median chip. BT30 stiffness is the `holder_stiffness` field of `machines/speedio_s500x2.json` (provisional until the user's push-load test). `physics_v2/params.py` loads the calibrated defaults. The §5 gate passes in 5 of 6 bands; 1/16–3/32" misses by 0.011 on MRR at 50 % because of the runout chip floor. See `docs/research/v2_calibration_findings.md` Round 3.
 
-Next is step 5, pipeline integration behind TOOLWIZ_MODEL=v2.
+Step 5 (integration) built 2026-10-17: pick "v2 (physics, beta)" in Machine & Cut Parameters. The Fusion add-in follows the server setting and its Auto-Set message names the model.
+- **Still to check in Fusion:** Auto-Set on T1/T12 adaptive with v2 selected; the written DOC/WOC/fine stepdown and the message.
+- **Aggressiveness:** the add-in's saved aggressiveness is 95. Under v2, 75% ≈ the vendor average, so 95 runs about 8% above it. Lower it (50 is the Speedio starting point).
+- **Still on v1:** Twin batch generation and stock compensation.
+- **Next:** step 6, the v1-vs-v2 comparison report on the user's real tools, then retiring v1.
 
 ## User actions
 

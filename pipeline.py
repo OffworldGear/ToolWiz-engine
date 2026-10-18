@@ -84,6 +84,10 @@ class CutRequest:
     # source of diameter / flutes / flute length / shank / stickout / corner radius / neck.
     fusion_tool: Optional[Dict[str, Any]] = None
     profile: Optional[ToolProfile] = None   # built in _normalize
+    # Cutting model (v2_bridge): "v1" (default) or "v2". The endpoints resolve it from the request,
+    # the saved setting and TOOLWIZ_MODEL; None here means v1.
+    model: Optional[str] = None
+    machine_profile: Optional[Dict[str, Any]] = None   # active machine profile (v2 spindle/holder data)
 
 
 @dataclass
@@ -134,6 +138,10 @@ class CutResult:
     shank_diameter: float = 0.0
     neck_diameter: float = 0.0
     profile: Optional[Dict[str, Any]] = None   # ToolProfile.to_dict()
+    model: str = "v1"               # the model that produced rpm/feed/doc/woc
+    model_note: str = ""            # why v1 was used when v2 was selected, or the v2 summary
+    v1: Optional[Dict[str, Any]] = None   # v1's core numbers when v2 produced the result
+    v2: Optional[Dict[str, Any]] = None   # v2 details: binding limits, checks, warnings, provenance
 
 
 def _ratio(after: float, before: float) -> float:
@@ -619,7 +627,7 @@ def run_cut(physics, req: CutRequest) -> CutResult:
 
     ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
 
-    return CutResult(
+    result = CutResult(
         rpm=rpm, diameter=diameter, sfm=actual_sfm, contact_sfm=contact_sfm, ideal_rpm=ideal_rpm,
         is_spindle_limited=is_spindle_limited, effective_diameter=effective_diameter,
         base_ipt=base_ipt, adj_ipt=adjusted_ipt, feed_ipm=feedrate,
@@ -636,6 +644,10 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         shank_diameter=r.shank_diameter, neck_diameter=r.neck_diameter,
         profile=r.profile.to_dict() if r.profile is not None else None,
     )
+    if req.model == "v2":
+        import v2_bridge
+        return v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
+    return result
 
 
 def provenance_product(result: CutResult, quantity: str, exclude=("spindle_cap",)) -> float:

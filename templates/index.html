@@ -8,6 +8,28 @@
     <link rel="stylesheet" href="/static/style.css?v=3.5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Cutting-model selector, model badge and v2 detail panel */
+        .model-select-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+        .model-select-row label { font-size: var(--fs-sm); color: var(--text-secondary); margin: 0; }
+        .model-select-row select { flex: 1 1 12rem; min-width: 0; }
+        .model-source { font-size: var(--fs-xs); color: var(--text-secondary); }
+        .model-row { grid-column: span 2; display: flex; flex-direction: column; gap: 0.3rem; text-align: left; }
+        .model-badge { align-self: flex-start; font-size: var(--fs-xs); font-weight: 700; padding: 2px 10px; border-radius: 10px; background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+        .model-badge.model-v2 { background: rgba(59, 130, 246, 0.18); color: #7dd3fc; }
+        .model-badge.busy::after { content: ' \00B7  calculating\2026'; font-weight: 500; animation: dotPulse 1s ease-in-out infinite; }
+        .model-note { font-size: var(--fs-sm); color: var(--text-secondary); line-height: 1.4; }
+        .v2-section { margin: 0.7rem 0 0.2rem; font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-secondary); }
+        .v2-check { padding: 0.35rem 0.6rem; margin-bottom: 0.35rem; background: rgba(0, 0, 0, 0.2); border-left: 3px solid #4ade80; border-radius: 4px; }
+        .v2-check.v2-bad { border-left-color: #f87171; }
+        .v2-check-head { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; font-size: var(--fs-sm); }
+        .v2-check-head .v2-id { font-family: monospace; color: var(--accent); font-weight: 700; }
+        .v2-check-val { font-family: monospace; color: #e2e8f0; }
+        .v2-check-detail { margin-top: 2px; font-size: var(--fs-xs); color: var(--text-secondary); line-height: 1.4; overflow-wrap: anywhere; }
+        .v2-list { margin: 0.2rem 0 0; padding-left: 1.2rem; font-size: var(--fs-xs); color: var(--text-secondary); line-height: 1.45; }
+        .v2-list.v2-warn { color: #fbbf24; font-size: var(--fs-sm); }
+        .v2-list li { margin-bottom: 0.25rem; overflow-wrap: anywhere; }
+        .v2-num { text-align: right; font-family: monospace; white-space: nowrap; }
+        .v2-prov > summary { cursor: pointer; font-size: var(--fs-sm); color: var(--text-secondary); }
         /* Embedded guaranteed auto-set indicator styles & animations */
         @keyframes autoSetGlow {
             0%, 100% {
@@ -243,6 +265,14 @@
                             <button type="button" id="editMachinesBtn" class="btn-ratio" onclick="openMachineEditor()">Edit machines&hellip;</button>
                         </div>
                         <div id="spindleSummary" aria-live="polite"></div>
+                        <div class="model-select-row">
+                            <label for="cutModelSelect">Cutting model</label>
+                            <select id="cutModelSelect" aria-label="Cutting model" onchange="onCutModelChange()">
+                                <option value="v1">v1 (GWizard tables + rules)</option>
+                                <option value="v2">v2 (physics, beta)</option>
+                            </select>
+                            <span id="cutModelSource" class="model-source" aria-live="polite"></span>
+                        </div>
                         <div class="grid-layout" style="gap: 1rem; margin-bottom: 0.75rem">
                             <div class="input-group" style="margin:0;">
                                 <label for="maxRpm">Max RPM</label>
@@ -451,6 +481,12 @@
 
                 <!-- RESULTS PANEL (COLUMN 2: Speeds, Feeds & Physical Tool Dynamics) -->
                 <section class="results-panel">
+                    <!-- CUTTING MODEL (which model produced these numbers) -->
+                    <div id="modelRow" class="model-row">
+                        <span id="modelBadge" class="model-badge" role="status">Model: v1</span>
+                        <div id="modelNote" class="model-note" style="display:none;"></div>
+                    </div>
+
                     <div class="glass-panel result-card primary-card">
                         <h3>Spindle Speed</h3>
                         <div class="result-val"><span id="rpm">0</span> <span class="unit">RPM</span></div>
@@ -471,6 +507,30 @@
                         <div class="sub-val"><span id="chipload_title">Chip Load</span>: <span id="adj_ipt" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipt-lbl">in/tooth</span> <span style="opacity:0.75; font-size:var(--fs-xs);">(Base: <span id="base_ipt">0.0000</span>)</span></div>
                         <div class="sub-val" id="ipr_row" style="margin-top:2px;">Feed / Rev: <span id="feed_ipr" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipr-lbl">in/rev</span></div>
                     </div>
+
+                    <!-- v2 PHYSICS DETAIL (only when the v2 model produced the result) -->
+                    <details id="v2Panel" class="glass-panel why-panel" style="grid-column: span 2; display:none;">
+                        <summary><span class="why-title">v2 physics detail</span> <span id="v2Status" class="why-status"></span></summary>
+                        <div class="why-body">
+                            <div class="v2-section">Binding constraints</div>
+                            <div id="v2Binding"></div>
+                            <div class="v2-section">Vendor-consensus checks</div>
+                            <div id="v2Consensus"></div>
+                            <div class="v2-section">Warnings</div>
+                            <div id="v2Warnings"></div>
+                            <div class="v2-section">v1 vs v2</div>
+                            <div class="why-table-wrap">
+                                <table id="v2Compare" class="why-table">
+                                    <thead><tr><th>Quantity</th><th class="v2-num">v1</th><th class="v2-num">v2</th><th class="v2-num">Change</th></tr></thead>
+                                    <tbody id="v2CompareRows"></tbody>
+                                </table>
+                            </div>
+                            <details class="v2-prov" style="margin-top:0.6rem;">
+                                <summary>Provenance</summary>
+                                <ul id="v2Provenance" class="v2-list"></ul>
+                            </details>
+                        </div>
+                    </details>
 
                     <!-- WHY THIS NUMBER? (provenance of the SFM / IPT result) -->
                     <details id="whyPanel" class="glass-panel why-panel" style="grid-column: span 2;">
@@ -2859,6 +2919,7 @@
             updateGeometryDisplay('tool');
             let initDia = parseFloat(document.getElementById('diameter')?.value) || 0.5;
             lastHandledDiaInches = isMetric ? (initDia / 25.4) : initDia;
+            await loadCutModel();
             calculate();
             renderAutoSetBadges();
             loadThreadStandards();
@@ -3454,6 +3515,25 @@
             const statusEl = document.getElementById('whyStatus');
             const headerEl = document.getElementById('whyHeader');
             if (!res) { rowsEl.innerHTML = ''; return; }
+            const tableWrap = document.querySelector('#whyPanel .why-table-wrap');
+            const showAllLbl = document.querySelector('#whyPanel .why-showall');
+            const isV2 = res.model === 'v2';
+            if (tableWrap) tableWrap.style.display = isV2 ? 'none' : '';
+            if (showAllLbl) showAllLbl.style.display = isV2 ? 'none' : '';
+            if (isV2) {
+                const ok = res.feasible !== false;
+                const ids = res.limited_by ? String(res.limited_by) : '';
+                rowsEl.innerHTML = '<tr><td colspan="4" class="why-dim">v2 numbers: see the v2 panel</td></tr>';
+                if (statusEl) {
+                    statusEl.textContent = !ok ? 'No safe cut' : (ids ? 'v2: limited by ' + ids : 'v2: unconstrained');
+                    statusEl.className = 'why-status ' + (!ok ? 'why-bad' : (ids ? 'why-warn' : 'why-ok'));
+                }
+                if (headerEl) {
+                    headerEl.innerHTML = (ok ? '<span class="why-ok">&#10003; Feasible</span>' : '<span class="why-bad">&#10007; Infeasible &mdash; no safe cut found</span>')
+                        + ' &middot; v2 numbers: see the v2 panel';
+                }
+                return;
+            }
             const showAll = !!document.getElementById('whyShowAll')?.checked;
             const prov = Array.isArray(res.provenance) ? res.provenance : [];
             const order = [], byStep = {};
@@ -3487,6 +3567,139 @@
                     : '<span class="why-bad">&#10007; Infeasible &mdash; no safe cut found</span>')
                     + (limited ? ` &middot; Limited by: <strong>${esc(limited)}</strong>` : ' &middot; Not limited by any constraint');
             }
+        }
+
+        /* ---- Cutting model selector, model badge and the v2 detail panel -------------------------- */
+        let cutModelLoaded = false;   // true once the saved model is known; calculate() then sends it explicitly
+        const MODEL_SOURCE_LABELS = { 'saved setting': 'saved', 'TOOLWIZ_MODEL': 'from TOOLWIZ_MODEL', 'default': 'default', 'request': 'this session' };
+        function showCutModel(model, source) {
+            const sel = document.getElementById('cutModelSelect');
+            if (sel && (model === 'v1' || model === 'v2')) sel.value = model;
+            const src = document.getElementById('cutModelSource');
+            if (src) src.textContent = source ? (MODEL_SOURCE_LABELS[source] || String(source)) : '';
+        }
+        async function loadCutModel() {
+            try {
+                const r = await fetch('/api/model_settings');
+                const d = await r.json();
+                if (d && d.success) { showCutModel(d.model, d.source); cutModelLoaded = true; }
+            } catch (e) { console.warn('model settings', e); }
+        }
+        async function onCutModelChange() {
+            const sel = document.getElementById('cutModelSelect');
+            const src = document.getElementById('cutModelSource');
+            if (!sel) return;
+            const wanted = sel.value;
+            try {
+                const r = await fetch('/api/model_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: wanted })
+                });
+                const d = await r.json();
+                if (!d || !d.success) throw new Error((d && d.error) || 'not saved');
+                showCutModel(d.model, d.source);
+            } catch (e) {
+                // The page still uses the chosen model for this session; it just isn't remembered.
+                if (src) src.textContent = 'not saved';
+                console.warn('model settings', e);
+            }
+            cutModelLoaded = true;
+            calculate();
+        }
+
+        let calcBusyTimer = null;
+        let calcSeq = 0;
+        function setCalcBusy(on) {
+            clearTimeout(calcBusyTimer);
+            const b = document.getElementById('modelBadge');
+            if (!b) return;
+            if (on) calcBusyTimer = setTimeout(() => b.classList.add('busy'), 250);   // v1 answers in ms; v2 roughing takes ~2 s
+            else b.classList.remove('busy');
+        }
+
+        function renderModelBadge(res) {
+            const badge = document.getElementById('modelBadge');
+            const note = document.getElementById('modelNote');
+            const isV2 = !!res && res.model === 'v2';
+            if (badge) {
+                badge.textContent = isV2 ? 'Model: v2 (physics)' : 'Model: v1';
+                badge.className = 'model-badge' + (isV2 ? ' model-v2' : '') + (badge.classList.contains('busy') ? ' busy' : '');
+            }
+            if (note) {
+                const text = res && res.model_note ? String(res.model_note) : '';
+                note.textContent = text;
+                note.style.display = text ? '' : 'none';
+            }
+        }
+
+        // v2 check values come in the check's own units; convert the common ones for metric display.
+        function fmtV2Num(v, units) {
+            if (v === null || v === undefined || !Number.isFinite(Number(v))) return '\u2014';
+            let x = Number(v), u = units || '';
+            if (u === 'fraction') return Number((x * 100).toPrecision(3)) + ' %';
+            if (isMetric) {
+                if (u === 'in') { x *= 25.4; u = 'mm'; }
+                else if (u === 'SFM') { x *= 0.3048; u = 'm/min'; }
+                else if (u === 'in\u00B3/min') { x *= 16.387; u = 'cm\u00B3/min'; }
+            }
+            return Number(x.toPrecision(3)) + (u ? ' ' + u : '');
+        }
+        function renderV2Check(c) {
+            if (!c) return '';
+            return `<div class="v2-check${c.ok === false ? ' v2-bad' : ''}">
+                <div class="v2-check-head"><span class="v2-id">${esc(c.id)}</span> <strong>${esc(c.name)}</strong>
+                    <span class="v2-check-val">${esc(fmtV2Num(c.value, c.units))} <span class="why-dim">vs limit</span> ${esc(fmtV2Num(c.limit, c.units))}</span></div>
+                ${c.detail ? `<div class="v2-check-detail">${esc(c.detail)}</div>` : ''}</div>`;
+        }
+        function renderV2List(items, cls) {
+            return items.length ? `<ul class="v2-list ${cls || ''}">${items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
+        }
+        function renderV2Compare(res) {
+            const v1 = res.v1 || {};
+            const rows = [
+                { label: 'Spindle speed (RPM)', a: v1.rpm, b: res.rpm, k: 1, d: 0 },
+                { label: isMetric ? 'Surface speed (m/min)' : 'Surface speed (SFM)', a: v1.sfm, b: res.sfm, k: isMetric ? 0.3048 : 1, d: 0 },
+                { label: isMetric ? 'Chip load (mm/tooth)' : 'Chip load (in/tooth)', a: v1.ipt, b: res.adj_ipt, k: isMetric ? 25.4 : 1, d: isMetric ? 4 : 5 },
+                { label: isMetric ? 'Feed (mm/min)' : 'Feed (IPM)', a: v1.feed_ipm, b: res.feedrate, k: isMetric ? 25.4 : 1, d: 1 },
+                { label: isMetric ? 'DOC (mm)' : 'DOC (in)', a: v1.doc, b: res.rec_doc, k: isMetric ? 25.4 : 1, d: isMetric ? 3 : 4 },
+                { label: isMetric ? 'WOC (mm)' : 'WOC (in)', a: v1.woc, b: res.rec_woc, k: isMetric ? 25.4 : 1, d: isMetric ? 3 : 4 },
+                { label: isMetric ? 'MRR (cm\u00B3/min)' : 'MRR (in\u00B3/min)', a: v1.mrr, b: res.mrr, k: isMetric ? 16.387 : 1, d: isMetric ? 2 : 3 }
+            ];
+            const cell = (x, r) => (x == null || !Number.isFinite(Number(x))) ? '\u2014' : (Number(x) * r.k).toFixed(r.d);
+            return rows.map(r => {
+                let ch = '\u2014';
+                if (r.a != null && r.b != null && Number(r.a) > 0) {
+                    const pct = (Number(r.b) - Number(r.a)) / Number(r.a) * 100;
+                    ch = (pct > 0 ? '+' : '') + pct.toFixed(0) + ' %';
+                }
+                return `<tr><td class="why-step" style="text-transform:none;">${esc(r.label)}</td><td class="v2-num">${esc(cell(r.a, r))}</td><td class="v2-num">${esc(cell(r.b, r))}</td><td class="v2-num">${esc(ch)}</td></tr>`;
+            }).join('');
+        }
+        function renderV2Panel(res) {
+            const panel = document.getElementById('v2Panel');
+            if (!panel) return;
+            const v2 = res && res.model === 'v2' ? res.v2 : null;
+            if (!v2) { panel.style.display = 'none'; return; }
+            panel.style.display = '';
+            const checks = v2.checks || {};
+            const binding = Array.isArray(v2.binding) ? v2.binding : [];
+            const feasible = v2.feasible !== false;
+            const status = document.getElementById('v2Status');
+            if (status) {
+                status.textContent = !feasible ? 'No safe cut' : (binding.length ? 'Binding: ' + binding.join(', ') : 'Unconstrained');
+                status.className = 'why-status ' + (!feasible ? 'why-bad' : (binding.length ? 'why-warn' : 'why-ok'));
+            }
+            const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+            const none = text => `<div class="why-dim" style="font-size:var(--fs-sm);">${text}</div>`;
+            const bound = binding.map(id => checks[id]).filter(Boolean);
+            set('v2Binding', bound.length ? bound.map(renderV2Check).join('') : none('No constraint is binding.'));
+            const cons = ['C14v', 'C14f', 'C14m'].map(id => checks[id]).filter(Boolean);
+            set('v2Consensus', cons.length ? cons.map(renderV2Check).join('') : none('No vendor data for this bucket.'));
+            const warnings = Array.isArray(v2.warnings) ? v2.warnings : [];
+            set('v2Warnings', warnings.length ? renderV2List(warnings, 'v2-warn') : none('No warnings.'));
+            set('v2CompareRows', renderV2Compare(res));
+            set('v2Provenance', (Array.isArray(v2.provenance) ? v2.provenance : []).map(t => `<li>${esc(t)}</li>`).join(''));
         }
 
         /* ---- Cut log: calibration status + "Log this cut" modal ---------------------------- */
@@ -3602,6 +3815,7 @@
             drawToolVisualization();
             if (abortController) abortController.abort();
             abortController = new AbortController();
+            const mySeq = ++calcSeq;   // late answers from a superseded calculation are dropped
 
             const toolType = document.getElementById('tool').value;
             const geo = document.getElementById('geometry').value;
@@ -3679,7 +3893,11 @@
                 isCarbide: isToolCarbide(),
                 fusion_tool: fusionTool
             };
+            // Send the chosen model once it is known; before that the server falls back to the saved setting.
+            const modelSel = document.getElementById('cutModelSelect');
+            if (cutModelLoaded && modelSel && modelSel.value) payload.model = modelSel.value;
 
+            setCalcBusy(true);
             try {
                 const response = await fetch('/api/calculate', {
                     method: 'POST',
@@ -3689,6 +3907,7 @@
                 });
                 
                 const res = await response.json();
+                if (mySeq !== calcSeq) return;
                 if (res.error) {
                     console.error("Calculation Error:", res.error);
                     return;
@@ -3928,6 +4147,8 @@
                     res._geomStamp = geomStamp;
                     lastCalcResult = res;
                     renderProvenancePanel(res);
+                    renderModelBadge(res);
+                    renderV2Panel(res);
                     refreshCalibrationStatus();
                     
                     // Render Tips & Machining Advisor
@@ -3986,6 +4207,8 @@
                 }
             } catch (err) {
                 if (err.name !== 'AbortError') console.error(err);
+            } finally {
+                if (mySeq === calcSeq) setCalcBusy(false);
             }
         }
 

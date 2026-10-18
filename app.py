@@ -445,6 +445,34 @@ def api_machine_select():
     return jsonify({**_machine_list(settings), "limits": machine_limits()})
 
 
+import v2_bridge
+
+
+def _request_model(data):
+    """Cutting model for this request: its own "model", else the saved setting, else TOOLWIZ_MODEL, else v1.
+    Flask's test client (Host "localhost" with no port) ignores the saved setting, so a model saved from
+    the web page can't change what the test suite checks."""
+    is_test_client = request.host == "localhost"
+    return v2_bridge.resolve_model(data.get("model"), use_saved=not is_test_client)[0]
+
+
+def _model_fields(res):
+    return {"model": res.model, "model_note": res.model_note, "v1": res.v1, "v2": res.v2}
+
+
+@app.route("/api/model_settings", methods=["GET", "POST"])
+def api_model_settings():
+    """GET the cutting model in effect and where it came from; POST {model: "v1"|"v2"} saves it for the
+    web page and the Fusion add-in."""
+    if request.method == "POST":
+        try:
+            v2_bridge.save_model(_json_body().get("model"))
+        except ValueError as ex:
+            return jsonify({"success": False, "error": str(ex)}), 400
+    model, source = v2_bridge.resolve_model(None)
+    return jsonify({"success": True, "model": model, "source": source, "models": list(v2_bridge.MODELS)})
+
+
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
     """Calculate physics engine parameters from incoming JSON data"""
@@ -487,6 +515,8 @@ def calculate():
             pitch=float(data.get("pitch", 0.05)),
             is_metric=is_metric,
             fusion_tool=fusion_tool,
+            model=_request_model(data),
+            machine_profile=active_machine(),
         )
         res = run_cut(physics, req)
 
@@ -531,6 +561,7 @@ def calculate():
             "tips": res.tips,
             "provenance": res.provenance,
             "profile": res.profile,
+            **_model_fields(res),
         }
         if res.tap_drill:
             resp["tap_drill"] = res.tap_drill
@@ -582,6 +613,8 @@ def calculate_for_fusion():
             pitch=float(pitch) if pitch is not None else None,
             is_metric=bool(data.get("isMetric", False)),
             fusion_tool=fusion_tool,
+            model=_request_model(data),
+            machine_profile=active_machine(),
         )
         res = run_cut(physics, req)
 
@@ -605,6 +638,7 @@ def calculate_for_fusion():
             "provenance": res.provenance,
             "profile": res.profile,
             "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
+            **_model_fields(res),
         })
 
     except Exception as e:
