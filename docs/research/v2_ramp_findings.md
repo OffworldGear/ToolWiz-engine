@@ -51,10 +51,62 @@ T1 meets R1 under the cap (0.47 and 0.56 µm), so there is no warning.
   - **Closed form in h_a = fz·sin α:** R1 and R2.
   - **Need forces:** C3, C4 and C5. They are checked once at the top of each (D_h, α) window and bisected only when they bind.
 - The grids (16 angles, 5 helix diameters) and the selection rule are the Round 1 ones; the old brute-force search is kept as `method="exhaustive"`.
-- The calibration (`search_check_fast_vs_exhaustive`) runs both searches on a spread of vendor rows and on T1/T12. **SEARCH_CHECK_PLACEHOLDER**
+- The calibration (`search_check_fast_vs_exhaustive`) runs both searches on a spread of vendor rows and on T1/T12. Over 24 rows the worst differences are 0.0005° in angle, 0 in helix, and 0.007 % in fz, ramp feed and plunge feed, with no binding or feasibility mismatches. The fast search takes a median 0.070 s per call (max 0.27 s); the exhaustive one takes 2.9 s.
 - In the bridge, the ramp adds **0.07–0.17 s** to an uncached v2 call for T1/T12; it was ~4 s.
 
-RESULTS_R2_PLACEHOLDER
+### R2.4 T1 and T12 in 17-4 H1025, as the app and add-in return them
+
+Setup: `run_cut` with model v2, AlTiN, 4 flutes, helix 30° (the request default), the Speedio profile with the provisional BT30.
+- `ramp_feed` and `plunge_feed` are at the cutting rpm (D4).
+- The C7 ramp speed is information only.
+- The v1 figures come from the v1 pipeline.
+
+| | T1 50 % | T1 75 % | T12 50 % | T12 75 % |
+|---|---|---|---|---|
+| **v2 ramp angle** | **2.73°** | **2.97°** | **2.73°** | **2.97°** |
+| Vendor cap R14a (s × median 3.0°) | 2.76° | 3.00° | 2.76° | 3.00° |
+| v1 ramp angle | 2.00° | 2.30° | 1.00° | 1.15° |
+| `ramp_diameter_in` (tool centre) | 0.1250" (1.0·D) | 0.1000" (0.8·D) | 0.0625" (1.0·D) | 0.0625" |
+| `ramp_min_diameter_in` | 0.0250" | 0.0250" | 0.0234" | 0.0234" |
+| Bore | 0.250" | 0.225" | 0.125" | 0.125" |
+| Pitch per turn | 0.0187" | 0.0163" | 0.0094" | 0.0102" |
+| Cutting rpm (adaptive) / feed | 6,640 / 15.64 IPM | 7,217 / 18.53 | 11,291 / 13.77 | 12,484 / 18.12 |
+| Ramp fz | 0.000391" | 0.000425" | 0.000232" | 0.000264" |
+| **`ramp_feed`** at the cutting rpm | **10.40 IPM** | **12.28** | **10.48** | **13.20** |
+| `ramp_rpm` (C7, info) / feed there | 3,936 / 6.16 | 4,278 / 7.28 | 8,625 / 8.00 | 9,375 / 9.92 |
+| **`plunge_feed`** | **1.79 IPM** | **2.30** | **1.91** | **2.61** |
+| End chip h_a / minimum λ·r_β (r_β 1.2 µm) | 0.47 / 0.36 µm | 0.56 / 0.36 µm | 0.28 / 0.36 µm | 0.35 / 0.36 µm |
+| R1 | met | met | **rubbing warning** | **rubbing warning** |
+| Binding | C14v, C14f, R14a, R14p | same | C2, R14a, R14p | same |
+| v1 ramp / plunge feed | 37.26 / 21.73 | 46.38 / 27.05 | 20.75 / 12.10 | 23.86 / 13.92 |
+| Round 1 v2 angle / ramp / plunge (r_β 2 µm, physics won) | 3.47° / 6.15 / 1.06 | 3.20° / 7.25 / 1.36 | 5.87° / 7.96 / 1.45 | 5.13° / 9.91 / 1.96 |
+
+**How to read it:**
+- The angle sits 1 % under the vendor cap (2.73° against 2.76°). That is the Round 1 selection rule: within 1 % of the fastest descent, take the gentlest angle.
+- The side cut is light: C3, C4, C5 and C8 have ≥ 4 % margin, as the margins in `ramp_calibration_report.json` `t1_t12` show (T1 50 % C3 is the tightest at 4 %, from its 1.0·D helix).
+- **T12 is the only rubbing case.** Its chip load is at the C2 limit, and the vendor cap keeps the end chip at 78 % (50 %) and 97 % (75 %) of the minimum.
+- At v1's 1.0° the end chip would be 0.10 µm.
+- The calibration report's `t1_t12` uses `Tool.build`'s 35° helix (as `tools/calibrate_v2.py` does). It differs from this table by 2–3 % in rpm and feeds: e.g. T12 50 % gives ramp 10.22 IPM at 11,018 rpm and plunge 1.86 IPM.
+
+### R2.5 Calibration rerun (`tools/calibrate_v2_ramp.py`, version 2026-10-18.2)
+
+- R2 and the consensus tables are unchanged; the data is the same.
+- Residuals of the angle against each row's vendor maximum (248 rows) are unchanged within 0.01 in median log ratio. The precedence rule only matters where R1 used to lift the angle.
+
+| Run | Median log ratio | Median abs log | Inside vendor range | R1 warning |
+|---|---|---|---|---|
+| All rows, 75 % | −0.010 | 0.42 | 15 % | 5 % |
+| All rows, 50 % | −0.093 | 0.42 | 15 % | 12 % |
+| Hold-out (52 rows, tables from training), 75 % | −0.23 | 0.69 | 6 % | 2 % |
+| Physics only (R14 off), 75 % | +1.53 | 1.53 | 0 % | 0 |
+
+- **By band at 75 %:** 1/16–3/32" is +0.25 (Round 1: +0.54; the R1 lift is gone), with **44 % R1 warnings**. 1/8" and up is −0.01 to −0.12.
+- **By family at 75 %:** 17-4 −0.010, 316 −0.010, 4130 −0.12, H13 −0.42, Ti −0.12.
+
+**Still open after Round 2:**
+1. **C1 in the cutting optimizer** still uses the 2 µm placeholder. Should D1's sourced r_β (AlTiN micro 1.2 µm) apply to C1 too? For cuts it lowers C1's floor. C1 rarely binds above 1/32", so the step-4 calibration would barely move, but it is a change to the calibrated cut model, so it was not made here.
+2. **About half of the 1/16" ramps carry the rubbing warning** (and T12 does). The ways out are a measured r_β for the user's tools, or a higher ramp chip than C2's slot limit allows.
+
 
 ## 1. Summary
 
@@ -329,4 +381,4 @@ python tools\calibrate_v2_ramp.py
 python -m unittest tests.test_v2_ramp tests.test_v2_benchmark_dataset
 ```
 
-`--quick` writes `data\model_v2\ramp.json` and the T1/T12 part of `data\model_v2\ramp_calibration_report.json` in about 30 s. The full run adds the residuals and takes several minutes.
+`--quick` writes `data\model_v2\ramp.json`, T1/T12 and the fast-vs-exhaustive search check in about 1.5 min (the exhaustive reference is most of it). The full run adds the residuals (fast search) and takes a few minutes.
