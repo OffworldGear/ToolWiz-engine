@@ -250,6 +250,8 @@ def residuals(items, table, aggressiveness, consensus_c14, label):
         key = (e["vendor_group"], t.get("part_number"), e["family"], e["hb"])
         if key not in seen:
             seen[key] = run_model(e, table, aggressiveness, consensus_c14)
+            if len(seen) % 25 == 0:
+                print(f"    [{label}] {len(seen)} tool/material combinations", flush=True)
         m = seen[key]
         if "skip" in m:
             res.append({"id": e["id"], "skip": m["skip"]})
