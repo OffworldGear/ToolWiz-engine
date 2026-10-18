@@ -1,5 +1,5 @@
 {
- "version": "2026-10-18.1",
+ "version": "2026-10-18.2",
  "status": "PROPOSED (ramp calibration)",
  "generated_by": "tools/calibrate_v2_ramp.py",
  "date": "2026-10-18",

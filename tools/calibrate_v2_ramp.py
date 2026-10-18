@@ -41,13 +41,14 @@ from physics_v2 import params  # noqa: E402
 from physics_v2 import ramp  # noqa: E402
 from tools import calibrate_v2 as cv  # noqa: E402
 
-VERSION = "2026-10-18.1"
+VERSION = "2026-10-18.2"
 OUT_DIR = os.path.join(ROOT, "data", "model_v2")
 BANDS = cv.BANDS
 HB_BIN = 50
 PLUNGE_CAPABLE_DEG = 45.0
 HOLDOUT_FRACTION = cv.HOLDOUT_FRACTION
 FAMILY_174 = "Stainless - PH Series (17-4)"
+T1_T12_COATING = "AlTiN"   # the user's T1/T12 (as in tests/test_v2_bridge.py); sets r_β (ramp.edge_radius)
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +219,7 @@ def build_table(items, end_key="h_a"):
 # Model runs
 # ---------------------------------------------------------------------------
 
-def run_model(e, table, aggressiveness, consensus_c14, fast=True):
+def run_model(e, table, aggressiveness, consensus_c14, method="fast"):
     row = e["row"]
     try:
         tool, _ = cv.pl.row_tool(row)
@@ -228,15 +229,16 @@ def run_model(e, table, aggressiveness, consensus_c14, fast=True):
     if fam not in params.load()["families"]:
         return {"skip": f"no calibrated v2 family {fam!r}"}
     mat = params.material(fam, hb=e["hb"], coating=row["tool"].get("coating"))
-    kw = dict(n_alpha=14, n_dh=3, n_theta=48, n_quad=24, n_theta_final=96, n_quad_final=32) if fast else {}
     try:
-        r = ramp.optimize_ramp(tool, mat, params.machine(), aggressiveness, table=table, consensus=consensus_c14, **kw)
+        r = ramp.optimize_ramp(tool, mat, params.machine(), aggressiveness, table=table, consensus=consensus_c14,
+                               coating=row["tool"].get("coating"), method=method)
     except Exception as ex:   # report, never hide
         return {"skip": f"error: {type(ex).__name__}: {ex}"}
     if not r.get("feasible") and "ramp_angle_deg" not in r:
         return {"skip": "infeasible", "eliminated_by": r.get("eliminated_by")}
     return {"alpha": r["ramp_angle_deg"], "h_a": r["end_chip_in"], "dh": r["helix_diameter_over_D"],
-            "fz": r["fz_in"], "rpm": r["rpm"], "binding": r["binding"], "conflicts": r["conflicts"]}
+            "fz": r["fz_in"], "rpm": r["rpm"], "binding": r["binding"], "conflicts": r["conflicts"],
+            "r1_warning": r.get("r1_warning"), "ramp_feed": r["ramp_feed_ipm"], "plunge": r["plunge_feed_ipm"]}
 
 
 def residuals(items, table, aggressiveness, consensus_c14, label):
@@ -261,14 +263,16 @@ def residuals(items, table, aggressiveness, consensus_c14, label):
                     "holdout": e["holdout"], "vendor_hi": e["angle_hi"], "vendor_lo": lo, "model": m["alpha"],
                     "log_ratio": math.log(m["alpha"] / e["angle_hi"]),
                     "inside": lo - 1e-9 <= m["alpha"] <= e["angle_hi"] * (1 + 1e-6),
-                    "h_a_model": m["h_a"], "h_a_vendor": e.get("h_a"), "binding": m["binding"]})
+                    "h_a_model": m["h_a"], "h_a_vendor": e.get("h_a"), "binding": m["binding"],
+                    "r1_warning": bool(m.get("r1_warning"))})
     ok = [r for r in res if "skip" not in r]
 
     def summ(sel):
         if not sel:
             return None
         lr = [r["log_ratio"] for r in sel]
-        return {"n": len(sel), "median_log_ratio": statistics.median(lr),
+        return {"n": len(sel), "r1_warning_share": sum(r["r1_warning"] for r in sel) / len(sel),
+                "median_log_ratio": statistics.median(lr),
                 "median_abs_log": statistics.median(abs(x) for x in lr),
                 "inside_vendor_range": sum(r["inside"] for r in sel) / len(sel)}
     out = {"label": label, "aggressiveness": aggressiveness, "overall": summ(ok),
@@ -288,13 +292,13 @@ def t1_t12(table, consensus_c14):
     tools = (o.Tool.build(0.125, 4, 0.5, 0.6, shank=0.125, label="T1"),
              o.Tool.build(0.0625, 4, 0.1875, 0.5, shank=0.125, label="T12"))
     out = []
-    mat = params.material(FAMILY_174, hb=356.0)
+    mat = params.material(FAMILY_174, hb=356.0, coating=T1_T12_COATING)
     for tool in tools:
         for a in (0.5, 0.75):
             op = params.optimize(tool, mat, "adaptive", a, robustness=False, find_tir=False)
             c = op["cut"]
             r = ramp.optimize_ramp(tool, mat, params.machine(), a, table=table, consensus=consensus_c14,
-                                   op_feed_ipm=c["feed_ipm"], op_rpm=c["rpm"])
+                                   op_feed_ipm=c["feed_ipm"], op_rpm=c["rpm"], coating=T1_T12_COATING)
             v1_angle, v1_ramp, v1_plunge = phys.calc_ramping(FAMILY_174, tool.D, c["feed_ipm"], "Square", tool.z, a)
             out.append({
                 "tool": tool.label, "aggressiveness": a,
@@ -302,9 +306,10 @@ def t1_t12(table, consensus_c14):
                              "fz_in": c["fz_in"]},
                 "v2_ramp": {k: r.get(k) for k in ("feasible", "ramp_angle_deg", "helix_diameter_over_D", "helix_diameter_in",
                                                   "helix_min_diameter_in", "bore_diameter_in", "pitch_in", "rpm", "sfm",
-                                                  "fz_in", "ramp_feed_ipm", "descent_ipm", "plunge_feed_ipm",
-                                                  "end_chip_in", "end_chip_floor_in", "end_chip_cap_in",
-                                                  "ramp_feed_at_op_rpm_ipm", "binding", "conflicts")},
+                                                  "spindle_rpm", "fz_in", "ramp_feed_ipm", "ramp_feed_at_c7_rpm_ipm",
+                                                  "descent_ipm", "plunge_feed_ipm", "end_chip_in", "end_chip_floor_in",
+                                                  "end_chip_cap_in", "edge_radius_mm", "edge_radius_basis", "r1_warning",
+                                                  "binding", "warned", "conflicts", "warnings")},
                 "v2_ramp_checks": {k: {"value": v["value"], "limit": v["limit"], "ok": v["ok"]}
                                    for k, v in r["checks"].items() if v["applies"]},
                 "v1": {"ramp_angle_deg": v1_angle,
@@ -312,6 +317,44 @@ def t1_t12(table, consensus_c14):
                        "end_chip_in_at_v2_ramp_fz": r["fz_in"] * math.sin(math.radians(v1_angle))},
             })
     return out
+
+
+def search_check(items, table, consensus_c14, n=24):
+    """The fast search against the exhaustive one (user requirement 2026-10-18: identical within reporting precision)
+    on T1/T12 and a spread of vendor rows, with the time per call."""
+    import time
+    picks, seen = [], set()
+    for e in sorted(items, key=lambda e: e["id"]):
+        k = (e["vendor_group"], e["band"], e["family"])
+        if e["angle_hi"] and not e["plunge_capable"] and e["family"] in params.load()["families"] and k not in seen:
+            seen.add(k)
+            picks.append(e)
+    picks = picks[:n]
+    worst = {"angle_deg": 0.0, "helix_over_D": 0.0, "fz_rel": 0.0, "ramp_feed_rel": 0.0, "plunge_rel": 0.0}
+    t_fast, t_exh, n_ok, mismatched = [], [], 0, []
+    for e in picks:
+        t0 = time.time()
+        f = run_model(e, table, 0.5, consensus_c14, "fast")
+        t1 = time.time()
+        x = run_model(e, table, 0.5, consensus_c14, "exhaustive")
+        t2 = time.time()
+        if "skip" in f or "skip" in x:
+            if ("skip" in f) != ("skip" in x):
+                mismatched.append(e["id"])
+            continue
+        n_ok += 1
+        t_fast.append(t1 - t0)
+        t_exh.append(t2 - t1)
+        worst["angle_deg"] = max(worst["angle_deg"], abs(f["alpha"] - x["alpha"]))
+        worst["helix_over_D"] = max(worst["helix_over_D"], abs(f["dh"] - x["dh"]))
+        for k, kk in (("fz_rel", "fz"), ("ramp_feed_rel", "ramp_feed"), ("plunge_rel", "plunge")):
+            worst[k] = max(worst[k], abs(f[kk] / x[kk] - 1.0))
+        if f["binding"] != x["binding"]:
+            mismatched.append(e["id"])
+    return {"rows": n_ok, "worst_difference": worst, "binding_or_feasibility_mismatch": mismatched,
+            "median_s_fast": statistics.median(t_fast) if t_fast else None,
+            "max_s_fast": max(t_fast) if t_fast else None,
+            "median_s_exhaustive": statistics.median(t_exh) if t_exh else None}
 
 
 def _round(x, nd=4):
@@ -387,6 +430,11 @@ def main(argv=None):
               "consensus_17_4_h1025": cons17, "t1_t12": t12,
               "end_chip_rows": [{k: e[k] for k in ("id", "vendor_group", "family", "D", "angle_hi", "h_a", "h_basis")}
                                 for e in items if e.get("h_a")]}
+    sc = search_check(items, table_all, c14)
+    report["search_check_fast_vs_exhaustive"] = sc
+    print(f"fast vs exhaustive search on {sc['rows']} rows: {json.dumps(_round(sc['worst_difference'], 3))}, mismatches "
+          f"{sc['binding_or_feasibility_mismatch']}; median {sc['median_s_fast']:.3f} s (max {sc['max_s_fast']:.3f} s) vs "
+          f"{sc['median_s_exhaustive']:.2f} s")
     if not args.quick:
         res = {}
         for a in (0.75, 0.5):

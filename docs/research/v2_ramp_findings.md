@@ -2,6 +2,60 @@
 
 _2026-10-18. Branch `toolwiz/v2-ramp` from `toolwiz/hardening` (ca5c1cf). v1 is unchanged: `gwizard_physics.calc_ramping` still sets v1's ramp angle and feeds, and every new result field is `None` under v1._
 
+## Round 2 (2026-10-18): the user's decisions applied
+
+Sections 1–7 below are Round 1. Where they differ from this section, Round 2 governs.
+
+| # | Decision | Applied as |
+|---|---|---|
+| D1 | r_β from sourced values by coating and diameter, overridable | `ramp.edge_radius(D, coating)`; `optimize_ramp(coating=…, edge_radius_mm=…)`; the bridge passes the request's coating |
+| D2 | The vendor cap (R14a, ≥ 2 groups) wins over R1 for ramps; R1 becomes a warning; physics when there is no consensus | R1 is enforced while an angle under the cap meets it. Otherwise R1 is listed in `warned`, with a "WARNING: the end teeth run under the minimum chip" line and a Fusion alert. With no consensus angle, the Round 1 physics path runs and the provenance says so. The plunge follows the same rule with R14p |
+| D3 | R2 stays on vendor plunge chips | unchanged |
+| D4 | Fusion's ramp spindle speed = the cutting speed; `ramp_feed` at the operation rpm | fz and α are still chosen at C7's slot-engagement speed. `ramp_feed`, `plunge_feed` and the descent rate are returned at the operation's rpm, with C5 and C11 re-checked there and a warning that the entry runs above C7's slot speed. `ramp_rpm` is information only |
+| D5 | `ramp_diameter_in` is the tool-centre helix diameter (Fusion default 0.95·D is tool-centre) | unchanged; `ramp_min_diameter_in` kept |
+| D6 | Keep the slow plunge; add a note about the feed height | `result.v2["ramp"]["plunge_note"]` and a Fusion info tip: "Fusion uses the plunge feed for every vertical feed move from the feed height down, in air too; at this slow plunge feed a 1 mm (0.04") feed height in micro adaptive operations saves time" |
+| D7 | Bore ≥ 1.1·D (Harvey) | unchanged |
+| D8 | Image-only rows: deferred to the local session | — |
+| D9 | Accepted | — |
+| Perf | Ramp search under 0.5 s, results identical within reporting precision | See R2.3 |
+
+### R2.1 Edge radius (D1)
+
+Sources are in `docs/research/carbide_and_edge_radius.md` §3. No source gives r_β against diameter. These are the measured points and the bridge between them:
+
+| Coating class | D ≤ 1/8" (micro) | Source | D ≥ 1/4" |
+|---|---|---|---|
+| AlTiN/TiAlN | **1.2 µm** | Liang et al. 2018, D 0.5 mm, AlTiN (Balzers Latuma) ~1 µm | 3.5 µm (Wojciechowski et al. 2024, 8 mm TiAlN, new) |
+| AlCrN | 0.90 µm | Liang 2018 | 3.5 µm |
+| TiN | 1.5 µm | Liang 2018 | 3.5 µm |
+| Si-doped, DLC, proprietary/unspecified | 1.2 µm | no measured value; the AlTiN value, the middle of 0.9–1.5 | 3.5 µm |
+| Uncoated | 1.5 µm | median of the three measured new micro tools: Liang 0.41, Afazov 1.5, Jäckel 3.5 | 3.5 µm (no uncoated macro value; the coated one) |
+
+- Between 1/8" and 1/4", r_β is log-linear in D.
+- **T12 (1/16", AlTiN): 1.2 µm. T1 (1/8", AlTiN): 1.2 µm** (1/8" is in the micro range). With λ = 0.3, the minimum end chip is **0.36 µm**; Round 1 used 2 µm, giving 0.6 µm.
+- Override with `optimize_ramp(edge_radius_mm=…)`.
+- C1 in the *cutting* optimizer still uses the Tool's 2 µm placeholder; D1 was applied to the ramp only (see R2.5).
+
+### R2.2 Precedence (D2)
+
+T12 in 17-4 H1025:
+- Under the vendor cap (2.76° at 50 %, 3.00° at 75 %), the largest end chip the side cut allows is fz·sin α: 0.28 µm at 50 % and 0.35 µm at 75 %. Both are under 0.36 µm.
+- So the cap holds, and R1 is a rubbing warning.
+
+T1 meets R1 under the cap (0.47 and 0.56 µm), so there is no warning.
+
+### R2.3 Performance
+
+- The new search, `_fz_window_fast`, splits the checks by what they depend on:
+  - **Independent of the slot depth p:** C1/C10 and C2 (the chips at slot engagement), and C11/C14f/C14m (proportional to fz). These are computed once per context.
+  - **Closed form in h_a = fz·sin α:** R1 and R2.
+  - **Need forces:** C3, C4 and C5. They are checked once at the top of each (D_h, α) window and bisected only when they bind.
+- The grids (16 angles, 5 helix diameters) and the selection rule are the Round 1 ones; the old brute-force search is kept as `method="exhaustive"`.
+- The calibration (`search_check_fast_vs_exhaustive`) runs both searches on a spread of vendor rows and on T1/T12. **SEARCH_CHECK_PLACEHOLDER**
+- In the bridge, the ramp adds **0.07–0.17 s** to an uncached v2 call for T1/T12; it was ~4 s.
+
+RESULTS_R2_PLACEHOLDER
+
 ## 1. Summary
 
 - **Data.** 568 ramp rows from 7 independent vendor groups were added to `tests/benchmarks/v2` (new `operation: "ramp"`, schema in `SCHEMA.md`, validator in `tests/test_v2_benchmark_dataset.py`). They include the two Sandvik CoroPlus ToolGuide helical readings.

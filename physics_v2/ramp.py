@@ -32,11 +32,16 @@ bound); the volume balance gives the equivalent depth used for power:
 
 Plunge. α = 90°: the axial chip per tooth h_p is the plunge feed per tooth and only the end edges cut, so R1 and
 R2 bound it as they bound h_a. The plunge feed is z·n·h_p with h_p at R2 (the fastest the end edges take), capped
-by R14p, and never under R1.
+by R14p (which wins over R1, as R14a does; without a vendor plunge factor R1 is a floor).
+
+Speeds. fz and α are chosen at C7's slot-engagement speed; the feeds are returned at the operation's spindle speed,
+which Fusion uses for the ramp (user decision 2026-10-18), with C5 and C11 re-checked there.
 
 Constraints (each a `optimize.Check`)
 -------------------------------------
-    R1   end-tooth chip h_a ≥ λ·r_β (no rubbing; 17-4 work-hardens; C1's basis and λ, never relaxed)
+    R1   end-tooth chip h_a ≥ λ·r_β (no rubbing; 17-4 work-hardens; C1's basis and λ). r_β by coating and diameter
+         (`edge_radius`). With a vendor consensus angle (R14a) the cap wins: R1 is enforced while an angle under the
+         cap meets it, otherwise it is a reported warning (user decision 2026-10-18)
     R2   end-tooth chip ≤ the end-edge limit: the vendor-median plunge chip per tooth h_p/D by diameter band
          (data/model_v2/ramp.json `end_chip`; vendor plunge tables are the only published loads on the end edges
          alone), scaled by aggressiveness like C2. Vendors' ramp-angle limits put 3–5× less chip on the end edges
@@ -62,7 +67,8 @@ RAMP_PATH = os.path.join(ROOT, "data", "model_v2", "ramp.json")
 
 SRC = {
     "R1": "End-tooth chip h_a = fz·sin α ≥ λ·r_β (no ploughing): C1's basis, λ 0.2–0.4 (Wojciechowski 2022; Li 2021), "
-          "r_β of micro end mills 0.4–3.5 µm; docs/research/carbide_and_edge_radius.md §3–4. Never relaxed",
+          "r_β by coating and diameter (ramp.edge_radius; docs/research/carbide_and_edge_radius.md §3). Enforced, except "
+          "that a vendor consensus angle cap wins over it (user decision 2026-10-18); then it is a rubbing warning",
     "R2": "End-edge chip limit: axial chip per end tooth ≤ the vendor-median plunge chip per tooth h_p/D for this "
           "diameter band (OSG, Kennametal, Kyocera SGS plunge tables; Seco drilling factor × slot fz; "
           "data/model_v2/ramp.json, tools/calibrate_v2_ramp.py), × the aggressiveness scale as C2",
@@ -260,7 +266,8 @@ def r14_feed(cid, name, feed_ipm, field, cons, scale, base_feed_ipm):
 
 class RampContext:
     """Everything fixed for one tool, material, machine and margin set: the side cut's slot context (C1–C5,
-    C7, C8, C11, C14 at slot engagement), R1/R2 limits and the vendor ramp consensus."""
+    C7, C8, C11, C14 at slot engagement), R1/R2 limits and the vendor ramp consensus. The tool's edge radius is
+    the one R1 and the side C1 use (optimize_ramp sets it from `edge_radius` unless overridden)."""
 
     def __init__(self, tool, material, machine, margins, table=None, consensus=None, n_theta=96, n_quad=32,
                  stock_to_leave_in=o.STOCK_TO_LEAVE_IN):
@@ -299,6 +306,7 @@ class RampContext:
             lo = hi
         self.dh_range, self.dh_basis = (lo, hi), "; ".join(basis)
         self._pts = {}
+        self._p_free = None
 
     def point(self, p_in):
         """The side cut as a slot of depth p (cached by p)."""
@@ -307,9 +315,42 @@ class RampContext:
             self._pts[key] = o.CutPoint(self.side, max(p_in, 1e-6), self.tool.D)
         return self._pts[key]
 
+    def p_free_limits(self, rel_tol=1e-4):
+        """(fz_C1, fz_cheap): the side cut's limits that don't depend on the slot depth p. C1/C10 and C2 depend on
+        the chips at slot engagement (ae = D) with runout; C11, C14f and C14m are proportional to fz at a fixed rpm
+        (C14m's cap scales with ap·ae like the MRR). Only C3–C5 need the forces at (p, fz)."""
+        if self._p_free is None:
+            pt = self.point(self.tool.D * 0.01)
 
-def ramp_checks(rc, dh_over_D, alpha_deg, fz_in):
-    """Every check for one helical ramp (inches): R1, R2, R6, R14 and the side cut's C1–C5, C7, C8, C11, C14."""
+            def low_ok(fz):
+                return all(c.ok for c in pt.lower_checks(fz).values())
+
+            def cheap_ok(fz):
+                if not pt.c11(fz).ok:
+                    return False
+                if not all(c.ok for c in pt.c2_checks(fz).values()):
+                    return False
+                return all(c.ok for c in pt.c14_checks(fz).values())
+            lo = o._bisect_min(low_ok, 1e-7, o.FZ_MAX_IN, rel_tol)
+            hi = None
+            if cheap_ok(1e-7):
+                a, b = 1e-7, o.FZ_MAX_IN
+                if cheap_ok(b):
+                    hi = b
+                else:
+                    while b / a > 1.0 + rel_tol:
+                        m = math.sqrt(a * b)
+                        a, b = (m, b) if cheap_ok(m) else (a, m)
+                    hi = a
+            self._p_free = (lo, hi)
+        return self._p_free
+
+
+def ramp_checks(rc, dh_over_D, alpha_deg, fz_in, spindle_rpm=None):
+    """Every check for one helical ramp (inches): R1, R2, R6, R14 and the side cut's C1–C5, C7, C8, C11, C14.
+
+    spindle_rpm: the speed the ramp actually runs at (the operation's, user decision D4, 2026-10-18); C5 and C11 are
+    checked there. None: C7's slot-engagement speed."""
     t = rc.tool
     D_h = dh_over_D * t.D
     p = pitch(D_h, alpha_deg)
@@ -321,14 +362,12 @@ def ramp_checks(rc, dh_over_D, alpha_deg, fz_in):
     out.update(pt.lower_checks(fz_in))
     out.update(pt.c2_checks(fz_in))
     out.update(fc)
-    # C5 with the end-tooth torque added to the side cut's (the side cut at the volume-balance depth).
-    ap_eq = side_equivalent_depth(t.D, D_h, alpha_deg)
-    t_side = abs(f["torque_mean_nm"]) * min(1.0, ap_eq / p) if p > 0 else 0.0
-    t_end = end_torque_nm(h_a_mm, t.D_mm, t.z, rc.coeffs)
-    torque = t_side + t_end
-    power = torque * o.machine_profiles.rad_s(pt.rpm) / 1000.0
-    out["C5"] = o.c5_spindle(torque, power, pt.rpm, rc.mach.spindle, rc.mach.rating, rc.mg.limit_margin)
-    out.update({"C7": pt.c7, "C8": pt.c8, "C11": pt.c11(fz_in)})
+    rpm = spindle_rpm or pt.rpm
+    torque, t_side, t_end, ap_eq = _torque(rc, D_h, alpha_deg, p, f, h_a_mm)
+    power = torque * o.machine_profiles.rad_s(rpm) / 1000.0
+    out["C5"] = o.c5_spindle(torque, power, rpm, rc.mach.spindle, rc.mach.rating, rc.mg.limit_margin)
+    out.update({"C7": pt.c7, "C8": pt.c8,
+                "C11": o.c11_feed(fz_in * t.z * rpm, rc.mach.max_feed_ipm, None)})
     if rc.side.consensus is not None:
         out["C14v"] = pt.c14v
         out.update(pt.c14_checks(fz_in))
@@ -343,18 +382,30 @@ def ramp_checks(rc, dh_over_D, alpha_deg, fz_in):
     return out, pt, loads
 
 
+def _torque(rc, D_h, alpha_deg, p, f, h_a_mm):
+    """Side torque at the volume-balance depth plus the end-tooth torque (N·m)."""
+    t = rc.tool
+    ap_eq = side_equivalent_depth(t.D, D_h, alpha_deg)
+    t_side = abs(f["torque_mean_nm"]) * min(1.0, ap_eq / p) if p > 0 else 0.0
+    t_end = end_torque_nm(h_a_mm, t.D_mm, t.z, rc.coeffs)
+    return t_side + t_end, t_side, t_end, ap_eq
+
+
 _UPPER = ("C2", "C2o", "C3", "C4", "C5", "C11", "C14f", "C14m", "R2")
 _LOWER = ("C1", "C10", "R1")
 
 
-def _fz_window(rc, dh, alpha, rel_tol=0.01):
-    """(fz_lo, fz_hi) for one (D_h, α): the lower checks (C1, R1) and the upper (C2–C5, C11, C14, R2)."""
+def _fz_window(rc, dh, alpha, enforce_r1=True, rel_tol=1e-4):
+    """(fz_lo, fz_hi) for one (D_h, α) by brute force: every check through `ramp_checks` at each trial fz. The
+    reference for `_fz_window_fast` (optimize_ramp(method="exhaustive"))."""
+    lower = _LOWER if enforce_r1 else ("C1", "C10")
+
     def ok(keys):
         def pred(fz):
             c = ramp_checks(rc, dh, alpha, fz)[0]
             return all(c[k].ok for k in keys if k in c)
         return pred
-    lower_ok, upper_ok = ok(_LOWER), ok(_UPPER)
+    lower_ok, upper_ok = ok(lower), ok(_UPPER)
     lo = o._bisect_min(lower_ok, 1e-7, o.FZ_MAX_IN, rel_tol)
     if lo is None:
         return None
@@ -375,29 +426,131 @@ def _fz_window(rc, dh, alpha, rel_tol=0.01):
     return (lo, a)
 
 
+def _forces_ok(rc, dh, alpha, fz):
+    """C3, C4 and C5 (side + end torque, at C7's ramp speed) at one (D_h, α, fz): the only checks that need forces."""
+    t = rc.tool
+    D_h = dh * t.D
+    p = pitch(D_h, alpha)
+    pt = rc.point(p)
+    fc, f, _ = pt.force_checks(fz)
+    if not (fc["C3"].ok and fc["C4"].ok):
+        return False
+    torque = _torque(rc, D_h, alpha, p, f, end_chip(fz, alpha) * MM)[0]
+    power = torque * o.machine_profiles.rad_s(pt.rpm) / 1000.0
+    return o.c5_spindle(torque, power, pt.rpm, rc.mach.spindle, rc.mach.rating, rc.mg.limit_margin).ok
+
+
+def _fz_window_fast(rc, dh, alpha, enforce_r1=True, rel_tol=1e-4):
+    """(fz_lo, fz_hi) as `_fz_window`, from the p-independent limits (computed once per context), R1/R2 in closed
+    form (h_a = fz·sin α) and a force check at the top of the window; the forces are bisected only when C3–C5 bind."""
+    c1, cheap = rc.p_free_limits(rel_tol)
+    if c1 is None:
+        return None
+    sa = math.sin(math.radians(alpha))
+    lo = max(c1, rc.h_floor / MM / sa) if enforce_r1 else c1
+    if lo > o.FZ_MAX_IN:
+        return None
+    hi = cheap
+    if hi is not None and rc.h_cap is not None:
+        hi = min(hi, rc.h_cap / MM / sa)
+    if hi is None or hi < lo * (1 - 1e-12):
+        return (lo, None)
+    if _forces_ok(rc, dh, alpha, hi):
+        return (lo, hi)
+    if not _forces_ok(rc, dh, alpha, lo):
+        return (lo, None)
+    a, b = lo, hi
+    while b / a > 1.0 + rel_tol:
+        m = math.sqrt(a * b)
+        if _forces_ok(rc, dh, alpha, m):
+            a = m
+        else:
+            b = m
+    return (lo, a)
+
+
+WINDOWS = {"fast": _fz_window_fast, "exhaustive": _fz_window}
+
+
 def _alpha_grid(lo, hi, n):
     return [lo * (hi / lo) ** (i / (n - 1)) for i in range(n)]
 
 
+# r_β of new solid carbide end mills (docs/research/carbide_and_edge_radius.md §3; user decision D1, 2026-10-18).
+# Micro (D ≤ 1/8"): Liang et al., Micromachines 2018, D = 0.5 mm UF09 carbide, ~1 µm coatings: AlCrN 0.90, AlTiN 1.2,
+# TiN 1.5 µm. Coatings without a measured value (Si-doped, DLC, proprietary/unspecified) take the AlTiN value, the
+# middle of 0.9–1.5. Uncoated: the median of the three measured new micro tools (Liang 0.41, Afazov 1.5, Jäckel 3.5).
+# Macro (D ≥ 1/4"): 3.5 µm, the only measured new coated end mill above 1 mm (Wojciechowski et al. 2024, 8 mm
+# TiAlN ball end). Between 1/8" and 1/4": log-linear in D. No source gives r_β against diameter; this is the
+# least-assumption bridge between the two measured scales.
+EDGE_RADIUS_MICRO_UM = {"AlCrN": 0.90, "AlTiN/TiAlN": 1.2, "TiN": 1.5, "Si-doped": 1.2, "DLC": 1.2,
+                        "unspecified": 1.2, "uncoated": 1.5}
+EDGE_RADIUS_MACRO_UM = 3.5
+EDGE_RADIUS_D_MICRO_IN = 0.125
+EDGE_RADIUS_D_MACRO_IN = 0.25
+
+
+def coating_class(label):
+    """Coating class for r_β: optimize's classes plus TiN (Liang's third coating)."""
+    from physics_v2 import params
+    if label and "tin" == str(label).strip().lower():
+        return "TiN"
+    return label if label in EDGE_RADIUS_MICRO_UM else params.coating_class(label)
+
+
+def edge_radius(D_in, coating=None):
+    """(r_β mm, basis) for a new solid carbide end mill of diameter D_in and the given coating label or class."""
+    cc = coating_class(coating)
+    micro = EDGE_RADIUS_MICRO_UM.get(cc, EDGE_RADIUS_MICRO_UM["unspecified"])
+    if D_in <= EDGE_RADIUS_D_MICRO_IN:
+        r, how = micro, f"micro end mill, {cc}: {micro:g} µm (Liang et al. 2018, D 0.5 mm"
+        how += ", ~1 µm coating)" if cc in ("AlCrN", "AlTiN/TiAlN", "TiN") else (
+            "; uncoated median of Liang 0.41, Afazov 1.5, Jäckel 3.5 µm)" if cc == "uncoated"
+            else "; no measured value for this coating, the AlTiN value)")
+    elif D_in >= EDGE_RADIUS_D_MACRO_IN:
+        r, how = EDGE_RADIUS_MACRO_UM, f"{EDGE_RADIUS_MACRO_UM:g} µm (Wojciechowski et al. 2024, 8 mm TiAlN, new)"
+    else:
+        x = math.log(D_in / EDGE_RADIUS_D_MICRO_IN) / math.log(EDGE_RADIUS_D_MACRO_IN / EDGE_RADIUS_D_MICRO_IN)
+        r = micro * (EDGE_RADIUS_MACRO_UM / micro) ** x
+        how = (f"log-linear in D between {micro:g} µm at 1/8\" ({cc}, Liang 2018) and {EDGE_RADIUS_MACRO_UM:g} µm at "
+               f"1/4\" (Wojciechowski 2024): {r:.2f} µm")
+    return r / 1000.0, how
+
+
+PLUNGE_NOTE = ("Fusion uses the plunge feed for every vertical feed move from the feed height down, in air too; at this "
+               "slow plunge feed a 1 mm (0.04\") feed height in micro adaptive operations saves time")
+
+
 def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, table="default", consensus=None,
-                  op_feed_ipm=None, op_rpm=None, n_alpha=16, n_dh=3, score_tol=0.01, n_theta=96, n_quad=32,
-                  n_theta_final=360, n_quad_final=64, stock_to_leave_in=o.STOCK_TO_LEAVE_IN):
+                  op_feed_ipm=None, op_rpm=None, coating=None, edge_radius_mm=None, n_alpha=16, n_dh=5,
+                  score_tol=0.01, n_theta=96, n_quad=32, n_theta_final=360, n_quad_final=64,
+                  stock_to_leave_in=o.STOCK_TO_LEAVE_IN, method="fast"):
     """The helical entry for one tool/material/machine: ramp angle, helix diameter, ramp and plunge feed.
 
-    Speed: C7 at slot engagement (the side cut is slot-like), capped by the machine and C14v. Objective: the
-    fastest descent v_z = z·n·fz·sin α that meets every check; within `score_tol` of it the gentlest angle (the
-    smallest α, so the largest fz and the shallowest side cut), then the largest helix (chip room). R14a (the
-    vendor angle cap) never overrides a physics lower bound: when no angle under the cap meets R1 (and C1), the
-    smallest physics-feasible angle is used and the conflict is reported. Same for R2 against R1 (the end-chip
-    window is empty): h_a is set on R1's floor and R2 is reported as exceeded.
+    Speed: C7 at slot engagement (the side cut is slot-like), capped by the machine and C14v, chooses fz and α; the
+    feeds returned are at the operation's spindle speed `op_rpm` (Fusion runs the ramp at the cutting speed, user
+    decision D4), with C5 and C11 re-checked there; without op_rpm, at C7's speed. Objective: the fastest descent
+    v_z = z·n·fz·sin α; within `score_tol` of it the gentlest angle, then the largest helix.
 
-    op_feed_ipm / op_rpm: the operation's feed and spindle speed (reported; the ramp feed at the operation rpm for
-    CAM setups without a separate ramp spindle speed).
-    table: data/model_v2/ramp.json ("default"), a dict, or None (R2/R14 off).
-    consensus: the C14 table for the side cut (as optimize.optimize).
+    Precedence (user decision D2, 2026-10-18): with a vendor consensus angle (R14a, ≥ 2 groups) the cap wins. R1 is
+    enforced while some angle under the cap meets it; when none does, R1 becomes a reported warning (end teeth under
+    the minimum chip), as rubbing flutes are in finishing. Without a vendor consensus angle, physics as before: R1 is
+    enforced, and when R2 is under R1's floor the end chip sits on the floor. The plunge follows the same rule with
+    R14p.
+
+    edge_radius_mm: r_β override; default `edge_radius(D, coating)` (D1). method: "fast" (default) or "exhaustive"
+    (every check by brute force; the reference the fast search is tested against).
+    op_feed_ipm: the operation's feed (reported). table: data/model_v2/ramp.json ("default"), a dict, or None (R2/R14
+    off). consensus: the C14 table for the side cut (as optimize.optimize).
     """
     mg = margins or o.Margins(aggressiveness, scheme="consensus")
     tab = load_table() if table == "default" else table
+    if edge_radius_mm is None:
+        r_b, r_b_basis = edge_radius(tool.D, coating)
+    else:
+        r_b, r_b_basis = float(edge_radius_mm), "given"
+    tool = replace(tool, edge_radius_mm=r_b)
+    window = WINDOWS[method]
     rc = RampContext(tool, material, machine, mg, tab, consensus, n_theta, n_quad, stock_to_leave_in)
     t = tool
     dh_lo, dh_hi = rc.dh_range
@@ -409,87 +562,77 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
     if a_cap is not None:
         alphas = sorted(set(alphas) | {a_cap})
     conflicts, prov = [], []
-    cands, elim = [], {}
-    r2_relaxed = False
+    elim = {}
 
-    def search(allow_over_cap, relax_r2):
+    def geometry_ok(pt):
+        bad = [k for k, c in (("C7", pt.c7), ("C8", pt.c8), ("C14v", pt.c14v)) if not c.ok]
+        for k in bad:
+            elim[k] = elim.get(k, 0) + 1
+        return not bad
+
+    def search(under_cap, enforce_r1):
         found = []
         for dh in dhs:
             for a in alphas:
-                if not allow_over_cap and a_cap is not None and a > a_cap * (1 + 1e-9):
+                if under_cap and a_cap is not None and a > a_cap * (1 + 1e-9):
                     continue
                 pt = rc.point(pitch(dh * t.D, a))
-                if not all(c.ok for c in (pt.c7, pt.c8, pt.c14v)):
-                    for k, c in (("C7", pt.c7), ("C8", pt.c8), ("C14v", pt.c14v)):
-                        if not c.ok:
-                            elim[k] = elim.get(k, 0) + 1
+                if not geometry_ok(pt):
                     continue
-                win = _fz_window(rc, dh, a)
+                win = window(rc, dh, a, enforce_r1)
                 if not win or win[1] is None or win[1] < win[0]:
-                    k = "R1/C1" if not win else ",".join(
-                        x for x in _UPPER if x in ramp_checks(rc, dh, a, win[0])[0]
-                        and not ramp_checks(rc, dh, a, win[0])[0][x].ok) or "upper"
-                    elim[k] = elim.get(k, 0) + 1
+                    key = "R1/C1" if not win else "upper (C2–C5, C11, C14, R2)"
+                    elim[key] = elim.get(key, 0) + 1
                     continue
-                fz = win[1]
-                vz = t.z * pt.rpm * end_chip(fz, a)
-                found.append({"dh": dh, "alpha": a, "fz": fz, "fz_lo": win[0], "vz": vz, "rpm": pt.rpm})
+                found.append({"dh": dh, "alpha": a, "fz": win[1], "fz_lo": win[0], "rpm": pt.rpm,
+                              "vz": t.z * pt.rpm * end_chip(win[1], a)})
         return found
 
+    overridden, r1_warning = [], False
     saved_cap = rc.h_cap
-    overridden = []
-    over_cap = False
-    cands = search(False, False)
-    if not cands and rc.h_cap is not None and rc.h_cap < rc.h_floor:
-        # Empty end-chip window: R1 (physics) wins; h_a is held just above its floor (a bisection step of room).
+    enforce_r1 = True
+    cands = search(True, True)
+    if not cands and a_cap is not None:
+        # D2: the vendor cap wins; R1 is reported.
+        enforce_r1, r1_warning = False, True
+        cands = search(True, False)
+        if cands:
+            conflicts.append(f"R1: no angle under the vendor cap {a_cap:.2f}° (R14a) gives the end teeth λ·r_β = "
+                             f"{rc.h_floor * 1000:.3g} µm with fz under C2/C14f; the vendor cap wins (user decision "
+                             f"2026-10-18) and the end teeth run under the minimum chip (rubbing warning)")
+    elif not cands and rc.h_cap is not None and rc.h_cap < rc.h_floor:
+        # No vendor consensus angle: physics as before. Empty end-chip window: R1 wins over R2.
         rc.h_cap = rc.h_floor * 1.02
         rc.h_cap_basis += f"; raised to R1's floor {rc.h_floor * 1000:.3g} µm (empty end-chip window)"
-        r2_relaxed = True
         overridden.append("R2")
-        conflicts.append(f"R2 ({saved_cap * 1000:.3g} µm) is below R1's rubbing floor ({rc.h_floor * 1000:.3g} µm): "
-                         f"no end-chip window; h_a is set on R1's floor (physics is never relaxed; R2 is a vendor-"
-                         f"median limit)")
+        conflicts.append(f"R2 ({saved_cap * 1000:.3g} µm) is below R1's rubbing floor ({rc.h_floor * 1000:.3g} µm) and no "
+                         f"vendor consensus angle exists: h_a is set on R1's floor (physics)")
         cands = search(False, True)
-    if not cands and a_cap is not None:
-        cands = search(True, r2_relaxed)
-        if cands:
-            over_cap = True
-            overridden.append("R14a")
-            conflicts.append(f"R14a: no angle under the vendor cap {a_cap:.2f}° meets the physics lower limits "
-                             f"(R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is "
-                             f"used")
+    if a_cap is None:
+        prov.append("R14a: no vendor consensus angle (fewer than 2 groups even family-wide); the angle is physics-only")
     if not cands:
         return {"feasible": False, "eliminated_by": elim, "notes": rc.notes, "conflicts": conflicts,
-                "provenance": [f"no feasible ramp: {elim}"]}
+                "provenance": prov + [f"no feasible ramp: {elim}"]}
 
-    if over_cap:
-        # Over the vendor cap: stay as close to it as physics allows (the smallest feasible angle).
-        a_min = min(c["alpha"] for c in cands)
-        pool = [c for c in cands if c["alpha"] <= a_min * (1 + 1e-9)]
-        ch = max(pool, key=lambda c: (c["dh"], c["vz"]))
-        best = ch["vz"]
-        rule = (f"over the vendor angle cap: the smallest physics-feasible angle ({ch['alpha']:.2f}°), then the "
-                f"largest helix (D_h {ch['dh']:.2f}·D)")
-    else:
-        best = max(c["vz"] for c in cands)
-        pool = [c for c in cands if c["vz"] >= (1.0 - score_tol) * best]
-        a_min = min(c["alpha"] for c in pool)
-        pool = [c for c in pool if c["alpha"] <= a_min * (1 + 1e-9)]
-        ch = max(pool, key=lambda c: (c["dh"], c["vz"]))
-        rule = (f"fastest descent v_z = z·n·fz·sin α (best {best:.3f} IPM); within {score_tol:.0%} of it the smallest "
-                f"angle ({ch['alpha']:.2f}°), then the largest helix (D_h {ch['dh']:.2f}·D)")
+    best = max(c["vz"] for c in cands)
+    pool = [c for c in cands if c["vz"] >= (1.0 - score_tol) * best]
+    a_min = min(c["alpha"] for c in pool)
+    pool = [c for c in pool if c["alpha"] <= a_min * (1 + 1e-9)]
+    ch = max(pool, key=lambda c: (c["dh"], c["vz"]))
+    rule = (f"fastest descent v_z = z·n·fz·sin α (best {best:.3f} IPM at C7's speed); within {score_tol:.0%} of it the "
+            f"smallest angle ({ch['alpha']:.2f}°), then the largest helix (D_h {ch['dh']:.2f}·D)")
     # Refine α between the chosen grid angle and the next one below it (same helix): the smallest angle that still
-    # has an fz window (over the cap) or still reaches (1 − score_tol)·best (under it).
+    # reaches (1 − score_tol)·best.
     lower = [a for a in alphas if a < ch["alpha"] * (1 - 1e-9)]
     if lower:
         lo_a, hi_a = lower[-1], ch["alpha"]
-        target = None if over_cap else (1.0 - score_tol) * best
+        target = (1.0 - score_tol) * best
         for _ in range(10):
             mid = 0.5 * (lo_a + hi_a)
             pt = rc.point(pitch(ch["dh"] * t.D, mid))
-            win = _fz_window(rc, ch["dh"], mid) if all(c.ok for c in (pt.c7, pt.c8, pt.c14v)) else None
+            win = window(rc, ch["dh"], mid, enforce_r1) if all(c.ok for c in (pt.c7, pt.c8, pt.c14v)) else None
             good = bool(win and win[1] is not None and win[1] >= win[0])
-            if good and target is not None:
+            if good:
                 good = t.z * pt.rpm * end_chip(win[1], mid) >= target
             if good:
                 hi_a = mid
@@ -497,25 +640,28 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
             else:
                 lo_a = mid
         rule += f"; refined to {ch['alpha']:.2f}° by bisection"
-    # Report at full resolution; back fz off onto the limits there if needed.
+    # Re-check at full resolution; back fz off onto the limits there if needed.
     rc_hi = RampContext(tool, material, machine, mg, tab, consensus, n_theta_final, n_quad_final, stock_to_leave_in)
-    if r2_relaxed:
-        rc_hi.h_cap, rc_hi.h_cap_basis = rc.h_cap, rc.h_cap_basis
+    rc_hi.h_cap, rc_hi.h_cap_basis = rc.h_cap, rc.h_cap_basis
     fz = ch["fz"]
     checks, pt, loads = ramp_checks(rc_hi, ch["dh"], ch["alpha"], fz)
     if not all(checks[k].ok for k in _UPPER if k in checks):
-        win = _fz_window(rc_hi, ch["dh"], ch["alpha"])
+        win = window(rc_hi, ch["dh"], ch["alpha"], enforce_r1)
         if win and win[1]:
             fz = min(fz, win[1])
             checks, pt, loads = ramp_checks(rc_hi, ch["dh"], ch["alpha"], fz)
     alpha, dh = ch["alpha"], ch["dh"]
     D_h = dh * t.D
-    rpm = pt.rpm
+    rpm_c7 = pt.rpm
+    rpm = float(op_rpm) if op_rpm else rpm_c7
+    if op_rpm:
+        checks, pt, loads = ramp_checks(rc_hi, dh, alpha, fz, spindle_rpm=rpm)
     h_a = end_chip(fz, alpha)
     feed = fz * t.z * rpm
     vz = h_a * t.z * rpm
     # Plunge: the axial chip per tooth is the plunge feed per tooth; h_p at R2 (or, without R2, the ramp's h_a),
-    # capped by R14p against the ramp's slot-like feed, never under R1.
+    # capped by R14p against the ramp feed. With a vendor plunge factor the cap wins over R1 (D2); without one, R1
+    # is a floor.
     s = mg.consensus_cap_scale
     h_p = (saved_cap / MM) if saved_cap is not None else h_a
     plunge = h_p * t.z * rpm
@@ -523,10 +669,15 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
     if pl_chk.applies and not pl_chk.ok:
         plunge = pl_chk.limit
     floor_feed = rc_hi.h_floor / MM * t.z * rpm
-    if plunge < floor_feed:
-        conflicts.append(f"plunge: the vendor plunge cap gives {plunge:.3f} IPM, under R1's rubbing floor; "
-                         f"{floor_feed:.3f} IPM is used")
-        plunge = floor_feed
+    warned = ["R1"] if r1_warning else []
+    if plunge < floor_feed * (1 - 1e-9):
+        if pl_chk.applies:
+            warned.append("R1p")
+            conflicts.append(f"plunge: the vendor plunge cap ({plunge:.3f} IPM) is under R1's rubbing floor "
+                             f"({floor_feed:.3f} IPM); the vendor cap wins (rubbing warning)")
+        else:
+            conflicts.append(f"plunge: {plunge:.3f} IPM is under R1's rubbing floor; {floor_feed:.3f} IPM is used")
+            plunge = floor_feed
     h_p = plunge / (t.z * rpm)
     checks["R14p"] = r14_feed("R14p", "vendor-consensus plunge feed", plunge, "plunge_feed_factor", rc.cons, s, feed)
     checks["R1p"] = replace(r1_end_chip_min(h_p * MM, t.edge_radius_mm, rc_hi.side.lam), id="R1p",
@@ -535,43 +686,56 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
                             name="plunge chip (end-edge limit)")
     if not checks["R2p"].ok and checks["R1p"].ok and h_p * MM <= rc_hi.h_floor * 1.0001:
         overridden.append("R2p")      # the plunge sits on R1's floor because R2 is under it
-    binding = o._binding(checks)
+    binding = [k for k in o._binding(checks) if k not in warned]
     for k in overridden:
         if k not in binding:
             binding.append(k)
-    warnings = list(rc.notes) + conflicts
+    warnings = list(rc.notes)
+    if "R1" in warned and not checks["R1"].ok:
+        warnings.append(f"WARNING: the end teeth run under the minimum chip: h_a {h_a * MM * 1000:.3g} µm < λ·r_β "
+                        f"{rc_hi.h_floor * 1000:.3g} µm (rubbing; the vendor angle cap wins)")
+    if "R1p" in warned and not checks["R1p"].ok:
+        warnings.append(f"WARNING: the plunge chip {h_p * MM * 1000:.3g} µm is under λ·r_β {rc_hi.h_floor * 1000:.3g} µm "
+                        f"(rubbing; the vendor plunge cap wins)")
+    warnings += conflicts
     if core_diameter(t.D, D_h) > 0:
         warnings.append(f"a core of {core_diameter(t.D, D_h):.4f}\" stands in the bore")
-    op_rpm_feed = fz * t.z * op_rpm if op_rpm else None
-    if op_rpm and op_rpm > rpm * 1.02:
-        warnings.append(f"the operation runs {op_rpm:.0f} rpm; at that speed this ramp (fz {fz:.6f}\") needs "
-                        f"{op_rpm_feed:.2f} IPM and runs above C7's slot-engagement speed ({rpm:.0f} rpm); set the "
-                        f"ramp spindle speed to {rpm:.0f} rpm")
-    prov += [f"side cut: slot of depth p = π·D_h·tan α = {loads['ap_side_in']:.5f}\" (upper bound; volume-balance "
-             f"depth {loads['ap_eq_in']:.5f}\"), speed C7 at slot engagement {rpm:.0f} rpm",
+    if op_rpm and rpm > rpm_c7 * 1.02:
+        warnings.append(f"the ramp runs at the operation's {rpm:.0f} rpm ({math.pi * t.D * rpm / 12.0:.0f} SFM), above "
+                        f"C7's slot-engagement speed {rpm_c7:.0f} rpm ({math.pi * t.D * rpm_c7 / 12.0:.0f} SFM); fz and "
+                        f"the chips are as designed, tool life in the entry is shorter")
+    prov += [f"edge radius r_β {r_b * 1000:.3g} µm ({r_b_basis}); λ {rc_hi.side.lam:g} → minimum chip "
+             f"{rc_hi.h_floor * 1000:.3g} µm",
+             f"side cut: slot of depth p = π·D_h·tan α = {loads['ap_side_in']:.5f}\" (upper bound; volume-balance "
+             f"depth {loads['ap_eq_in']:.5f}\"), C7 slot-engagement speed {rpm_c7:.0f} rpm; feeds at {rpm:.0f} rpm"
+             + (" (the operation's, D4)" if op_rpm else ""),
              f"end teeth: h_a = fz·sin α = {fz:.6f}·sin {alpha:.2f}° = {h_a:.2e}\" ({h_a * MM * 1000:.3g} µm); "
-             f"R1 floor {rc_hi.h_floor * 1000:.3g} µm; R2 cap "
+             f"R1 floor {rc_hi.h_floor * 1000:.3g} µm ({'warning only, D2' if r1_warning else 'enforced'}); R2 cap "
              + (f"{rc_hi.h_cap * 1000:.3g} µm" if rc_hi.h_cap is not None else "off"),
              f"helix: D_h {dh:.3f}·D = {D_h:.4f}\" (bore {bore_diameter(t.D, D_h):.4f}\"); range "
              f"[{rc.dh_range[0]:.3f}, {rc.dh_range[1]:.3f}]·D ({rc.dh_basis})",
-             f"selection: {rule}"]
+             f"selection ({method} search): {rule}",
+             f"plunge: {PLUNGE_NOTE}"]
     prov += [f"{k}: {c.detail}" for k, c in checks.items() if c.applies]
     return {
-        "feasible": all(c.ok for k, c in checks.items() if k not in overridden),
-        "overridden": overridden,
+        "feasible": all(c.ok for k, c in checks.items() if k not in overridden and k not in warned),
+        "overridden": overridden, "warned": [k for k in warned if not checks[k].ok],
+        "r1_warning": "R1" in warned and not checks["R1"].ok,
         "ramp_angle_deg": alpha,
         "helix_diameter_over_D": dh, "helix_diameter_in": D_h,
         "helix_min_diameter_over_D": rc.dh_range[0], "helix_min_diameter_in": rc.dh_range[0] * t.D,
         "bore_diameter_in": bore_diameter(t.D, D_h),
         "pitch_in": loads["ap_side_in"],
-        "rpm": rpm, "sfm": math.pi * t.D * rpm / 12.0,
+        "rpm": rpm_c7, "sfm": math.pi * t.D * rpm_c7 / 12.0, "spindle_rpm": rpm,
         "fz_in": fz, "ramp_feed_ipm": feed, "descent_ipm": vz, "plunge_feed_ipm": plunge,
+        "ramp_feed_at_c7_rpm_ipm": fz * t.z * rpm_c7, "ramp_feed_at_op_rpm_ipm": fz * t.z * op_rpm if op_rpm else None,
         "end_chip_in": h_a, "end_chip_floor_in": rc_hi.h_floor / MM,
         "end_chip_cap_in": rc_hi.h_cap / MM if rc_hi.h_cap is not None else None,
-        "ramp_feed_at_op_rpm_ipm": op_rpm_feed,
+        "edge_radius_mm": r_b, "edge_radius_basis": r_b_basis,
         "binding": binding, "checks": {k: c.to_dict() for k, c in checks.items()},
-        "violated": [k for k, c in checks.items() if not c.ok],
+        "violated": [k for k, c in checks.items() if not c.ok and k not in warned],
         "loads": loads, "consensus": rc.cons, "conflicts": conflicts, "warnings": warnings,
+        "plunge_note": PLUNGE_NOTE,
         "eliminated_by": elim, "candidates": len(cands), "provenance": prov,
-        "aggressiveness": mg.aggressiveness,
+        "aggressiveness": mg.aggressiveness, "method": method,
     }

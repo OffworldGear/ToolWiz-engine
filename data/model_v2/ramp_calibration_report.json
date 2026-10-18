@@ -1,5 +1,5 @@
 {
- "version": "2026-10-18.1",
+ "version": "2026-10-18.2",
  "generated_by": "tools/calibrate_v2_ramp.py",
  "date": "2026-10-18",
  "rows": 568,
@@ -718,56 +718,62 @@
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 3.4672,
-    "helix_diameter_over_D": 0.6,
-    "helix_diameter_in": 0.075,
+    "ramp_angle_deg": 2.7326,
+    "helix_diameter_over_D": 1.0,
+    "helix_diameter_in": 0.125,
     "helix_min_diameter_in": 0.025,
-    "bore_diameter_in": 0.2,
-    "pitch_in": 0.014276,
+    "bore_diameter_in": 0.25,
+    "pitch_in": 0.018743,
     "rpm": 3935.8,
     "sfm": 128.8,
-    "fz_in": 0.00039066,
-    "ramp_feed_ipm": 6.1503,
-    "descent_ipm": 0.37195,
-    "plunge_feed_ipm": 1.0609,
-    "end_chip_in": 2.3626e-05,
-    "end_chip_floor_in": 2.3622e-05,
+    "spindle_rpm": 6521.2,
+    "fz_in": 0.00039144,
+    "ramp_feed_ipm": 10.211,
+    "ramp_feed_at_c7_rpm_ipm": 6.1626,
+    "descent_ipm": 0.48679,
+    "plunge_feed_ipm": 1.7614,
+    "end_chip_in": 1.8662e-05,
+    "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 0.0001991,
-    "ramp_feed_at_op_rpm_ipm": 10.19,
+    "edge_radius_mm": 0.0012,
+    "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
+    "r1_warning": false,
     "binding": [
      "C14v",
      "C14f",
-     "R1",
      "R14a",
      "R14p"
     ],
-    "conflicts": [
-     "R14a: no angle under the vendor cap 2.76° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+    "warned": [],
+    "conflicts": [],
+    "warnings": [
+     "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
+     "the ramp runs at the operation's 6521 rpm (213 SFM), above C7's slot-engagement speed 3936 rpm (129 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0063306,
-     "limit": 0.0006,
+     "value": 0.0063505,
+     "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.013515,
+     "value": 0.013535,
      "limit": 0.014496,
      "ok": true
     },
     "C3": {
-     "value": 0.00072261,
+     "value": 0.00094402,
      "limit": 0.00098425,
      "ok": true
     },
     "C4": {
-     "value": 240.4,
+     "value": 314.5,
      "limit": 1339.5,
      "ok": true
     },
     "C5": {
-     "value": 0.0046436,
+     "value": 0.0078242,
      "limit": 0.9,
      "ok": true
     },
@@ -777,7 +783,7 @@
      "ok": true
     },
     "C11": {
-     "value": 6.1503,
+     "value": 10.211,
      "limit": 1181.1,
      "ok": true
     },
@@ -787,47 +793,47 @@
      "ok": true
     },
     "C14f": {
-     "value": 0.00039066,
+     "value": 0.00039144,
      "limit": 0.00039146,
      "ok": true
     },
     "C14m": {
-     "value": 0.010975,
-     "limit": 0.01249,
+     "value": 0.014438,
+     "limit": 0.016398,
      "ok": true
     },
     "R1": {
-     "value": 0.0006001,
-     "limit": 0.0006,
+     "value": 0.00047401,
+     "limit": 0.00036,
      "ok": true
     },
     "R2": {
-     "value": 0.0006001,
+     "value": 0.00047401,
      "limit": 0.0050572,
      "ok": true
     },
     "R6": {
-     "value": 0.6,
+     "value": 1.0,
      "limit": 0.2,
      "ok": true
     },
     "R14a": {
-     "value": 3.4672,
+     "value": 2.7326,
      "limit": 2.76,
-     "ok": false
+     "ok": true
     },
     "R14p": {
-     "value": 1.0609,
-     "limit": 1.0609,
+     "value": 1.7614,
+     "limit": 1.7614,
      "ok": true
     },
     "R1p": {
-     "value": 0.0017117,
-     "limit": 0.0006,
+     "value": 0.0017151,
+     "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0017117,
+     "value": 0.0017151,
      "limit": 0.0050572,
      "ok": true
     }
@@ -836,7 +842,7 @@
     "ramp_angle_deg": 2.0,
     "ramp_feed_ipm_v1_rule_on_v2_feed": 9.2641,
     "plunge_feed_ipm_v1_rule_on_v2_feed": 5.4041,
-    "end_chip_in_at_v2_ramp_fz": 1.3634e-05
+    "end_chip_in_at_v2_ramp_fz": 1.3661e-05
    }
   },
   {
@@ -851,56 +857,62 @@
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 3.1969,
-    "helix_diameter_over_D": 0.6,
-    "helix_diameter_in": 0.075,
+    "ramp_angle_deg": 2.9701,
+    "helix_diameter_over_D": 0.8,
+    "helix_diameter_in": 0.1,
     "helix_min_diameter_in": 0.025,
-    "bore_diameter_in": 0.2,
-    "pitch_in": 0.01316,
+    "bore_diameter_in": 0.225,
+    "pitch_in": 0.0163,
     "rpm": 4278.1,
     "sfm": 140.0,
-    "fz_in": 0.0004236,
-    "ramp_feed_ipm": 7.2487,
-    "descent_ipm": 0.40424,
-    "plunge_feed_ipm": 1.3591,
-    "end_chip_in": 2.3623e-05,
-    "end_chip_floor_in": 2.3622e-05,
+    "spindle_rpm": 7150.5,
+    "fz_in": 0.0004255,
+    "ramp_feed_ipm": 12.17,
+    "ramp_feed_at_c7_rpm_ipm": 7.2813,
+    "descent_ipm": 0.6306,
+    "plunge_feed_ipm": 2.2819,
+    "end_chip_in": 2.2047e-05,
+    "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 0.00021641,
-    "ramp_feed_at_op_rpm_ipm": 12.116,
+    "edge_radius_mm": 0.0012,
+    "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
+    "r1_warning": false,
     "binding": [
      "C14v",
      "C14f",
-     "R1",
      "R14a",
      "R14p"
     ],
-    "conflicts": [
-     "R14a: no angle under the vendor cap 3.00° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+    "warned": [],
+    "conflicts": [],
+    "warnings": [
+     "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
+     "the ramp runs at the operation's 7151 rpm (234 SFM), above C7's slot-engagement speed 4278 rpm (140 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0071673,
-     "limit": 0.0006,
+     "value": 0.0072156,
+     "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.014351,
+     "value": 0.0144,
      "limit": 0.015757,
      "ok": true
     },
     "C3": {
-     "value": 0.00069931,
+     "value": 0.00086495,
      "limit": 0.00098425,
      "ok": true
     },
     "C4": {
-     "value": 232.88,
+     "value": 288.35,
      "limit": 1382.2,
      "ok": true
     },
     "C5": {
-     "value": 0.004608,
+     "value": 0.0083087,
      "limit": 0.95,
      "ok": true
     },
@@ -910,7 +922,7 @@
      "ok": true
     },
     "C11": {
-     "value": 7.2487,
+     "value": 12.17,
      "limit": 1181.1,
      "ok": true
     },
@@ -920,47 +932,47 @@
      "ok": true
     },
     "C14f": {
-     "value": 0.0004236,
+     "value": 0.0004255,
      "limit": 0.0004255,
      "ok": true
     },
     "C14m": {
-     "value": 0.011924,
-     "limit": 0.012515,
+     "value": 0.014836,
+     "limit": 0.015501,
      "ok": true
     },
     "R1": {
-     "value": 0.00060002,
-     "limit": 0.0006,
+     "value": 0.00056,
+     "limit": 0.00036,
      "ok": true
     },
     "R2": {
-     "value": 0.00060002,
+     "value": 0.00056,
      "limit": 0.0054969,
      "ok": true
     },
     "R6": {
-     "value": 0.6,
+     "value": 0.8,
      "limit": 0.2,
      "ok": true
     },
     "R14a": {
-     "value": 3.1969,
+     "value": 2.9701,
      "limit": 3.0,
-     "ok": false
+     "ok": true
     },
     "R14p": {
-     "value": 1.3591,
-     "limit": 1.3591,
+     "value": 2.2819,
+     "limit": 2.2819,
      "ok": true
     },
     "R1p": {
-     "value": 0.0020174,
-     "limit": 0.0006,
+     "value": 0.0020264,
+     "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0020174,
+     "value": 0.0020264,
      "limit": 0.0054969,
      "ok": true
     }
@@ -969,7 +981,7 @@
     "ramp_angle_deg": 2.3,
     "ramp_feed_ipm_v1_rule_on_v2_feed": 11.047,
     "plunge_feed_ipm_v1_rule_on_v2_feed": 6.4438,
-    "end_chip_in_at_v2_ramp_fz": 1.7e-05
+    "end_chip_in_at_v2_ramp_fz": 1.7076e-05
    }
   },
   {
@@ -984,55 +996,67 @@
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 5.8745,
+    "ramp_angle_deg": 2.7326,
     "helix_diameter_over_D": 1.0,
     "helix_diameter_in": 0.0625,
     "helix_min_diameter_in": 0.023438,
     "bore_diameter_in": 0.125,
-    "pitch_in": 0.020202,
+    "pitch_in": 0.0093715,
     "rpm": 8624.7,
     "sfm": 141.12,
-    "fz_in": 0.00023082,
-    "ramp_feed_ipm": 7.9631,
-    "descent_ipm": 0.81502,
-    "plunge_feed_ipm": 1.4506,
-    "end_chip_in": 2.3625e-05,
-    "end_chip_floor_in": 2.3622e-05,
+    "spindle_rpm": 11018.0,
+    "fz_in": 0.00023196,
+    "ramp_feed_ipm": 10.223,
+    "ramp_feed_at_c7_rpm_ipm": 8.0022,
+    "descent_ipm": 0.48737,
+    "plunge_feed_ipm": 1.8622,
+    "end_chip_in": 1.1059e-05,
+    "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 9.955e-05,
-    "ramp_feed_at_op_rpm_ipm": 10.173,
+    "edge_radius_mm": 0.0012,
+    "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
+    "r1_warning": true,
     "binding": [
      "C2",
-     "R1",
      "R14a",
      "R14p"
     ],
+    "warned": [
+     "R1"
+    ],
     "conflicts": [
-     "R14a: no angle under the vendor cap 2.76° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+     "R1: no angle under the vendor cap 2.76° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
+    ],
+    "warnings": [
+     "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
+     "WARNING: the end teeth run under the minimum chip: h_a 0.281 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
+     "R1: no angle under the vendor cap 2.76° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
+     "the ramp runs at the operation's 11018 rpm (180 SFM), above C7's slot-engagement speed 8625 rpm (141 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0022708,
-     "limit": 0.0006,
+     "value": 0.0022996,
+     "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.009455,
+     "value": 0.0094838,
      "limit": 0.0094839,
      "ok": true
     },
     "C3": {
-     "value": 0.00070304,
+     "value": 0.00033891,
      "limit": 0.00098425,
      "ok": true
     },
     "C4": {
-     "value": 735.09,
+     "value": 352.92,
      "limit": 1339.5,
      "ok": true
     },
     "C5": {
-     "value": 0.0034209,
+     "value": 0.0021575,
      "limit": 0.9,
      "ok": true
     },
@@ -1042,12 +1066,12 @@
      "ok": true
     },
     "C8": {
-     "value": 0.020202,
+     "value": 0.0093715,
      "limit": 0.021875,
      "ok": true
     },
     "C11": {
-     "value": 7.9631,
+     "value": 10.223,
      "limit": 1181.1,
      "ok": true
     },
@@ -1057,22 +1081,22 @@
      "ok": true
     },
     "C14f": {
-     "value": 0.00023082,
+     "value": 0.00023196,
      "limit": 0.00028129,
      "ok": true
     },
     "C14m": {
-     "value": 0.010055,
-     "limit": 0.016465,
+     "value": 0.0046871,
+     "limit": 0.0076379,
      "ok": true
     },
     "R1": {
-     "value": 0.00060007,
-     "limit": 0.0006,
-     "ok": true
+     "value": 0.00028089,
+     "limit": 0.00036,
+     "ok": false
     },
     "R2": {
-     "value": 0.00060007,
+     "value": 0.00028089,
      "limit": 0.0025286,
      "ok": true
     },
@@ -1082,22 +1106,22 @@
      "ok": true
     },
     "R14a": {
-     "value": 5.8745,
+     "value": 2.7326,
      "limit": 2.76,
-     "ok": false
+     "ok": true
     },
     "R14p": {
-     "value": 1.4506,
-     "limit": 1.4506,
+     "value": 1.8622,
+     "limit": 1.8622,
      "ok": true
     },
     "R1p": {
-     "value": 0.001068,
-     "limit": 0.0006,
+     "value": 0.0010732,
+     "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.001068,
+     "value": 0.0010732,
      "limit": 0.0025286,
      "ok": true
     }
@@ -1106,7 +1130,7 @@
     "ramp_angle_deg": 1.0,
     "ramp_feed_ipm_v1_rule_on_v2_feed": 7.6012,
     "plunge_feed_ipm_v1_rule_on_v2_feed": 4.434,
-    "end_chip_in_at_v2_ramp_fz": 4.0284e-06
+    "end_chip_in_at_v2_ramp_fz": 4.0482e-06
    }
   },
   {
@@ -1121,55 +1145,67 @@
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 5.1311,
+    "ramp_angle_deg": 2.9701,
     "helix_diameter_over_D": 1.0,
     "helix_diameter_in": 0.0625,
     "helix_min_diameter_in": 0.023438,
     "bore_diameter_in": 0.125,
-    "pitch_in": 0.017631,
+    "pitch_in": 0.010188,
     "rpm": 9374.6,
     "sfm": 153.39,
-    "fz_in": 0.00026416,
-    "ramp_feed_ipm": 9.9058,
-    "descent_ipm": 0.88593,
-    "plunge_feed_ipm": 1.9613,
-    "end_chip_in": 2.3626e-05,
-    "end_chip_floor_in": 2.3622e-05,
+    "spindle_rpm": 12195.0,
+    "fz_in": 0.00026442,
+    "ramp_feed_ipm": 12.898,
+    "ramp_feed_at_c7_rpm_ipm": 9.9152,
+    "descent_ipm": 0.66833,
+    "plunge_feed_ipm": 2.5539,
+    "end_chip_in": 1.3701e-05,
+    "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 0.00010821,
-    "ramp_feed_at_op_rpm_ipm": 12.886,
+    "edge_radius_mm": 0.0012,
+    "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
+    "r1_warning": true,
     "binding": [
      "C2",
-     "R1",
      "R14a",
      "R14p"
     ],
+    "warned": [
+     "R1"
+    ],
     "conflicts": [
-     "R14a: no angle under the vendor cap 3.00° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+     "R1: no angle under the vendor cap 3.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
+    ],
+    "warnings": [
+     "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
+     "WARNING: the end teeth run under the minimum chip: h_a 0.348 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
+     "R1: no angle under the vendor cap 3.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
+     "the ramp runs at the operation's 12195 rpm (200 SFM), above C7's slot-engagement speed 9375 rpm (153 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0031177,
-     "limit": 0.0006,
+     "value": 0.0031241,
+     "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.010302,
+     "value": 0.010308,
      "limit": 0.010309,
      "ok": true
     },
     "C3": {
-     "value": 0.00066166,
+     "value": 0.00039205,
      "limit": 0.00098425,
      "ok": true
     },
     "C4": {
-     "value": 692.85,
+     "value": 409.31,
      "limit": 1382.2,
      "ok": true
     },
     "C5": {
-     "value": 0.0036636,
+     "value": 0.0028727,
      "limit": 0.95,
      "ok": true
     },
@@ -1179,12 +1215,12 @@
      "ok": true
     },
     "C8": {
-     "value": 0.017631,
+     "value": 0.010188,
      "limit": 0.021875,
      "ok": true
     },
     "C11": {
-     "value": 9.9058,
+     "value": 12.898,
      "limit": 1181.1,
      "ok": true
     },
@@ -1194,22 +1230,22 @@
      "ok": true
     },
     "C14f": {
-     "value": 0.00026416,
+     "value": 0.00026442,
      "limit": 0.00030575,
      "ok": true
     },
     "C14m": {
-     "value": 0.010916,
-     "limit": 0.015619,
+     "value": 0.0063132,
+     "limit": 0.009025,
      "ok": true
     },
     "R1": {
-     "value": 0.00060009,
-     "limit": 0.0006,
-     "ok": true
+     "value": 0.000348,
+     "limit": 0.00036,
+     "ok": false
     },
     "R2": {
-     "value": 0.00060009,
+     "value": 0.000348,
      "limit": 0.0027485,
      "ok": true
     },
@@ -1219,22 +1255,22 @@
      "ok": true
     },
     "R14a": {
-     "value": 5.1311,
+     "value": 2.9701,
      "limit": 3.0,
-     "ok": false
+     "ok": true
     },
     "R14p": {
-     "value": 1.9613,
-     "limit": 1.9613,
+     "value": 2.5539,
+     "limit": 2.5539,
      "ok": true
     },
     "R1p": {
-     "value": 0.0013285,
-     "limit": 0.0006,
+     "value": 0.0013298,
+     "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0013285,
+     "value": 0.0013298,
      "limit": 0.0027485,
      "ok": true
     }
@@ -1243,7 +1279,7 @@
     "ramp_angle_deg": 1.15,
     "ramp_feed_ipm_v1_rule_on_v2_feed": 10.01,
     "plunge_feed_ipm_v1_rule_on_v2_feed": 5.8394,
-    "end_chip_in_at_v2_ramp_fz": 5.3018e-06
+    "end_chip_in_at_v2_ramp_fz": 5.3068e-06
    }
   }
  ],
@@ -1888,564 +1924,18 @@
    "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
   }
  ],
- "residuals": {
-  "all_0.75": {
-   "label": "all rows, tables from all rows, 75%",
-   "aggressiveness": 0.75,
-   "overall": {
-    "n": 248,
-    "median_log_ratio": -0.012676,
-    "median_abs_log": 0.41816,
-    "inside_vendor_range": 0.13306
-   },
-   "skipped": {
-    "no calibrated v2 family 'Nickel Alloy'": 5,
-    "infeasible": 7,
-    "no calibrated v2 family 'Graphite'": 8,
-    "no calibrated v2 family 'Aluminum - Cast'": 3
-   },
-   "by_vendor": {
-    "Emuge-Franken": {
-     "n": 39,
-     "median_log_ratio": -0.012741,
-     "median_abs_log": 0.25599,
-     "inside_vendor_range": 0.61538
-    },
-    "Harvey Performance": {
-     "n": 41,
-     "median_log_ratio": 0.50276,
-     "median_abs_log": 0.50276,
-     "inside_vendor_range": 0.21951
-    },
-    "Kennametal": {
-     "n": 20,
-     "median_log_ratio": 0.45225,
-     "median_abs_log": 0.55188,
-     "inside_vendor_range": 0.0
-    },
-    "Kyocera": {
-     "n": 63,
-     "median_log_ratio": -0.23112,
-     "median_abs_log": 0.41344,
-     "inside_vendor_range": 0.0
-    },
-    "Sandvik": {
-     "n": 82,
-     "median_log_ratio": -0.11616,
-     "median_abs_log": 0.69427,
-     "inside_vendor_range": 0.0
-    },
-    "YG-1": {
-     "n": 3,
-     "median_log_ratio": -0.010236,
-     "median_abs_log": 0.010236,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_band": {
-    "1/16-3/32": {
-     "n": 18,
-     "median_log_ratio": 0.53659,
-     "median_abs_log": 0.53687,
-     "inside_vendor_range": 0.0
-    },
-    "1/8-3/16": {
-     "n": 45,
-     "median_log_ratio": -0.042786,
-     "median_abs_log": 0.39281,
-     "inside_vendor_range": 0.13333
-    },
-    "1/4-3/8": {
-     "n": 90,
-     "median_log_ratio": -0.010236,
-     "median_abs_log": 0.41817,
-     "inside_vendor_range": 0.17778
-    },
-    "1/2-3/4": {
-     "n": 90,
-     "median_log_ratio": -0.012676,
-     "median_abs_log": 0.41344,
-     "inside_vendor_range": 0.12222
-    },
-    "1 and up": {
-     "n": 5,
-     "median_log_ratio": -0.24383,
-     "median_abs_log": 0.30376,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_family": {
-    "Aluminum - Wrought (6061)": {
-     "n": 16,
-     "median_log_ratio": -0.010236,
-     "median_abs_log": 0.010236,
-     "inside_vendor_range": 0.0
-    },
-    "High Temp Nickel Alloy": {
-     "n": 10,
-     "median_log_ratio": 0.24501,
-     "median_abs_log": 0.25541,
-     "inside_vendor_range": 0.3
-    },
-    "Stainless - 300 Series (316)": {
-     "n": 20,
-     "median_log_ratio": -0.010161,
-     "median_abs_log": 0.39281,
-     "inside_vendor_range": 0.0
-    },
-    "Stainless - PH Series (17-4)": {
-     "n": 91,
-     "median_log_ratio": -0.012741,
-     "median_abs_log": 0.48091,
-     "inside_vendor_range": 0.065934
-    },
-    "Steel - Medium Carbon Alloy (4130)": {
-     "n": 48,
-     "median_log_ratio": -0.12089,
-     "median_abs_log": 0.50276,
-     "inside_vendor_range": 0.125
-    },
-    "Steel - Tool (H13)": {
-     "n": 38,
-     "median_log_ratio": -0.19134,
-     "median_abs_log": 0.41691,
-     "inside_vendor_range": 0.39474
-    },
-    "Titanium Alloy": {
-     "n": 25,
-     "median_log_ratio": -0.11802,
-     "median_abs_log": 0.41136,
-     "inside_vendor_range": 0.12
-    }
-   },
-   "binding": {
-    "C14v": 131,
-    "C14f": 142,
-    "C14m": 90,
-    "R1": 21,
-    "R6": 91,
-    "R14a": 236,
-    "R14p": 212,
-    "C2": 109,
-    "C7": 25,
-    "R2p": 36,
-    "C3": 10,
-    "C5": 8
-   }
+ "search_check_fast_vs_exhaustive": {
+  "rows": 24,
+  "worst_difference": {
+   "angle_deg": 0.00045659,
+   "helix_over_D": 0.0,
+   "fz_rel": 6.7965e-05,
+   "ramp_feed_rel": 6.7965e-05,
+   "plunge_rel": 6.7965e-05
   },
-  "all_0.5": {
-   "label": "all rows, tables from all rows, 50%",
-   "aggressiveness": 0.5,
-   "overall": {
-    "n": 248,
-    "median_log_ratio": -0.094549,
-    "median_abs_log": 0.4216,
-    "inside_vendor_range": 0.125
-   },
-   "skipped": {
-    "no calibrated v2 family 'Nickel Alloy'": 5,
-    "infeasible": 7,
-    "no calibrated v2 family 'Graphite'": 8,
-    "no calibrated v2 family 'Aluminum - Cast'": 3
-   },
-   "by_vendor": {
-    "Emuge-Franken": {
-     "n": 39,
-     "median_log_ratio": -0.089229,
-     "median_abs_log": 0.31627,
-     "inside_vendor_range": 0.61538
-    },
-    "Harvey Performance": {
-     "n": 41,
-     "median_log_ratio": 0.41628,
-     "median_abs_log": 0.4216,
-     "inside_vendor_range": 0.17073
-    },
-    "Kennametal": {
-     "n": 20,
-     "median_log_ratio": 0.39313,
-     "median_abs_log": 0.4973,
-     "inside_vendor_range": 0.0
-    },
-    "Kyocera": {
-     "n": 63,
-     "median_log_ratio": -0.31791,
-     "median_abs_log": 0.49473,
-     "inside_vendor_range": 0.0
-    },
-    "Sandvik": {
-     "n": 82,
-     "median_log_ratio": -0.19456,
-     "median_abs_log": 0.69214,
-     "inside_vendor_range": 0.0
-    },
-    "YG-1": {
-     "n": 3,
-     "median_log_ratio": -0.093719,
-     "median_abs_log": 0.093719,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_band": {
-    "1/16-3/32": {
-     "n": 18,
-     "median_log_ratio": 0.67214,
-     "median_abs_log": 0.67214,
-     "inside_vendor_range": 0.0
-    },
-    "1/8-3/16": {
-     "n": 45,
-     "median_log_ratio": -0.093719,
-     "median_abs_log": 0.41628,
-     "inside_vendor_range": 0.088889
-    },
-    "1/4-3/8": {
-     "n": 90,
-     "median_log_ratio": -0.094549,
-     "median_abs_log": 0.4216,
-     "inside_vendor_range": 0.17778
-    },
-    "1/2-3/4": {
-     "n": 90,
-     "median_log_ratio": -0.094549,
-     "median_abs_log": 0.4216,
-     "inside_vendor_range": 0.12222
-    },
-    "1 and up": {
-     "n": 5,
-     "median_log_ratio": -0.23333,
-     "median_abs_log": 0.3172,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_family": {
-    "Aluminum - Wrought (6061)": {
-     "n": 16,
-     "median_log_ratio": -0.093719,
-     "median_abs_log": 0.093719,
-     "inside_vendor_range": 0.0
-    },
-    "High Temp Nickel Alloy": {
-     "n": 10,
-     "median_log_ratio": 0.16352,
-     "median_abs_log": 0.25541,
-     "inside_vendor_range": 0.3
-    },
-    "Stainless - 300 Series (316)": {
-     "n": 20,
-     "median_log_ratio": -0.094768,
-     "median_abs_log": 0.30938,
-     "inside_vendor_range": 0.0
-    },
-    "Stainless - PH Series (17-4)": {
-     "n": 91,
-     "median_log_ratio": -0.094549,
-     "median_abs_log": 0.4216,
-     "inside_vendor_range": 0.065934
-    },
-    "Steel - Medium Carbon Alloy (4130)": {
-     "n": 48,
-     "median_log_ratio": -0.20348,
-     "median_abs_log": 0.43441,
-     "inside_vendor_range": 0.125
-    },
-    "Steel - Tool (H13)": {
-     "n": 38,
-     "median_log_ratio": -0.17904,
-     "median_abs_log": 0.49672,
-     "inside_vendor_range": 0.34211
-    },
-    "Titanium Alloy": {
-     "n": 25,
-     "median_log_ratio": -0.20142,
-     "median_abs_log": 0.49473,
-     "inside_vendor_range": 0.12
-    }
-   },
-   "binding": {
-    "C14v": 132,
-    "C14f": 148,
-    "R1": 29,
-    "R6": 81,
-    "R14a": 236,
-    "R14p": 212,
-    "C2": 120,
-    "C7": 24,
-    "R2p": 36,
-    "C14m": 8,
-    "C3": 5,
-    "C5": 8
-   }
-  },
-  "holdout_0.75": {
-   "label": "hold-out rows, tables from training rows, 75%",
-   "aggressiveness": 0.75,
-   "overall": {
-    "n": 52,
-    "median_log_ratio": -0.23348,
-    "median_abs_log": 0.68517,
-    "inside_vendor_range": 0.057692
-   },
-   "skipped": {
-    "infeasible": 2,
-    "no calibrated v2 family 'Graphite'": 8
-   },
-   "by_vendor": {
-    "Emuge-Franken": {
-     "n": 3,
-     "median_log_ratio": -0.23584,
-     "median_abs_log": 0.23584,
-     "inside_vendor_range": 1.0
-    },
-    "Harvey Performance": {
-     "n": 5,
-     "median_log_ratio": 0.68291,
-     "median_abs_log": 0.68291,
-     "inside_vendor_range": 0.0
-    },
-    "Kennametal": {
-     "n": 8,
-     "median_log_ratio": 0.68517,
-     "median_abs_log": 0.68517,
-     "inside_vendor_range": 0.0
-    },
-    "Kyocera": {
-     "n": 16,
-     "median_log_ratio": -0.65743,
-     "median_abs_log": 0.70568,
-     "inside_vendor_range": 0.0
-    },
-    "Sandvik": {
-     "n": 20,
-     "median_log_ratio": -1.6153,
-     "median_abs_log": 1.6153,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_band": {
-    "1/16-3/32": {
-     "n": 2,
-     "median_log_ratio": 0.016747,
-     "median_abs_log": 1.6321,
-     "inside_vendor_range": 0.0
-    },
-    "1/8-3/16": {
-     "n": 10,
-     "median_log_ratio": -1.2838,
-     "median_abs_log": 1.2838,
-     "inside_vendor_range": 0.0
-    },
-    "1/4-3/8": {
-     "n": 19,
-     "median_log_ratio": -0.23112,
-     "median_abs_log": 0.68291,
-     "inside_vendor_range": 0.10526
-    },
-    "1/2-3/4": {
-     "n": 19,
-     "median_log_ratio": -0.012741,
-     "median_abs_log": 0.68517,
-     "inside_vendor_range": 0.052632
-    },
-    "1 and up": {
-     "n": 2,
-     "median_log_ratio": -0.28851,
-     "median_abs_log": 0.28851,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_family": {
-    "Aluminum - Wrought (6061)": {
-     "n": 5,
-     "median_log_ratio": 0.68291,
-     "median_abs_log": 0.68291,
-     "inside_vendor_range": 0.0
-    },
-    "High Temp Nickel Alloy": {
-     "n": 3,
-     "median_log_ratio": -0.23584,
-     "median_abs_log": 0.23584,
-     "inside_vendor_range": 1.0
-    },
-    "Stainless - 300 Series (316)": {
-     "n": 4,
-     "median_log_ratio": 0.97339,
-     "median_abs_log": 0.97339,
-     "inside_vendor_range": 0.0
-    },
-    "Stainless - PH Series (17-4)": {
-     "n": 11,
-     "median_log_ratio": -0.012741,
-     "median_abs_log": 0.012741,
-     "inside_vendor_range": 0.0
-    },
-    "Steel - Medium Carbon Alloy (4130)": {
-     "n": 28,
-     "median_log_ratio": -0.73783,
-     "median_abs_log": 0.90606,
-     "inside_vendor_range": 0.0
-    },
-    "Steel - Tool (H13)": {
-     "n": 1,
-     "median_log_ratio": 1.6488,
-     "median_abs_log": 1.6488,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "binding": {
-    "C14v": 26,
-    "C14m": 13,
-    "R14a": 45,
-    "R14p": 37,
-    "R6": 21,
-    "C2": 35,
-    "C7": 4,
-    "R2p": 15,
-    "R2": 2,
-    "C14f": 20,
-    "C5": 4,
-    "C3": 2,
-    "R1": 3
-   }
-  },
-  "physics_only_0.75": {
-   "label": "physics only (R14 off), 75%",
-   "aggressiveness": 0.75,
-   "overall": {
-    "n": 248,
-    "median_log_ratio": 1.5294,
-    "median_abs_log": 1.5294,
-    "inside_vendor_range": 0.0
-   },
-   "skipped": {
-    "infeasible": 7
-   },
-   "by_vendor": {
-    "Emuge-Franken": {
-     "n": 39,
-     "median_log_ratio": 1.7689,
-     "median_abs_log": 1.7689,
-     "inside_vendor_range": 0.0
-    },
-    "Harvey Performance": {
-     "n": 41,
-     "median_log_ratio": 2.0469,
-     "median_abs_log": 2.0469,
-     "inside_vendor_range": 0.0
-    },
-    "Kennametal": {
-     "n": 20,
-     "median_log_ratio": 1.106,
-     "median_abs_log": 1.106,
-     "inside_vendor_range": 0.0
-    },
-    "Kyocera": {
-     "n": 63,
-     "median_log_ratio": 1.4692,
-     "median_abs_log": 1.4692,
-     "inside_vendor_range": 0.0
-    },
-    "Sandvik": {
-     "n": 82,
-     "median_log_ratio": 0.90613,
-     "median_abs_log": 0.90613,
-     "inside_vendor_range": 0.0
-    },
-    "YG-1": {
-     "n": 3,
-     "median_log_ratio": 0.20713,
-     "median_abs_log": 0.20713,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_band": {
-    "1/16-3/32": {
-     "n": 18,
-     "median_log_ratio": 2.0756,
-     "median_abs_log": 2.0756,
-     "inside_vendor_range": 0.0
-    },
-    "1/8-3/16": {
-     "n": 45,
-     "median_log_ratio": 1.6982,
-     "median_abs_log": 1.6982,
-     "inside_vendor_range": 0.0
-    },
-    "1/4-3/8": {
-     "n": 90,
-     "median_log_ratio": 1.5985,
-     "median_abs_log": 1.5985,
-     "inside_vendor_range": 0.0
-    },
-    "1/2-3/4": {
-     "n": 90,
-     "median_log_ratio": 1.2266,
-     "median_abs_log": 1.2266,
-     "inside_vendor_range": 0.0
-    },
-    "1 and up": {
-     "n": 5,
-     "median_log_ratio": -0.11051,
-     "median_abs_log": 0.30376,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_family": {
-    "Aluminum - Wrought (6061)": {
-     "n": 16,
-     "median_log_ratio": 0.38264,
-     "median_abs_log": 0.38264,
-     "inside_vendor_range": 0.0
-    },
-    "High Temp Nickel Alloy": {
-     "n": 10,
-     "median_log_ratio": 1.5206,
-     "median_abs_log": 1.5206,
-     "inside_vendor_range": 0.0
-    },
-    "Stainless - 300 Series (316)": {
-     "n": 20,
-     "median_log_ratio": 1.4147,
-     "median_abs_log": 1.4147,
-     "inside_vendor_range": 0.0
-    },
-    "Stainless - PH Series (17-4)": {
-     "n": 91,
-     "median_log_ratio": 1.6051,
-     "median_abs_log": 1.6051,
-     "inside_vendor_range": 0.0
-    },
-    "Steel - Medium Carbon Alloy (4130)": {
-     "n": 48,
-     "median_log_ratio": 1.5122,
-     "median_abs_log": 1.5122,
-     "inside_vendor_range": 0.0
-    },
-    "Steel - Tool (H13)": {
-     "n": 38,
-     "median_log_ratio": 1.7453,
-     "median_abs_log": 1.7453,
-     "inside_vendor_range": 0.0
-    },
-    "Titanium Alloy": {
-     "n": 25,
-     "median_log_ratio": 1.5158,
-     "median_abs_log": 1.5158,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "binding": {
-    "C14v": 131,
-    "C14f": 141,
-    "C14m": 90,
-    "R6": 239,
-    "R2p": 248,
-    "C2": 109,
-    "C7": 25,
-    "R2": 121,
-    "C5": 18,
-    "C3": 7
-   }
-  }
+  "binding_or_feasibility_mismatch": [],
+  "median_s_fast": 0.075053,
+  "max_s_fast": 0.28257,
+  "median_s_exhaustive": 2.9442
  }
 }

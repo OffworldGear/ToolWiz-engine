@@ -200,7 +200,7 @@ def _ramp(tool, material, machine, r, out):
     cut = out.get("cut") or {}
     try:
         return ramp.optimize_ramp(tool, material, machine, float(r.aggressiveness), consensus=params.CONSENSUS_PATH,
-                                  op_feed_ipm=cut.get("feed_ipm"), op_rpm=cut.get("rpm"))
+                                  op_feed_ipm=cut.get("feed_ipm"), op_rpm=cut.get("rpm"), coating=r.coating)
     except Exception as ex:   # the cut stands; the ramp falls back to v1's rule
         return {"feasible": False, "error": f"{type(ex).__name__}: {ex}"}
 
@@ -209,12 +209,13 @@ def _ramp_details(rp):
     if not rp:
         return None
     keys = ("feasible", "error", "ramp_angle_deg", "helix_diameter_over_D", "helix_diameter_in", "helix_min_diameter_over_D",
-            "helix_min_diameter_in", "bore_diameter_in", "pitch_in", "rpm", "sfm", "fz_in", "ramp_feed_ipm",
-            "ramp_feed_at_op_rpm_ipm", "descent_ipm", "plunge_feed_ipm", "end_chip_in", "end_chip_floor_in",
-            "end_chip_cap_in", "binding", "overridden", "conflicts", "warnings", "provenance", "eliminated_by")
+            "helix_min_diameter_in", "bore_diameter_in", "pitch_in", "rpm", "sfm", "spindle_rpm", "fz_in", "ramp_feed_ipm",
+            "ramp_feed_at_c7_rpm_ipm", "descent_ipm", "plunge_feed_ipm", "end_chip_in", "end_chip_floor_in",
+            "end_chip_cap_in", "edge_radius_mm", "edge_radius_basis", "r1_warning", "binding", "overridden", "warned",
+            "conflicts", "warnings", "plunge_note", "provenance", "eliminated_by")
     out = {k: rp.get(k) for k in keys if k in rp}
     checks = rp.get("checks") or {}
-    shown = list(rp.get("binding") or []) + [k for k in ("R1", "R2", "R6", "R14a") if k in checks]
+    shown = list(rp.get("binding") or []) + [k for k in ("R1", "R2", "R6", "R14a", "R1p") if k in checks]
     out["checks"] = {k: _check_summary(checks[k]) for k in dict.fromkeys(shown) if k in checks}
     return out
 
@@ -256,9 +257,12 @@ def _apply_ramp(res, rp, ratio):
         res.plunge_feed = float(rp["plunge_feed_ipm"])
         res.ramp_diameter = float(rp["helix_diameter_in"])
         res.ramp_min_diameter = float(rp["helix_min_diameter_in"])
-        res.ramp_rpm = float(rp["rpm"])
+        res.ramp_rpm = float(rp["rpm"])   # C7's slot-engagement speed, information only: Fusion ramps at the cutting speed
         if rp.get("conflicts"):
             res.tips.append({"title": "v2 ramp", "message": "; ".join(rp["conflicts"]), "type": "warning",
+                             "fusion": True})
+        if rp.get("plunge_note"):
+            res.tips.append({"title": "v2 plunge feed", "message": rp["plunge_note"] + ".", "type": "info",
                              "fusion": True})
         return
     res.ramp_feed *= min(1.0, ratio)

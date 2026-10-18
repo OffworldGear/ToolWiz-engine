@@ -12,7 +12,7 @@ from physics_v2 import params  # noqa: E402
 from physics_v2 import ramp  # noqa: E402
 
 FAM = "Stainless - PH Series (17-4)"
-FAST = dict(n_alpha=10, n_dh=2, n_theta=48, n_quad=24, n_theta_final=72, n_quad_final=24)
+FAST = dict(n_alpha=10, n_dh=2, n_theta=48, n_quad=24, n_theta_final=72, n_quad_final=24)   # for the exhaustive runs
 
 
 def t12():
@@ -79,8 +79,8 @@ class TestOptimizeRamp(unittest.TestCase):
     def setUpClass(cls):
         cls.mat = params.material(FAM, hb=356.0)
         cls.mach = params.machine()
-        cls.r50 = ramp.optimize_ramp(t12(), cls.mat, cls.mach, 0.5, consensus=params.CONSENSUS_PATH, **FAST)
-        cls.r75 = ramp.optimize_ramp(t12(), cls.mat, cls.mach, 0.75, consensus=params.CONSENSUS_PATH, **FAST)
+        cls.r50 = ramp.optimize_ramp(t12(), cls.mat, cls.mach, 0.5, consensus=params.CONSENSUS_PATH, coating="AlTiN")
+        cls.r75 = ramp.optimize_ramp(t12(), cls.mat, cls.mach, 0.75, consensus=params.CONSENSUS_PATH, coating="AlTiN")
 
     def test_feasible_with_all_outputs(self):
         for r in (self.r50, self.r75):
@@ -93,10 +93,11 @@ class TestOptimizeRamp(unittest.TestCase):
     def test_physics_limits_hold(self):
         for r in (self.r50, self.r75):
             c = r["checks"]
-            for k in ("R1", "R1p", "C1", "C2", "C3", "C4", "C5", "C8"):
+            for k in ("C1", "C2", "C3", "C4", "C5", "C8", "R2", "R6"):
                 if c[k]["applies"]:
                     self.assertTrue(c[k]["ok"], (k, c[k]["detail"]))
-            self.assertGreaterEqual(r["end_chip_in"], r["end_chip_floor_in"] * (1 - 1e-9))
+            for k in ("R1", "R1p"):     # enforced, or a reported warning when a vendor cap wins (D2)
+                self.assertTrue(c[k]["ok"] or k in r["warned"], (k, c[k]["detail"]))
 
     def test_feeds_follow_the_geometry(self):
         for r in (self.r50, self.r75):
@@ -113,25 +114,72 @@ class TestOptimizeRamp(unittest.TestCase):
         self.assertGreaterEqual(self.r75["fz_in"], self.r50["fz_in"] * (1 - 1e-6))
         self.assertAlmostEqual(self.r75["end_chip_floor_in"], self.r50["end_chip_floor_in"])   # λ fixed
 
-    def test_vendor_cap_never_overrides_the_rubbing_floor(self):
-        # A micro tool in 17-4 H1025: the vendor angle cap would leave the end teeth under λ·r_β, so R1 wins and the
-        # conflict is reported.
+    def test_vendor_cap_wins_over_the_rubbing_floor(self):
+        # User decision 2026-10-18 (D2): T12 in 17-4 H1025 (AlTiN, r_β 1.2 µm) can't meet λ·r_β under the vendor cap,
+        # so the cap holds and R1 is a reported warning.
+        for r in (self.r50, self.r75):
+            self.assertTrue(r["feasible"])
+            self.assertLessEqual(r["ramp_angle_deg"], r["checks"]["R14a"]["limit"] * (1 + 1e-9))
+            self.assertNotIn("R14a", r["overridden"])
         r = self.r50
-        if "R14a" in r["overridden"]:
-            self.assertGreater(r["ramp_angle_deg"], r["checks"]["R14a"]["limit"])
-            self.assertTrue(any("R14a" in c for c in r["conflicts"]))
-            self.assertIn("R1", r["binding"])
+        self.assertTrue(r["r1_warning"])
+        self.assertIn("R1", r["warned"])
+        self.assertNotIn("R1", r["violated"])
+        self.assertLess(r["end_chip_in"], r["end_chip_floor_in"])
+        self.assertTrue(any(w.startswith("WARNING: the end teeth") for w in r["warnings"]))
+
+    def test_sourced_edge_radius(self):
+        self.assertAlmostEqual(self.r50["edge_radius_mm"], 0.0012)            # AlTiN micro, Liang 2018
+        self.assertAlmostEqual(ramp.edge_radius(0.0625, "AlTiN")[0], 0.0012)
+        self.assertAlmostEqual(ramp.edge_radius(0.125, "AlCrN")[0], 0.0009)
+        self.assertAlmostEqual(ramp.edge_radius(0.0625, "Uncoated")[0], 0.0015)
+        self.assertAlmostEqual(ramp.edge_radius(0.0625, "TiN")[0], 0.0015)
+        self.assertAlmostEqual(ramp.edge_radius(0.5, "AlTiN")[0], 0.0035)     # Wojciechowski 2024, 8 mm
+        mid = ramp.edge_radius(0.1875, "AlTiN")[0]
+        self.assertTrue(0.0012 < mid < 0.0035)
+        r = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, consensus=params.CONSENSUS_PATH, edge_radius_mm=0.0004)
+        self.assertAlmostEqual(r["edge_radius_mm"], 0.0004)
+        self.assertEqual(r["edge_radius_basis"], "given")
+        self.assertFalse(r["r1_warning"])                                     # 0.12 µm floor is met under the cap
+
+    def test_feeds_at_the_operation_rpm(self):
+        # D4: Fusion ramps at the cutting speed; fz and α are chosen at C7's speed, the feeds are at op_rpm.
+        r = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, consensus=params.CONSENSUS_PATH, coating="AlTiN",
+                               op_rpm=11291.0, op_feed_ipm=13.77)
+        self.assertAlmostEqual(r["fz_in"], self.r50["fz_in"], places=9)
+        self.assertAlmostEqual(r["ramp_angle_deg"], self.r50["ramp_angle_deg"], places=9)
+        self.assertEqual(r["spindle_rpm"], 11291.0)
+        self.assertAlmostEqual(r["ramp_feed_ipm"], r["fz_in"] * 4 * 11291.0, places=6)
+        self.assertAlmostEqual(r["ramp_feed_at_c7_rpm_ipm"], r["fz_in"] * 4 * r["rpm"], places=6)
+        self.assertIn("11291 rpm", r["checks"]["C5"]["detail"])
+        self.assertTrue(any("above C7's slot-engagement speed" in w for w in r["warnings"]))
+        self.assertIn("feed height", r["plunge_note"])
+
+    def test_fast_search_matches_exhaustive(self):
+        import time
+        kw = dict(consensus=params.CONSENSUS_PATH, coating="AlTiN", **FAST)
+        t0 = time.time()
+        f = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, method="fast", **kw)
+        dt = time.time() - t0
+        x = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, method="exhaustive", **kw)
+        self.assertAlmostEqual(f["ramp_angle_deg"], x["ramp_angle_deg"], places=2)
+        self.assertAlmostEqual(f["helix_diameter_over_D"], x["helix_diameter_over_D"], places=6)
+        for k in ("fz_in", "ramp_feed_ipm", "plunge_feed_ipm"):
+            self.assertAlmostEqual(f[k] / x[k], 1.0, places=3, msg=k)
+        self.assertEqual(f["binding"], x["binding"])
+        self.assertLess(dt, 1.5)    # ~0.1 s; guards against a return to the multi-second brute-force search
 
     def test_empty_end_chip_window_uses_the_floor(self):
         tab = {"end_chip": {"bands": [{"band": "all", "d_min": 0.0, "d_max": 1e9, "h_a_over_D": 1e-6, "n": 1,
                                        "groups": ["X"]}]}, "consensus": None}
-        r = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, table=tab, consensus=params.CONSENSUS_PATH, **FAST)
-        self.assertIn("R2", r["overridden"])
+        r = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, table=tab, consensus=params.CONSENSUS_PATH)
+        self.assertIn("R2", r["overridden"])         # no vendor angle: physics, R1's floor wins over R2
+        self.assertTrue(any("physics-only" in p for p in r["provenance"]))
         self.assertGreaterEqual(r["end_chip_in"], r["end_chip_floor_in"] * (1 - 1e-9))
         self.assertTrue(r["feasible"])
 
     def test_without_data_r2_and_r14_are_inactive(self):
-        r = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, table=None, **FAST)
+        r = ramp.optimize_ramp(t12(), self.mat, self.mach, 0.5, table=None)
         self.assertFalse(r["checks"]["R2"]["applies"])
         self.assertFalse(r["checks"]["R14a"]["applies"])
         self.assertTrue(any("R2 inactive" in w for w in r["warnings"]))
@@ -180,6 +228,12 @@ class TestBridge(unittest.TestCase):
         self.assertAlmostEqual(r.ramp_diameter, rp["helix_diameter_in"])
         self.assertAlmostEqual(r.ramp_rpm, rp["rpm"])
         self.assertIn("R1", rp["checks"])
+        # D4: ramp feed at the cutting rpm (Fusion's ramp spindle speed = spindle speed); ramp_rpm is information
+        self.assertAlmostEqual(rp["spindle_rpm"], r.rpm)
+        self.assertAlmostEqual(r.ramp_feed, rp["fz_in"] * 4 * r.rpm, places=6)
+        self.assertAlmostEqual(rp["edge_radius_mm"], 0.0012)       # AlTiN request → Liang 2018 micro value (D1)
+        # D6: the plunge-feed note reaches Fusion
+        self.assertTrue(any(t["title"] == "v2 plunge feed" and "feed height" in t["message"] for t in r.tips))
 
     def test_fusion_endpoint_returns_ramp_fields(self):
         from test_v2_bridge import T12
