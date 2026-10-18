@@ -631,6 +631,11 @@ def calculate_for_fusion():
             "woc": round(res.rec_woc, 5),
             "ramp_feed": round(res.ramp_feed, 2),
             "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
+            "ramp_angle": round(res.ramp_angle, 2),
+            # v2 ramp model only (None under v1): tool-centre helix diameter, its minimum, and the ramp spindle speed
+            "ramp_diameter_in": round(res.ramp_diameter, 5) if res.ramp_diameter is not None else None,
+            "ramp_min_diameter_in": round(res.ramp_min_diameter, 5) if res.ramp_min_diameter is not None else None,
+            "ramp_rpm": round(res.ramp_rpm) if res.ramp_rpm is not None else None,
             "is_spindle_limited": res.is_spindle_limited,
             "ideal_rpm": round(res.ideal_rpm),
             "feasible": res.feasible,

@@ -20957,6 +20957,3807 @@
     "The 3 x D and 4 x D columns apply to the long (2579TZ) and extra long (2581TZ) tools."
    ],
    "notes": "Read from the EMUGE-FRANKEN TiNox-Cut end mills brochure (2021), PDF page 16, table 'TiNox-Cut Trochoidal, with coolant through' (valid for tool nos. 2577TZ / 2579TZ / 2581TZ and corner-radius 3911TZ / 3913TZ); the brochure describes trochoidal milling on page 4 ('low radial depth of cut and a maximum axial depth of cut (2 x D to 4 x D)', slot milling converted to contour milling), so operation = hem. The printed ae is a maximum ('max. ae = 0.05 x d1'); ae = 0.05 x 0.50000 = 0.02500 in. fz (inch) = 0.004 x d1 = 0.00200 in. Geometry from brochure page 11: 2581TZ.0500 (l1 4.250 in, l2 2.000 in, shank 0.500 in, lA 2.4688 in, chamfer 0.008 in, 5 flutes). LB = printed lA (the length marked '~lA' in the brochure drawing, taken as the reach beyond the shank; the brochure does not define lA in words); neck diameter is not published (null). Helix is printed as 38-42 deg (variable); helix_deg is the midpoint. Group S 2.3 names 718 Inconel (<= 49 HRC, i.e. aged). Checked against rendered PDF pages 11 and 16 (110 dpi images). The fz factor is printed to 3 decimals (resolution about 0.0005 x d1), so the computed inch fz carries that rounding."
+  },
+  {
+   "id": "emuge_ramp_var4_ph_00625",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.00625",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.125,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.002 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_alloy_00625",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.00625",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.125,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.002 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_tool_00625",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.00625",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.125,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.002 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_ph_0125",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0125",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.003 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_alloy_0125",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0125",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.003 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_tool_0125",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0125",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.003 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_ph_0250",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0250",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.005 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_alloy_0250",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0250",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.005 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_tool_0250",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0250",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.005 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_ph_0500",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0500",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.008 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_alloy_0500",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0500",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.008 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var4_tool_0500",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 8,
+    "table": "TOP-CUT VAR 4 Flutes (tool nos. 2992L / 2993L; also 2994L-2997L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2992L.0500",
+    "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.5,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=8",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Cutting data are given as vc and fz = factor x d1 (pages 26-28); no ramp feed or hole size printed.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "The ramp icon is a per-series attribute printed in the header box of the 4-flute page (applies to every tool on the page and is not split by material or diameter), so the same range is repeated for representative diameters. 'Up to 2.5xD' is printed under the icon without further explanation (probably the longest length of cut/reach for which the angle holds; not interpreted). Helix is printed '35-38\u00b0' (variable); helix_deg is the midpoint like the repo's emuge rows. Geometry from the p.8 table row for this tool number (shank d2, overall l1, length of cut l2, chamfer 0.008 in). The page itself assigns the series to ISO groups P 1.1-5.1, M 1.1-4.1, K, N, S, H; the material family labels here only pick named alloys from those groups."
+  },
+  {
+   "id": "emuge_ramp_var5_ph_0250",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0250",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.005 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_alloy_0250",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0250",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.005 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_tool_0250",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0250",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.005 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_ph_0375",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0375",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.375,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.008 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_alloy_0375",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0375",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.375,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.008 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_tool_0375",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0375",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.375,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.008 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_ph_0500",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0500",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 2.75,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Stainless steel - Ferritic, martensitic (410 / 440 / 440C / 17-4 PH); <= 29 HRC, <= 280 HBN, <= 950 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 29,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.008 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_alloy_0500",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0500",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 2.75,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 3.1 Cementation / heat-treatable / cold work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / A2 / S7 / H1150); <= 31 HRC, <= 295 HBN, <= 1000 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 31,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4140"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.008 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_var5_tool_0500",
+   "source": {
+    "doc_id": "EMUGE_TOPCUT_VAR_BROCHURE",
+    "page": 9,
+    "table": "TOP-CUT VAR 5 Flutes (tool nos. 3920L / 2946L / 3922L) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0; caption below icon: Up to 2.5xD",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "3920L.0500",
+    "series": "TOP-Cut VAR 5 flutes, square end, variable pitch helix, chamfer (CH x 45 deg), center cutting",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 2.75,
+    "geometry_url": "https://dam.precisiontools.media/export/original/Top-Cut_VAR_Brochure.pdf#page=9",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "P 5.1 High-alloyed, cold work and hot work steels (4140 / 4340 / 8620 / P20 / H13 / D2 / 300M / 52100); <= 44 HRC, <= 415 HBN, <= 1400 N/mm2",
+    "hardness": {
+     "min": null,
+     "max": 44,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0 (Up to 2.5xD)"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.40: 'Specified angle is the recommended angle for ramping applications' (icon 3-5\u00b0)",
+    "Applications on the page: suitable for finishing and light roughing; suitable for trochoidal style machining strategies."
+   ],
+   "notes": "Per-series icon (see 4-flute note). Helix printed '36-38\u00b0'; helix_deg is the midpoint. Geometry from the p.9 table row (chamfer 0.008 in). The 6- and 7-flute VAR pages (pp.10-11) show no ramping icon, so they are not recorded."
+  },
+  {
+   "id": "emuge_ramp_tinoxN_ph_0250",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 8,
+    "table": "TiNox-Cut N Rougher-Finisher (2962LZ standard length) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-2\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2962LZ.0250",
+    "series": "TiNox-Cut N (2962LZ) rougher-finisher, 5 flutes, square end with chamfer, internal axial coolant",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 38.0,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=8",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Ferritic, Martensitic: 410 / 440 / 440C / 17-4 PH (TiNox-Cut N page 13 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 2.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-2\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 8: 'Especially made for Titanium Alloys; suitable for HPC roughing and finishing; for efficient machining of Stainless Steel'.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut N page (the page also lists corner-radius tools 2966LZ). Per-series, not split by material or diameter. Geometry from the p.8 'Standard length' table (l2, l1, d2, chamfer 0.005 in)."
+  },
+  {
+   "id": "emuge_ramp_tinoxN_ti_0250",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 8,
+    "table": "TiNox-Cut N Rougher-Finisher (2962LZ standard length) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-2\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2962LZ.0250",
+    "series": "TiNox-Cut N (2962LZ) rougher-finisher, 5 flutes, square end with chamfer, internal axial coolant",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 38.0,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=8",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium alloys (TiNox-Cut N page 8 material box and page 13 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 2.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-2\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 8: 'Especially made for Titanium Alloys; suitable for HPC roughing and finishing; for efficient machining of Stainless Steel'.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut N page (the page also lists corner-radius tools 2966LZ). Per-series, not split by material or diameter. Geometry from the p.8 'Standard length' table (l2, l1, d2, chamfer 0.005 in)."
+  },
+  {
+   "id": "emuge_ramp_tinoxN_ph_0375",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 8,
+    "table": "TiNox-Cut N Rougher-Finisher (2962LZ standard length) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-2\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2962LZ.0375",
+    "series": "TiNox-Cut N (2962LZ) rougher-finisher, 5 flutes, square end with chamfer, internal axial coolant",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 38.0,
+    "variable_pitch": null,
+    "DC": 0.375,
+    "LCF": 0.875,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=8",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Ferritic, Martensitic: 410 / 440 / 440C / 17-4 PH (TiNox-Cut N page 13 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 2.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-2\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 8: 'Especially made for Titanium Alloys; suitable for HPC roughing and finishing; for efficient machining of Stainless Steel'.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut N page (the page also lists corner-radius tools 2966LZ). Per-series, not split by material or diameter. Geometry from the p.8 'Standard length' table (l2, l1, d2, chamfer 0.008 in)."
+  },
+  {
+   "id": "emuge_ramp_tinoxN_ti_0375",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 8,
+    "table": "TiNox-Cut N Rougher-Finisher (2962LZ standard length) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-2\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2962LZ.0375",
+    "series": "TiNox-Cut N (2962LZ) rougher-finisher, 5 flutes, square end with chamfer, internal axial coolant",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 38.0,
+    "variable_pitch": null,
+    "DC": 0.375,
+    "LCF": 0.875,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=8",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium alloys (TiNox-Cut N page 8 material box and page 13 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 2.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-2\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 8: 'Especially made for Titanium Alloys; suitable for HPC roughing and finishing; for efficient machining of Stainless Steel'.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut N page (the page also lists corner-radius tools 2966LZ). Per-series, not split by material or diameter. Geometry from the p.8 'Standard length' table (l2, l1, d2, chamfer 0.008 in)."
+  },
+  {
+   "id": "emuge_ramp_tinoxN_ph_0500",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 8,
+    "table": "TiNox-Cut N Rougher-Finisher (2962LZ standard length) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-2\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2962LZ.0500",
+    "series": "TiNox-Cut N (2962LZ) rougher-finisher, 5 flutes, square end with chamfer, internal axial coolant",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 38.0,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=8",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 1.1 Ferritic, Martensitic: 410 / 440 / 440C / 17-4 PH (TiNox-Cut N page 13 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4 PH"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 2.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-2\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 8: 'Especially made for Titanium Alloys; suitable for HPC roughing and finishing; for efficient machining of Stainless Steel'.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut N page (the page also lists corner-radius tools 2966LZ). Per-series, not split by material or diameter. Geometry from the p.8 'Standard length' table (l2, l1, d2, chamfer 0.008 in)."
+  },
+  {
+   "id": "emuge_ramp_tinoxN_ti_0500",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 8,
+    "table": "TiNox-Cut N Rougher-Finisher (2962LZ standard length) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-2\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2962LZ.0500",
+    "series": "TiNox-Cut N (2962LZ) rougher-finisher, 5 flutes, square end with chamfer, internal axial coolant",
+    "tool_material": "carbide",
+    "coating": "ALCR",
+    "flutes": 5,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 38.0,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=8",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium alloys (TiNox-Cut N page 8 material box and page 13 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 2.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-2\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 8: 'Especially made for Titanium Alloys; suitable for HPC roughing and finishing; for efficient machining of Stainless Steel'.",
+    "No 'helix milling' or 'min. bore diameter' values are printed in this brochure."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut N page (the page also lists corner-radius tools 2966LZ). Per-series, not split by material or diameter. Geometry from the p.8 'Standard length' table (l2, l1, d2, chamfer 0.008 in)."
+  },
+  {
+   "id": "emuge_ramp_tinoxNF_ti_0250",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 9,
+    "table": "TiNox-Cut NF Semi-Finisher, 'Standard length - Solid' (2958T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2958T.0250",
+    "series": "TiNox-Cut NF semi-finisher, 4 flutes (5 flutes at 1 in), variable index, fine chip breaker, solid (no coolant hole)",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": null,
+    "helix_deg": 45.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.53125,
+    "neck_diameter": 0.236,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=9",
+    "missing": [
+     "corner_radius",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium (pure Titanium / alloys) (TiNox-Cut NF page 14 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 9: 'Ideal to cut materials such as nickel alloys and Titanium, preferable in Inconel; suitable for high productivity cutting, roughing'."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut NF page (also valid for coolant-through 2648TZ / 2649TZ). Geometry from the 'Standard length - Solid' table (l2 0.53125 in, l1, d3 = 0.236 in printed 'o d3', d2); d3 is the printed reduced body diameter behind the flutes and is recorded as neck_diameter; reach l3/LB is not printed for the solid version. Corner radius not tabulated."
+  },
+  {
+   "id": "emuge_ramp_tinoxNF_ni_0250",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 9,
+    "table": "TiNox-Cut NF Semi-Finisher, 'Standard length - Solid' (2958T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2958T.0250",
+    "series": "TiNox-Cut NF semi-finisher, 4 flutes (5 flutes at 1 in), variable index, fine chip breaker, solid (no coolant hole)",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": null,
+    "helix_deg": 45.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.53125,
+    "neck_diameter": 0.236,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=9",
+    "missing": [
+     "corner_radius",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 2.3 Nickel-base Alloys: 718 Inconel (TiNox-Cut NF page 14 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 9: 'Ideal to cut materials such as nickel alloys and Titanium, preferable in Inconel; suitable for high productivity cutting, roughing'."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut NF page (also valid for coolant-through 2648TZ / 2649TZ). Geometry from the 'Standard length - Solid' table (l2 0.53125 in, l1, d3 = 0.236 in printed 'o d3', d2); d3 is the printed reduced body diameter behind the flutes and is recorded as neck_diameter; reach l3/LB is not printed for the solid version. Corner radius not tabulated."
+  },
+  {
+   "id": "emuge_ramp_tinoxNF_ti_0375",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 9,
+    "table": "TiNox-Cut NF Semi-Finisher, 'Standard length - Solid' (2958T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2958T.0375",
+    "series": "TiNox-Cut NF semi-finisher, 4 flutes (5 flutes at 1 in), variable index, fine chip breaker, solid (no coolant hole)",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": null,
+    "helix_deg": 45.0,
+    "variable_pitch": true,
+    "DC": 0.375,
+    "LCF": 0.875,
+    "neck_diameter": 0.358,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.75,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=9",
+    "missing": [
+     "corner_radius",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium (pure Titanium / alloys) (TiNox-Cut NF page 14 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 9: 'Ideal to cut materials such as nickel alloys and Titanium, preferable in Inconel; suitable for high productivity cutting, roughing'."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut NF page (also valid for coolant-through 2648TZ / 2649TZ). Geometry from the 'Standard length - Solid' table (l2 0.87500 in, l1, d3 = 0.358 in printed 'o d3', d2); d3 is the printed reduced body diameter behind the flutes and is recorded as neck_diameter; reach l3/LB is not printed for the solid version. Corner radius not tabulated."
+  },
+  {
+   "id": "emuge_ramp_tinoxNF_ni_0375",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 9,
+    "table": "TiNox-Cut NF Semi-Finisher, 'Standard length - Solid' (2958T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2958T.0375",
+    "series": "TiNox-Cut NF semi-finisher, 4 flutes (5 flutes at 1 in), variable index, fine chip breaker, solid (no coolant hole)",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": null,
+    "helix_deg": 45.0,
+    "variable_pitch": true,
+    "DC": 0.375,
+    "LCF": 0.875,
+    "neck_diameter": 0.358,
+    "LB": null,
+    "SFDM": 0.375,
+    "OAL": 2.75,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=9",
+    "missing": [
+     "corner_radius",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 2.3 Nickel-base Alloys: 718 Inconel (TiNox-Cut NF page 14 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 9: 'Ideal to cut materials such as nickel alloys and Titanium, preferable in Inconel; suitable for high productivity cutting, roughing'."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut NF page (also valid for coolant-through 2648TZ / 2649TZ). Geometry from the 'Standard length - Solid' table (l2 0.87500 in, l1, d3 = 0.358 in printed 'o d3', d2); d3 is the printed reduced body diameter behind the flutes and is recorded as neck_diameter; reach l3/LB is not printed for the solid version. Corner radius not tabulated."
+  },
+  {
+   "id": "emuge_ramp_tinoxNF_ti_0500",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 9,
+    "table": "TiNox-Cut NF Semi-Finisher, 'Standard length - Solid' (2958T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2958T.0500",
+    "series": "TiNox-Cut NF semi-finisher, 4 flutes (5 flutes at 1 in), variable index, fine chip breaker, solid (no coolant hole)",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": null,
+    "helix_deg": 45.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.125,
+    "neck_diameter": 0.48,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.25,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=9",
+    "missing": [
+     "corner_radius",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium (pure Titanium / alloys) (TiNox-Cut NF page 14 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 9: 'Ideal to cut materials such as nickel alloys and Titanium, preferable in Inconel; suitable for high productivity cutting, roughing'."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut NF page (also valid for coolant-through 2648TZ / 2649TZ). Geometry from the 'Standard length - Solid' table (l2 1.12500 in, l1, d3 = 0.480 in printed 'o d3', d2); d3 is the printed reduced body diameter behind the flutes and is recorded as neck_diameter; reach l3/LB is not printed for the solid version. Corner radius not tabulated."
+  },
+  {
+   "id": "emuge_ramp_tinoxNF_ni_0500",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 9,
+    "table": "TiNox-Cut NF Semi-Finisher, 'Standard length - Solid' (2958T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 3-5\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2958T.0500",
+    "series": "TiNox-Cut NF semi-finisher, 4 flutes (5 flutes at 1 in), variable index, fine chip breaker, solid (no coolant hole)",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": null,
+    "helix_deg": 45.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.125,
+    "neck_diameter": 0.48,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.25,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=9",
+    "missing": [
+     "corner_radius",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 2.3 Nickel-base Alloys: 718 Inconel (TiNox-Cut NF page 14 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 3.0,
+     "max": 5.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "3-5\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'",
+    "Page 9: 'Ideal to cut materials such as nickel alloys and Titanium, preferable in Inconel; suitable for high productivity cutting, roughing'."
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut NF page (also valid for coolant-through 2648TZ / 2649TZ). Geometry from the 'Standard length - Solid' table (l2 1.12500 in, l1, d3 = 0.480 in printed 'o d3', d2); d3 is the printed reduced body diameter behind the flutes and is recorded as neck_diameter; reach l3/LB is not printed for the solid version. Corner radius not tabulated."
+  },
+  {
+   "id": "emuge_ramp_tinoxBase_ss_0125",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 10,
+    "table": "TiNox-Cut Base Rougher-Finisher, 'Standard length' (2977T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-3\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2977T.0125",
+    "series": "TiNox-Cut Base rougher-finisher (2977T standard length), 4 flutes, square end with chamfer, variable spacing",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.0,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.25,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=10",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 2.1 Austenitic: 303 / 304 / 316 / 316L / 321 (TiNox-Cut Base page 15 table; page 10 lists 'Especially suitable for Stainless Steel materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "316"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-3\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'"
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut Base page (also valid for stub length 2975T). Helix printed '35-37\u00b0' (variable); helix_deg is the midpoint. Geometry from the p.10 'Standard length' table (l2, l1, d2, chamfer 0.003 in). Shank is 1/4 in for the 1/8 in cutter."
+  },
+  {
+   "id": "emuge_ramp_tinoxBase_ti_0125",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 10,
+    "table": "TiNox-Cut Base Rougher-Finisher, 'Standard length' (2977T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-3\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2977T.0125",
+    "series": "TiNox-Cut Base rougher-finisher (2977T standard length), 4 flutes, square end with chamfer, variable spacing",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.0,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.25,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=10",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium (TiNox-Cut Base page 15 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-3\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'"
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut Base page (also valid for stub length 2975T). Helix printed '35-37\u00b0' (variable); helix_deg is the midpoint. Geometry from the p.10 'Standard length' table (l2, l1, d2, chamfer 0.003 in). Shank is 1/4 in for the 1/8 in cutter."
+  },
+  {
+   "id": "emuge_ramp_tinoxBase_ss_0250",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 10,
+    "table": "TiNox-Cut Base Rougher-Finisher, 'Standard length' (2977T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-3\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2977T.0250",
+    "series": "TiNox-Cut Base rougher-finisher (2977T standard length), 4 flutes, square end with chamfer, variable spacing",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=10",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 2.1 Austenitic: 303 / 304 / 316 / 316L / 321 (TiNox-Cut Base page 15 table; page 10 lists 'Especially suitable for Stainless Steel materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "316"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-3\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'"
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut Base page (also valid for stub length 2975T). Helix printed '35-37\u00b0' (variable); helix_deg is the midpoint. Geometry from the p.10 'Standard length' table (l2, l1, d2, chamfer 0.005 in). Shank is 1/4 in for the 1/8 in cutter."
+  },
+  {
+   "id": "emuge_ramp_tinoxBase_ti_0250",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 10,
+    "table": "TiNox-Cut Base Rougher-Finisher, 'Standard length' (2977T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-3\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2977T.0250",
+    "series": "TiNox-Cut Base rougher-finisher (2977T standard length), 4 flutes, square end with chamfer, variable spacing",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.0,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=10",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium (TiNox-Cut Base page 15 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-3\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'"
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut Base page (also valid for stub length 2975T). Helix printed '35-37\u00b0' (variable); helix_deg is the midpoint. Geometry from the p.10 'Standard length' table (l2, l1, d2, chamfer 0.005 in). Shank is 1/4 in for the 1/8 in cutter."
+  },
+  {
+   "id": "emuge_ramp_tinoxBase_ss_0500",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 10,
+    "table": "TiNox-Cut Base Rougher-Finisher, 'Standard length' (2977T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-3\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2977T.0500",
+    "series": "TiNox-Cut Base rougher-finisher (2977T standard length), 4 flutes, square end with chamfer, variable spacing",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=10",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "M 2.1 Austenitic: 303 / 304 / 316 / 316L / 321 (TiNox-Cut Base page 15 table; page 10 lists 'Especially suitable for Stainless Steel materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "316"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-3\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'"
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut Base page (also valid for stub length 2975T). Helix printed '35-37\u00b0' (variable); helix_deg is the midpoint. Geometry from the p.10 'Standard length' table (l2, l1, d2, chamfer 0.008 in). Shank is 1/4 in for the 1/8 in cutter."
+  },
+  {
+   "id": "emuge_ramp_tinoxBase_ti_0500",
+   "source": {
+    "doc_id": "EMUGE_TINOX_CUT_BROCHURE_2021",
+    "page": 10,
+    "table": "TiNox-Cut Base Rougher-Finisher, 'Standard length' (2977T) - product page icon box",
+    "row_label": "ramping-angle icon",
+    "column_label": "ramping-angle icon in the series header box",
+    "cells": "ramping-angle icon: 1-3\u00b0",
+    "read_method": "image"
+   },
+   "tool": {
+    "part_number": "2977T.0500",
+    "series": "TiNox-Cut Base rougher-finisher (2977T standard length), 4 flutes, square end with chamfer, variable spacing",
+    "tool_material": "carbide",
+    "coating": "TiN / TiAlN",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 36.0,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://dam.precisiontools.media/export/original/2021-EMUGE_TINOX_ENDMILLS_BROCHURE-email.pdf#page=10",
+    "missing": [
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "S 1.1-1.3 Titanium (TiNox-Cut Base page 15 table)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "1-3\u00b0"
+    }
+   },
+   "vendor_notes": [
+    "Icon legend p.17: 'Ramping angle - The specified angle is the recommended angle for ramping applications'"
+   ],
+   "notes": "Icon in the header box of the TiNox-Cut Base page (also valid for stub length 2975T). Helix printed '35-37\u00b0' (variable); helix_deg is the midpoint. Geometry from the p.10 'Standard length' table (l2, l1, d2, chamfer 0.008 in). Shank is 1/4 in for the 1/8 in cutter."
   }
  ]
 }

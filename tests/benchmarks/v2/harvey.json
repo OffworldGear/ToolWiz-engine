@@ -267,6 +267,13 @@
    "url": "https://harveyperformance.widen.net/content/gbsqrvkk95/pdf/SF_711700.pdf",
    "date_accessed": "2026-10-16",
    "revision": null
+  },
+  {
+   "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+   "title": "In The Loupe (Harvey Performance Company): Most Common Methods of Tool Entry",
+   "url": "https://www.harveyperformance.com/in-the-loupe/types-tool-entry/",
+   "date_accessed": "2026-10-18",
+   "revision": "posted July 17, 2017 (page text re-edited by 2023-2024)"
   }
  ],
  "rows": [
@@ -52997,6 +53004,4974 @@
     "HEM (High Efficiency Milling): ADOC Up to Max LOC, RDOC Up to 10% Diameter. Finishing: ADOC Up to Max LOC, RDOC 4%-6% Diameter."
    ],
    "notes": "Same chart cells as the 3x-LOC row at this diameter (the chart prints one chip load per diameter for both the 3x and 5x tools of the series; the tool page of this 5x part links SF_711700). ap = this part's 5x LOC (up to Max LOC). Checked against rendered page 1 (150 dpi). ae uses the 10% upper limit."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.0625_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73062",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73062",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.0625_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73062",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73062",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.0625_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73062",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73062",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.0625_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73062",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73062",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.0625_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73062",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73062",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.0625_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73062",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73062",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.125_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73125",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73125",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.125_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73125",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73125",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.125_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73125",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73125",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.125_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73125",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73125",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.125_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73125",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73125",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.125_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73125",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73125",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.25_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73199",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73199",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.25_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73199",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73199",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.25_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73199",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73199",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.25_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73199",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73199",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.25_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73199",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73199",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.25_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "73199",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-73199",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.5_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "15232",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-15232",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_ss_ph_0.5_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "15232",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-15232",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.5_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "15232",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-15232",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_toolsteel_0.5_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "15232",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-15232",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.5_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "15232",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-15232",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_730_alloysteel_0.5_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "15232",
+    "series": "730xx/731xx/152xx",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-15232",
+    "missing": [
+     "helix_deg",
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.0625_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "875462-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-875462-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.0625_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "875462-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-875462-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.0625_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "875462-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-875462-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.0625_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "875462-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-875462-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.0625_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "875462-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-875462-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.0625_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "875462-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.0625,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-875462-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.125_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967108-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967108-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.125_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967108-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967108-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.125_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967108-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967108-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.125_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967108-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967108-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.125_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967108-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967108-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.125_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967108-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.125,
+    "LCF": 0.375,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967108-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.25_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967116-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967116-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.25_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967116-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967116-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.25_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967116-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967116-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.25_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967116-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967116-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.25_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967116-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967116-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.25_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967116-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.25,
+    "LCF": 0.75,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967116-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.5_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967132-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967132-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_ss_ph_0.5_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967132-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967132-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.5_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967132-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967132-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_toolsteel_0.5_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967132-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967132-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.5_angle",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Ramping-In > Suggested Starting Ramp Angles",
+    "row_label": "Suggested Starting Ramp Angles",
+    "column_label": null,
+    "cells": "Hard/Ferrous Materials: 1\u00b0-3\u00b0",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967132-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967132-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": 1.0,
+     "max": 3.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "Hard/Ferrous Materials: 1\u00ba \u2013 3\u00ba (suggested starting ramp angles)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). The angle is a 'suggested starting' range, not a maximum; the vendor does not say whether it applies to linear or helical ramps (the guidebook's Ramping-In picture is a linear ramp; the Ramping section p.6 and the 'Ramping to Success' blog treat 'circular or linear' together), so kind='any'. Corroborated by the Helical Solutions Machining Guidebook (c)2016 p.4 with identical ranges and by the 'Ramping to Success' blog (2017-05-10). Vendor also recommends corner-radius end mills and a tool with good core strength for ramping; this row is a square end mill."
+  },
+  {
+   "id": "harvey_ramp_8754_alloysteel_0.5_helical",
+   "source": {
+    "doc_id": "HP_LOUPE_TYPES_TOOL_ENTRY",
+    "page": null,
+    "table": "Helical Interpolation",
+    "row_label": "Helical Interpolation",
+    "column_label": null,
+    "cells": "use a programmed helix diameter of greater than 110-120% of the cutter diameter",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "967132-C6",
+    "series": "8754xx-C6/9428xx-C6/9671xx-C6/821322-C6",
+    "tool_material": "carbide",
+    "coating": "AlTiN Nano (C6)",
+    "flutes": 4,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": null,
+    "variable_pitch": true,
+    "DC": 0.5,
+    "LCF": 1.5,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-967132-c6",
+    "missing": [
+     "helix_deg",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Hard/Ferrous Materials (Helical Interpolation text: 'very common and safe practice with ferrous materials')",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Medium Carbon Alloy (4130)",
+    "representative_alloy": "4130"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {
+     "ap": null,
+     "ae": null
+    }
+   },
+   "ramp": {
+    "kind": "helical",
+    "angle_deg": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": 1.1,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "hole": ">110-120% of tool diameter (programmed helix diameter)"
+    }
+   },
+   "vendor_notes": [
+    "Suggested STARTING values; vendor refers users to Machining Advisor Pro / Milling Advisor for application-specific entry parameters.",
+    "Corner-radius end mills are recommended by the vendor for ramping and helical interpolation.",
+    "Straight plunge: 'least preferred method and one that can easily break a tool; tool must be center cutting' (no numeric value published).",
+    "Straight entry / roll-in entry: reduce feed rate by at least 50% / by 50% (radial entry into full engagement, not an axial ramp; not encoded)."
+   ],
+   "notes": "Series-wide rule: the vendor prints no per-diameter or per-series ramp data, so the same published rule is replicated over representative diameters (1/16, 1/8, 1/4, 1/2 in) and material families; treat the replicas as ONE independent observation per rule when calibrating. Vendor text says 'Hard/Ferrous Materials' and 'Soft/Non-Ferrous Materials' only; the mapping of the ferrous group to the toolwiz family (17-4 PH / H13 / 4130) is the row builder's, not the vendor's. Part number and catalog geometry from the product page (see geometry_url): corner radius 0 = 'Profile: Square'; helix angle not printed except H45AL-3 (45 deg in product title). AMBIGUITY: the vendor says 'programmed helix diameter' >110-120% of cutter diameter without defining whether that is the cut (hole) diameter or the tool-centre path diameter. Recorded as the hole (bore) diameter, min 1.1 x D (vendor's upper figure 1.2 x D = stricter reading); if it is the tool-centre path the hole would be (1+1.1..1.2) x D. The vendor's own internal-circular feed rule (blog 'Circular Interpolation', 2017-04-19) is Internal Adjusted Feed = (Major Diameter - Cutter Diameter) / Major Diameter x Linear Feed, not encoded here because no hole size is fixed. Vendor text recommends corner-radius tools for helical interpolation; this row is a square end mill."
   }
  ]
 }

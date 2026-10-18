@@ -109,6 +109,8 @@ def load_rows():
         with open(path, encoding="utf-8") as fh:
             d = json.load(fh)
         for r in d["rows"]:
+            if r["operation"] == "ramp":   # entry rows calibrate physics_v2/ramp.py (tools/calibrate_v2_ramp.py)
+                continue
             rows.append(dict(r, _vendor_group=d["vendor_group"], _file=os.path.basename(path)))
     return rows
 
