@@ -64,20 +64,20 @@ Step 5 (integration) built 2026-10-17: pick "v2 (physics, beta)" in Machine & Cu
 
 ## Where we stopped (2026-10-18)
 
-- **toolwiz/hardening:** steps 1–5 of v2 plus add-in ramp-angle writing (dcae990).
-- **Ramp model** (cloud, branch `toolwiz/v2-ramp`, 3f0214b): NOT merged.
-  - It test-merges cleanly apart from one trivial app.py conflict (keep both sides' ramp fields); 652 tests OK.
-  - It is waiting on the user's D1–D9 decisions. The local session's recommendations:
-    - D2 / D1: the vendor cap wins over the rubbing floor for ramps; use a sourced edge radius instead of the 2 µm placeholder.
-    - D4: keep the ramp at the operation rpm and return the matching ramp feed.
-    - Bring the ramp search under 0.5 s.
-  - The paste text for the ramp session is in the 2026-10-18 conversation. Re-derive it from docs/research/v2_ramp_findings.md §decisions if needed.
-- **Until it's merged:** under v2 the ramp angle is still v1's rule (T12 0.75°, T1 ~2°), and the add-in writes that.
+- **toolwiz/hardening** has v2 steps 1–5 plus the v2 ramp model (Round 2 merged).
+- **v2 ramp:** sourced edge radius; the vendor cap wins over the rubbing floor, which becomes a warning; ramp feed is at the cutting rpm.
+- **Add-in writes:** ramp angle into the preset; helical ramp diameter only over Fusion's default.
+- **Open, for the next session:**
+  - Should the sourced edge radius also replace the 2 µm placeholder in the cutting optimizer's C1?
+  - Write Fusion's "Minimum ramp diameter" (ramp_min_diameter_in) over its default.
+  - Re-check the image-only ramp rows (Emuge, Harvey guidebook page, Sandvik Dura pp. 23/32, ToolGuide 200 HB step).
+  - Twin batch and stock compensation still use v1.
+  - Step 6: the v1-vs-v2 comparison report.
 - **User testing the add-in:**
   - Restart Tool Wizard and reload the add-in.
   - Select v2 in Machine & Cut Parameters.
   - Set aggressiveness to ~50.
-  - Auto-Set T1/T12 adaptive and check DOC/WOC, fine stepdown, ramp angle, program size and the message.
+  - Auto-Set T1/T12 adaptive and check DOC/WOC, fine stepdown, ramp angle, helical ramp diameter, program size and the message.
   - Consider a 1 mm feed height for micro adaptive ops.
 
 ## User actions
