@@ -631,6 +631,7 @@ def calculate_for_fusion():
             "woc": round(res.rec_woc, 5),
             "ramp_feed": round(res.ramp_feed, 2),
             "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
+            "ramp_angle": round(res.ramp_angle, 2),
             "is_spindle_limited": res.is_spindle_limited,
             "ideal_rpm": round(res.ideal_rpm),
             "feasible": res.feasible,

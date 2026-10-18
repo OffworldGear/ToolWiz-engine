@@ -318,7 +318,8 @@ def _assign_tool_preset(op, preset, reason):
 
 # Parameters recorded per operation (expression + evaluated value each).
 SNAPSHOT_PARAMS = ('tool_spindleSpeed', 'tool_feedCutting', 'maximumStepdown', 'stepdown',
-                   'stepover', 'optimalLoad', 'use_tool_stepdown', 'use_tool_stepover', 'fineStepdown')
+                   'stepover', 'optimalLoad', 'use_tool_stepdown', 'use_tool_stepover', 'fineStepdown',
+                   'rampAngle', 'tool_rampAngle', 'helicalRampDiameter')
 
 
 def _snapshot_op(op):
@@ -1537,6 +1538,45 @@ def _norm_expr(expr):
     return "".join(str(expr or "").split()).lower()
 
 
+MAX_WRITTEN_RAMP_ANGLE = 45.0   # anything steeper is a hole tool's plunge, not a ramp
+FUSION_DEFAULT_RAMP_DIAMETER = "Math.max((tool_diameter - 2 * tool_cornerRadius) * 0.95; tool_diameter * 0.25)"
+
+
+def ramp_angle_expr(calc_result):
+    """Preset expression for tool_rampAngle (plain degrees, as Fusion stores it), or None when the server
+    gave no usable ramp angle (none, zero, or a hole tool's 90° plunge)."""
+    try:
+        a = float(calc_result.get("ramp_angle") or 0.0)
+    except (TypeError, ValueError):
+        return None
+    if not 0.0 < a < MAX_WRITTEN_RAMP_ANGLE:
+        return None
+    return f"{a:.2f}"
+
+
+def apply_ramp_diameter(op, diameter_in):
+    """Write the helical ramp diameter the server recommends (v2 ramp model) when the operation still has
+    Fusion's default expression; a value the user typed is kept. Returns 'written', 'kept', 'already',
+    or None (no value from the server, no such parameter, or disabled)."""
+    try:
+        d = float(diameter_in or 0.0)
+    except (TypeError, ValueError):
+        d = 0.0
+    if d <= 0.0:
+        return None
+    p = _safe(lambda: op.parameters.itemByName('helicalRampDiameter'))
+    if p is None or not _safe(lambda: p.isEnabled):
+        return None
+    expr = f"{d:.4f} in"
+    current = _norm_expr(_safe(lambda: p.expression))
+    if current == _norm_expr(expr):
+        return 'already'
+    if current != _norm_expr(FUSION_DEFAULT_RAMP_DIAMETER):
+        _log(f"  helicalRampDiameter kept (user-set): {_safe(lambda: p.expression)!r}")
+        return 'kept'
+    return 'written' if apply_param(op, 'helicalRampDiameter', expr) else None
+
+
 def apply_fine_stepdown_floor(op):
     """Replace Fusion's default fine-stepdown expression on `op` with FINE_STEPDOWN_EXPR.
 
@@ -2254,6 +2294,10 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
         ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
     ]
+    ramp_expr = ramp_angle_expr(calc_result)
+    if ramp_expr is not None:
+        # Operations follow the preset (rampAngle = 'tool_rampAngle'); one with its own value keeps it.
+        speed_values.append(('tool_rampAngle', ramp_expr))
 
     # 0. Replace safety: other operations on the same tool that are linked to the preset about to be
     #    edited/renamed would change too. Ask before touching anything; No leaves everything as is.
@@ -2305,6 +2349,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
     fine_note = apply_fine_stepdown_floor(target_op)
+    ramp_dia_note = apply_ramp_diameter(target_op, calc_result.get("ramp_diameter_in"))
     _log_op_motion_params(target_op, "AFTER")
     _log_preset_use_flags(target_op, final_preset_name)
     _regenerate_toolpath(target_op)
@@ -2342,6 +2387,13 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     )
     for w in tool_profile_warnings(calc_result):
         msg += "\n\nCheck: " + w
+    if ramp_expr is not None:
+        msg += (f"\n\nRamp angle: {float(ramp_expr):.2f}° (written to the preset; "
+                "operations with their own angle keep it).")
+    if ramp_dia_note == 'written':
+        msg += f"\nHelical ramp diameter: {float(calc_result.get('ramp_diameter_in')):.4f}\"."
+    elif ramp_dia_note == 'kept':
+        msg += "\nHelical ramp diameter: your own value was kept."
     if fine_note == 'written':
         msg += ("\n\nFine stepdown: set to 25% of the stepdown, at least 0.05 mm "
                 "(Fusion's default of 10% made very large programs).")

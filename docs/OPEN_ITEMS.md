@@ -56,6 +56,10 @@ Step 5 (integration) built 2026-10-17: pick "v2 (physics, beta)" in Machine & Cu
 - **Still to check in Fusion:** Auto-Set on T1/T12 adaptive with v2 selected; the written DOC/WOC/fine stepdown and the message.
 - **Aggressiveness:** the add-in's saved aggressiveness is 95. Under v2, 75% ≈ the vendor average, so 95 runs about 8% above it. Lower it (50 is the Speedio starting point).
 - **Still on v1:** Twin batch generation and stock compensation.
+- **Ramp (2026-10-17):** v2 doesn't model ramping yet; a cloud session is building it on branch toolwiz/v2-ramp.
+  - Meanwhile Auto-Set writes the server's ramp angle (v1's rule for now: 1.5° in steels, less for micro tools) into the preset's tool_rampAngle. Operations follow it unless they have their own angle.
+  - When v2 supplies a helical ramp diameter, Auto-Set writes it over Fusion's default only.
+  - Both are audited and included in snapshots. Not yet checked in Fusion.
 - **Next:** step 6, the v1-vs-v2 comparison report on the user's real tools, then retiring v1.
 
 ## User actions
