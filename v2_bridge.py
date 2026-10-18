@@ -2,8 +2,9 @@
 
 v1 (GWizard tables + rules) always runs first. When v2 is selected and the cut is in v2.0's scope (a carbide
 square end mill, an operation v2 models, a calibrated material family), the physics optimizer
-(physics_v2.params / optimize) replaces rpm, chip load, feed, DOC and WOC; v1's numbers are kept in
-``result.v1`` for comparison. Out of scope, v1 stands and ``result.model_note`` says why.
+(physics_v2.params / optimize) replaces rpm, chip load, feed, DOC and WOC, and the helical-entry model
+(physics_v2/ramp.py) replaces the ramp angle, ramp and plunge feeds and adds the helix diameter and ramp spindle
+speed (details in ``result.v2["ramp"]``); v1's numbers are kept in ``result.v1`` for comparison. Out of scope, v1 stands and ``result.model_note`` says why.
 
 Model choice, highest first: the request's ``model``; the saved setting (data/model_settings.json, set from
 the web page and used by the Fusion add-in through the server); the TOOLWIZ_MODEL environment variable; v1.
@@ -185,11 +186,38 @@ def _optimize(physics, r, op, machine_profile):
             return _CACHE[key], hb, notes
     material = params.material(r.family, hb=hb, coating=r.coating)
     out = params.optimize(tool, material, op, float(r.aggressiveness), machine_=machine, **kw)
+    out = dict(out, ramp=_ramp(tool, material, machine, r, out))
     with _CACHE_LOCK:
         _CACHE[key] = out
         while len(_CACHE) > _CACHE_SIZE:
             _CACHE.popitem(last=False)
     return out, hb, notes
+
+
+def _ramp(tool, material, machine, r, out):
+    """The helical entry for this tool and material (physics_v2/ramp.py), or {"error": ...}; never raises."""
+    from physics_v2 import params, ramp
+    cut = out.get("cut") or {}
+    try:
+        return ramp.optimize_ramp(tool, material, machine, float(r.aggressiveness), consensus=params.CONSENSUS_PATH,
+                                  op_feed_ipm=cut.get("feed_ipm"), op_rpm=cut.get("rpm"), coating=r.coating)
+    except Exception as ex:   # the cut stands; the ramp falls back to v1's rule
+        return {"feasible": False, "error": f"{type(ex).__name__}: {ex}"}
+
+
+def _ramp_details(rp):
+    if not rp:
+        return None
+    keys = ("feasible", "error", "ramp_angle_deg", "helix_diameter_over_D", "helix_diameter_in", "helix_min_diameter_over_D",
+            "helix_min_diameter_in", "bore_diameter_in", "pitch_in", "rpm", "sfm", "spindle_rpm", "fz_in", "ramp_feed_ipm",
+            "ramp_feed_at_c7_rpm_ipm", "descent_ipm", "plunge_feed_ipm", "end_chip_in", "end_chip_floor_in",
+            "end_chip_cap_in", "edge_radius_mm", "edge_radius_basis", "r1_warning", "binding", "overridden", "warned",
+            "conflicts", "warnings", "plunge_note", "provenance", "eliminated_by")
+    out = {k: rp.get(k) for k in keys if k in rp}
+    checks = rp.get("checks") or {}
+    shown = list(rp.get("binding") or []) + [k for k in ("R1", "R2", "R6", "R14a", "R1p") if k in checks]
+    out["checks"] = {k: _check_summary(checks[k]) for k in dict.fromkeys(shown) if k in checks}
+    return out
 
 
 def _check_summary(c):
@@ -212,12 +240,39 @@ def _v2_details(out, hb, notes):
         "cut": out.get("cut"),
         "max_feasible_tir_in": out.get("max_feasible_tir_in"),
         "hardness_hb": hb,
+        "ramp": _ramp_details(out.get("ramp")),
     }
 
 
 # ---------------------------------------------------------------------------
 # Apply
 # ---------------------------------------------------------------------------
+
+def _apply_ramp(res, rp, ratio):
+    """Ramp angle, helix diameter, ramp speed and feeds from the v2 ramp model; when it has no answer, v1's rule
+    scaled with the feed (never above v1's own values), as before the ramp model."""
+    if rp and rp.get("ramp_angle_deg") is not None and rp.get("feasible"):
+        res.ramp_angle = float(rp["ramp_angle_deg"])
+        res.ramp_feed = float(rp["ramp_feed_ipm"])
+        res.plunge_feed = float(rp["plunge_feed_ipm"])
+        res.ramp_diameter = float(rp["helix_diameter_in"])
+        res.ramp_min_diameter = float(rp["helix_min_diameter_in"])
+        res.ramp_rpm = float(rp["rpm"])   # C7's slot-engagement speed, information only: Fusion ramps at the cutting speed
+        if rp.get("conflicts"):
+            res.tips.append({"title": "v2 ramp", "message": "; ".join(rp["conflicts"]), "type": "warning",
+                             "fusion": True})
+        if rp.get("plunge_note"):
+            res.tips.append({"title": "v2 plunge feed", "message": rp["plunge_note"] + ".", "type": "info",
+                             "fusion": True})
+        return
+    res.ramp_feed *= min(1.0, ratio)
+    res.plunge_feed *= min(1.0, ratio)
+    why = (rp or {}).get("error") or ", ".join((rp or {}).get("eliminated_by") or []) or "no ramp result"
+    if res.v2 is not None and res.v2.get("ramp") is not None:
+        res.v2["ramp"]["fallback"] = f"v1 ramp rule kept ({why})"
+    res.tips.append({"title": "v2 ramp", "message": f"v2 found no ramp ({why}); the ramp keeps v1's rule.",
+                     "type": "warning", "fusion": True})
+
 
 def apply(physics, r, res, machine_profile=None):
     """Replace the v1 result's core numbers with v2's when v2 covers the cut. Never raises: a v2 error
@@ -271,9 +326,7 @@ def apply(physics, r, res, machine_profile=None):
         res.deflection = float(c3["value"])
         res.rec_limit = float(c3.get("limit") or res.rec_limit)
     res.total_error = res.deflection + res.springback
-    # Ramp and plunge keep v1's rules, scaled with the feed but never above v1's own values.
-    res.ramp_feed *= min(1.0, ratio)
-    res.plunge_feed *= min(1.0, ratio)
+    _apply_ramp(res, out.get("ramp"), ratio)
     res.feasible = True
     res.limited_by = ", ".join(details["binding"]) or None
     res.provenance = []   # v1's multiplier chain no longer describes these numbers; see res.v2["provenance"]

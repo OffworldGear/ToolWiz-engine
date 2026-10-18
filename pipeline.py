@@ -112,6 +112,10 @@ class CutResult:
     ramp_angle: float = 0.0
     ramp_feed: float = 0.0
     plunge_feed: float = 0.0
+    # v2 ramp model only (physics_v2/ramp.py via v2_bridge); v1 has no helix diameter or ramp speed (None).
+    ramp_diameter: Optional[float] = None       # tool-centre helix diameter (in)
+    ramp_min_diameter: Optional[float] = None   # smallest helix diameter the model allows (in)
+    ramp_rpm: Optional[float] = None            # spindle speed the ramp feed is computed at
     mrr: float = 0.0
     deflection: float = 0.0
     springback: float = 0.0

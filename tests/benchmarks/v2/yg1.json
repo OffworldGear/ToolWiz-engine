@@ -5369,6 +5369,588 @@
     "HSM = high-speed machining."
    ],
    "notes": "Table columns mapped to diameters from the header row; values read from pdftotext -layout and checked against the rendered catalog page (printed page 32). Part chosen from the series page (rendered p.10-12) as the standard-length square-end JAG95 item with LOC >= the printed Ap (LOC = 2D at 1/8, 1/2, 1; 2.5D at 1/4). The group is \"Aluminum-wrought alloy\" (VDI 21-22, 60/100 HB); 6061 is not named, mapped to the wrought-aluminium family on that basis. Table is titled \"Side Cutting HSM (Light)\" with Ae 0.05D and Ap 2.0D (HSM = high-speed machining per the page note); recorded as hem because it is the vendor's light-radial / deep-axial recommendation."
+  },
+  {
+   "id": "yg1_ramp_jag95_wrought_0p125",
+   "source": {
+    "doc_id": "YG1_ALU_POWER_HPC_INCH_YU_HPC26",
+    "page": 3,
+    "table": "ALU-POWER HPC 3-FLUTE END MILLS - The Anatomy of Efficiency (series description)",
+    "row_label": "Ideal Symmetrical Shape",
+    "column_label": "series-wide",
+    "cells": "3-flute design \"to the center\" (all 3 flutes come to center); Designed with high spindle speeds in mind; Highly effective in vertical ramping up to 20 degrees and step-over plunging applications",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "JAG95008",
+    "series": "Alu-Power HPC 3-flute standard length coated square end JAG95 (37 deg, DLC)",
+    "tool_material": "carbide",
+    "coating": "DLC",
+    "flutes": 3,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.yg1usa.com/downloads/YU-HPC26%20Single%20Page.pdf",
+    "missing": [
+     "variable_pitch"
+    ]
+   },
+   "material": {
+    "vendor_label": "ALUMINUM (page header: For ALUMINUM, ALUMINUM DIE CAST, NON-FERROUS ALLOYS AND PLASTICS)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": null,
+     "max": 20.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "vertical ramping up to 20 degrees",
+     "plunge": "step-over plunging applications (no value)"
+    }
+   },
+   "vendor_notes": [
+    "Page 4 (Ramping photo caption): 'In steep, aggressive ramping conditions, the ALU-POWER HPC holds its own to resist the torsional stress from extreme helical output.'",
+    "Marketing statement in the series description; no ramp feed factor, hole size or material split is printed."
+   ],
+   "notes": "Aluminium-only series (DLC coated, 3 flutes, 37 deg helix, center cutting). Part number and geometry from the JAG95 selection/EDP table (PDF page 10, same data as the repo's yg1.json rows). Series JAG96-JAG98 corner-radius/neck variants share the page claim. Page checked in the rendered image."
+  },
+  {
+   "id": "yg1_ramp_jag95_cast_0p125",
+   "source": {
+    "doc_id": "YG1_ALU_POWER_HPC_INCH_YU_HPC26",
+    "page": 3,
+    "table": "ALU-POWER HPC 3-FLUTE END MILLS - The Anatomy of Efficiency (series description)",
+    "row_label": "Ideal Symmetrical Shape",
+    "column_label": "series-wide",
+    "cells": "3-flute design \"to the center\" (all 3 flutes come to center); Designed with high spindle speeds in mind; Highly effective in vertical ramping up to 20 degrees and step-over plunging applications",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "JAG95008",
+    "series": "Alu-Power HPC 3-flute standard length coated square end JAG95 (37 deg, DLC)",
+    "tool_material": "carbide",
+    "coating": "DLC",
+    "flutes": 3,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37,
+    "variable_pitch": null,
+    "DC": 0.125,
+    "LCF": 0.25,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.yg1usa.com/downloads/YU-HPC26%20Single%20Page.pdf",
+    "missing": [
+     "variable_pitch"
+    ]
+   },
+   "material": {
+    "vendor_label": "ALUMINUM DIE CAST (page header)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Cast",
+    "representative_alloy": "A356 / die cast"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": null,
+     "max": 20.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "vertical ramping up to 20 degrees",
+     "plunge": "step-over plunging applications (no value)"
+    }
+   },
+   "vendor_notes": [
+    "Page 4 (Ramping photo caption): 'In steep, aggressive ramping conditions, the ALU-POWER HPC holds its own to resist the torsional stress from extreme helical output.'",
+    "Marketing statement in the series description; no ramp feed factor, hole size or material split is printed."
+   ],
+   "notes": "Aluminium-only series (DLC coated, 3 flutes, 37 deg helix, center cutting). Part number and geometry from the JAG95 selection/EDP table (PDF page 10, same data as the repo's yg1.json rows). Series JAG96-JAG98 corner-radius/neck variants share the page claim. Page checked in the rendered image."
+  },
+  {
+   "id": "yg1_ramp_jag95_wrought_0p25",
+   "source": {
+    "doc_id": "YG1_ALU_POWER_HPC_INCH_YU_HPC26",
+    "page": 3,
+    "table": "ALU-POWER HPC 3-FLUTE END MILLS - The Anatomy of Efficiency (series description)",
+    "row_label": "Ideal Symmetrical Shape",
+    "column_label": "series-wide",
+    "cells": "3-flute design \"to the center\" (all 3 flutes come to center); Designed with high spindle speeds in mind; Highly effective in vertical ramping up to 20 degrees and step-over plunging applications",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "JAG95903",
+    "series": "Alu-Power HPC 3-flute standard length coated square end JAG95 (37 deg, DLC)",
+    "tool_material": "carbide",
+    "coating": "DLC",
+    "flutes": 3,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.yg1usa.com/downloads/YU-HPC26%20Single%20Page.pdf",
+    "missing": [
+     "variable_pitch"
+    ]
+   },
+   "material": {
+    "vendor_label": "ALUMINUM (page header: For ALUMINUM, ALUMINUM DIE CAST, NON-FERROUS ALLOYS AND PLASTICS)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": null,
+     "max": 20.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "vertical ramping up to 20 degrees",
+     "plunge": "step-over plunging applications (no value)"
+    }
+   },
+   "vendor_notes": [
+    "Page 4 (Ramping photo caption): 'In steep, aggressive ramping conditions, the ALU-POWER HPC holds its own to resist the torsional stress from extreme helical output.'",
+    "Marketing statement in the series description; no ramp feed factor, hole size or material split is printed."
+   ],
+   "notes": "Aluminium-only series (DLC coated, 3 flutes, 37 deg helix, center cutting). Part number and geometry from the JAG95 selection/EDP table (PDF page 10, same data as the repo's yg1.json rows). Series JAG96-JAG98 corner-radius/neck variants share the page claim. Page checked in the rendered image."
+  },
+  {
+   "id": "yg1_ramp_jag95_cast_0p25",
+   "source": {
+    "doc_id": "YG1_ALU_POWER_HPC_INCH_YU_HPC26",
+    "page": 3,
+    "table": "ALU-POWER HPC 3-FLUTE END MILLS - The Anatomy of Efficiency (series description)",
+    "row_label": "Ideal Symmetrical Shape",
+    "column_label": "series-wide",
+    "cells": "3-flute design \"to the center\" (all 3 flutes come to center); Designed with high spindle speeds in mind; Highly effective in vertical ramping up to 20 degrees and step-over plunging applications",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "JAG95903",
+    "series": "Alu-Power HPC 3-flute standard length coated square end JAG95 (37 deg, DLC)",
+    "tool_material": "carbide",
+    "coating": "DLC",
+    "flutes": 3,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37,
+    "variable_pitch": null,
+    "DC": 0.25,
+    "LCF": 0.625,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.25,
+    "OAL": 2.5,
+    "geometry_url": "https://www.yg1usa.com/downloads/YU-HPC26%20Single%20Page.pdf",
+    "missing": [
+     "variable_pitch"
+    ]
+   },
+   "material": {
+    "vendor_label": "ALUMINUM DIE CAST (page header)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Cast",
+    "representative_alloy": "A356 / die cast"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": null,
+     "max": 20.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "vertical ramping up to 20 degrees",
+     "plunge": "step-over plunging applications (no value)"
+    }
+   },
+   "vendor_notes": [
+    "Page 4 (Ramping photo caption): 'In steep, aggressive ramping conditions, the ALU-POWER HPC holds its own to resist the torsional stress from extreme helical output.'",
+    "Marketing statement in the series description; no ramp feed factor, hole size or material split is printed."
+   ],
+   "notes": "Aluminium-only series (DLC coated, 3 flutes, 37 deg helix, center cutting). Part number and geometry from the JAG95 selection/EDP table (PDF page 10, same data as the repo's yg1.json rows). Series JAG96-JAG98 corner-radius/neck variants share the page claim. Page checked in the rendered image."
+  },
+  {
+   "id": "yg1_ramp_jag95_wrought_0p5",
+   "source": {
+    "doc_id": "YG1_ALU_POWER_HPC_INCH_YU_HPC26",
+    "page": 3,
+    "table": "ALU-POWER HPC 3-FLUTE END MILLS - The Anatomy of Efficiency (series description)",
+    "row_label": "Ideal Symmetrical Shape",
+    "column_label": "series-wide",
+    "cells": "3-flute design \"to the center\" (all 3 flutes come to center); Designed with high spindle speeds in mind; Highly effective in vertical ramping up to 20 degrees and step-over plunging applications",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "JAG95927",
+    "series": "Alu-Power HPC 3-flute standard length coated square end JAG95 (37 deg, DLC)",
+    "tool_material": "carbide",
+    "coating": "DLC",
+    "flutes": 3,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.yg1usa.com/downloads/YU-HPC26%20Single%20Page.pdf",
+    "missing": [
+     "variable_pitch"
+    ]
+   },
+   "material": {
+    "vendor_label": "ALUMINUM (page header: For ALUMINUM, ALUMINUM DIE CAST, NON-FERROUS ALLOYS AND PLASTICS)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": null,
+     "max": 20.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "vertical ramping up to 20 degrees",
+     "plunge": "step-over plunging applications (no value)"
+    }
+   },
+   "vendor_notes": [
+    "Page 4 (Ramping photo caption): 'In steep, aggressive ramping conditions, the ALU-POWER HPC holds its own to resist the torsional stress from extreme helical output.'",
+    "Marketing statement in the series description; no ramp feed factor, hole size or material split is printed."
+   ],
+   "notes": "Aluminium-only series (DLC coated, 3 flutes, 37 deg helix, center cutting). Part number and geometry from the JAG95 selection/EDP table (PDF page 10, same data as the repo's yg1.json rows). Series JAG96-JAG98 corner-radius/neck variants share the page claim. Page checked in the rendered image."
+  },
+  {
+   "id": "yg1_ramp_jag95_cast_0p5",
+   "source": {
+    "doc_id": "YG1_ALU_POWER_HPC_INCH_YU_HPC26",
+    "page": 3,
+    "table": "ALU-POWER HPC 3-FLUTE END MILLS - The Anatomy of Efficiency (series description)",
+    "row_label": "Ideal Symmetrical Shape",
+    "column_label": "series-wide",
+    "cells": "3-flute design \"to the center\" (all 3 flutes come to center); Designed with high spindle speeds in mind; Highly effective in vertical ramping up to 20 degrees and step-over plunging applications",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "JAG95927",
+    "series": "Alu-Power HPC 3-flute standard length coated square end JAG95 (37 deg, DLC)",
+    "tool_material": "carbide",
+    "coating": "DLC",
+    "flutes": 3,
+    "end": "square",
+    "corner_radius": 0.0,
+    "helix_deg": 37,
+    "variable_pitch": null,
+    "DC": 0.5,
+    "LCF": 1.0,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.5,
+    "OAL": 3.0,
+    "geometry_url": "https://www.yg1usa.com/downloads/YU-HPC26%20Single%20Page.pdf",
+    "missing": [
+     "variable_pitch"
+    ]
+   },
+   "material": {
+    "vendor_label": "ALUMINUM DIE CAST (page header)",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Cast",
+    "representative_alloy": "A356 / die cast"
+   },
+   "operation": "ramp",
+   "cut": {
+    "ap": null,
+    "ae": null,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "published": {}
+   },
+   "ramp": {
+    "kind": "any",
+    "angle_deg": {
+     "min": null,
+     "max": 20.0,
+     "nominal": null
+    },
+    "hole_diameter_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "pitch_over_D": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "ramp_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "plunge_feed_factor": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "feed_factor_basis": null,
+    "published": {
+     "angle": "vertical ramping up to 20 degrees",
+     "plunge": "step-over plunging applications (no value)"
+    }
+   },
+   "vendor_notes": [
+    "Page 4 (Ramping photo caption): 'In steep, aggressive ramping conditions, the ALU-POWER HPC holds its own to resist the torsional stress from extreme helical output.'",
+    "Marketing statement in the series description; no ramp feed factor, hole size or material split is printed."
+   ],
+   "notes": "Aluminium-only series (DLC coated, 3 flutes, 37 deg helix, center cutting). Part number and geometry from the JAG95 selection/EDP table (PDF page 10, same data as the repo's yg1.json rows). Series JAG96-JAG98 corner-radius/neck variants share the page claim. Page checked in the rendered image."
   }
  ]
 }

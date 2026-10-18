@@ -10,7 +10,9 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 V2_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2")
-OPERATIONS = {"slot", "side", "rough", "hem", "finish"}
+OPERATIONS = {"slot", "side", "rough", "hem", "finish", "ramp"}
+RAMP_KINDS = {"helical", "linear", "plunge", "any"}
+RAMP_RANGES = ("angle_deg", "hole_diameter_over_D", "pitch_over_D", "ramp_feed_factor", "plunge_feed_factor")
 TOOL_FIELDS = ("part_number", "series", "tool_material", "coating", "flutes", "end", "corner_radius",
                "helix_deg", "variable_pitch", "DC", "LCF", "neck_diameter", "LB", "SFDM", "OAL",
                "geometry_url", "missing")
@@ -105,6 +107,10 @@ class TestV2BenchmarkDataset(unittest.TestCase):
                 cut = row["cut"]
                 for key in ("sfm", "fz"):
                     vals = [cut[key].get(k) for k in ("min", "max", "nominal")]
+                    if row["operation"] == "ramp":
+                        # Ramp rows may give only an angle; a given value must still be positive.
+                        self.assertTrue(all(v is None or positive(v) for v in vals), f"{key} must be positive")
+                        continue
                     self.assertTrue(any(positive(v) for v in vals), f"{key} has no value")
                     lo, hi = cut[key].get("min"), cut[key].get("max")
                     if positive(lo) and positive(hi):
@@ -115,6 +121,39 @@ class TestV2BenchmarkDataset(unittest.TestCase):
                 if row["operation"] == "slot" and positive(cut.get("ae")):
                     self.assertAlmostEqual(cut["ae"], dc, delta=dc * 0.01)
                 self.assertIn("published", cut)
+
+    def test_ramp_rows(self):
+        n = 0
+        for name, _, row in self.rows():
+            if row["operation"] != "ramp":
+                self.assertNotIn("ramp", row)
+                continue
+            n += 1
+            with self.subTest(row=row.get("id")):
+                rp = row.get("ramp")
+                self.assertIsInstance(rp, dict, "ramp rows carry a ramp block")
+                self.assertIn(rp.get("kind"), RAMP_KINDS)
+                values = []
+                for key in RAMP_RANGES:
+                    rng = rp.get(key)
+                    self.assertIsInstance(rng, dict, key)
+                    vals = [rng.get(k) for k in ("min", "max", "nominal")]
+                    for v in vals:
+                        self.assertTrue(v is None or positive(v), f"{key} must be positive")
+                    lo, hi = rng.get("min"), rng.get("max")
+                    if positive(lo) and positive(hi):
+                        self.assertLessEqual(lo, hi, key)
+                    values += [v for v in vals if v is not None]
+                self.assertTrue(values, "a ramp row needs at least one numeric ramp value")
+                for k in ("min", "max", "nominal"):
+                    a = rp["angle_deg"].get(k)
+                    self.assertTrue(a is None or a <= 90.0, "ramp angle is from the horizontal, ≤ 90°")
+                    h = rp["hole_diameter_over_D"].get(k)
+                    self.assertTrue(h is None or h >= 1.0, "a bore is at least the tool diameter")
+                if any(rp[f].get(k) is not None for f in ("ramp_feed_factor", "plunge_feed_factor")
+                       for k in ("min", "max", "nominal")):
+                    self.assertTrue(str(rp.get("feed_factor_basis") or "").strip(), "feed factors name their base")
+        self.assertGreater(n, 0, "the dataset has ramp rows")
 
 
 if __name__ == "__main__":

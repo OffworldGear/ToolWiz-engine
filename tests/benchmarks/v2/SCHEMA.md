@@ -91,5 +91,34 @@ Design reference: `docs/PHYSICS_MODEL_DESIGN.md` §4.2. One file per vendor (`ha
 - `rough`: the vendor's "roughing" column when it isn't a HEM/adaptive recommendation.
 - `hem`: the vendor's HEM, dynamic or trochoidal recommendation.
 - `finish`: a finishing pass.
+- `ramp`: the vendor's ramping, helical-entry (helical interpolation into solid) or plunge recommendation. The row carries a `ramp` block (below).
+
+## Ramp rows (`operation: "ramp"`)
+
+Ramp rows calibrate and validate the v2 entry model (`physics_v2/ramp.py`). They follow every rule above (exact cells, a real part number from the series with catalog geometry, `source.derivation` for values that come from applying the vendor's own rule). In addition:
+
+```json
+"operation": "ramp",
+"ramp": {
+  "kind": "helical | linear | plunge | any",
+  "angle_deg": {"min": null, "max": 3.0, "nominal": null},
+  "hole_diameter_over_D": {"min": 1.3, "max": 2.0, "nominal": null},
+  "pitch_over_D": {"min": null, "max": null, "nominal": null},
+  "ramp_feed_factor": {"min": null, "max": null, "nominal": 0.5},
+  "plunge_feed_factor": {"min": null, "max": null, "nominal": null},
+  "feed_factor_basis": "what the factors multiply, e.g. 'the side-milling fz of the same sheet'",
+  "published": {"angle": "max. ramping angle 3°", "hole": "min. bore 1.3 x D"}
+}
+```
+
+- `kind`: `helical` (circular/helical entry), `linear` (straight ramp), `plunge` (straight down), or `any` when the vendor's statement doesn't distinguish.
+- `angle_deg` is the ramp angle α from the horizontal. A "max." angle goes in `max`, a range in `min`/`max`, a single recommendation in `nominal`.
+- `hole_diameter_over_D` is the bore (hole) diameter of a helical entry over the tool diameter DC, as vendors print it. The tool-centre helix diameter is `hole − DC`, i.e. `(hole_diameter_over_D − 1)·DC`.
+- `pitch_over_D`: the axial advance per helix revolution over DC, when the vendor prints a pitch instead of (or as well as) an angle.
+- `ramp_feed_factor` / `plunge_feed_factor`: the ramp or plunge feed (or chip load) as a fraction of the base the vendor names; state the base in `feed_factor_basis`.
+- At least one numeric value in the block is required. Every null field that the vendor doesn't publish is simply null; there is no `missing` list in the ramp block.
+- `cut.sfm` and `cut.fz` are optional on ramp rows (many vendors give only an angle). When given they are the ramp (or helical-entry) speed and chip load. `cut.ap`/`cut.ae` are null unless the vendor prints them for the entry.
+- A vendor rule that covers a whole series or every diameter becomes one row per diameter column (or per representative diameter in the user's 1/16–1/2" range when the rule has no columns), each with a real part number.
+- Readings from a calculator (for example Sandvik CoroPlus ToolGuide) are allowed with `read_method: "image"` when they come from screenshots; the document's `url` points to the tool and `revision` gives the date read.
 
 `toolwiz_family` is one of the 31 GWizard family names in `gwizard_materials.db` (`material_families.name`), for example `Stainless - PH Series (17-4)`.
