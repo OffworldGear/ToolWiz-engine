@@ -1,0 +1,1915 @@
+{
+ "version": "2026-10-18.1",
+ "generated_by": "tools/calibrate_v2_ramp.py",
+ "date": "2026-10-18",
+ "rows": 568,
+ "vendor_groups": [
+  "Emuge-Franken",
+  "Harvey Performance",
+  "Kennametal",
+  "Kyocera",
+  "OSG",
+  "Sandvik",
+  "YG-1"
+ ],
+ "rows_by_vendor": {
+  "Emuge-Franken": 39,
+  "Harvey Performance": 77,
+  "Kennametal": 140,
+  "Kyocera": 114,
+  "OSG": 62,
+  "Sandvik": 130,
+  "YG-1": 6
+ },
+ "rows_by_family": {
+  "Stainless - PH Series (17-4)": 136,
+  "Steel - Medium Carbon Alloy (4130)": 109,
+  "Steel - Tool (H13)": 81,
+  "Titanium Alloy": 42,
+  "High Temp Nickel Alloy": 22,
+  "Stainless - 300 Series (316)": 56,
+  "Aluminum - Wrought (6061)": 24,
+  "Steel - Low Carbon (1020)": 26,
+  "Steel - Medium Carbon (1045)": 8,
+  "Cast Iron - Gray": 18,
+  "Cast Iron - Ductile": 14,
+  "Nickel Alloy": 5,
+  "Aluminum - Cast": 11,
+  "Copper Alloy - Wrought": 8,
+  "Graphite": 8
+ },
+ "rows_by_band": {
+  "1/16-3/32": 31,
+  "1/8-3/16": 90,
+  "1/4-3/8": 193,
+  "1/2-3/4": 216,
+  "1 and up": 32,
+  "1/64-3/64": 6
+ },
+ "end_chip_basis": {
+  "assumed": 158,
+  "none": 339,
+  "stated": 32,
+  "rule": 39
+ },
+ "end_chip_bands_R2_plunge": [
+  {
+   "band": "1/64-3/64",
+   "d_min": 0.0,
+   "d_max": 0.05,
+   "h_a_over_D": 0.0017313,
+   "group_medians": {
+    "OSG": 0.0020133,
+    "Sandvik": 0.0014493
+   },
+   "groups": [
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 20,
+   "widening": "+ two bands either side",
+   "p10": 0.0013333,
+   "p90": 0.003016
+  },
+  {
+   "band": "1/16-3/32",
+   "d_min": 0.05,
+   "d_max": 0.1,
+   "h_a_over_D": 0.0017313,
+   "group_medians": {
+    "OSG": 0.0020133,
+    "Sandvik": 0.0014493
+   },
+   "groups": [
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 20,
+   "widening": "+ neighbouring bands",
+   "p10": 0.0013333,
+   "p90": 0.003016
+  },
+  {
+   "band": "1/8-3/16",
+   "d_min": 0.1,
+   "d_max": 0.2,
+   "h_a_over_D": 0.0017313,
+   "group_medians": {
+    "OSG": 0.0020133,
+    "Sandvik": 0.0014493
+   },
+   "groups": [
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 20,
+   "widening": "band",
+   "p10": 0.0013333,
+   "p90": 0.003016
+  },
+  {
+   "band": "1/4-3/8",
+   "d_min": 0.2,
+   "d_max": 0.4,
+   "h_a_over_D": 0.0017067,
+   "group_medians": {
+    "Kennametal": 0.0011333,
+    "Kyocera": 0.0038667,
+    "OSG": 0.00228,
+    "Sandvik": 0.00055563
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 55,
+   "widening": "band",
+   "p10": 0.00073333,
+   "p90": 0.0046933
+  },
+  {
+   "band": "1/2-3/4",
+   "d_min": 0.4,
+   "d_max": 0.8,
+   "h_a_over_D": 0.001645,
+   "group_medians": {
+    "Kennametal": 0.00095,
+    "Kyocera": 0.00444,
+    "OSG": 0.00234,
+    "Sandvik": 0.00052917
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 64,
+   "widening": "band",
+   "p10": 0.0007,
+   "p90": 0.004942
+  },
+  {
+   "band": "1 and up",
+   "d_min": 0.8,
+   "d_max": 1000000000.0,
+   "h_a_over_D": 0.0016825,
+   "group_medians": {
+    "Kennametal": 0.001025,
+    "Kyocera": 0.00444,
+    "OSG": 0.00234,
+    "Sandvik": 0.00052917
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 77,
+   "widening": "+ neighbouring bands",
+   "p10": 0.0007,
+   "p90": 0.0049
+  }
+ ],
+ "ramp_end_chip_bands_reported": [
+  {
+   "band": "1/64-3/64",
+   "d_min": 0.0,
+   "d_max": 0.05,
+   "h_a_over_D": 0.00018119,
+   "group_medians": {
+    "Kyocera": 4.0123e-05,
+    "Sandvik": 0.00032226
+   },
+   "groups": [
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 9,
+   "widening": "+ neighbouring bands",
+   "p10": 3.7241e-05,
+   "p90": 0.00044447
+  },
+  {
+   "band": "1/16-3/32",
+   "d_min": 0.05,
+   "d_max": 0.1,
+   "h_a_over_D": 0.00018155,
+   "group_medians": {
+    "Kyocera": 4.0847e-05,
+    "Sandvik": 0.00032226
+   },
+   "groups": [
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 5,
+   "widening": "band",
+   "p10": 4.0185e-05,
+   "p90": 0.0006889
+  },
+  {
+   "band": "1/8-3/16",
+   "d_min": 0.1,
+   "d_max": 0.2,
+   "h_a_over_D": 0.00029337,
+   "group_medians": {
+    "Kyocera": 0.00018826,
+    "Sandvik": 0.00039848
+   },
+   "groups": [
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 8,
+   "widening": "band",
+   "p10": 6.6582e-05,
+   "p90": 0.00046378
+  },
+  {
+   "band": "1/4-3/8",
+   "d_min": 0.2,
+   "d_max": 0.4,
+   "h_a_over_D": 0.00032067,
+   "group_medians": {
+    "Kyocera": 0.00029268,
+    "Sandvik": 0.00034867
+   },
+   "groups": [
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 24,
+   "widening": "band",
+   "p10": 9.9805e-05,
+   "p90": 0.00041444
+  },
+  {
+   "band": "1/2-3/4",
+   "d_min": 0.4,
+   "d_max": 0.8,
+   "h_a_over_D": 0.00035549,
+   "group_medians": {
+    "Kyocera": 0.00036237,
+    "Sandvik": 0.00034862
+   },
+   "groups": [
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 30,
+   "widening": "band",
+   "p10": 0.00013189,
+   "p90": 0.00043902
+  },
+  {
+   "band": "1 and up",
+   "d_min": 0.8,
+   "d_max": 1000000000.0,
+   "h_a_over_D": 0.00035549,
+   "group_medians": {
+    "Kyocera": 0.00036237,
+    "Sandvik": 0.00034862
+   },
+   "groups": [
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 30,
+   "widening": "+ neighbouring bands",
+   "p10": 0.00013189,
+   "p90": 0.00043902
+  }
+ ],
+ "end_chip_bands_holdout_train": [
+  {
+   "band": "1/16-3/32",
+   "d_min": 0.05,
+   "d_max": 0.1,
+   "h_a_over_D": 0.0015667,
+   "group_medians": {
+    "Kennametal": 0.0011333,
+    "Kyocera": 0.0038667,
+    "OSG": 0.002,
+    "Sandvik": 0.00055563
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 55,
+   "widening": "+ two bands either side",
+   "p10": 0.00073333,
+   "p90": 0.0046933
+  },
+  {
+   "band": "1/8-3/16",
+   "d_min": 0.1,
+   "d_max": 0.2,
+   "h_a_over_D": 0.0015667,
+   "group_medians": {
+    "Kennametal": 0.0011333,
+    "Kyocera": 0.0038667,
+    "OSG": 0.002,
+    "Sandvik": 0.00055563
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 55,
+   "widening": "+ neighbouring bands",
+   "p10": 0.00073333,
+   "p90": 0.0046933
+  },
+  {
+   "band": "1/4-3/8",
+   "d_min": 0.2,
+   "d_max": 0.4,
+   "h_a_over_D": 0.0015667,
+   "group_medians": {
+    "Kennametal": 0.0011333,
+    "Kyocera": 0.0038667,
+    "OSG": 0.002,
+    "Sandvik": 0.00055563
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 42,
+   "widening": "band",
+   "p10": 0.00073333,
+   "p90": 0.004896
+  },
+  {
+   "band": "1/2-3/4",
+   "d_min": 0.4,
+   "d_max": 0.8,
+   "h_a_over_D": 0.00139,
+   "group_medians": {
+    "Kennametal": 0.00095,
+    "Kyocera": 0.00444,
+    "OSG": 0.00183,
+    "Sandvik": 0.00052917
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 52,
+   "widening": "band",
+   "p10": 0.0007,
+   "p90": 0.004996
+  },
+  {
+   "band": "1 and up",
+   "d_min": 0.8,
+   "d_max": 1000000000.0,
+   "h_a_over_D": 0.00139,
+   "group_medians": {
+    "Kennametal": 0.00095,
+    "Kyocera": 0.00444,
+    "OSG": 0.00183,
+    "Sandvik": 0.00052917
+   },
+   "groups": [
+    "Kennametal",
+    "Kyocera",
+    "OSG",
+    "Sandvik"
+   ],
+   "n": 62,
+   "widening": "+ neighbouring bands",
+   "p10": 0.0007,
+   "p90": 0.004954
+  }
+ ],
+ "ramp_end_chip_bands_with_assumed_rows": [
+  {
+   "band": "1/64-3/64",
+   "d_min": 0.0,
+   "d_max": 0.05,
+   "h_a_over_D": 0.00017295,
+   "group_medians": {
+    "Emuge-Franken": 0.00026216,
+    "Harvey Performance": 8.3738e-05,
+    "Kyocera": 4.0123e-05,
+    "Sandvik": 0.00032226
+   },
+   "groups": [
+    "Emuge-Franken",
+    "Harvey Performance",
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 18,
+   "widening": "+ neighbouring bands",
+   "p10": 3.7518e-05,
+   "p90": 0.00033017
+  },
+  {
+   "band": "1/16-3/32",
+   "d_min": 0.05,
+   "d_max": 0.1,
+   "h_a_over_D": 0.00017295,
+   "group_medians": {
+    "Emuge-Franken": 0.00026216,
+    "Harvey Performance": 8.3738e-05,
+    "Kyocera": 4.0847e-05,
+    "Sandvik": 0.00032226
+   },
+   "groups": [
+    "Emuge-Franken",
+    "Harvey Performance",
+    "Kyocera",
+    "Sandvik"
+   ],
+   "n": 14,
+   "widening": "band",
+   "p10": 5.2189e-05,
+   "p90": 0.00034071
+  },
+  {
+   "band": "1/8-3/16",
+   "d_min": 0.1,
+   "d_max": 0.2,
+   "h_a_over_D": 0.00026147,
+   "group_medians": {
+    "Emuge-Franken": 0.00026147,
+    "Harvey Performance": 0.00016748,
+    "Kyocera": 0.00021615,
+    "Sandvik": 0.00070504,
+    "YG-1": 0.0027362
+   },
+   "groups": [
+    "Emuge-Franken",
+    "Harvey Performance",
+    "Kyocera",
+    "Sandvik",
+    "YG-1"
+   ],
+   "n": 38,
+   "widening": "band",
+   "p10": 7.5364e-05,
+   "p90": 0.0015637
+  },
+  {
+   "band": "1/4-3/8",
+   "d_min": 0.2,
+   "d_max": 0.4,
+   "h_a_over_D": 0.00025275,
+   "group_medians": {
+    "Emuge-Franken": 0.00026147,
+    "Harvey Performance": 0.00017376,
+    "Kennametal": 0.0001489,
+    "Kyocera": 0.00024404,
+    "Sandvik": 0.00052592,
+    "YG-1": 0.0041042
+   },
+   "groups": [
+    "Emuge-Franken",
+    "Harvey Performance",
+    "Kennametal",
+    "Kyocera",
+    "Sandvik",
+    "YG-1"
+   ],
+   "n": 80,
+   "widening": "band",
+   "p10": 7.8984e-05,
+   "p90": 0.0015927
+  },
+  {
+   "band": "1/2-3/4",
+   "d_min": 0.4,
+   "d_max": 0.8,
+   "h_a_over_D": 0.00030114,
+   "group_medians": {
+    "Emuge-Franken": 0.00026147,
+    "Harvey Performance": 0.00012613,
+    "Kennametal": 0.00013867,
+    "Kyocera": 0.00034081,
+    "Sandvik": 0.00052592,
+    "YG-1": 0.0041042
+   },
+   "groups": [
+    "Emuge-Franken",
+    "Harvey Performance",
+    "Kennametal",
+    "Kyocera",
+    "Sandvik",
+    "YG-1"
+   ],
+   "n": 88,
+   "widening": "band",
+   "p10": 0.00010151,
+   "p90": 0.001174
+  },
+  {
+   "band": "1 and up",
+   "d_min": 0.8,
+   "d_max": 1000000000.0,
+   "h_a_over_D": 0.00030114,
+   "group_medians": {
+    "Emuge-Franken": 0.00026147,
+    "Harvey Performance": 0.00012613,
+    "Kennametal": 0.00013774,
+    "Kyocera": 0.00034081,
+    "Sandvik": 0.00052592,
+    "YG-1": 0.0041042
+   },
+   "groups": [
+    "Emuge-Franken",
+    "Harvey Performance",
+    "Kennametal",
+    "Kyocera",
+    "Sandvik",
+    "YG-1"
+   ],
+   "n": 93,
+   "widening": "+ neighbouring bands",
+   "p10": 0.00010135,
+   "p90": 0.0011113
+  }
+ ],
+ "plunge_chips": {
+  "n": 152,
+  "median_h_over_D": 0.0015223,
+  "groups": [
+   "Kennametal",
+   "Kyocera",
+   "OSG",
+   "Sandvik"
+  ]
+ },
+ "consensus_17_4_h1025": {
+  "0.0625": {
+   "angle_deg": {
+    "median": 3.0,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kyocera": 2.0,
+     "Sandvik": 7.5,
+     "Harvey Performance": 3.0
+    }
+   },
+   "hole_min_over_D": {
+    "median": 1.375,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Sandvik": 1.65,
+     "Harvey Performance": 1.1
+    }
+   },
+   "ramp_feed_factor": {
+    "median": 1.0,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kyocera": 1.0,
+     "Sandvik": 1.0
+    }
+   },
+   "plunge_feed_factor": {
+    "median": 0.198,
+    "widening": "family-wide",
+    "groups": {
+     "OSG": 0.207,
+     "Kennametal": 0.189
+    }
+   }
+  },
+  "0.125": {
+   "angle_deg": {
+    "median": 3.0,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kyocera": 5.0,
+     "Sandvik": 5.0,
+     "Harvey Performance": 3.0,
+     "Kennametal": 2.0,
+     "Emuge-Franken": 2.0
+    }
+   },
+   "hole_min_over_D": {
+    "median": 1.2,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Sandvik": 1.3,
+     "Harvey Performance": 1.1
+    }
+   },
+   "ramp_feed_factor": {
+    "median": 1.0,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kyocera": 1.0,
+     "Sandvik": 1.0,
+     "Kennametal": 0.8165
+    }
+   },
+   "plunge_feed_factor": {
+    "median": 0.1875,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "OSG": 0.207,
+     "Kennametal": 0.168
+    }
+   }
+  },
+  "0.25": {
+   "angle_deg": {
+    "median": 3.0,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kyocera": 6.0,
+     "Harvey Performance": 3.0,
+     "Sandvik": 5.0,
+     "Kennametal": 2.0,
+     "Emuge-Franken": 2.0
+    }
+   },
+   "hole_min_over_D": {
+    "median": 1.2,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Harvey Performance": 1.1,
+     "Sandvik": 1.3
+    }
+   },
+   "ramp_feed_factor": {
+    "median": 0.905,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kyocera": 0.905,
+     "Sandvik": 1.0,
+     "Kennametal": 0.787
+    }
+   },
+   "plunge_feed_factor": {
+    "median": 0.19525,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "OSG": 0.207,
+     "Kennametal": 0.1835
+    }
+   }
+  },
+  "0.5": {
+   "angle_deg": {
+    "median": 3.0,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kennametal": 2.0,
+     "Kyocera": 6,
+     "Emuge-Franken": 2.0,
+     "Harvey Performance": 3.0,
+     "Sandvik": 5.0
+    }
+   },
+   "hole_min_over_D": {
+    "median": 1.2,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Harvey Performance": 1.1,
+     "Sandvik": 1.3
+    }
+   },
+   "ramp_feed_factor": {
+    "median": 0.897,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kennametal": 0.782,
+     "Kyocera": 0.897,
+     "Sandvik": 1.0
+    }
+   },
+   "plunge_feed_factor": {
+    "median": 0.2025,
+    "widening": "+ neighbouring hardness bin",
+    "groups": {
+     "Kennametal": 0.189,
+     "OSG": 0.216
+    }
+   }
+  }
+ },
+ "t1_t12": [
+  {
+   "tool": "T1",
+   "aggressiveness": 0.5,
+   "adaptive": {
+    "ap_in": 0.5,
+    "ae_in": 0.0070116,
+    "rpm": 6521.2,
+    "feed_ipm": 15.44,
+    "fz_in": 0.00059192
+   },
+   "v2_ramp": {
+    "feasible": false,
+    "ramp_angle_deg": 3.4672,
+    "helix_diameter_over_D": 0.6,
+    "helix_diameter_in": 0.075,
+    "helix_min_diameter_in": 0.025,
+    "bore_diameter_in": 0.2,
+    "pitch_in": 0.014276,
+    "rpm": 3935.8,
+    "sfm": 128.8,
+    "fz_in": 0.00039066,
+    "ramp_feed_ipm": 6.1503,
+    "descent_ipm": 0.37195,
+    "plunge_feed_ipm": 1.0609,
+    "end_chip_in": 2.3626e-05,
+    "end_chip_floor_in": 2.3622e-05,
+    "end_chip_cap_in": 0.0001991,
+    "ramp_feed_at_op_rpm_ipm": 10.19,
+    "binding": [
+     "C14v",
+     "C14f",
+     "R1",
+     "R14a",
+     "R14f",
+     "R14p"
+    ],
+    "conflicts": [
+     "R14a: no angle under the vendor cap 2.76° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+    ]
+   },
+   "v2_ramp_checks": {
+    "C1": {
+     "value": 0.0063306,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "C2": {
+     "value": 0.013515,
+     "limit": 0.014496,
+     "ok": true
+    },
+    "C3": {
+     "value": 0.00072261,
+     "limit": 0.00098425,
+     "ok": true
+    },
+    "C4": {
+     "value": 240.4,
+     "limit": 1339.5,
+     "ok": true
+    },
+    "C5": {
+     "value": 0.0046436,
+     "limit": 0.9,
+     "ok": true
+    },
+    "C7": {
+     "value": 4155.6,
+     "limit": 16000.0,
+     "ok": true
+    },
+    "C11": {
+     "value": 6.1503,
+     "limit": 1181.1,
+     "ok": true
+    },
+    "C14v": {
+     "value": 128.8,
+     "limit": 128.8,
+     "ok": true
+    },
+    "C14f": {
+     "value": 0.00039066,
+     "limit": 0.00039146,
+     "ok": true
+    },
+    "C14m": {
+     "value": 0.010975,
+     "limit": 0.01249,
+     "ok": true
+    },
+    "R1": {
+     "value": 0.0006001,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2": {
+     "value": 0.0006001,
+     "limit": 0.0050572,
+     "ok": true
+    },
+    "R6": {
+     "value": 0.6,
+     "limit": 0.2,
+     "ok": true
+    },
+    "R14a": {
+     "value": 3.4672,
+     "limit": 2.76,
+     "ok": false
+    },
+    "R14f": {
+     "value": 6.1503,
+     "limit": 5.6582,
+     "ok": false
+    },
+    "R14p": {
+     "value": 1.0609,
+     "limit": 1.0609,
+     "ok": true
+    },
+    "R1p": {
+     "value": 0.0017117,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2p": {
+     "value": 0.0017117,
+     "limit": 0.0050572,
+     "ok": true
+    }
+   },
+   "v1": {
+    "ramp_angle_deg": 2.0,
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 9.2641,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 5.4041,
+    "end_chip_in_at_v2_ramp_fz": 1.3634e-05
+   }
+  },
+  {
+   "tool": "T1",
+   "aggressiveness": 0.75,
+   "adaptive": {
+    "ap_in": 0.5,
+    "ae_in": 0.0066306,
+    "rpm": 7150.5,
+    "feed_ipm": 18.411,
+    "fz_in": 0.00064369
+   },
+   "v2_ramp": {
+    "feasible": true,
+    "ramp_angle_deg": 3.1969,
+    "helix_diameter_over_D": 0.6,
+    "helix_diameter_in": 0.075,
+    "helix_min_diameter_in": 0.025,
+    "bore_diameter_in": 0.2,
+    "pitch_in": 0.01316,
+    "rpm": 4278.1,
+    "sfm": 140.0,
+    "fz_in": 0.0004236,
+    "ramp_feed_ipm": 7.2487,
+    "descent_ipm": 0.40424,
+    "plunge_feed_ipm": 1.3591,
+    "end_chip_in": 2.3623e-05,
+    "end_chip_floor_in": 2.3622e-05,
+    "end_chip_cap_in": 0.00021641,
+    "ramp_feed_at_op_rpm_ipm": 12.116,
+    "binding": [
+     "C14v",
+     "C14f",
+     "R1",
+     "R14a",
+     "R14f",
+     "R14p"
+    ],
+    "conflicts": [
+     "R14a: no angle under the vendor cap 3.00° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+    ]
+   },
+   "v2_ramp_checks": {
+    "C1": {
+     "value": 0.0071673,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "C2": {
+     "value": 0.014351,
+     "limit": 0.015757,
+     "ok": true
+    },
+    "C3": {
+     "value": 0.00069931,
+     "limit": 0.00098425,
+     "ok": true
+    },
+    "C4": {
+     "value": 232.88,
+     "limit": 1382.2,
+     "ok": true
+    },
+    "C5": {
+     "value": 0.004608,
+     "limit": 0.95,
+     "ok": true
+    },
+    "C7": {
+     "value": 4517.0,
+     "limit": 16000.0,
+     "ok": true
+    },
+    "C11": {
+     "value": 7.2487,
+     "limit": 1181.1,
+     "ok": true
+    },
+    "C14v": {
+     "value": 140.0,
+     "limit": 140.0,
+     "ok": true
+    },
+    "C14f": {
+     "value": 0.0004236,
+     "limit": 0.0004255,
+     "ok": true
+    },
+    "C14m": {
+     "value": 0.011924,
+     "limit": 0.012515,
+     "ok": true
+    },
+    "R1": {
+     "value": 0.00060002,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2": {
+     "value": 0.00060002,
+     "limit": 0.0054969,
+     "ok": true
+    },
+    "R6": {
+     "value": 0.6,
+     "limit": 0.2,
+     "ok": true
+    },
+    "R14a": {
+     "value": 3.1969,
+     "limit": 3.0,
+     "ok": false
+    },
+    "R14f": {
+     "value": 7.2487,
+     "limit": 7.2487,
+     "ok": true
+    },
+    "R14p": {
+     "value": 1.3591,
+     "limit": 1.3591,
+     "ok": true
+    },
+    "R1p": {
+     "value": 0.0020174,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2p": {
+     "value": 0.0020174,
+     "limit": 0.0054969,
+     "ok": true
+    }
+   },
+   "v1": {
+    "ramp_angle_deg": 2.3,
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 11.047,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 6.4438,
+    "end_chip_in_at_v2_ramp_fz": 1.7e-05
+   }
+  },
+  {
+   "tool": "T12",
+   "aggressiveness": 0.5,
+   "adaptive": {
+    "ap_in": 0.1875,
+    "ae_in": 0.013059,
+    "rpm": 11018.0,
+    "feed_ipm": 12.669,
+    "fz_in": 0.00028745
+   },
+   "v2_ramp": {
+    "feasible": false,
+    "ramp_angle_deg": 5.8745,
+    "helix_diameter_over_D": 1.0,
+    "helix_diameter_in": 0.0625,
+    "helix_min_diameter_in": 0.023438,
+    "bore_diameter_in": 0.125,
+    "pitch_in": 0.020202,
+    "rpm": 8624.7,
+    "sfm": 141.12,
+    "fz_in": 0.00023082,
+    "ramp_feed_ipm": 7.9631,
+    "descent_ipm": 0.81502,
+    "plunge_feed_ipm": 1.4506,
+    "end_chip_in": 2.3625e-05,
+    "end_chip_floor_in": 2.3622e-05,
+    "end_chip_cap_in": 9.955e-05,
+    "ramp_feed_at_op_rpm_ipm": 10.173,
+    "binding": [
+     "C2",
+     "R1",
+     "R14a",
+     "R14f",
+     "R14p"
+    ],
+    "conflicts": [
+     "R14a: no angle under the vendor cap 2.76° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+    ]
+   },
+   "v2_ramp_checks": {
+    "C1": {
+     "value": 0.0022708,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "C2": {
+     "value": 0.009455,
+     "limit": 0.0094839,
+     "ok": true
+    },
+    "C3": {
+     "value": 0.00070304,
+     "limit": 0.00098425,
+     "ok": true
+    },
+    "C4": {
+     "value": 735.09,
+     "limit": 1339.5,
+     "ok": true
+    },
+    "C5": {
+     "value": 0.0034209,
+     "limit": 0.9,
+     "ok": true
+    },
+    "C7": {
+     "value": 8624.7,
+     "limit": 16000.0,
+     "ok": true
+    },
+    "C8": {
+     "value": 0.020202,
+     "limit": 0.021875,
+     "ok": true
+    },
+    "C11": {
+     "value": 7.9631,
+     "limit": 1181.1,
+     "ok": true
+    },
+    "C14v": {
+     "value": 141.12,
+     "limit": 167.9,
+     "ok": true
+    },
+    "C14f": {
+     "value": 0.00023082,
+     "limit": 0.00028129,
+     "ok": true
+    },
+    "C14m": {
+     "value": 0.010055,
+     "limit": 0.016465,
+     "ok": true
+    },
+    "R1": {
+     "value": 0.00060007,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2": {
+     "value": 0.00060007,
+     "limit": 0.0025286,
+     "ok": true
+    },
+    "R6": {
+     "value": 1.0,
+     "limit": 0.375,
+     "ok": true
+    },
+    "R14a": {
+     "value": 5.8745,
+     "limit": 2.76,
+     "ok": false
+    },
+    "R14f": {
+     "value": 7.9631,
+     "limit": 7.3261,
+     "ok": false
+    },
+    "R14p": {
+     "value": 1.4506,
+     "limit": 1.4506,
+     "ok": true
+    },
+    "R1p": {
+     "value": 0.001068,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2p": {
+     "value": 0.001068,
+     "limit": 0.0025286,
+     "ok": true
+    }
+   },
+   "v1": {
+    "ramp_angle_deg": 1.0,
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 7.6012,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 4.434,
+    "end_chip_in_at_v2_ramp_fz": 4.0284e-06
+   }
+  },
+  {
+   "tool": "T12",
+   "aggressiveness": 0.75,
+   "adaptive": {
+    "ap_in": 0.1875,
+    "ae_in": 0.01163,
+    "rpm": 12195.0,
+    "feed_ipm": 16.684,
+    "fz_in": 0.00034202
+   },
+   "v2_ramp": {
+    "feasible": true,
+    "ramp_angle_deg": 5.1311,
+    "helix_diameter_over_D": 1.0,
+    "helix_diameter_in": 0.0625,
+    "helix_min_diameter_in": 0.023438,
+    "bore_diameter_in": 0.125,
+    "pitch_in": 0.017631,
+    "rpm": 9374.6,
+    "sfm": 153.39,
+    "fz_in": 0.00026416,
+    "ramp_feed_ipm": 9.9058,
+    "descent_ipm": 0.88593,
+    "plunge_feed_ipm": 1.9613,
+    "end_chip_in": 2.3626e-05,
+    "end_chip_floor_in": 2.3622e-05,
+    "end_chip_cap_in": 0.00010821,
+    "ramp_feed_at_op_rpm_ipm": 12.886,
+    "binding": [
+     "C2",
+     "R1",
+     "R14a",
+     "R14f",
+     "R14p"
+    ],
+    "conflicts": [
+     "R14a: no angle under the vendor cap 3.00° meets the physics lower limits (R1 end-chip floor, C1, with fz under C2/C14f); the smallest physics-feasible angle is used"
+    ]
+   },
+   "v2_ramp_checks": {
+    "C1": {
+     "value": 0.0031177,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "C2": {
+     "value": 0.010302,
+     "limit": 0.010309,
+     "ok": true
+    },
+    "C3": {
+     "value": 0.00066166,
+     "limit": 0.00098425,
+     "ok": true
+    },
+    "C4": {
+     "value": 692.85,
+     "limit": 1382.2,
+     "ok": true
+    },
+    "C5": {
+     "value": 0.0036636,
+     "limit": 0.95,
+     "ok": true
+    },
+    "C7": {
+     "value": 9374.6,
+     "limit": 16000.0,
+     "ok": true
+    },
+    "C8": {
+     "value": 0.017631,
+     "limit": 0.021875,
+     "ok": true
+    },
+    "C11": {
+     "value": 9.9058,
+     "limit": 1181.1,
+     "ok": true
+    },
+    "C14v": {
+     "value": 153.39,
+     "limit": 182.5,
+     "ok": true
+    },
+    "C14f": {
+     "value": 0.00026416,
+     "limit": 0.00030575,
+     "ok": true
+    },
+    "C14m": {
+     "value": 0.010916,
+     "limit": 0.015619,
+     "ok": true
+    },
+    "R1": {
+     "value": 0.00060009,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2": {
+     "value": 0.00060009,
+     "limit": 0.0027485,
+     "ok": true
+    },
+    "R6": {
+     "value": 1.0,
+     "limit": 0.375,
+     "ok": true
+    },
+    "R14a": {
+     "value": 5.1311,
+     "limit": 3.0,
+     "ok": false
+    },
+    "R14f": {
+     "value": 9.9058,
+     "limit": 9.9058,
+     "ok": true
+    },
+    "R14p": {
+     "value": 1.9613,
+     "limit": 1.9613,
+     "ok": true
+    },
+    "R1p": {
+     "value": 0.0013285,
+     "limit": 0.0006,
+     "ok": true
+    },
+    "R2p": {
+     "value": 0.0013285,
+     "limit": 0.0027485,
+     "ok": true
+    }
+   },
+   "v1": {
+    "ramp_angle_deg": 1.15,
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 10.01,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 5.8394,
+    "end_chip_in_at_v2_ramp_fz": 5.3018e-06
+   }
+  }
+ ],
+ "end_chip_rows": [
+  {
+   "id": "sgs_ramp_zrxpr_ssdiff_1-4",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.25,
+   "angle_hi": 6,
+   "h_a": 7.317e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssdiff_3-8",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.375,
+   "angle_hi": 6,
+   "h_a": 0.00014634,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssdiff_1-2",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.5,
+   "angle_hi": 6,
+   "h_a": 0.00021951,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssdiff_5-8",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.625,
+   "angle_hi": 6,
+   "h_a": 0.00024042,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssdiff_3-4",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.75,
+   "angle_hi": 6,
+   "h_a": 0.00027177,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssph_1-4",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.25,
+   "angle_hi": 6,
+   "h_a": 7.317e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssph_3-8",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.375,
+   "angle_hi": 6,
+   "h_a": 0.00014634,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssph_1-2",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.5,
+   "angle_hi": 6,
+   "h_a": 0.00021951,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssph_5-8",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.625,
+   "angle_hi": 6,
+   "h_a": 0.00024042,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ssph_3-4",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.75,
+   "angle_hi": 6,
+   "h_a": 0.00027177,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa1_1-4",
+   "vendor_group": "Kyocera",
+   "family": "Nickel Alloy",
+   "D": 0.25,
+   "angle_hi": 3,
+   "h_a": 2.6168e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa1_3-8",
+   "vendor_group": "Kyocera",
+   "family": "Nickel Alloy",
+   "D": 0.375,
+   "angle_hi": 3,
+   "h_a": 5.2336e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa1_1-2",
+   "vendor_group": "Kyocera",
+   "family": "Nickel Alloy",
+   "D": 0.5,
+   "angle_hi": 3,
+   "h_a": 7.8504e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa1_5-8",
+   "vendor_group": "Kyocera",
+   "family": "Nickel Alloy",
+   "D": 0.625,
+   "angle_hi": 3,
+   "h_a": 9.4205e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa1_3-4",
+   "vendor_group": "Kyocera",
+   "family": "Nickel Alloy",
+   "D": 0.75,
+   "angle_hi": 3,
+   "h_a": 0.00010467,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa2_1-4",
+   "vendor_group": "Kyocera",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.25,
+   "angle_hi": 3,
+   "h_a": 2.6168e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa2_3-8",
+   "vendor_group": "Kyocera",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.375,
+   "angle_hi": 3,
+   "h_a": 4.7102e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa2_1-2",
+   "vendor_group": "Kyocera",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.5,
+   "angle_hi": 3,
+   "h_a": 6.8037e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa2_5-8",
+   "vendor_group": "Kyocera",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.625,
+   "angle_hi": 3,
+   "h_a": 8.3738e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_sa2_3-4",
+   "vendor_group": "Kyocera",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.75,
+   "angle_hi": 3,
+   "h_a": 9.9438e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti1_1-4",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.25,
+   "angle_hi": 6,
+   "h_a": 8.3623e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti1_3-8",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.375,
+   "angle_hi": 6,
+   "h_a": 0.00015679,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti1_1-2",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.5,
+   "angle_hi": 6,
+   "h_a": 0.00022996,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti1_5-8",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.625,
+   "angle_hi": 6,
+   "h_a": 0.00026132,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti1_3-4",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.75,
+   "angle_hi": 6,
+   "h_a": 0.00029268,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti2_1-4",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.25,
+   "angle_hi": 6,
+   "h_a": 7.317e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti2_3-8",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.375,
+   "angle_hi": 6,
+   "h_a": 0.00014634,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti2_1-2",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.5,
+   "angle_hi": 6,
+   "h_a": 0.00020906,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti2_5-8",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.625,
+   "angle_hi": 6,
+   "h_a": 0.00024042,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_zrxpr_ti2_3-4",
+   "vendor_group": "Kyocera",
+   "family": "Titanium Alloy",
+   "D": 0.75,
+   "angle_hi": 6,
+   "h_a": 0.00028223,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_ph_0p125",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.125,
+   "angle_hi": 5.0,
+   "h_a": 2.3532e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_alloy_0p125",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Medium Carbon Alloy (4130)",
+   "D": 0.125,
+   "angle_hi": 5.0,
+   "h_a": 2.9633e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_tool_0p125",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Tool (H13)",
+   "D": 0.125,
+   "angle_hi": 5.0,
+   "h_a": 2.4404e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_ph_0p25",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.25,
+   "angle_hi": 5.0,
+   "h_a": 6.1009e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_alloy_0p25",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Medium Carbon Alloy (4130)",
+   "D": 0.25,
+   "angle_hi": 5.0,
+   "h_a": 7.844e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_tool_0p25",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Tool (H13)",
+   "D": 0.25,
+   "angle_hi": 5.0,
+   "h_a": 6.1009e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_ph_0p5",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.5,
+   "angle_hi": 5.0,
+   "h_a": 0.00015688,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_alloy_0p5",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Medium Carbon Alloy (4130)",
+   "D": 0.5,
+   "angle_hi": 5.0,
+   "h_a": 0.00020046,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z5_footnote_tool_0p5",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Tool (H13)",
+   "D": 0.5,
+   "angle_hi": 5.0,
+   "h_a": 0.00015688,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z1p_general_lo_0p125",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.125,
+   "angle_hi": 2.0,
+   "h_a": 9.4229e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z1p_general_hi_0p125",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.125,
+   "angle_hi": 6.0,
+   "h_a": 7.0557e-06,
+   "h_basis": "rule (factor 0.25 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z1p_general_lo_0p25",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.25,
+   "angle_hi": 2.0,
+   "h_a": 2.443e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z1p_general_hi_0p25",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.25,
+   "angle_hi": 6.0,
+   "h_a": 1.8292e-05,
+   "h_basis": "rule (factor 0.25 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z1p_general_lo_0p5",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.5,
+   "angle_hi": 2.0,
+   "h_a": 6.2819e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_z1p_general_hi_0p5",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.5,
+   "angle_hi": 6.0,
+   "h_a": 4.7038e-05,
+   "h_basis": "rule (factor 0.25 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_m4_micro_ph_0p016",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.016,
+   "angle_hi": 1.0,
+   "h_a": 5.8087e-07,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_m4_micro_tool_0p016",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Tool (H13)",
+   "D": 0.016,
+   "angle_hi": 1.0,
+   "h_a": 6.8337e-07,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_m4_micro_ph_0p031",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.031,
+   "angle_hi": 1.0,
+   "h_a": 1.1617e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_m4_micro_tool_0p031",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Tool (H13)",
+   "D": 0.031,
+   "angle_hi": 1.0,
+   "h_a": 1.3667e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_m4_micro_ph_0p062",
+   "vendor_group": "Kyocera",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.062,
+   "angle_hi": 1.0,
+   "h_a": 2.3272e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sgs_ramp_m4_micro_tool_0p062",
+   "vendor_group": "Kyocera",
+   "family": "Steel - Tool (H13)",
+   "D": 0.062,
+   "angle_hi": 1.0,
+   "h_a": 2.7378e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "sv_ramp_toolguide_1K344_0200_174ph_200hb",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.07874,
+   "angle_hi": 14.18,
+   "h_a": 7.3491e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "sv_ramp_toolguide_1K344_0200_174ph_345hb",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.07874,
+   "angle_hi": 4.852,
+   "h_a": 2.5375e-05,
+   "h_basis": "stated"
+  },
+  {
+   "id": "seco_ramp_JS554_LV2_linear_174_0.2500",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.25,
+   "angle_hi": 5,
+   "h_a": 8.7156e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JS554_LV2_linear_174_0.5000",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.5,
+   "angle_hi": 5,
+   "h_a": 0.00017431,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JS554_LV2_linear_174_0.1181",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.11811,
+   "angle_hi": 5,
+   "h_a": 4.7064e-05,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JS554_LV1_linear_174_0.2362",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.23622,
+   "angle_hi": 5,
+   "h_a": 9.5871e-05,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JS554_LV1_linear_174_0.4724",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - PH Series (17-4)",
+   "D": 0.47244,
+   "angle_hi": 5,
+   "h_a": 0.00017431,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JHP760_LV2_linear_316_0.2362",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.23622,
+   "angle_hi": 5,
+   "h_a": 8.2362e-05,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JHP760_LV2_linear_316_0.4724",
+   "vendor_group": "Sandvik",
+   "family": "Stainless - 300 Series (316)",
+   "D": 0.47244,
+   "angle_hi": 5,
+   "h_a": 0.00013073,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JHP770_LV2_linear_Ti6Al4V_0.2362",
+   "vendor_group": "Sandvik",
+   "family": "Titanium Alloy",
+   "D": 0.23622,
+   "angle_hi": 15,
+   "h_a": 0.00012423,
+   "h_basis": "rule (factor 0.4 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP770_LV2_linear_Ti6Al4V_0.4724",
+   "vendor_group": "Sandvik",
+   "family": "Titanium Alloy",
+   "D": 0.47244,
+   "angle_hi": 15,
+   "h_a": 0.00024847,
+   "h_basis": "rule (factor 0.4 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP780_LV2_linear_Inconel_0.2362",
+   "vendor_group": "Sandvik",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.23622,
+   "angle_hi": 5,
+   "h_a": 4.1835e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP780_LV2_linear_Inconel_0.4724",
+   "vendor_group": "Sandvik",
+   "family": "High Temp Nickel Alloy",
+   "D": 0.47244,
+   "angle_hi": 5,
+   "h_a": 8.7156e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP170_LV2_linear_H13_0.0787",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Tool (H13)",
+   "D": 0.07874,
+   "angle_hi": 1,
+   "h_a": 5.5848e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP170_LV2_linear_H13_0.1181",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Tool (H13)",
+   "D": 0.11811,
+   "angle_hi": 1,
+   "h_a": 8.3772e-06,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP170_LV2_linear_H13_0.2362",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Tool (H13)",
+   "D": 0.23622,
+   "angle_hi": 1,
+   "h_a": 1.7452e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP170_LV2_linear_H13_0.4724",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Tool (H13)",
+   "D": 0.47244,
+   "angle_hi": 1,
+   "h_a": 3.4905e-05,
+   "h_basis": "rule (factor 1 × slot fz, same part number)"
+  },
+  {
+   "id": "seco_ramp_JHP951_LV2_linear_4130_0.1181",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Medium Carbon Alloy (4130)",
+   "D": 0.11811,
+   "angle_hi": 5,
+   "h_a": 7.2775e-05,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JHP951_LV2_linear_4130_0.2362",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Medium Carbon Alloy (4130)",
+   "D": 0.23622,
+   "angle_hi": 5,
+   "h_a": 9.9358e-05,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  },
+  {
+   "id": "seco_ramp_JHP951_LV2_linear_4130_0.4724",
+   "vendor_group": "Sandvik",
+   "family": "Steel - Medium Carbon Alloy (4130)",
+   "D": 0.47244,
+   "angle_hi": 5,
+   "h_a": 0.00018564,
+   "h_basis": "rule (factor 1 × slot fz, same vendor, diameter and family)"
+  }
+ ]
+}
