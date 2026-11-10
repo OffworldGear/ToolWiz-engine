@@ -47,9 +47,11 @@ class TestToolProfile(unittest.TestCase):
     def test_micro_on_big_shank_has_no_phantom_neck(self):
         prof = ToolProfile.from_fusion(fusion())
         assert_tiles(self, prof)
-        self.assertEqual([s.kind for s in prof.segments], ['flute', 'shank'])
+        self.assertEqual([s.kind for s in prof.segments], ['flute', 'taper', 'shank'])
         self.assertAlmostEqual(prof.segments[0].d1, 0.0625)
-        self.assertAlmostEqual(prof.segments[1].d0, 0.125)
+        self.assertAlmostEqual(prof.segments[1].d0, 0.0625)
+        self.assertAlmostEqual(prof.segments[1].d1, 0.125)
+        self.assertAlmostEqual(prof.segments[2].d0, 0.125)
         self.assertAlmostEqual(prof.segments[1].start, 0.1875)
 
     def test_neck(self):

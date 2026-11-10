@@ -268,8 +268,8 @@
                         <div class="model-select-row">
                             <label for="cutModelSelect">Cutting model</label>
                             <select id="cutModelSelect" aria-label="Cutting model" onchange="onCutModelChange()">
+                                <option value="v2" selected>v2 (physics engine — default)</option>
                                 <option value="v1">v1 (GWizard tables + rules)</option>
-                                <option value="v2">v2 (physics, beta)</option>
                             </select>
                             <span id="cutModelSource" class="model-source" aria-live="polite"></span>
                         </div>
@@ -327,7 +327,7 @@
                                 <label for="cutDepth_range"><span id="cutDepthLabelText">Axial Depth of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutDepth" class="auto-set-badge" onclick="confirmAutoSet('cutDepth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
                                 <input type="number" id="cutDepth_val" step="0.0001" value="0.250" class="inline-num" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_range').value = this.value; calculate()">
                             </div>
-                            <input type="range" id="cutDepth_range" min="0.001" max="2.0" step="0.001" value="0.25" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
+                            <input type="range" id="cutDepth_range" min="0.0001" max="2.0" step="0.0001" value="0.25" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
                         </div>
 
                         <div class="slider-group" id="cutWidthGroup" style="margin-bottom:0;">
@@ -335,7 +335,7 @@
                                 <label for="cutWidth_range"><span id="cutWidthLabelText">Radial Width of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutWidth" class="auto-set-badge" onclick="confirmAutoSet('cutWidth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
                                 <input type="number" id="cutWidth_val" step="0.0001" value="0.100" class="inline-num" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_range').value = this.value; calculate()">
                             </div>
-                            <input type="range" id="cutWidth_range" min="0.001" max="2.0" step="0.001" value="0.1" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
+                            <input type="range" id="cutWidth_range" min="0.0001" max="2.0" step="0.0001" value="0.1" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
                         </div>
                     </div>
 
@@ -411,22 +411,37 @@
                                 </div>
                             </div>
 
-                            <!-- Shoulder length (tip to shoulder) -->
-                            <div class="input-group" id="shoulderLengthGroup" style="margin:0;">
-                                <label for="shoulderLength" title="Distance from the tool tip to the shoulder where the full shaft begins (flutes + neck). Equals the flute length when there is no neck.">Shoulder length <span class="abbr">tip to shoulder</span> (<span class="unit-lbl">in</span>) <span id="badge_shoulderLength" class="auto-set-badge" onclick="confirmAutoSet('shoulderLength')" style="display:none;" title="Currently auto-set to the flute length. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                                <input type="number" id="shoulderLength" class="tool-dialog-input" step="any" min="0" value="1.5" oninput="markManualEdit('shoulderLength'); calculate()">
+                            <!-- Taper Start (reach from tip) -->
+                            <div class="input-group" id="taperStartGroup" style="margin:0;">
+                                <label for="taperStart" title="Distance from tool tip to where the taper begins expanding outward. Defaults to Flute Length when there is no straight neck relief.">Taper start <span class="abbr">from tip</span> (<span class="unit-lbl">in</span>) <span id="badge_taperStart" class="auto-set-badge" onclick="confirmAutoSet('taperStart')" style="display:none;" title="Auto-set to flute length. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="taperStart" class="tool-dialog-input" step="any" min="0" value="1.5" oninput="markManualEdit('taperStart'); updateTaperSummary(); calculate()">
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Where taper begins (equals flutes if no neck).</div>
                             </div>
 
-                            <!-- Shoulder diameter (neck) -->
+                            <!-- Taper End / Shoulder (reach from tip) -->
+                            <div class="input-group" id="shoulderLengthGroup" style="margin:0;">
+                                <label for="shoulderLength" title="Distance from tool tip to where the taper meets the full shank diameter (SFDM). In Fusion 360 & ToolWiz this is measured from the tip. E.g. 0.200 in for a 0.040 tool.">Shoulder length / Taper end <span class="abbr">from tip</span> (<span class="unit-lbl">in</span>) <span id="badge_shoulderLength" class="auto-set-badge" onclick="confirmAutoSet('shoulderLength')" style="display:none;" title="Currently auto-set. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="shoulderLength" class="tool-dialog-input" step="any" min="0" value="1.5" oninput="markManualEdit('shoulderLength'); onShoulderLengthEdit(); updateTaperSummary(); calculate()">
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Where taper meets full shank (0.125 in).</div>
+                            </div>
+
+                            <!-- Neck / Taper Start diameter -->
                             <div class="input-group" id="shoulderDiameterGroup" style="margin:0;">
-                                <label for="shoulderDiameter" title="Diameter of the neck between the flutes and the shoulder. Equals the diameter when there is no relief.">Shoulder diameter <span class="abbr">neck</span> (<span class="unit-lbl">in</span>) <span id="badge_shoulderDiameter" class="auto-set-badge" onclick="confirmAutoSet('shoulderDiameter')" style="display:none;" title="Currently auto-set to the tool diameter. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                                <input type="number" id="shoulderDiameter" class="tool-dialog-input" step="any" min="0" value="0.5" oninput="markManualEdit('shoulderDiameter'); calculate()">
+                                <label for="shoulderDiameter" title="Diameter at the start of the taper. Usually equals Cutter Diameter (0.040 in). Do NOT set to shank diameter (0.125 in)!">Shoulder diameter / Taper start &empty; (<span class="unit-lbl">in</span>) <span id="badge_shoulderDiameter" class="auto-set-badge" onclick="confirmAutoSet('shoulderDiameter')" style="display:none;" title="Currently auto-set to the tool diameter. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
+                                <input type="number" id="shoulderDiameter" class="tool-dialog-input" step="any" min="0" value="0.5" oninput="markManualEdit('shoulderDiameter'); updateTaperSummary(); calculate()">
+                                <div id="neckDiaWarning" style="font-size: 10px; color: #f59e0b; margin-top: 2px; display:none;">⚠️ Neck &empty; equals Shank &empty; — removes taper!</div>
+                            </div>
+
+                            <!-- Live Taper Transition Summary Card -->
+                            <div id="taperConfigSummary" style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; background: rgba(30, 41, 59, 0.7); border: 1px solid #3b82f6; border-radius: 6px; padding: 6px 12px; margin-top: 4px; font-size: 11px;">
+                                <span style="color: #60a5fa; font-weight: bold;">📐 Taper Transition:</span>
+                                <span id="taperSummaryText" style="color: #f1f5f9; font-family: monospace; font-weight: bold;">0.120 in &rarr; 0.200 in (Length: 0.080 in | Angle: ~28&deg;)</span>
                             </div>
 
                             <!-- Shaft diameter (SFDM) -->
                             <div class="input-group combo-group" id="shaftDiameterGroup" style="margin:0;">
                                 <label for="shaftDiameter">Shaft diameter <span class="abbr">SFDM</span> (<span class="unit-lbl">in</span>) <span id="badge_shaftDiameter" class="auto-set-badge" onclick="confirmAutoSet('shaftDiameter')" style="display:none;" title="Currently auto-set to the tool diameter. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
-                                <input type="number" id="shaftDiameter" class="tool-dialog-input" step="any" min="0" list="diameters_list" value="0.5" oninput="markManualEdit('shaftDiameter'); calculate()">
+                                <input type="number" id="shaftDiameter" class="tool-dialog-input" step="any" min="0" list="diameters_list" value="0.5" oninput="markManualEdit('shaftDiameter'); updateTaperSummary(); calculate()">
                             </div>
 
                             <!-- Length below holder (LB = stickout) -->
@@ -575,7 +590,7 @@
                         </div>
 
                         <div class="tool-svg-container">
-                            <svg id="toolSvg" viewBox="0 0 520 280" preserveAspectRatio="xMidYMid meet"></svg>
+                            <svg id="toolSvg" viewBox="0 0 680 370" preserveAspectRatio="xMidYMid meet"></svg>
                         </div>
 
                         <div id="collisionAlert" class="collision-alert-banner"></div>
@@ -1479,9 +1494,53 @@
             }
         }
 
-        // Backend stickout rule: max(3.0*D*1.05, 1.05*flute_length). Units: any, as long as D and flute match.
-        function autoStickout(dia, fluteLen) {
-            return Math.max(3.0 * dia * 1.05, 1.05 * (fluteLen || 0));
+        // Stickout rule: ensures collet clamps on shank above flutes & shoulder reach.
+        function autoStickout(dia, fluteLen, shoulderLen) {
+            const minReach = Math.max(fluteLen || 0, shoulderLen || 0);
+            return Math.max(3.0 * (dia || 0) * 1.05, 1.08 * minReach);
+        }
+
+        function updateTaperSummary() {
+            const dia = fieldNum('diameter') || 0;
+            const fl = fieldNum('fluteLength') || 0;
+            const tStart = fieldNum('taperStart') || fl;
+            const tEnd = fieldNum('shoulderLength') || tStart;
+            const sfdm = fieldNum('shaftDiameter') || dia;
+            const neckD = fieldNum('shoulderDiameter') || dia;
+            const warnEl = document.getElementById('neckDiaWarning');
+            if (warnEl) {
+                warnEl.style.display = (sfdm > dia && Math.abs(neckD - sfdm) < 1e-4) ? 'block' : 'none';
+            }
+            const sumEl = document.getElementById('taperSummaryText');
+            if (sumEl) {
+                const dec = isMetric ? 2 : 3;
+                const u = isMetric ? 'mm' : 'in';
+                if (sfdm > neckD + 1e-4 && tEnd > tStart) {
+                    const len = tEnd - tStart;
+                    const dR = (sfdm - neckD) / 2.0;
+                    const deg = Math.round(Math.atan2(dR, len) * 180 / Math.PI);
+                    sumEl.innerText = `${tStart.toFixed(dec)} ${u} → ${tEnd.toFixed(dec)} ${u} (Length: ${len.toFixed(dec)} ${u} | Angle: ~${deg}°)`;
+                } else if (sfdm > neckD + 1e-4) {
+                    sumEl.innerText = `Begins at ${tStart.toFixed(dec)} ${u} (tapers to full shank ${sfdm.toFixed(dec)} ${u})`;
+                } else {
+                    sumEl.innerText = `Straight Tool (No Shank Taper)`;
+                }
+            }
+        }
+
+        function onShoulderLengthEdit() {
+            const sl = fieldNum('shoulderLength');
+            const fl = fieldNum('fluteLength');
+            const dia = fieldNum('diameter');
+            const curStick = fieldNum('stickout_val');
+            if (autoSetTracker.stickout || (Number.isFinite(sl) && curStick < sl * 1.02)) {
+                const newStick = autoStickout(dia, fl, sl).toFixed(isMetric ? 1 : 3);
+                const stEl = document.getElementById('stickout_val');
+                if (stEl) stEl.value = newStick;
+                const stRange = document.getElementById('stickout_range');
+                if (stRange) stRange.value = newStick;
+            }
+            updateTaperSummary();
         }
 
         /* -------------------------------------------------------------------------
@@ -1519,15 +1578,19 @@
                 const el = document.getElementById(id);
                 if (el && autoSetTracker[key] && Number.isFinite(value) && value > 0) el.value = fmtLen(value);
             };
-            if (autoSetTracker.stickout && fl > 0) {
-                const st = autoStickout(dia, fl).toFixed(isMetric ? 1 : 3);
+            setIf('taperStart', 'taperStart', fl);
+            const flInches = isMetric ? (fl / 25.4) : fl;
+            setIf('shoulderLength', 'shoulderLength', headOnNeck ? dia * 2.0 : (flInches < 0.15 ? fl * 1.67 : fl));
+            setIf('shoulderDiameter', 'shoulderDiameter', headOnNeck ? dia * 0.5 : dia);
+            updateTaperSummary();
+            const sl = fieldNum('shoulderLength') || fl;
+            if (autoSetTracker.stickout && (fl > 0 || sl > 0)) {
+                const st = autoStickout(dia, fl, sl).toFixed(isMetric ? 1 : 3);
                 const stEl = document.getElementById('stickout_val');
                 const stRange = document.getElementById('stickout_range');
                 if (stEl) stEl.value = st;
                 if (stRange) stRange.value = st;
             }
-            setIf('shoulderLength', 'shoulderLength', headOnNeck ? dia * 2.0 : fl);
-            setIf('shoulderDiameter', 'shoulderDiameter', headOnNeck ? dia * 0.5 : dia);
             // Miniature end mills (< 1/8" / 3 mm) are ground on 1/8" or 3 mm shanks, not on a rod of the
             // cutting diameter (that would model them as far more flexible than they are).
             const microShank = isMetric ? 3.0 : 0.125;
@@ -1618,23 +1681,53 @@
             const taper = fieldNum('taperAngle');
             const g = {};
             const put = (k, v) => { if (Number.isFinite(v)) g[k] = v; };
-            put('DC', fieldNum('diameter'));
+            const diaVal = fieldNum('diameter');
+            const fluteVal = fieldNum('fluteLength');
+            const tStartVal = fieldNum('taperStart') || fluteVal;
+            const tEndVal = fieldNum('shoulderLength') || tStartVal;
+            const neckDVal = fieldNum('shoulderDiameter') || diaVal;
+            const sfdmVal = fieldNum('shaftDiameter') || diaVal;
+
+            put('DC', diaVal);
             put('NOF', parseInt(document.getElementById('flutes_val')?.value));
-            put('LCF', fieldNum('fluteLength'));
-            put('shoulder-length', fieldNum('shoulderLength'));
-            put('shoulder-diameter', fieldNum('shoulderDiameter'));
-            put('SFDM', fieldNum('shaftDiameter'));
+            put('LCF', fluteVal);
+            // Taper transition logic:
+            // When the tool tapers up to a larger shank (sfdmVal > neckDVal + 1e-4) and tEndVal > tStartVal:
+            // 1) The taper starts at tStartVal (or at fluteVal if no straight neck relief).
+            // 2) Fusion's shoulder-length defines where the neck ends / shaft begins: Math.max(fluteVal, tStartVal).
+            //    (If tStartVal <= fluteVal, shoulder-length == fluteVal, meaning zero neck).
+            // 3) An explicit shaft segment models the conical transition from tStartVal to tEndVal.
+            const hasTaper = (tEndVal > tStartVal + 1e-4) && (sfdmVal > neckDVal + 1e-4);
+            const fusionShoulderLen = hasTaper ? Math.max(fluteVal, tStartVal) : tEndVal;
+
+            put('shoulder-length', fusionShoulderLen);
+            put('shoulder-diameter', neckDVal);
+            put('SFDM', sfdmVal);
             put('LB', fieldNum('stickout_val'));
             put('OAL', fieldNum('overallLength'));
             put('TA', Number.isFinite(taper) ? taper : 0);
             put('tip-diameter', fieldNum('tipDiameter'));
             if (isGroupShown('cornerRadiusGroup')) put('RE', fieldNum('cornerRadius'));
             if (isGroupShown('pitchGroup')) put('TP', fieldNum('pitch'));
-            return {
+            const resTool = {
                 type: fusionTypeFor(typeLabel, geo, Number.isFinite(taper) ? taper : 0),
                 unit: isMetric ? 'millimeters' : 'inches',
                 geometry: g
             };
+            // Build explicit shaft taper segment if tool transitions up to a larger shank
+            if (hasTaper) {
+                resTool.shaft = {
+                    type: 'shaft',
+                    segments: [
+                        {
+                            height: tEndVal - fusionShoulderLen,
+                            'lower-diameter': neckDVal,
+                            'upper-diameter': sfdmVal
+                        }
+                    ]
+                };
+            }
+            return resTool;
         }
 
         /* Old saved state (Relieved Neck checkbox + Neck Diameter / Reach / Shank Diameter) -> new fields.
@@ -1838,6 +1931,7 @@
         const autoSetTracker = {
             diameter: false,
             fluteLength: true,
+            taperStart: true,
             flutes: true,
             helix: false,
             stickout: true,
@@ -1853,6 +1947,7 @@
         const AUTO_PARAM_INPUT = {
             diameter: 'diameter',
             fluteLength: 'fluteLength',
+            taperStart: 'taperStart',
             flutes: 'flutes_val',
             helix: 'helix_val',
             stickout: 'stickout_val',
@@ -2971,6 +3066,21 @@
             const isHighFeedCapable = (geo === 'High Feed' || geo === 'Radiused');
             const isTurning = targetGroup === 'turning' || toolType.includes('Turning') || toolType.includes('Parting') || (toolType.includes('Threading') && !isThreadMill) || geo === 'Turning';
             const isHoleTool = isDrill || isTap || isReamer || toolType.includes('Bore');
+            if (isDrill && autoSetTracker.flutes) {
+                const flNode = document.getElementById('flutes');
+                const flValNode = document.getElementById('flutes_val');
+                if (flNode) flNode.value = "2";
+                if (flValNode) flValNode.value = "2";
+            } else if (!isHoleTool && autoSetTracker.flutes) {
+                const flNode = document.getElementById('flutes');
+                const flValNode = document.getElementById('flutes_val');
+                if (flNode && flNode.value === "2") {
+                    const fam = (document.getElementById('family')?.value || "");
+                    const defFl = (fam.includes("Aluminum") || fam.includes("Copper") || fam.includes("Brass") || fam.includes("Plastic")) ? "3" : "4";
+                    flNode.value = defFl;
+                    if (flValNode) flValNode.value = defFl;
+                }
+            }
             
             // Pitch group display for Tapping and Thread Milling
             setPitchVisible(isTap || isThreadMill);
@@ -3212,13 +3322,48 @@
             document.querySelectorAll('.sfm-lbl').forEach(e => e.innerText = isMetric ? "SMM" : "SFM");
             document.querySelectorAll('.ipt-lbl').forEach(e => e.innerText = isMetric ? "mm/tooth" : "in/tooth");
             document.querySelectorAll('.ipr-lbl').forEach(e => e.innerText = isMetric ? "mm/rev" : "in/rev");
+
+            // Instantly convert displayed calculation outputs in the DOM so the UI doesn't lag on stale numbers
+            const convertEl = (id, factor, decimals) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    const cur = parseFloat(el.innerText || el.textContent);
+                    if (!isNaN(cur) && cur !== 0) {
+                        const next = isMetric ? cur * factor : cur / factor;
+                        el.innerText = next.toFixed(decimals);
+                    }
+                }
+            };
+            convertEl('feedrate', 25.4, 1);
+            convertEl('sfm', 0.3048, 1);
+            convertEl('mrr', 16.387, isMetric ? 1 : 3);
+            convertEl('base_ipt', 25.4, isMetric ? 4 : 5);
+            convertEl('adj_ipt', 25.4, isMetric ? 4 : 5);
+            convertEl('ipr', 25.4, isMetric ? 4 : 5);
+            convertEl('deflection', 25.4, isMetric ? 4 : 5);
+            convertEl('springback', 25.4, isMetric ? 4 : 5);
+            convertEl('total_error', 25.4, isMetric ? 4 : 5);
+            convertEl('wear_comp', 25.4, isMetric ? 4 : 5);
+            convertEl('radial_comp', 25.4, isMetric ? 4 : 5);
+            convertEl('axial_comp', 25.4, isMetric ? 4 : 5);
+
+            if (lastRecDoc > 0 && lastRecWoc > 0) {
+                const recFmt = (isMetric ? lastRecDoc * 25.4 : lastRecDoc).toFixed(3) + " \u00D7 " + (isMetric ? lastRecWoc * 25.4 : lastRecWoc).toFixed(3);
+                const recEl = document.getElementById('recOutput');
+                if (recEl) recEl.textContent = recFmt;
+                const subRecEl = document.getElementById('subRecOutput');
+                if (subRecEl) subRecEl.textContent = recFmt + (isMetric ? " mm" : " in");
+            }
             
             let diaInput = document.getElementById('diameter');
             let dVal = parseFloat(diaInput.value);
             diaInput.value = String(+(isMetric ? (dVal * 25.4).toFixed(3) : (dVal / 25.4).toFixed(4)));
+            // Synchronize lastHandledDiaInches so unit toggle doesn't trip autoSetDialsOnNextCalc
+            lastHandledDiaInches = isMetric ? (parseFloat(diaInput.value) / 25.4) : parseFloat(diaInput.value);
+            autoSetDialsOnNextCalc = false;
             
             // Cutter fields that are plain lengths: shift between in and mm (blank stays blank).
-            ['shaftDiameter', 'shoulderDiameter', 'shoulderLength', 'overallLength', 'tipDiameter'].forEach(id => {
+            ['shaftDiameter', 'shoulderDiameter', 'shoulderLength', 'overallLength', 'tipDiameter', 'taperStart'].forEach(id => {
                 const inp = document.getElementById(id);
                 if (!inp) return;
                 const v = parseFloat(inp.value);
@@ -3226,19 +3371,21 @@
             });
 
             let crInput = document.getElementById('cornerRadius');
-            let crVal = parseFloat(crInput.value);
-            crInput.value = isMetric ? (crVal * 25.4).toFixed(2) : (crVal / 25.4).toFixed(3);
+            if (crInput) {
+                let crVal = parseFloat(crInput.value);
+                if (!isNaN(crVal)) crInput.value = String(+(isMetric ? crVal * 25.4 : crVal / 25.4).toFixed(isMetric ? 3 : 4));
+            }
             
             let flInput = document.getElementById('fluteLength');
             if (flInput) {
                 let flVal = parseFloat(flInput.value);
-                if (!isNaN(flVal)) flInput.value = isMetric ? (flVal * 25.4).toFixed(3) : (flVal / 25.4).toFixed(3);
+                if (!isNaN(flVal)) flInput.value = String(+(isMetric ? flVal * 25.4 : flVal / 25.4).toFixed(isMetric ? 3 : 4));
             }
             
             let ctInput = document.getElementById('cutterThickness');
             if (ctInput) {
                 let ctVal = parseFloat(ctInput.value);
-                if (!isNaN(ctVal)) ctInput.value = isMetric ? (ctVal * 25.4).toFixed(3) : (ctVal / 25.4).toFixed(3);
+                if (!isNaN(ctVal)) ctInput.value = String(+(isMetric ? ctVal * 25.4 : ctVal / 25.4).toFixed(isMetric ? 3 : 4));
             }
 
             let roInput = document.getElementById('runout');
@@ -3259,21 +3406,21 @@
             ["cutDepth", "cutWidth", "stickout"].forEach(prefix => {
                 let range = document.getElementById(prefix + "_range");
                 let valNode = document.getElementById(prefix + "_val");
-                let oldVal = parseFloat(range.value);
+                let oldVal = parseFloat(valNode && valNode.value !== "" ? valNode.value : range.value);
                 
                 let decimals = prefix === "stickout" ? (isMetric ? 1 : 3) : (isMetric ? 3 : 4);
                 
                 if(isMetric) {
                     range.min = parseFloat(range.min) * 25.4;
                     range.max = parseFloat(range.max) * 25.4;
-                    range.step = prefix === "stickout" ? 0.1 : 0.005;
+                    range.step = prefix === "stickout" ? 0.1 : 0.001;
                     let v = (oldVal * 25.4).toFixed(decimals);
                     range.value = v;
                     valNode.value = v;
                 } else {
                     range.min = parseFloat(range.min) / 25.4;
                     range.max = parseFloat(range.max) / 25.4;
-                    range.step = prefix === "stickout" ? 0.1 : 0.001;
+                    range.step = prefix === "stickout" ? 0.1 : 0.0001;
                     let v = (oldVal / 25.4).toFixed(decimals);
                     range.value = v;
                     valNode.value = v;
@@ -4291,6 +4438,18 @@
                     <marker id="arrowGreen" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                         <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981"/>
                     </marker>
+                    <marker id="arrowCyan" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"/>
+                    </marker>
+                    <marker id="arrowIndigo" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#818cf8"/>
+                    </marker>
+                    <marker id="arrowRed" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#ef4444"/>
+                    </marker>
+                    <marker id="arrowWhite" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#cbd5e1"/>
+                    </marker>
                     <filter id="collisionGlow" x="-20%" y="-20%" width="140%" height="140%">
                         <feGaussianBlur stdDeviation="3" result="blur" />
                         <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -4301,15 +4460,15 @@
         function toolHolderSvg(cx, yCollet, rs_px, isColletCollision) {
             const colletNoseW = Math.max(rs_px + 14, 32);
             return `
-                <!-- Collet Chuck Tool Holder -->
+                <!-- Collet Chuck Tool Holder (Dynamically centered on cx) -->
                 <g class="collet-holder" ${isColletCollision ? 'filter="url(#collisionGlow)"' : ''}>
-                    <rect x="175" y="8" width="130" height="14" rx="2" fill="url(#colletGrad)" stroke="${isColletCollision ? '#ef4444' : '#475569'}" stroke-width="${isColletCollision ? 2 : 1}"/>
-                    <line x1="205" y1="8" x2="205" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-                    <line x1="240" y1="8" x2="240" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-                    <line x1="275" y1="8" x2="275" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-                    <polygon points="182,22 298,22 ${cx + colletNoseW},${yCollet} ${cx - colletNoseW},${yCollet}" fill="url(#colletGrad)" stroke="${isColletCollision ? '#ef4444' : '#475569'}" stroke-width="${isColletCollision ? 2 : 1}"/>
+                    <rect x="${cx - 65}" y="8" width="130" height="14" rx="2" fill="url(#colletGrad)" stroke="${isColletCollision ? '#ef4444' : '#475569'}" stroke-width="${isColletCollision ? 2 : 1}"/>
+                    <line x1="${cx - 35}" y1="8" x2="${cx - 35}" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                    <line x1="${cx}" y1="8" x2="${cx}" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                    <line x1="${cx + 35}" y1="8" x2="${cx + 35}" y2="22" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+                    <polygon points="${cx - 58},22 ${cx + 58},22 ${cx + colletNoseW},${yCollet} ${cx - colletNoseW},${yCollet}" fill="url(#colletGrad)" stroke="${isColletCollision ? '#ef4444' : '#475569'}" stroke-width="${isColletCollision ? 2 : 1}"/>
                     <line x1="${cx - colletNoseW}" y1="${yCollet}" x2="${cx + colletNoseW}" y2="${yCollet}" stroke="${isColletCollision ? '#ef4444' : '#38bdf8'}" stroke-width="2"/>
-                    <text x="${cx}" y="20" fill="#94a3b8" font-size="8.5" font-family="sans-serif" font-weight="600" text-anchor="middle">COLLET / HOLDER</text>
+                    <text x="${cx}" y="19" fill="#94a3b8" font-size="9" font-family="sans-serif" font-weight="600" text-anchor="middle">COLLET / HOLDER</text>
                 </g>
             `;
         }
@@ -4327,6 +4486,7 @@
         /* Draw the tool ONLY from profile.segments: every segment is a trapezoid from d0 to d1 on one
            vertical scale (pixels per inch = available height / stickout). Lengths are inches from the tip. */
         function renderProfileSvg(c) {
+            const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
             const fromIn = isMetric ? 25.4 : 1;
             const segs = c.segs, cx = c.cx, yCollet = c.yCollet, yTip = c.yTip;
             const stickIn = c.stickIn > 0 ? c.stickIn : segs[segs.length - 1].end;
@@ -4389,7 +4549,7 @@
                 if (s.kind === 'neck') {
                     body += `<g class="tool-neck" ${c.isNeckCollision ? 'filter="url(#collisionGlow)"' : ''}>
                         <path d="${d}" fill="url(#neckGrad)" stroke="${c.isNeckCollision ? '#ef4444' : '#1e40af'}" stroke-width="${c.isNeckCollision ? 2.5 : 1}"/>${shine}</g>`;
-                } else if (s.kind === 'shank') {
+                } else if (s.kind === 'shank' || s.kind === 'taper') {
                     body += `<g class="tool-shank"><path d="${d}" fill="url(#shankGrad)" stroke="#334155" stroke-width="1"/>${shine}</g>`;
                 } else {
                     clipDefs += `<clipPath id="fluteClip${i}"><path d="${d}"/></clipPath>`;
@@ -4450,50 +4610,186 @@
             }
             engage += '</g>';
 
-            // Dimension lines
-            const dec = isMetric ? 2 : 3;
-            let dims = '<g class="dimension-annotations" font-family="monospace" font-size="9">';
-            dims += `
-                <line x1="55" y1="${yCollet}" x2="55" y2="${yTip}" stroke="#94a3b8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                <line x1="48" y1="${yCollet}" x2="65" y2="${yCollet}" stroke="#64748b" stroke-width="1"/>
-                <line x1="48" y1="${yTip}" x2="65" y2="${yTip}" stroke="#64748b" stroke-width="1"/>
-                <text x="50" y="${yCollet + H * 0.5}" fill="#94a3b8" text-anchor="end" dominant-baseline="middle" font-weight="600">L:${c.stickVal.toFixed(isMetric ? 1 : 2)}</text>`;
-            const fLbl = c.isFormTool ? 't' : 'Lf';
-            dims += `
-                <line x1="95" y1="${yFluteTop}" x2="95" y2="${yAt(fS)}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                <line x1="88" y1="${yFluteTop}" x2="102" y2="${yFluteTop}" stroke="#0284c7" stroke-width="1"/>
-                <line x1="88" y1="${yAt(fS)}" x2="102" y2="${yAt(fS)}" stroke="#0284c7" stroke-width="1"/>
-                <text x="90" y="${yFluteTop + (yAt(fS) - yFluteTop) * 0.5}" fill="#38bdf8" text-anchor="end" dominant-baseline="middle" font-weight="600">${fLbl}:${(fluteLenIn * fromIn).toFixed(dec)}</text>`;
-            dims += `
-                <line x1="${cx - rd_px}" y1="262" x2="${cx + rd_px}" y2="262" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                <line x1="${cx - rd_px}" y1="250" x2="${cx - rd_px}" y2="268" stroke="#0284c7" stroke-width="1"/>
-                <line x1="${cx + rd_px}" y1="250" x2="${cx + rd_px}" y2="268" stroke="#0284c7" stroke-width="1"/>
-                <text x="${cx}" y="274" fill="#38bdf8" text-anchor="middle" font-weight="bold">&#8960; ${c.diaVal.toFixed(dec)} ${c.unit}</text>`;
-            if (neckSegs.length) {
-                const yNeckBot = yFluteTop;
-                const yNeckMid = yNeckEnd + (yNeckBot - yNeckEnd) * 0.5;
-                const neckCol = c.isNeckCollision ? '#ef4444' : '#60a5fa';
-                const yReach = yNeckBot - 8;
-                const reachCol = c.isNeckCollision ? '#ef4444' : '#10b981';
-                dims += `
-                    <line x1="${cx - rn_px}" y1="${yNeckMid}" x2="${cx + rn_px}" y2="${yNeckMid}" stroke="${neckCol}" stroke-width="1" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                    <text x="${cx}" y="${yNeckMid - 4}" fill="${c.isNeckCollision ? '#fca5a5' : '#60a5fa'}" text-anchor="middle" font-size="8">dn:${c.effNeckDia.toFixed(dec)}</text>
-                    <line x1="${cx + rn_px}" y1="${yReach}" x2="${cx + rd_px}" y2="${yReach}" stroke="${reachCol}" stroke-width="1.5" marker-start="url(#arrow${c.isNeckCollision ? 'Amber' : 'Green'})" marker-end="url(#arrow${c.isNeckCollision ? 'Amber' : 'Green'})"/>
-                    <text x="${cx + (rn_px + rd_px) * 0.5}" y="${yReach - 4}" fill="${c.isNeckCollision ? '#ef4444' : '#34d399'}" font-size="8.5" font-weight="bold" text-anchor="middle">Neck clr:${c.maxReach.toFixed(dec)}</text>
-                    <line x1="125" y1="${yTip}" x2="125" y2="${yNeckEnd}" stroke="#60a5fa" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                    <text x="129" y="${yNeckEnd + (yTip - yNeckEnd) * 0.5}" fill="#60a5fa" dominant-baseline="middle" font-weight="600">Ls:${(c.shoulderIn * fromIn).toFixed(dec)}</text>`;
-            }
-            dims += `
-                <g class="engagement-summary" transform="translate(375, 48)">
-                    <rect x="0" y="0" width="135" height="66" rx="4" fill="rgba(15, 23, 42, 0.8)" stroke="${c.isNeckCollision ? '#ef4444' : '#475569'}" stroke-width="1"/>
-                    <text x="8" y="15" fill="#94a3b8" font-size="8" font-family="sans-serif" font-weight="bold">ENGAGEMENT PARAMS</text>
-                    <text x="8" y="32" fill="#f59e0b" font-size="9" font-family="monospace">DOC (ap): ${c.depthVal.toFixed(isMetric ? 3 : 4)} ${c.unit}</text>
-                    <text x="8" y="47" fill="${hatchCol}" font-size="9" font-family="monospace">WOC (ae): ${c.widthVal.toFixed(isMetric ? 3 : 4)} ${c.unit}</text>
-                    <text x="8" y="60" fill="${neckSegs.length ? (c.isNeckCollision ? '#ef4444' : '#34d399') : '#94a3b8'}" font-size="8" font-family="monospace">${neckSegs.length ? (c.isNeckCollision ? 'STATUS: OVERREACH!' : 'STATUS: CLEAR') : 'STATUS: STANDARD'}</text>
-                </g></g>`;
+            // Helper function for dimension badges with boundary clamping to prevent canvas clipping
+            const dimBadge = (x, y, text, color='#94a3b8', bg='rgba(15, 23, 42, 0.94)', border=color, anchor='middle', fontSize=9.5, bold=true) => {
+                const padX = 6;
+                const approxW = Math.ceil(text.length * (fontSize * 0.60) + padX * 2);
+                const bh = fontSize + 8;
+                let rx = x;
+                if (anchor === 'middle') rx = x - approxW / 2;
+                else if (anchor === 'end') rx = x - approxW;
+                if (rx < 8) rx = 8;
+                if (rx + approxW > 672) rx = 672 - approxW;
+                const textX = (anchor === 'middle') ? (rx + approxW / 2) : (anchor === 'end' ? (rx + approxW - padX) : (rx + padX));
+                const ry = y - bh / 2;
+                return `<g class="dim-badge">
+                    <rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${approxW.toFixed(1)}" height="${bh}" rx="3" fill="${bg}" stroke="${border}" stroke-width="1"/>
+                    <text x="${textX.toFixed(1)}" y="${(y + 0.5).toFixed(1)}" fill="${color}" font-family="monospace" font-size="${fontSize}" font-weight="${bold ? 'bold' : '600'}" text-anchor="${anchor === 'middle' ? 'middle' : (anchor === 'end' ? 'end' : 'start')}" dominant-baseline="middle">${(typeof esc === 'function' ? esc(text) : String(text))}</text>
+                </g>`;
+            };
 
-            return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
-                <line x1="${cx}" y1="8" x2="${cx}" y2="260" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1" stroke-dasharray="6,4"/>
+            // Dimension lines & Annotations (Spaced non-overlapping lanes for 680x370 canvas)
+            const dec = isMetric ? 2 : 3;
+            const shankDiaVal = c.shankVal > 0 ? c.shankVal : (Math.max(topSeg.d0, topSeg.d1) * fromIn);
+            const shoulderIn = c.shoulderIn > 0 ? c.shoulderIn : (neckSegs.length ? Math.max(...neckSegs.map(s => s.end)) : fE);
+            const shoulderVal = shoulderIn * fromIn;
+            const yShoulderTop = yAt(shoulderIn);
+            const hasNeckOrTaper = (shoulderIn > fluteLenIn * 1.001) || neckSegs.length > 0 || (segs.filter(s => s.kind === 'taper').length > 0);
+            const neckReachDiff = Math.max(0, shoulderVal - (fluteLenIn * fromIn));
+            const taperSegs = segs.filter(s => s.kind === 'taper');
+
+            let dims = '<g class="dimension-annotations" font-family="monospace">';
+
+            // Anti-collision badge vertical positioning
+            let yStickBadge = yCollet + H * 0.5;
+            let yShoulderBadge = yShoulderTop + (yTip - yShoulderTop) * 0.5;
+            let yFluteBadge = yFluteTop + (yTip - yFluteTop) * 0.5;
+
+            if (Math.abs(yStickBadge - yShoulderBadge) < 28) {
+                if (yStickBadge <= yShoulderBadge) {
+                    yStickBadge = Math.max(yCollet + 16, yStickBadge - 14);
+                    yShoulderBadge = Math.min(yTip - 16, yShoulderBadge + 14);
+                } else {
+                    yStickBadge = Math.min(yTip - 16, yStickBadge + 14);
+                    yShoulderBadge = Math.max(yCollet + 16, yShoulderBadge - 14);
+                }
+            }
+            if (Math.abs(yShoulderBadge - yFluteBadge) < 28) {
+                if (yShoulderBadge <= yFluteBadge) {
+                    yShoulderBadge = Math.max(yCollet + 16, yShoulderBadge - 14);
+                    yFluteBadge = Math.min(yTip - 16, yFluteBadge + 14);
+                } else {
+                    yShoulderBadge = Math.min(yTip - 16, yShoulderBadge + 14);
+                    yFluteBadge = Math.max(yCollet + 16, yFluteBadge - 14);
+                }
+            }
+
+            // 1. Stickout (LB) Lane (x = 50) - Zero overlap, zero clipping!
+            const isStickoutCrash = c.depthVal > (c.stickVal * 1.001) || c.stickVal < (fluteLenIn * fromIn - 1e-4);
+            const stickCol = isStickoutCrash ? '#ef4444' : '#94a3b8';
+            const stickMarker = isStickoutCrash ? 'url(#arrowRed)' : 'url(#arrow)';
+            dims += `
+                <line x1="50" y1="${yCollet}" x2="50" y2="${yTip}" stroke="${stickCol}" stroke-width="${isStickoutCrash ? 2 : 1.2}" marker-start="${stickMarker}" marker-end="${stickMarker}"/>
+                <line x1="40" y1="${yCollet}" x2="60" y2="${yCollet}" stroke="${stickCol}" stroke-width="1"/>
+                <line x1="40" y1="${yTip}" x2="60" y2="${yTip}" stroke="${stickCol}" stroke-width="1"/>`;
+            if (c.depthVal > (c.stickVal * 1.001)) {
+                dims += dimBadge(50, yStickBadge, `⚠️ CRASH: Depth > Stickout`, '#ef4444', 'rgba(69, 10, 10, 0.95)', '#ef4444', 'middle');
+            } else if (c.stickVal < (fluteLenIn * fromIn - 1e-4)) {
+                dims += dimBadge(50, yStickBadge, `⚠️ CRASH: Holder on Flutes`, '#ef4444', 'rgba(69, 10, 10, 0.95)', '#ef4444', 'middle');
+            } else {
+                dims += dimBadge(50, yStickBadge, `Stickout (LB): ${c.stickVal.toFixed(isMetric ? 1 : 2)} ${c.unit}`, '#cbd5e1', 'rgba(15, 23, 42, 0.94)', '#475569', 'middle');
+            }
+
+            // 2. Shoulder Length (Taper End / Shank Reach) Lane (x = 140) - Zero overlap!
+            const isShoulderErr = shoulderVal < (fluteLenIn * fromIn * 0.999);
+            const shoulderCol = isShoulderErr ? '#ef4444' : '#818cf8';
+            const shoulderMarker = isShoulderErr ? 'url(#arrowRed)' : 'url(#arrowIndigo)';
+            dims += `
+                <line x1="140" y1="${yShoulderTop}" x2="140" y2="${yTip}" stroke="${shoulderCol}" stroke-width="${isShoulderErr ? 2 : 1.2}" marker-start="${shoulderMarker}" marker-end="${shoulderMarker}"/>
+                <line x1="130" y1="${yShoulderTop}" x2="150" y2="${yShoulderTop}" stroke="${shoulderCol}" stroke-width="1"/>
+                <line x1="130" y1="${yTip}" x2="150" y2="${yTip}" stroke="${shoulderCol}" stroke-width="1"/>`;
+            if (isShoulderErr) {
+                dims += dimBadge(140, yShoulderBadge, `⚠️ Shoulder < Flutes!`, '#ef4444', 'rgba(69, 10, 10, 0.95)', '#ef4444', 'middle');
+            } else {
+                dims += dimBadge(140, yShoulderBadge, `Shoulder: ${shoulderVal.toFixed(dec)} ${c.unit}`, '#818cf8', 'rgba(15, 23, 42, 0.94)', '#4f46e5', 'middle');
+            }
+
+            // 3. Flute Length (LCF) Lane (x = 225) - Zero overlap!
+            const fLbl = c.isFormTool ? 't' : 'Flutes (LCF)';
+            dims += `
+                <line x1="225" y1="${yFluteTop}" x2="225" y2="${yAt(fS)}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
+                <line x1="215" y1="${yFluteTop}" x2="235" y2="${yFluteTop}" stroke="#0284c7" stroke-width="1"/>
+                <line x1="215" y1="${yAt(fS)}" x2="235" y2="${yAt(fS)}" stroke="#0284c7" stroke-width="1"/>`;
+            dims += dimBadge(225, yFluteBadge, `${fLbl}: ${(fluteLenIn * fromIn).toFixed(dec)} ${c.unit}`, '#38bdf8', 'rgba(15, 23, 42, 0.94)', '#0284c7', 'middle');
+
+            // 4. Shank Diameter (SFDM) across top of shank below collet
+            const yShankDim = yCollet - 16;
+            dims += `
+                <line x1="${cx - rs_px}" y1="${yCollet}" x2="${cx + rs_px}" y2="${yCollet}" stroke="#34d399" stroke-width="1.2"/>`;
+            dims += dimBadge(cx, yShankDim, `Shank Ø (SFDM): ${shankDiaVal.toFixed(dec)} ${c.unit}`, '#34d399', 'rgba(15, 23, 42, 0.95)', '#059669', 'middle', 9.5);
+
+            // 5. Cutter Diameter (DC) below tool tip
+            dims += `
+                <line x1="${cx - rd_px}" y1="${yTip + 8}" x2="${cx + rd_px}" y2="${yTip + 8}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
+                <line x1="${cx - rd_px}" y1="${yTip + 4}" x2="${cx - rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>
+                <line x1="${cx + rd_px}" y1="${yTip + 4}" x2="${cx + rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>`;
+            dims += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${c.diaVal.toFixed(dec)} ${c.unit} (${c.nof || 4} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
+
+            // 6. Explicit Taper Beginning & Ending Markers on the Tool!
+            if (taperSegs.length > 0) {
+                const tS_in = Math.min(...taperSegs.map(s => s.start));
+                const tE_in = Math.max(...taperSegs.map(s => s.end));
+                const d0_t = taperSegs[0].d0 * fromIn;
+                const d1_t = taperSegs[taperSegs.length - 1].d1 * fromIn;
+                const yTS = yAt(tS_in);
+                const yTE = yAt(tE_in);
+                const r0_px = rpx(taperSegs[0].d0);
+                const r1_px = rpx(taperSegs[taperSegs.length - 1].d1);
+                const maxTaperR_px = Math.max(r0_px, r1_px);
+                const markerX = cx + maxTaperR_px + 14;
+
+                // Dashed guides extending across to marker badges
+                dims += `
+                    <line x1="${cx + r0_px}" y1="${yTS}" x2="${markerX + 4}" y2="${yTS}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.2"/>
+                    <line x1="${cx + r1_px}" y1="${yTE}" x2="${markerX + 4}" y2="${yTE}" stroke="#c084fc" stroke-dasharray="3,2" stroke-width="1.2"/>`;
+
+                const taperLenVal = (tE_in - tS_in) * fromIn;
+                if (Math.abs(yTS - yTE) < 28) {
+                    // Short taper: single clean combined badge so labels never collide
+                    const midY = (yTS + yTE) * 0.5;
+                    dims += dimBadge(markerX + 8, midY, `◀ Taper: ${(tS_in * fromIn).toFixed(dec)} → ${(tE_in * fromIn).toFixed(dec)} ${c.unit} (${taperLenVal.toFixed(dec)})`, '#c084fc', 'rgba(15, 23, 42, 0.94)', '#9333ea', 'start', 9.0);
+                } else {
+                    // Beginning marker
+                    dims += dimBadge(markerX + 8, yTS, `◀ Taper Start: ${(tS_in * fromIn).toFixed(dec)} ${c.unit}`, '#38bdf8', 'rgba(15, 23, 42, 0.94)', '#0284c7', 'start', 9.0);
+                    // Ending marker
+                    dims += dimBadge(markerX + 8, yTE, `◀ Taper End: ${(tE_in * fromIn).toFixed(dec)} ${c.unit}`, '#c084fc', 'rgba(15, 23, 42, 0.94)', '#9333ea', 'start', 9.0);
+                    // Taper length badge in between
+                    if (taperLenVal > 0.005 && Math.abs(yTS - yTE) >= 46) {
+                        dims += dimBadge(markerX + 8, (yTS + yTE) * 0.5, `📐 Length: ${taperLenVal.toFixed(dec)} ${c.unit}`, '#f1f5f9', 'rgba(15, 23, 42, 0.9)', '#64748b', 'start', 8.5);
+                    }
+                }
+            } else if (neckSegs.length > 0) {
+                const yNeckMid = yNeckEnd + (yFluteTop - yNeckEnd) * 0.5;
+                dims += `
+                    <line x1="${cx - rn_px}" y1="${yNeckMid}" x2="${cx + rn_px}" y2="${yNeckMid}" stroke="#60a5fa" stroke-width="1"/>`;
+                dims += dimBadge(cx + rn_px + 18, yNeckMid, `◀ Neck Ø: ${(neckSegs[0].d0 * fromIn).toFixed(dec)} ${c.unit}`, '#60a5fa', 'rgba(15, 23, 42, 0.94)', '#2563eb', 'start', 9.0);
+            }
+
+            // 7. Engagement parameters summary card on top-right (x = 510, y = 14) - Zero collision!
+            let statusText = '✓ CLEAR: Safe Cut';
+            let statusColor = '#6ee7b7';
+            let statusBg = 'rgba(6, 78, 59, 0.85)';
+            let statusBorder = '#059669';
+
+            if (c.depthVal > (c.stickVal * 1.001)) {
+                statusText = '⚠️ CRASH: Depth > Stickout';
+                statusColor = '#fca5a5'; statusBg = 'rgba(127, 29, 29, 0.9)'; statusBorder = '#ef4444';
+            } else if (c.isNeckCollision) {
+                statusText = '⚠️ COLLISION: Neck Rub';
+                statusColor = '#fca5a5'; statusBg = 'rgba(127, 29, 29, 0.9)'; statusBorder = '#ef4444';
+            } else if (c.stickVal < (fluteLenIn * fromIn - 1e-4)) {
+                statusText = '⚠️ CRASH: Holder on Flutes';
+                statusColor = '#fca5a5'; statusBg = 'rgba(127, 29, 29, 0.9)'; statusBorder = '#ef4444';
+            } else if (hasNeckOrTaper && c.stickVal < (shoulderIn * fromIn - 1e-4)) {
+                statusText = '⚠️ CRASH: Holder on Neck';
+                statusColor = '#fca5a5'; statusBg = 'rgba(127, 29, 29, 0.9)'; statusBorder = '#ef4444';
+            } else if (c.widthVal > c.maxReach * 0.85 && hasNeckOrTaper) {
+                statusText = '⚡ CAUTION: Near Wall Limit';
+                statusColor = '#fde68a'; statusBg = 'rgba(120, 53, 15, 0.85)'; statusBorder = '#f59e0b';
+            }
+
+            dims += `
+                <g class="engagement-summary" transform="translate(510, 14)">
+                    <rect x="0" y="0" width="160" height="82" rx="4" fill="rgba(15, 23, 42, 0.92)" stroke="${statusBorder}" stroke-width="1"/>
+                    <text x="10" y="16" fill="#94a3b8" font-size="8.5" font-family="sans-serif" font-weight="bold">WORKPIECE ENGAGEMENT</text>
+                    <text x="10" y="34" fill="#f59e0b" font-size="9.5" font-family="monospace" font-weight="bold">DOC (ap): ${c.depthVal.toFixed(isMetric ? 3 : 4)} ${c.unit}</text>
+                    <text x="10" y="49" fill="${hatchCol}" font-size="9.5" font-family="monospace" font-weight="bold">WOC (ae): ${c.widthVal.toFixed(isMetric ? 3 : 4)} ${c.unit}</text>
+                    <rect x="10" y="57" width="140" height="19" rx="3" fill="${statusBg}" stroke="${statusBorder}" stroke-width="1"/>
+                    <text x="80" y="69.5" fill="${statusColor}" font-size="8.5" font-family="monospace" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${esc(statusText)}</text>
+                </g></g>`;
+            
+return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
+                <line x1="${cx}" y1="8" x2="${cx}" y2="${yTip + 12}" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1" stroke-dasharray="6,4"/>
                 ${toolHolderSvg(cx, yCollet, rs_px, c.isColletCollision)}
                 ${body}${engage}${dims}`;
         }
@@ -4552,13 +4848,58 @@
                     neckLenVal = Math.max(...nk.map(sg => sg.end)) * fromIn;
                 }
                 if (sk.length) shankVal = Math.max(...sk.map(sg => Math.max(sg.d0, sg.d1))) * fromIn;
+
+                // When neck or flutes step abruptly up to a larger shank without an explicit taper segment,
+                // synthesize the visual taper transition so the tool renders realistic conical geometry
+                if (!isFormTool && !isLollipop && profSegs.length > 0) {
+                    const enhanced = [];
+                    for (let i = 0; i < profSegs.length; i++) {
+                        const s = profSegs[i];
+                        if (s.kind === 'shank' && enhanced.length > 0) {
+                            const prev = enhanced[enhanced.length - 1];
+                            if (s.d0 > prev.d1 + 1e-4) {
+                                const d_low = prev.d1;
+                                const d_high = s.d0;
+                                const h_shank = s.end - s.start;
+                                if (h_shank > 1e-4) {
+                                    const delta_r = (d_high - d_low) / 2.0;
+                                    // 20-deg half-angle taper transition length
+                                    let taper_len = delta_r / Math.tan(20 * Math.PI / 180);
+                                    taper_len = Math.min(taper_len, h_shank * 0.75);
+                                    const taper_end = s.start + taper_len;
+                                    enhanced.push({
+                                        kind: 'taper',
+                                        start: s.start,
+                                        end: taper_end,
+                                        d0: d_low,
+                                        d1: d_high,
+                                        fluted: false
+                                    });
+                                    if (s.end > taper_end + 1e-6) {
+                                        enhanced.push({
+                                            kind: 'shank',
+                                            start: taper_end,
+                                            end: s.end,
+                                            d0: d_high,
+                                            d1: d_high,
+                                            fluted: false
+                                        });
+                                    }
+                                    continue;
+                                }
+                            }
+                        }
+                        enhanced.push(s);
+                    }
+                    profSegs = enhanced;
+                }
             }
 
             const unit = isMetric ? 'mm' : 'in';
 
-            // Effective diameters
-            let effNeckDia = hasSteppedShank ? Math.min(neckVal, diaVal) : diaVal;
-            let effShankDia = hasSteppedShank ? shankVal : diaVal;
+            // Effective diameters: shank diameter is ALWAYS the true shank diameter (never falls back to cutting dia)
+            let effShankDia = shankVal > 0 ? shankVal : diaVal;
+            let effNeckDia = (hasSteppedShank && neckVal > 0) ? Math.min(neckVal, diaVal) : (neckVal > 0 ? neckVal : diaVal);
             if (isFormTool && effNeckDia >= diaVal) {
                 effNeckDia = diaVal * 0.5;
             }
@@ -4613,7 +4954,7 @@
                 } else if (isColletCollision) {
                     notes.push(`⚠️ <strong>Tool Holder Collision:</strong> Programmed Cut Depth (<strong>${depthVal.toFixed(isMetric ? 3 : 4)} ${unit}</strong>) exceeds tool stickout (<strong>${stickVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>). The collet chuck will crash into the workpiece!`);
                 } else if (!prof && hasRelieved && neckLenVal > stickVal * 1.001) {
-                    notes.push(`⚠️ <strong>Holder Over Neck:</strong> Shoulder length (<strong>${neckLenVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>) is longer than the length below holder (<strong>${stickVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>), so the holder would clamp on the reduced neck. Increase the length below holder to at least the shoulder length.`);
+                    notes.push(`⚠️ <strong>Holder Over Neck / Shoulder:</strong> Shoulder reach (<strong>${neckLenVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>) exceeds tool stickout (<strong>${stickVal.toFixed(isMetric ? 2 : 3)} ${unit}</strong>). The collet chuck must clamp on the full shank above the shoulder — increase stickout to at least ${neckLenVal.toFixed(isMetric ? 2 : 3)} ${unit}.`);
                 }
                 if (prof && Array.isArray(prof.warnings)) {
                     prof.warnings.forEach(w => notes.push('⚠️ ' + esc(w)));
@@ -4627,11 +4968,11 @@
                 }
             }
 
-            // Proportional Geometry Coordinates
-            const cx = 240;
+            // Proportional Geometry Coordinates (expanded for 680x370 canvas)
+            const cx = 310;
             const yCollet = 38;
-            const yTip = 245;
-            const H_stick = yTip - yCollet; // 207 px
+            const yTip = 320;
+            const H_stick = yTip - yCollet; // 282 px
 
             if (profSegs && profSegs.length) {
                 const toIn = isMetric ? 1 / 25.4 : 1;
@@ -4640,7 +4981,8 @@
                     isBall, isLollipop, isRadiused, isChamfer, isDrill, isTap, isFormTool,
                     reIn: crVal * toIn, depthIn: depthVal * toIn, widthIn: widthVal * toIn,
                     stickVal, diaVal, depthVal, widthVal, unit, effNeckDia, maxReach,
-                    shoulderIn: neckLenVal * toIn, isNeckCollision, isColletCollision
+                    shoulderIn: neckLenVal * toIn, isNeckCollision, isColletCollision,
+                    shankVal, fluteLVal, neckLenVal
                 });
                 return;
             }
@@ -4674,12 +5016,11 @@
                 yNeckTop = yNeckBot - hNeck;
                 yTaperTop = yNeckTop - hTaper;
             } else if (hasSteppedShank) {
-                // One scale for every segment so flutes + neck + shank always add up to the stickout.
-                // neckLenVal is the REACH (tip to shank), as in the physics and Fusion's shoulder length.
-                const reach = Math.min(Math.max(neckLenVal, fluteLVal), stickVal);
+                const tStartVal = parseFloat(document.getElementById('taperStart')?.value) || fluteLVal;
+                const tEndVal = parseFloat(document.getElementById('shoulderLength')?.value) || tStartVal;
                 let hFlute = Math.max(Math.min(fluteLVal, stickVal) * hScale, 6);
-                let hNeck = Math.max((reach - Math.min(fluteLVal, stickVal)) * hScale, 0);
-                let hTaper = Math.min(8, Math.max(H_stick - hFlute - hNeck, 0));
+                let hNeck = Math.max((Math.min(tStartVal, stickVal) - Math.min(fluteLVal, stickVal)) * hScale, 0);
+                let hTaper = Math.max((Math.min(tEndVal, stickVal) - Math.min(tStartVal, stickVal)) * hScale, 0);
                 if (hFlute + hNeck + hTaper > H_stick) {
                     const ratio = H_stick / (hFlute + hNeck + hTaper);
                     hFlute *= ratio;
@@ -4714,7 +5055,7 @@
                 <defs>${toolSvgDefs(isNeckCollision)}</defs>
 
                 <!-- Background Reference Centerline -->
-                <line x1="${cx}" y1="8" x2="${cx}" y2="260" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1" stroke-dasharray="6,4"/>
+                <line x1="${cx}" y1="8" x2="${cx}" y2="${yTip + 12}" stroke="rgba(148, 163, 184, 0.2)" stroke-width="1" stroke-dasharray="6,4"/>
             `;
 
             // Collet Chuck / Tool Holder
@@ -4879,73 +5220,162 @@
 
             svgContent += `</g>`;
 
-            // Dimension Lines & Engineering Annotations
-            svgContent += `<g class="dimension-annotations" font-family="monospace" font-size="9">`;
+            // Helper function for dimension badges with boundary clamping to prevent canvas clipping
+            const dimBadge = (x, y, text, color='#94a3b8', bg='rgba(15, 23, 42, 0.94)', border=color, anchor='middle', fontSize=9.5, bold=true) => {
+                const padX = 6;
+                const approxW = Math.ceil(text.length * (fontSize * 0.60) + padX * 2);
+                const bh = fontSize + 8;
+                let rx = x;
+                if (anchor === 'middle') rx = x - approxW / 2;
+                else if (anchor === 'end') rx = x - approxW;
+                if (rx < 8) rx = 8;
+                if (rx + approxW > 672) rx = 672 - approxW;
+                const textX = (anchor === 'middle') ? (rx + approxW / 2) : (anchor === 'end' ? (rx + approxW - padX) : (rx + padX));
+                const ry = y - bh / 2;
+                return `<g class="dim-badge">
+                    <rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${approxW.toFixed(1)}" height="${bh}" rx="3" fill="${bg}" stroke="${border}" stroke-width="1"/>
+                    <text x="${textX.toFixed(1)}" y="${(y + 0.5).toFixed(1)}" fill="${color}" font-family="monospace" font-size="${fontSize}" font-weight="${bold ? 'bold' : '600'}" text-anchor="${anchor === 'middle' ? 'middle' : (anchor === 'end' ? 'end' : 'start')}" dominant-baseline="middle">${(typeof esc === 'function' ? esc(text) : String(text))}</text>
+                </g>`;
+            };
 
-            // 1. Stickout (L) on left (x = 55)
+            const dec = isMetric ? 2 : 3;
+            const yShoulderTop = yNeckTop;
+            const hasNeckOrTaper = hasSteppedShank || (neckLenVal > fluteLVal * 1.001);
+            const neckReachDiff = Math.max(0, neckLenVal - fluteLVal);
+
+            svgContent += `<g class="dimension-annotations" font-family="monospace">`;
+
+            // Anti-collision badge vertical positioning
+            let yStickBadge = yCollet + H_stick * 0.5;
+            let yShoulderBadge = yShoulderTop + (yTip - yShoulderTop) * 0.5;
+            let yFluteBadge = yFluteTop + (yTip - yFluteTop) * 0.5;
+
+            if (Math.abs(yStickBadge - yShoulderBadge) < 28) {
+                if (yStickBadge <= yShoulderBadge) {
+                    yStickBadge = Math.max(yCollet + 16, yStickBadge - 14);
+                    yShoulderBadge = Math.min(yTip - 16, yShoulderBadge + 14);
+                } else {
+                    yStickBadge = Math.min(yTip - 16, yStickBadge + 14);
+                    yShoulderBadge = Math.max(yCollet + 16, yShoulderBadge - 14);
+                }
+            }
+            if (Math.abs(yShoulderBadge - yFluteBadge) < 28) {
+                if (yShoulderBadge <= yFluteBadge) {
+                    yShoulderBadge = Math.max(yCollet + 16, yShoulderBadge - 14);
+                    yFluteBadge = Math.min(yTip - 16, yFluteBadge + 14);
+                } else {
+                    yShoulderBadge = Math.min(yTip - 16, yShoulderBadge + 14);
+                    yFluteBadge = Math.max(yCollet + 16, yFluteBadge - 14);
+                }
+            }
+
+            // 1. Stickout (LB) Lane (x = 50) - Bounds [10, 100], ZERO clipping!
+            const isStickoutCrash = depthVal > (stickVal * 1.001) || stickVal < (fluteLVal - 1e-4);
+            const stickCol = isStickoutCrash ? '#ef4444' : '#94a3b8';
+            const stickMarker = isStickoutCrash ? 'url(#arrowRed)' : 'url(#arrow)';
             svgContent += `
-                <line x1="55" y1="${yCollet}" x2="55" y2="${yTip}" stroke="#94a3b8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                <line x1="48" y1="${yCollet}" x2="65" y2="${yCollet}" stroke="#64748b" stroke-width="1"/>
-                <line x1="48" y1="${yTip}" x2="65" y2="${yTip}" stroke="#64748b" stroke-width="1"/>
-                <text x="50" y="${yCollet + H_stick * 0.5}" fill="#94a3b8" text-anchor="end" dominant-baseline="middle" font-weight="600">L:${stickVal.toFixed(isMetric ? 1 : 2)}</text>
-            `;
-
-            // 2. Flute / Kerf length on left (x = 95)
-            if (isFormTool) {
-                svgContent += `
-                    <line x1="95" y1="${yNeckBot}" x2="95" y2="${yTip}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                    <line x1="88" y1="${yNeckBot}" x2="102" y2="${yNeckBot}" stroke="#0284c7" stroke-width="1"/>
-                    <line x1="88" y1="${yTip}" x2="102" y2="${yTip}" stroke="#0284c7" stroke-width="1"/>
-                    <text x="90" y="${yNeckBot + (yTip - yNeckBot) * 0.5}" fill="#38bdf8" text-anchor="end" dominant-baseline="middle" font-weight="600">t:${thickVal.toFixed(isMetric ? 2 : 3)}</text>
-                `;
+                <line x1="50" y1="${yCollet}" x2="50" y2="${yTip}" stroke="${stickCol}" stroke-width="${isStickoutCrash ? 2 : 1.2}" marker-start="${stickMarker}" marker-end="${stickMarker}"/>
+                <line x1="40" y1="${yCollet}" x2="60" y2="${yCollet}" stroke="${stickCol}" stroke-width="1"/>
+                <line x1="40" y1="${yTip}" x2="60" y2="${yTip}" stroke="${stickCol}" stroke-width="1"/>`;
+            if (depthVal > (stickVal * 1.001)) {
+                svgContent += dimBadge(50, yStickBadge, `⚠️ CRASH: Depth > Stickout`, '#ef4444', 'rgba(69, 10, 10, 0.95)', '#ef4444', 'middle');
+            } else if (stickVal < (fluteLVal - 1e-4)) {
+                svgContent += dimBadge(50, yStickBadge, `⚠️ CRASH: Holder on Flutes`, '#ef4444', 'rgba(69, 10, 10, 0.95)', '#ef4444', 'middle');
             } else {
-                svgContent += `
-                    <line x1="95" y1="${yFluteTop}" x2="95" y2="${yTip}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                    <line x1="88" y1="${yFluteTop}" x2="102" y2="${yFluteTop}" stroke="#0284c7" stroke-width="1"/>
-                    <line x1="88" y1="${yTip}" x2="102" y2="${yTip}" stroke="#0284c7" stroke-width="1"/>
-                    <text x="90" y="${yFluteTop + (yTip - yFluteTop) * 0.5}" fill="#38bdf8" text-anchor="end" dominant-baseline="middle" font-weight="600">Lf:${fluteLVal.toFixed(isMetric ? 2 : 3)}</text>
-                `;
+                svgContent += dimBadge(50, yStickBadge, `Stickout (LB): ${stickVal.toFixed(isMetric ? 1 : 2)} ${unit}`, '#cbd5e1', 'rgba(15, 23, 42, 0.94)', '#475569', 'middle');
             }
 
-            // 3. Cutter Diameter (D) below tip (y = 265)
+            // 2. Shoulder Length (Taper End / Shank Reach) Lane (x = 140) - ZERO overlap!
+            const isShoulderErr = neckLenVal < (fluteLVal * 0.999);
+            const shoulderCol = isShoulderErr ? '#ef4444' : '#818cf8';
+            const shoulderMarker = isShoulderErr ? 'url(#arrowRed)' : 'url(#arrowIndigo)';
             svgContent += `
-                <line x1="${cx - rd_px}" y1="262" x2="${cx + rd_px}" y2="262" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                <line x1="${cx - rd_px}" y1="250" x2="${cx - rd_px}" y2="268" stroke="#0284c7" stroke-width="1"/>
-                <line x1="${cx + rd_px}" y1="250" x2="${cx + rd_px}" y2="268" stroke="#0284c7" stroke-width="1"/>
-                <text x="${cx}" y="274" fill="#38bdf8" text-anchor="middle" font-weight="bold">⌀ ${diaVal.toFixed(isMetric ? 2 : 3)} ${unit}</text>
-            `;
-
-            // 4. Stepped Shank & Neck callouts
-            if (hasSteppedShank) {
-                // Neck Diameter callout
-                const yNeckMid = yNeckTop + (yNeckBot - yNeckTop) * 0.5;
-                svgContent += `
-                    <line x1="${cx - rn_px}" y1="${yNeckMid}" x2="${cx + rn_px}" y2="${yNeckMid}" stroke="${isNeckCollision ? '#ef4444' : '#60a5fa'}" stroke-width="1" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-                    <text x="${cx}" y="${yNeckMid - 4}" fill="${isNeckCollision ? '#fca5a5' : '#60a5fa'}" text-anchor="middle" font-size="8">dn:${effNeckDia.toFixed(isMetric ? 2 : 3)}</text>
-                `;
-
-                // Radial Reach Callout (neck to outer tool edge)
-                const yReachCall = isFormTool ? yNeckBot - 8 : yFluteTop - 8;
-                svgContent += `
-                    <line x1="${cx + rn_px}" y1="${yReachCall}" x2="${cx + rd_px}" y2="${yReachCall}" stroke="${isNeckCollision ? '#ef4444' : '#10b981'}" stroke-width="1.5" marker-start="url(#arrow${isNeckCollision ? 'Amber' : 'Green'})" marker-end="url(#arrow${isNeckCollision ? 'Amber' : 'Green'})"/>
-                    <text x="${cx + (rn_px + rd_px) * 0.5}" y="${yReachCall - 4}" fill="${isNeckCollision ? '#ef4444' : '#34d399'}" font-size="8.5" font-weight="bold" text-anchor="middle">Neck clr:${maxReach.toFixed(isMetric ? 2 : 3)}</text>
-                `;
+                <line x1="140" y1="${yShoulderTop}" x2="140" y2="${yTip}" stroke="${shoulderCol}" stroke-width="${isShoulderErr ? 2 : 1.2}" marker-start="${shoulderMarker}" marker-end="${shoulderMarker}"/>
+                <line x1="130" y1="${yShoulderTop}" x2="150" y2="${yShoulderTop}" stroke="${shoulderCol}" stroke-width="1"/>
+                <line x1="130" y1="${yTip}" x2="150" y2="${yTip}" stroke="${shoulderCol}" stroke-width="1"/>`;
+            if (isShoulderErr) {
+                svgContent += dimBadge(140, yShoulderBadge, `⚠️ Shoulder < Flutes!`, '#ef4444', 'rgba(69, 10, 10, 0.95)', '#ef4444', 'middle');
+            } else {
+                svgContent += dimBadge(140, yShoulderBadge, `Shoulder: ${neckLenVal.toFixed(dec)} ${unit}`, '#818cf8', 'rgba(15, 23, 42, 0.94)', '#4f46e5', 'middle');
             }
 
-            // 5. Engagement parameters summary card on right (x = 385)
+            // 3. Flute Length (LCF) Lane (x = 225) - ZERO overlap!
+            const fLblFallback = isFormTool ? 't' : 'Flutes (LCF)';
+            const fValFallback = isFormTool ? thickVal : fluteLVal;
             svgContent += `
-                <g class="engagement-summary" transform="translate(375, 48)">
-                    <rect x="0" y="0" width="135" height="66" rx="4" fill="rgba(15, 23, 42, 0.8)" stroke="${isNeckCollision ? '#ef4444' : '#475569'}" stroke-width="1"/>
-                    <text x="8" y="15" fill="#94a3b8" font-size="8" font-family="sans-serif" font-weight="bold">ENGAGEMENT PARAMS</text>
-                    <text x="8" y="32" fill="#f59e0b" font-size="9" font-family="monospace">DOC (ap): ${depthVal.toFixed(isMetric ? 3 : 4)} ${unit}</text>
-                    <text x="8" y="47" fill="${isNeckCollision ? '#ef4444' : '#f59e0b'}" font-size="9" font-family="monospace">WOC (ae): ${widthVal.toFixed(isMetric ? 3 : 4)} ${unit}</text>
-                    <text x="8" y="60" fill="${hasSteppedShank ? (isNeckCollision ? '#ef4444' : '#34d399') : '#94a3b8'}" font-size="8" font-family="monospace">
-                        ${hasSteppedShank ? (isNeckCollision ? 'STATUS: OVERREACH!' : 'STATUS: CLEAR') : 'STATUS: STANDARD'}
-                    </text>
-                </g>
-            `;
+                <line x1="225" y1="${yFluteTop}" x2="225" y2="${yTip}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
+                <line x1="215" y1="${yFluteTop}" x2="235" y2="${yFluteTop}" stroke="#0284c7" stroke-width="1"/>
+                <line x1="215" y1="${yTip}" x2="235" y2="${yTip}" stroke="#0284c7" stroke-width="1"/>`;
+            svgContent += dimBadge(225, yFluteBadge, `${fLblFallback}: ${fValFallback.toFixed(dec)} ${unit}`, '#38bdf8', 'rgba(15, 23, 42, 0.94)', '#0284c7', 'middle');
 
-            svgContent += `</g>`;
+            // 4. Shank Diameter (SFDM) across top of shank below collet
+            const yShankDim = yCollet - 16;
+            svgContent += `
+                <line x1="${cx - rs_px}" y1="${yCollet}" x2="${cx + rs_px}" y2="${yCollet}" stroke="#34d399" stroke-width="1.2"/>`;
+            svgContent += dimBadge(cx, yShankDim, `Shank Ø (SFDM): ${effShankDia.toFixed(dec)} ${unit}`, '#34d399', 'rgba(15, 23, 42, 0.95)', '#059669', 'middle', 9.5);
+
+            // 5. Cutter Diameter (DC) below tool tip
+            svgContent += `
+                <line x1="${cx - rd_px}" y1="${yTip + 8}" x2="${cx + rd_px}" y2="${yTip + 8}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
+                <line x1="${cx - rd_px}" y1="${yTip + 4}" x2="${cx - rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>
+                <line x1="${cx + rd_px}" y1="${yTip + 4}" x2="${cx + rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>`;
+            svgContent += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${diaVal.toFixed(dec)} ${unit} (4 FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
+
+            // 6. Explicit Taper Beginning & Ending Markers on Tool
+            if (effShankDia > effNeckDia + 1e-4) {
+                const yTS = (yNeckTop !== undefined && Math.abs(yNeckTop - yNeckBot) > 2) ? yNeckTop : yFluteTop;
+                const yTE = yTaperTop !== undefined ? yTaperTop : (yCollet + 10);
+                const maxR_px = Math.max(rn_px, rs_px);
+                const markerX = cx + maxR_px + 14;
+                svgContent += `
+                    <line x1="${cx + rn_px}" y1="${yTS}" x2="${markerX + 4}" y2="${yTS}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.2"/>
+                    <line x1="${cx + rs_px}" y1="${yTE}" x2="${markerX + 4}" y2="${yTE}" stroke="#c084fc" stroke-dasharray="3,2" stroke-width="1.2"/>`;
+
+                const tapLen = Math.max(0, neckLenVal - fluteLVal);
+                if (Math.abs(yTS - yTE) < 28) {
+                    const midY = (yTS + yTE) * 0.5;
+                    svgContent += dimBadge(markerX + 8, midY, `◀ Taper: ${fluteLVal.toFixed(dec)} → ${neckLenVal.toFixed(dec)} ${unit} (${tapLen.toFixed(dec)})`, '#c084fc', 'rgba(15, 23, 42, 0.94)', '#9333ea', 'start', 9.0);
+                } else {
+                    svgContent += dimBadge(markerX + 8, yTS, `◀ Taper Start: ${fluteLVal.toFixed(dec)} ${unit}`, '#38bdf8', 'rgba(15, 23, 42, 0.94)', '#0284c7', 'start', 9.0);
+                    svgContent += dimBadge(markerX + 8, yTE, `◀ Taper End: ${neckLenVal.toFixed(dec)} ${unit}`, '#c084fc', 'rgba(15, 23, 42, 0.94)', '#9333ea', 'start', 9.0);
+                    if (tapLen > 0.005 && Math.abs(yTS - yTE) >= 46) {
+                        svgContent += dimBadge(markerX + 8, (yTS + yTE) * 0.5, `📐 Length: ${tapLen.toFixed(dec)} ${unit}`, '#f1f5f9', 'rgba(15, 23, 42, 0.9)', '#64748b', 'start', 8.5);
+                    }
+                }
+            }
+
+            // 7. Engagement summary card on top-right (x = 510, y = 14) - Zero collision!
+            let statusTextFallback = '✓ CLEAR: Safe Cut';
+            let statusColorFallback = '#6ee7b7';
+            let statusBgFallback = 'rgba(6, 78, 59, 0.85)';
+            let statusBorderFallback = '#059669';
+
+            if (depthVal > (stickVal * 1.001)) {
+                statusTextFallback = '⚠️ CRASH: Depth > Stickout';
+                statusColorFallback = '#fca5a5'; statusBgFallback = 'rgba(127, 29, 29, 0.9)'; statusBorderFallback = '#ef4444';
+            } else if (isNeckCollision) {
+                statusTextFallback = '⚠️ COLLISION: Neck Rub';
+                statusColorFallback = '#fca5a5'; statusBgFallback = 'rgba(127, 29, 29, 0.9)'; statusBorderFallback = '#ef4444';
+            } else if (stickVal < (fluteLVal - 1e-4)) {
+                statusTextFallback = '⚠️ CRASH: Holder on Flutes';
+                statusColorFallback = '#fca5a5'; statusBgFallback = 'rgba(127, 29, 29, 0.9)'; statusBorderFallback = '#ef4444';
+            } else if (hasSteppedShank && stickVal < (neckLenVal - 1e-4)) {
+                statusTextFallback = '⚠️ CRASH: Holder on Neck';
+                statusColorFallback = '#fca5a5'; statusBgFallback = 'rgba(127, 29, 29, 0.9)'; statusBorderFallback = '#ef4444';
+            } else if (widthVal > maxReach * 0.85 && hasSteppedShank) {
+                statusTextFallback = '⚡ CAUTION: Near Wall Limit';
+                statusColorFallback = '#fde68a'; statusBgFallback = 'rgba(120, 53, 15, 0.85)'; statusBorderFallback = '#f59e0b';
+            }
+
+            svgContent += `
+                <g class="engagement-summary" transform="translate(510, 14)">
+                    <rect x="0" y="0" width="160" height="82" rx="4" fill="rgba(15, 23, 42, 0.92)" stroke="${statusBorderFallback}" stroke-width="1"/>
+                    <text x="10" y="16" fill="#94a3b8" font-size="8.5" font-family="sans-serif" font-weight="bold">WORKPIECE ENGAGEMENT</text>
+                    <text x="10" y="34" fill="#f59e0b" font-size="9.5" font-family="monospace" font-weight="bold">DOC (ap): ${depthVal.toFixed(isMetric ? 3 : 4)} ${unit}</text>
+                    <text x="10" y="49" fill="${isNeckCollision ? '#ef4444' : '#f59e0b'}" font-size="9.5" font-family="monospace" font-weight="bold">WOC (ae): ${widthVal.toFixed(isMetric ? 3 : 4)} ${unit}</text>
+                    <rect x="10" y="57" width="140" height="19" rx="3" fill="${statusBgFallback}" stroke="${statusBorderFallback}" stroke-width="1"/>
+                    <text x="80" y="69.5" fill="${statusColorFallback}" font-size="8.5" font-family="monospace" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${esc(statusTextFallback)}</text>
+                </g></g>`;
 
             svg.innerHTML = svgContent;
         }
@@ -5589,7 +6019,8 @@
                 maxRpm: parseFloat(document.getElementById('maxRpm')?.value) || (machineProfile && machineProfile.max_rpm) || 16000,
                 maxHp: parseFloat(document.getElementById('maxHp')?.value) || (machineProfile && machineProfile.max_hp) || 10.0,
                 runout: runoutInches,
-                custom_preset_name: customPresetName
+                custom_preset_name: customPresetName,
+                model: document.getElementById('cutModelSelect')?.value || 'v2'
             };
 
             const statusBox = document.getElementById('twinStatusBox');

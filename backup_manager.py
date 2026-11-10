@@ -7,13 +7,31 @@ from datetime import datetime
 
 class BackupManager:
     def __init__(self, base_dir=None, max_backups=15):
+        self._explicit_base_dir = base_dir
         if base_dir is None:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.environ.get("TOOLWIZ_DATA_DIR") or os.path.dirname(os.path.abspath(__file__))
         self.base_dir = base_dir
-        self.data_dir = os.path.join(base_dir, "data")
-        self.backups_dir = os.path.join(base_dir, "backups")
         self.max_backups = max_backups
-        
+        self._ensure_dirs()
+
+    def _effective_base_dir(self):
+        if self._explicit_base_dir is not None:
+            return self._explicit_base_dir
+        return os.environ.get("TOOLWIZ_DATA_DIR") or self.base_dir
+
+    @property
+    def data_dir(self):
+        d = os.path.join(self._effective_base_dir(), "data")
+        os.makedirs(d, exist_ok=True)
+        return d
+
+    @property
+    def backups_dir(self):
+        d = os.path.join(self._effective_base_dir(), "backups")
+        os.makedirs(d, exist_ok=True)
+        return d
+
+    def _ensure_dirs(self):
         os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(self.backups_dir, exist_ok=True)
         

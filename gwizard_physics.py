@@ -2034,6 +2034,16 @@ class GWizardPhysics:
         for entry in self.sfm_data:
             if entry["material"] == material and entry["tool"] == lookup_tool:
                 sfm = float(entry["sfm"])
+                if lookup_tool in ("Carbide Twist Drill", "HP Carbide Twist Drill"):
+                    carb_sfm = max(
+                        self._db_sfm(material, "Carbide Twist Drill") or 0.0,
+                        self._db_sfm(material, "Gun Drill") or 0.0,
+                        (self._db_sfm(material, "HSS Twist Drill") or 0.0) * 2.5,
+                    )
+                    if lookup_tool == "Carbide Twist Drill":
+                        sfm = carb_sfm
+                    elif carb_sfm > 0.0 and sfm > carb_sfm * 1.25:
+                        sfm = carb_sfm * 1.10
                 if tool_type == "Tapping" or is_tap_tool_type(tool_type):
                     if tap_type == "form":
                         mult_key = "CarbideForm" if is_carbide else "HSSForm"
@@ -2077,7 +2087,9 @@ class GWizardPhysics:
         if diameter is not None and 0.0 < diameter < 0.250:
             is_drill_tool = is_drilling_tool_type(tool_type, str(geometry)) and not is_tap_tool_type(tool_type)
             if is_drill_tool:
-                scale = max(0.20, (diameter / 0.250) ** 0.50)
+                # RPM already scales inversely with diameter; apply only a mild SFM taper for
+                # small-drill web thickness and flute chip evacuation.
+                scale = max(0.65, (diameter / 0.250) ** 0.25)
                 sfm *= scale
             elif diameter < 0.125 and tool_type != "Tapping" and not is_tap_tool_type(tool_type) and not is_saw:
                 mat_lower = str(material).lower()
@@ -2155,6 +2167,16 @@ class GWizardPhysics:
                                 ipt = ipt1 + (ipt2 - ipt1) * ((diameter - d1) / (d2 - d1))
                             break
                 break
+
+        # A solid carbide twist drill is stiffer than an HSS twist drill and should never
+        # receive a smaller base chipload than an HSS twist drill of the same diameter.
+        if lookup_tool == "Carbide Twist Drill" and not is_tap_tool_type(tool_type) and tool_type != "Tapping":
+            hss_ipt = self.get_base_ipt(
+                material, "HSS Twist Drill", diameter, geometry=geometry,
+                runout=runout, cut_depth=cut_depth, cut_width=cut_width,
+                flutes=flutes, is_carbide=False
+            )
+            ipt = max(ipt, hss_ipt)
 
         if is_saw:
             # G-Wizard GWizFeedSpeedMath.as:2039-2042 & 2246-2291: sawTPIAdjust on base endmill IPT
@@ -2569,8 +2591,15 @@ class GWizardPhysics:
             return sfm, ipt
 
         overage = ld_ratio - critical_ld
-        sfm_mult = max(0.20, 1.0 - (overage * 0.15))
-        ipt_mult = max(0.15, 1.0 - (overage * 0.20))
+        if is_drilling:
+            # Drills are loaded axially and guided by the hole/conical point (no lateral side loads
+            # like end mills), and standard jobber drills routinely have stickouts of 8-12xD.
+            # Hole-depth chip evacuation is handled separately in calc_adjusted_chipload.
+            sfm_mult = max(0.85, 1.0 - (overage * 0.02))
+            ipt_mult = max(0.80, 1.0 - (overage * 0.03))
+        else:
+            sfm_mult = max(0.20, 1.0 - (overage * 0.15))
+            ipt_mult = max(0.15, 1.0 - (overage * 0.20))
 
         return sfm * sfm_mult, ipt * ipt_mult
 

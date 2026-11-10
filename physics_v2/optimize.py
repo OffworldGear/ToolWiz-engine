@@ -647,7 +647,9 @@ def slot_depth_ratio(D_in):
 def c8_slot_depth(ap_in, D_in, operation, k_slot=None):
     """C8: full-slot depth of a micro tool (D < 1/8") ≤ k_slot·D. Not applied to other cuts."""
     k = k_slot if k_slot is not None else slot_depth_ratio(D_in)
-    applies = operation == "slot" and k is not None
+    applies = (operation == "slot" and k is not None) or (
+        operation == "rough" and D_in < 0.0625 - 1e-9 and k is not None
+    )
     lim = k * D_in if applies else None
     return Check("C8", "micro slot depth (chip packing)", "max", ap_in, lim, "in", SRC["C8"], applies=applies,
                  detail=(f"k_slot = {k:g} → {lim:.4f}\"" if applies else "not a micro full slot"))
@@ -1803,6 +1805,10 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
                     f"feed that meets the wall target, else the smallest wall error")
     else:
         cap = None
+        is_micro_rough = (operation == "rough" and D < 0.0625 - 1e-9)
+        if is_micro_rough:
+            k = slot_depth_ratio(D)
+            cap = k * D if k is not None else None
         if operation == "slot":
             k = slot_depth_ratio(D)
             cap = k * D if k is not None else None
@@ -1820,8 +1826,11 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             pairs = [(a, D) for a in aps]
             prov.append("slot: ae = D; maximize MRR over fz and ap" + (f"; C8 caps ap at {k:g}·D" if cap else ""))
         else:
-            ae_lo = max(ctx.k_tir * machine.tir_in, 0.002 * D)
-            aes = _logspace(ae_lo, ae_max * D, grid[1])
+            ae_lo = max(ctx.k_tir * machine.tir_in, (0.25 if is_micro_rough else 0.002) * D)
+            ae_hi = min(ae_max, 0.50 if is_micro_rough else ae_max) * D
+            ae_lo = min(ae_lo, ae_hi)
+            aes = _logspace(ae_lo, ae_hi, grid[1])
+            pairs = [(a, e) for a in aps for e in aes]
             pairs = [(a, e) for a in aps for e in aes]
             prov.append(f"{operation}: maximize MRR over fz, ap ∈ [{aps[0]:.4f}, {aps[-1]:.4f}]\", "
                         f"ae ∈ [{aes[0]:.4f}, {aes[-1]:.4f}]\"")
@@ -1846,6 +1855,30 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
                       "capped": pt.fz_capped})
 
     if not cands:
+        if opts.get("c1_flute") is None and ctx.c1_flute == "thinnest" and ("C14f" in elim or "C14m" in elim):
+            wall_opts = dict(opts, c1_flute="wall")
+            out_wall = optimize(
+                tool, material, machine, operation, aggressiveness, margins=mg,
+                stock=stock, wall_height=wall_height, level_time_s=level_time_s,
+                path_length_per_level_in=path_length_per_level_in, depth_trade=depth_trade,
+                grid=grid, ae_max=ae_max, n_theta=n_theta, n_quad=n_quad,
+                robustness=robustness, robust=robust, flat_tol=flat_tol, find_tir=False,
+                **wall_opts
+            )
+            if out_wall.get("feasible"):
+                tir_note = ""
+                if find_tir and machine.tir_in > 0:
+                    t_all = max_feasible_tir(tool, material, machine, operation, mg,
+                                             dict(opts, stock=stock, wall_height=wall_height))
+                    out_wall["max_feasible_tir_in"] = t_all
+                    if t_all is not None:
+                        tir_note = f" (all flutes cut without rubbing if TIR <= {t_all:.5f}\")"
+                note = (f"C14 vendor-consensus chip load is below the every-flute C1 rubbing floor at "
+                        f"TIR {machine.tir_in:.5f}\"; C14 takes precedence and C1 is checked on the wall flute"
+                        f"{tir_note}")
+                out_wall["warnings"].append(note)
+                out_wall["provenance"].append(note)
+                return out_wall
         return _infeasible(tool, material, machine, operation, mg, ctx, prov, elim, failed, find_tir,
                            dict(opts, stock=stock, wall_height=wall_height))
 

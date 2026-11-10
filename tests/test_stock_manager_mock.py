@@ -1,6 +1,12 @@
 import unittest
 import urllib.request
 import json
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from app import app
+
 
 def _server_running():
     try:
@@ -14,10 +20,21 @@ class TestStockManagerMock(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._server_up = _server_running()
+        cls._client = app.test_client()
+        cls._client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "fusion-addin"
+
+    def _post_stock_comp(self, req_payload):
+        if self._server_up:
+            req = urllib.request.Request("http://127.0.0.1:5000/api/stock_compensation")
+            req.add_header('Content-Type', 'application/json; charset=utf-8')
+            req.add_header('X-ToolWiz-Client', 'fusion-addin')
+            response = urllib.request.urlopen(req, json.dumps(req_payload).encode('utf-8'), timeout=3.0)
+            return json.loads(response.read().decode('utf-8'))
+        resp = self._client.post("/api/stock_compensation", json=req_payload)
+        self.assertEqual(resp.status_code, 200)
+        return resp.get_json()
 
     def test_end_to_end_stock_manager_flow(self):
-        if not self._server_up:
-            self.skipTest("ToolWiz server not running on 127.0.0.1:5000")
         self._end_to_end()
 
     def _end_to_end(self):
@@ -83,11 +100,7 @@ class TestStockManagerMock(unittest.TestCase):
             "operations": ops_payload
         }
 
-        req = urllib.request.Request("http://127.0.0.1:5000/api/stock_compensation")
-        req.add_header('Content-Type', 'application/json; charset=utf-8')
-        req.add_header('X-ToolWiz-Client', 'fusion-addin')
-        response = urllib.request.urlopen(req, json.dumps(req_payload).encode('utf-8'), timeout=3.0)
-        res_data = json.loads(response.read().decode('utf-8'))
+        res_data = self._post_stock_comp(req_payload)
 
         self.assertTrue(res_data.get("success"))
         results = res_data.get("results")
@@ -107,11 +120,7 @@ class TestStockManagerMock(unittest.TestCase):
 
         # 2. Test Zero-Out Finishing mode
         req_payload["mode"] = "zero_finishing"
-        req = urllib.request.Request("http://127.0.0.1:5000/api/stock_compensation")
-        req.add_header('Content-Type', 'application/json; charset=utf-8')
-        req.add_header('X-ToolWiz-Client', 'fusion-addin')
-        response = urllib.request.urlopen(req, json.dumps(req_payload).encode('utf-8'), timeout=3.0)
-        res_data_zero = json.loads(response.read().decode('utf-8'))
+        res_data_zero = self._post_stock_comp(req_payload)
         results_zero = res_data_zero.get("results")
 
         self.assertEqual(results_zero[0]["recommended_radial_stock"], "0.0000 in")

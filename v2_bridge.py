@@ -28,6 +28,7 @@ OPERATION_MAP = {
     "slotting / tab milling": "slot",
     "slotting": "slot",
     "wall finishing (deep doc)": "finish",
+    "finishing": "finish",
 }
 NOT_SQUARE = ("ball", "bull", "radius", "chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
               "t-slot", "keyseat", "woodruff", "thread", "drill", "ream", "tap", "saw", "face", "form")
@@ -132,7 +133,8 @@ def machine_for(r, machine_profile=None):
     if r.max_rpm and r.max_rpm < max_rpm:
         max_rpm = float(r.max_rpm)
     feed = prof.get("max_cutting_feed_mm_min")
-    m = o.Machine(sp, max_rpm, "continuous", float(r.runout or 0.0002), "eccentric",
+    tir_in = float(r.runout if r.runout is not None else 0.0002)
+    m = o.Machine(sp, max_rpm, "continuous", tir_in, "eccentric",
                   f"{prof.get('machine', 'machine')} ({sp.get('label') or key})",
                   feed / 25.4 if feed else None)
     hs = prof.get("holder_stiffness")

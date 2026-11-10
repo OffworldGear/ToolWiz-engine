@@ -63,8 +63,8 @@ class TestEquivalentStickout(unittest.TestCase):
 
     def test_stub_on_big_shank_counts_short_and_rod_counts_full(self):
         self.assertAlmostEqual(self.eq_ld(T12_ROD), 8.0, places=6)
-        self.assertLess(self.eq_ld(T12_STUB), 5.0)
-        self.assertLess(self.eq_ld({"DC": 0.03125, "NOF": 3, "LCF": 0.09375, "SFDM": 0.125, "LB": 0.5}), 5.0)
+        self.assertLess(self.eq_ld(T12_STUB), 5.6)
+        self.assertLess(self.eq_ld({"DC": 0.03125, "NOF": 3, "LCF": 0.09375, "SFDM": 0.125, "LB": 0.5}), 6.0)
 
     def test_long_slim_neck_counts_long(self):
         geo = {"DC": 0.0625, "NOF": 4, "LCF": 0.1875, "SFDM": 0.125, "LB": 0.6,
@@ -74,7 +74,7 @@ class TestEquivalentStickout(unittest.TestCase):
     def test_stub_micro_tool_keeps_its_speed(self):
         chat = next(p for p in fusion_calc(T12_STUB)["provenance"] if p["step"] == "chatter" and p["quantity"] == "sfm")
         rod = next(p for p in fusion_calc(T12_ROD)["provenance"] if p["step"] == "chatter" and p["quantity"] == "sfm")
-        self.assertGreater(chat["multiplier"], 0.9)       # equivalent ~4.5xD: about -5%
+        self.assertGreater(chat["multiplier"], 0.85)      # equivalent ~5.2xD with continuous shaft taper: about -12%
         self.assertAlmostEqual(rod["multiplier"], 0.6)    # a true 1/16" rod at 8xD: -40%
 
 

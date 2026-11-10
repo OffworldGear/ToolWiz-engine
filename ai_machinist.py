@@ -332,6 +332,23 @@ def format_context_for_prompt(context: dict) -> str:
         f"- **Suggested Stock to Leave (Comp)**: {comp_display}",
         f"- **Physics Advisor Alerts**: {tips_str}"
     ]
+    fg = context.get("feature_geometry")
+    if isinstance(fg, dict) and fg:
+        fg_parts = []
+        if fg.get("feature_depth_in") is not None:
+            fd = float(fg["feature_depth_in"])
+            fg_parts.append(f"Feature Depth: {fd:.3f}\" ({fd * 25.4:.2f} mm)")
+        if fg.get("min_corner_radius_in") is not None:
+            cr = float(fg["min_corner_radius_in"])
+            fg_parts.append(f"Min Internal Corner Radius: {cr:.4f}\" ({cr * 25.4:.2f} mm)")
+        if fg.get("min_wall_thickness_in") is not None:
+            wt = float(fg["min_wall_thickness_in"])
+            fg_parts.append(f"Wall Thickness: {wt:.4f}\" ({wt * 25.4:.2f} mm)")
+        if fg.get("min_floor_thickness_in") is not None:
+            ft = float(fg["min_floor_thickness_in"])
+            fg_parts.append(f"Floor Thickness: {ft:.4f}\" ({ft * 25.4:.2f} mm)")
+        if fg_parts:
+            lines.append(f"- **Live Fusion B-Rep Geometry**: {', '.join(fg_parts)}")
     return "\n".join(lines) + "\n"
 
 
@@ -425,6 +442,13 @@ For your inquiry: *"{(prompt[:120] + '...') if len(prompt) > 120 else prompt}"*
 _MODEL_CACHE = {}
 
 
+def _scrub_key(text: str, key: str) -> str:
+    """Ensure API key never leaks in error or diagnostic strings."""
+    if not text or not key:
+        return text
+    return str(text).replace(key, "[REDACTED]")
+
+
 def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
     """
     Queries Google Gemini ModelService.ListModels to discover active models supporting generateContent.
@@ -482,11 +506,11 @@ def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
                     err_msg = err_data.get("message", f"HTTP {resp.status_code}")
                 except Exception:
                     err_msg = f"HTTP {resp.status_code}"
-                return [], f"API Key Authentication Error: {err_msg}"
+                return [], _scrub_key(f"API Key Authentication Error: {err_msg}", api_key)
             else:
-                return [], f"Model discovery HTTP {resp.status_code}: {resp.text[:200]}"
+                return [], _scrub_key(f"Model discovery HTTP {resp.status_code}: {resp.text[:200]}", api_key)
     except Exception as e:
-        return [], f"Model discovery network error: {str(e)}"
+        return [], _scrub_key(f"Model discovery network error: {str(e)}", api_key)
 
 
 def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, preferred_model: str = None) -> dict:
@@ -592,9 +616,9 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, p
                         err_msg = resp.json().get("error", {}).get("message", resp.text[:150])
                     except Exception:
                         err_msg = resp.text[:150]
-                    last_err = f"HTTP {resp.status_code} ({clean_model}): {err_msg}"
+                    last_err = _scrub_key(f"HTTP {resp.status_code} ({clean_model}): {err_msg}", key)
         except Exception as e:
-            last_err = f"Network exception ({clean_model}): {str(e)}"
+            last_err = _scrub_key(f"Network exception ({clean_model}): {str(e)}", key)
 
     # If all live attempts failed, fall back cleanly to knowledge engine with diagnostic message
     offline_reply = get_offline_expert_response(prompt, context or {})
@@ -606,4 +630,3 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, p
         "apiKeyConfigured": True,
         "warning": last_err
     }
-

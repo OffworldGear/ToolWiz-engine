@@ -152,6 +152,106 @@ class TestAddinMessage(unittest.TestCase):
                                        model_note="v2 selected; v1 used because x.")
         self.assertIn("Model: v1", msg)
         self.assertIn("v1 used because x.", msg)
+        self.assertEqual(
+            a._limited_by_text("v2: C14f, C14m"),
+            "v2: vendor-average chip load, vendor-average removal rate",
+        )
+
+    def test_v2_t12_slotting_17_4_annealed_c14_vs_c1(self):
+        r = run_cut(app.physics, req(alloy="17-4 PH (Annealed)", operation="Slotting", aggressiveness=0.60, model="v2"))
+        self.assertEqual(r.model, "v2")
+        self.assertTrue(r.feasible)
+        self.assertAlmostEqual(r.rec_woc, 0.0625, places=5)
+        self.assertAlmostEqual(r.rec_doc, 0.35 * 0.0625, places=4)
+        self.assertLess(r.feed_ipm, 10.0)
+        self.assertTrue(any("C14 vendor-consensus chip load is below the every-flute C1 rubbing floor" in w
+                            for w in r.v2["warnings"]))
+
+    def test_addin_drilling_and_tapping_support(self):
+        import json
+        import sys
+        from types import SimpleNamespace
+        sys.path.insert(0, os.path.dirname(__file__))
+        from test_addin_common import load_addin
+        a = load_addin()
+
+        drill_tool_json = json.dumps({
+            "type": "drill",
+            "unit": "inches",
+            "description": "1/8\" Carbide Drill",
+            "BMC": "carbide",
+            "post-process": {"number": 21},
+            "geometry": {"DC": 0.125, "NOF": 2, "LCF": 0.75, "SFDM": 0.125, "LB": 1.0, "TA": 118.0},
+        })
+        drill_op = SimpleNamespace(
+            name="Drill1", strategy="drill",
+            tool=SimpleNamespace(toJson=lambda: drill_tool_json),
+            parameters=SimpleNamespace(itemByName=lambda _: None),
+        )
+        g_drill, summary_drill, _ = a.get_op_tool_info(drill_op)
+        self.assertTrue(g_drill["isHoleTool"])
+        self.assertFalse(g_drill["isTap"])
+        self.assertIn("Twist Drill", summary_drill)
+        self.assertEqual(a.infer_strategy_for_op(drill_op, g_drill), "Drilling")
+        p_drill = a.build_calc_payload(g_drill, "Stainless - PH Series (17-4)", "17-4 PH (Annealed)",
+                                       "Drilling", 50, "HP High Performance Carbide", "AlTiN (Black)")
+        self.assertEqual(p_drill["tool"], "HP Carbide Twist Drill")
+        self.assertEqual(p_drill["geometry"], "Drill")
+
+        tap_tool_json = json.dumps({
+            "type": "tap right hand",
+            "unit": "inches",
+            "description": "1/4-20 Form Tap",
+            "BMC": "hss",
+            "post-process": {"number": 22},
+            "geometry": {"DC": 0.25, "NOF": 4, "LCF": 0.625, "SFDM": 0.25, "LB": 1.25, "TP": 0.05},
+        })
+        tap_op = SimpleNamespace(
+            name="Tap1", strategy="drill",
+            tool=SimpleNamespace(toJson=lambda: tap_tool_json),
+            parameters=SimpleNamespace(itemByName=lambda _: None),
+        )
+        g_tap, summary_tap, _ = a.get_op_tool_info(tap_op)
+        self.assertTrue(g_tap["isTap"])
+        self.assertAlmostEqual(g_tap["threadPitch"], 0.05, places=5)
+        self.assertIn("20.0 TPI", summary_tap)
+        self.assertEqual(a.infer_strategy_for_op(tap_op, g_tap), "Tapping (Form / Roll)")
+        p_tap = a.build_calc_payload(g_tap, "Stainless - PH Series (17-4)", "17-4 PH (Annealed)",
+                                     "Tapping (Form / Roll)", 50, "High Speed Steel (HSS)", "TiN (Gold)")
+        self.assertEqual(p_tap["tool"], "Tapping")
+        self.assertEqual(p_tap["tapType"], "form")
+        self.assertAlmostEqual(p_tap["pitch"], 0.05, places=5)
+        c = app.app.test_client()
+        c.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
+        res_tap = c.post("/api/calculate_for_fusion", json=p_tap).get_json()
+        self.assertTrue(res_tap["success"])
+        self.assertAlmostEqual(res_tap["feed"], res_tap["rpm"] * 0.05, delta=0.1)
+
+        # 1.45 mm (0.0571") drill with 16 mm (11xD) stickout in 17-4 PH (Annealed):
+        # axial drills must not be crushed by lateral milling overhang penalties.
+        res_drill = c.post("/api/calculate_for_fusion", json={
+            "family": "Stainless - PH Series (17-4)",
+            "alloy": "17-4 PH (Annealed)",
+            "tool": "Carbide Twist Drill",
+            "coating": "Uncoated",
+            "geometry": "Drill",
+            "operation": "Drilling",
+            "diameter": 1.45 / 25.4,
+            "flutes": 2,
+            "fluteLength": 9.0 / 25.4,
+            "stickout": 16.0 / 25.4,
+            "shankDiameter": 1.45 / 25.4,
+            "aggressiveness": 60,
+            "isCarbide": True,
+        }).get_json()
+        self.assertTrue(res_drill["success"])
+        self.assertGreater(res_drill["rpm"], 5000)
+        self.assertGreater(res_drill["feed"], 5.0)
+        self.assertGreater(res_drill["ipt"], 0.00035)
+
+        # Metric tool in an inch document: unit-less expression '5.842' with evaluated value 5.842 mm/min
+        from test_addin_common import param
+        self.assertAlmostEqual(a.parse_cam_feed_to_ipm(param("5.842", 5.842), "in"), 5.842 / 25.4, places=3)
 
 
 if __name__ == "__main__":

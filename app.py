@@ -14,6 +14,7 @@ from toolwiz_common import (
     ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
     ToolGeometry, ToolProfile, default_stickout, default_shank, to_inches, UnitError, safe_eval_length,
     tool_unit as tool_unit_of,
+    calc_thin_wall_compliance_factor,
 )
 
 safe_eval_expr = safe_eval_length  # backwards-compatible alias
@@ -23,6 +24,8 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB upload/request cap
 
 import cutlog
 cutlog.register(app)
+import fusion_bridge
+fusion_bridge.register(app)
 import machine_profiles
 
 # Initialize physics engine
@@ -209,6 +212,14 @@ def _stickout_arg(data, fusion_tool, default=1.5):
         v = data.get("stickout")
         return float(v) if v not in (None, "") else None
     return float(data.get("stickout", default))
+
+
+def _runout_arg(data):
+    """Explicit runout in inches, preserving 0.0 when sent (falsy 'or' would overwrite 0.0 with default)."""
+    v = data.get("runout")
+    if v not in (None, ""):
+        return float(v)
+    return float(machine_limits()["runout"])
 
 
 def _api_error(exc):
@@ -508,7 +519,7 @@ def calculate():
             aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,  # Scale 0-100 to 0.0-1.0
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
-            runout=float(data.get("runout") or machine_limits()["runout"]),
+            runout=_runout_arg(data),
             cut_depth=cut_depth,
             cut_width=cut_width,
             tap_type=data.get("tapType", ""),
@@ -517,6 +528,7 @@ def calculate():
             fusion_tool=fusion_tool,
             model=_request_model(data),
             machine_profile=active_machine(),
+            feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
         )
         res = run_cut(physics, req)
 
@@ -561,11 +573,15 @@ def calculate():
             "tips": res.tips,
             "provenance": res.provenance,
             "profile": res.profile,
+            **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
+            **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
             **_model_fields(res),
         }
         if res.tap_drill:
             resp["tap_drill"] = res.tap_drill
             resp["tap_type"] = res.tap_type
+        from oversight_engine import evaluate_holistic_oversight
+        resp["oversight"] = evaluate_holistic_oversight(data, resp, feature_geometry=res.feature_geometry).to_dict()
         return jsonify(resp)
 
     except Exception as e:
@@ -606,7 +622,7 @@ def calculate_for_fusion():
             aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
-            runout=float(data.get("runout") or machine_limits()["runout"]),
+            runout=_runout_arg(data),
             cut_depth=None,
             cut_width=None,
             tap_type=data.get("tapType", ""),
@@ -615,6 +631,7 @@ def calculate_for_fusion():
             fusion_tool=fusion_tool,
             model=_request_model(data),
             machine_profile=active_machine(),
+            feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
         )
         res = run_cut(physics, req)
 
@@ -644,6 +661,16 @@ def calculate_for_fusion():
             "provenance": res.provenance,
             "profile": res.profile,
             "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
+            **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
+            **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            "oversight": __import__("oversight_engine").evaluate_holistic_oversight(
+                data,
+                {"diameter": res.diameter, "flute_length": res.flute_length, "shank_diameter": res.shank_diameter,
+                 "doc": res.rec_doc, "woc": res.rec_woc, "rpm": res.rpm, "feed_ipm": res.feed_ipm,
+                 "adj_ipt": res.adj_ipt, "deflection": res.deflection, "rec_limit": res.rec_limit,
+                 "feasible": res.feasible, "profile": res.profile, "v1": res.v1, "v2": res.v2},
+                feature_geometry=res.feature_geometry
+            ).to_dict(),
             **_model_fields(res),
         })
 
@@ -785,12 +812,47 @@ _HSS_RE = re.compile(r"\b(hss|hss-e|hsse|hss-co|cobalt|high[\s-]?speed(?:\s+stee
 def tool_is_carbide(t_dict):
     """Carbide unless the tool's material/grade/description clearly says HSS/cobalt/HSS-E/PM."""
     geo = t_dict.get("geometry") or {}
-    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("grade"), geo.get("grade"),
+    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("BMC"), geo.get("BMC"),
+             t_dict.get("grade"), geo.get("grade"),
              (t_dict.get("postProcess") or {}).get("material"), t_dict.get("description")]
     text = " ".join(json.dumps(p) if isinstance(p, (dict, list)) else str(p) for p in parts if p)
     if "carbide" in text.lower():
         return True
     return not _HSS_RE.search(text)
+
+
+_COBALT_RE = re.compile(r"\b(cobalt|hss-e|hsse|hss-co|m35|m42)\b", re.I)
+
+
+def _batch_db_tool_type(kind, t_dict, is_carbide):
+    """Resolve the G-Wizard DB tool category for batch preset generation (WP-1d / C4)."""
+    geo = t_dict.get("geometry") or {}
+    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("BMC"), geo.get("BMC"),
+             t_dict.get("grade"), geo.get("grade"),
+             (t_dict.get("postProcess") or {}).get("material"), t_dict.get("description")]
+    text = " ".join(json.dumps(p) if isinstance(p, (dict, list)) else str(p) for p in parts if p)
+    text_low = text.lower()
+    is_cobalt = bool(_COBALT_RE.search(text))
+
+    if kind is ToolKind.TAP:
+        return "Tapping"
+    if kind is ToolKind.REAMER:
+        return "Carbide Reamer" if is_carbide else "HSS Reamer"
+    if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL):
+        return "HP Carbide Twist Drill" if is_carbide else "HSS Spot Drill"
+    if is_hole_kind(kind):
+        if is_carbide:
+            return "HP Carbide Twist Drill"
+        if is_cobalt:
+            return "Cobalt Twist Drill"
+        return "HSS Twist Drill"
+    if kind is ToolKind.SLOT and any(k in text_low for k in ("saw", "slitting", "woodruff", "keyseat")):
+        return "Carbide Saws & Woodruff Cutters" if is_carbide else "HSS Saws & Woodruff Cutters"
+    if kind is ToolKind.THREAD_MILL:
+        return "Carbide Thread Mill"
+    if kind is ToolKind.FACE and "indexable" in text_low:
+        return "Indexable End Or Face Mill"
+    return "Carbide Endmill" if is_carbide else "HSS Endmill"
 
 def parse_dim(val, tool_unit=""):
     """Helper to parse tool dimensions from JSON to inches"""
@@ -1160,7 +1222,7 @@ def twin_batch_generate():
         coating = req_data.get("coating", "AlTiN")
         max_rpm = float(req_data.get("maxRpm") or machine_limits()["max_rpm"])
         max_hp = float(req_data.get("maxHp") or machine_limits()["max_hp"])
-        runout = float(req_data.get("runout") or machine_limits()["runout"])
+        runout = _runout_arg(req_data)
         
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:
@@ -1230,13 +1292,13 @@ def twin_batch_generate():
                 else:
                     t_dict.pop("custom_aggressiveness", None)
 
-            # 2. Resolve effective aggressiveness
+            # 2. Resolve effective aggressiveness (0..100 percent or 0..1 float; integer 1 is 1%, float 1.0 is 100%)
             if use_tool_overrides and t_dict.get("custom_aggressiveness") is not None:
-                effective_aggr_val = float(t_dict["custom_aggressiveness"])
+                raw_aggr = t_dict["custom_aggressiveness"]
             else:
-                effective_aggr_val = float(base_aggressiveness)
-
-            aggressiveness = effective_aggr_val / 100.0 if effective_aggr_val > 1.0 else effective_aggr_val
+                raw_aggr = req_data.get("aggressiveness", req_data.get("base_aggressiveness", 50.0))
+            effective_aggr_val = float(raw_aggr)
+            aggressiveness = effective_aggr_val / 100.0 if (effective_aggr_val > 1.0 or raw_aggr == 1) else effective_aggr_val
 
             # Geometry classification
             if kind is ToolKind.SLOT:
@@ -1269,11 +1331,14 @@ def twin_batch_generate():
             presets_list = t_dict["start-values"]["presets"]
 
             if is_drilling:
-                db_tool_type = "Tapping" if is_tap else ("HP Carbide Twist Drill" if is_carbide else "Carbide Twist Drill")
+                db_tool_type = _batch_db_tool_type(kind, t_dict, is_carbide)
+                hole_op = ("Tapping" if is_tap else ("Precision Reaming" if kind is ToolKind.REAMER else "Drilling"))
+                hole_geo = ("Reamer" if kind is ToolKind.REAMER
+                            else ("Spot Drill" if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL) else "Square"))
                 
                 res = run_cut(physics, CutRequest(
-                    family=family, alloy=alloy, tool=db_tool_type, geometry="Square",
-                    operation="Tapping" if is_tap else "Drilling", coating=coating,
+                    family=family, alloy=alloy, tool=db_tool_type, geometry=hole_geo,
+                    operation=hole_op, coating=coating,
                     diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
                     corner_radius=corner_rad, stickout=stickout,
                     is_carbide=is_carbide,
@@ -1284,6 +1349,8 @@ def twin_batch_generate():
                     pitch=g.thread_pitch if is_tap else None,
                     apply_coating=False,  # the batch-wide coating choice isn't known to match hole tools
                     fusion_tool=_fusion_payload(t_dict),
+                    model=_request_model(req_data),
+                    machine_profile=active_machine(),
                 ))
                 rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
                 op_suffix = "Tapping" if is_tap else "Drilling"
@@ -1333,14 +1400,17 @@ def twin_batch_generate():
                 total_presets_injected += 1
                 
             elif is_milling:
+                mill_db_tool = _batch_db_tool_type(kind, t_dict, is_carbide)
                 for strat in strategies:
                     res = run_cut(physics, CutRequest(
-                        family=family, alloy=alloy, tool="Carbide Endmill", geometry=geometry, operation=strat,
+                        family=family, alloy=alloy, tool=mill_db_tool, geometry=geometry, operation=strat,
                         coating=coating, diameter=diameter, flutes=flutes, flute_length=flute_len,
                         shank_diameter=shank_dia, corner_radius=corner_rad, stickout=stickout,
                         cutter_thickness=flute_len, is_carbide=is_carbide, aggressiveness=aggressiveness,
                         max_rpm=max_rpm, max_hp=max_hp, runout=runout,
                         fusion_tool=_fusion_payload(t_dict),
+                        model=_request_model(req_data),
+                        machine_profile=active_machine(),
                     ))
                     if not res.feasible:
                         skipped.append({
@@ -1692,8 +1762,15 @@ def stock_compensation():
         data = _json_body()
         family = data.get("family", "Aluminum - Wrought (6061)")
         alloy = data.get("alloy", "")
-        agg_raw = data.get("aggressiveness", 50)
-        aggressiveness = float(agg_raw) / 100.0 if float(agg_raw) > 1.0 else float(agg_raw)
+        comp_adjust_raw = data.get("comp_adjust_pct")
+        if comp_adjust_raw is not None:
+            comp_adjust_pct = max(-25.0, min(25.0, float(comp_adjust_raw)))
+            comp_scalar = 1.0 + (comp_adjust_pct / 100.0)
+        else:
+            agg_raw = data.get("aggressiveness", 50)
+            aggressiveness = float(agg_raw) / 100.0 if (float(agg_raw) > 1.0 or agg_raw == 1) else float(agg_raw)
+            comp_scalar = 0.75 + (max(0.0, min(1.0, aggressiveness)) * 0.50)
+            comp_adjust_pct = round((comp_scalar - 1.0) * 100.0, 1)
         mode = data.get("mode", "auto_compensate")  # auto_compensate, zero_finishing, custom
         custom_radial_offset = str(data.get("custom_radial_offset", "0.0000 in")).strip()
         custom_axial_offset = str(data.get("custom_axial_offset", "0.0000 in")).strip()
@@ -1831,7 +1908,7 @@ def stock_compensation():
                     family=family, alloy=alloy, tool="Carbide Endmill", geometry=geometry,
                     operation="Finishing" if is_finishing else "Roughing", coating=coating,
                     diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
-                    stickout=stickout, is_carbide=True, aggressiveness=aggressiveness,
+                    stickout=stickout, is_carbide=True, aggressiveness=0.5,
                     max_rpm=limits["max_rpm"], max_hp=limits["max_hp"],
                     cut_depth=doc_in, cut_width=woc_in,
                     fusion_tool=op_fusion,
@@ -1852,16 +1929,29 @@ def stock_compensation():
                 feedrate=feedrate_ipm, rpm=rpm, flutes=flutes, deflection_inches=defl, alloy=alloy
             )
             
-            # Aggressiveness scaling (0% = 0.60x conservative, 50% = 1.00x nominal, 100% = 1.40x aggressive)
-            agg_scalar = 0.60 + (aggressiveness * 0.80)
-            defl *= agg_scalar
-            sb *= agg_scalar
+            # Compensation trim around populated speeds/feeds baseline (0% = 1.00x Recommended, -25%..+25% = 0.75x..1.25x)
+            defl *= comp_scalar
+            sb *= comp_scalar
             # Learned correction from logged real cuts for this material (no-op below 3 samples).
             corrected, calib = cutlog.apply_calibration(family, defl + sb)
             if calib.get("applied") and (defl + sb) > 0:
                 scale = corrected / (defl + sb)
                 defl *= scale
                 sb *= scale
+            op_fg = dict(op.get("feature_geometry") or {}) if isinstance(op.get("feature_geometry"), dict) else {}
+            wt_in = op_fg.get("min_wall_thickness_in")
+            ft_in = op_fg.get("min_floor_thickness_in")
+            wh_in = op_fg.get("wall_height_in")
+            is_tw, is_tf, wp_comp = calc_thin_wall_compliance_factor(
+                float(wt_in) if (wt_in is not None and float(wt_in) > 0) else None,
+                float(wh_in) if (wh_in is not None and float(wh_in) > 0) else None,
+                float(ft_in) if (ft_in is not None and float(ft_in) > 0) else None,
+            )
+            if wp_comp > 1.0:
+                sb *= wp_comp
+                op_fg["is_thin_wall"] = bool(is_tw)
+                op_fg["is_thin_floor"] = bool(is_tf)
+                op_fg["workpiece_compliance_factor"] = round(wp_comp, 3)
             total_err = defl + sb
             wear_comp = -total_err
             
@@ -1899,6 +1989,12 @@ def stock_compensation():
                         advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\n{keep}"
                     if is_hole_op(op_name, strat):
                         advisory += "\nHole: radial stock acts on both sides (diameter changes 2x)"
+                    if is_tw and wt_in is not None:
+                        w_lbl = f"{float(wt_in) * 25.4:.2f} mm" if is_metric else f"{float(wt_in):.4f}\""
+                        advisory += f"\nThin Wall ({w_lbl}): x{wp_comp:.2f} push-off comp; use spring pass"
+                    elif is_tf and ft_in is not None:
+                        f_lbl = f"{float(ft_in) * 25.4:.2f} mm" if is_metric else f"{float(ft_in):.4f}\""
+                        advisory += f"\nThin Floor ({f_lbl}): x{wp_comp:.2f} floor springback comp"
                 else:
                     rec_rad = current_radial
                     rec_ax = current_axial
@@ -1923,7 +2019,8 @@ def stock_compensation():
                 "recommended_axial_stock": rec_ax,
                 "advisory": advisory,
                 "calibration": calib,
-                **({"profile": op_profile.to_dict()} if op_profile is not None else {})
+                **({"profile": op_profile.to_dict()} if op_profile is not None else {}),
+                **({"feature_geometry": op_fg} if op_fg else {}),
             })
             
         return jsonify({
@@ -1935,8 +2032,90 @@ def stock_compensation():
     except Exception as e:
         return _api_error(e)
 
+@app.route("/api/oversight_review", methods=["POST"])
+def api_oversight_review():
+    """Holistic shop-floor oversight review outside single-operation physics equations."""
+    try:
+        from oversight_engine import evaluate_holistic_oversight
+        body = _json_body()
+        cut_req = body.get("cut_request") or body
+        cut_res = body.get("cut_result")
+        if not isinstance(cut_res, dict) or not cut_res:
+            fusion_tool = _fusion_tool_arg(cut_req)
+            dia = float(cut_req.get("diameter", 0.25))
+            req = CutRequest(
+                family=cut_req.get("family", ""),
+                alloy=cut_req.get("alloy", ""),
+                tool=cut_req.get("tool", "Carbide Endmill"),
+                coating=cut_req.get("coating", "Uncoated"),
+                geometry=cut_req.get("geometry", "Square"),
+                operation=cut_req.get("operation", "Roughing"),
+                diameter=dia,
+                flutes=int(cut_req.get("flutes", 4)),
+                flute_length=float(cut_req.get("fluteLength") or (dia * 3.0)),
+                shank_diameter=float(cut_req.get("shankDiameter") or default_shank(dia)),
+                stickout=float(cut_req.get("stickout")) if cut_req.get("stickout") else None,
+                cut_depth=float(cut_req["cutDepth"]) if cut_req.get("cutDepth") is not None else None,
+                cut_width=float(cut_req["cutWidth"]) if cut_req.get("cutWidth") is not None else None,
+                aggressiveness=float(cut_req.get("aggressiveness", 50.0)) / 100.0,
+                fusion_tool=fusion_tool,
+                model=cut_req.get("model"),
+                machine_profile=active_machine(),
+                feature_geometry=cut_req.get("feature_geometry") if isinstance(cut_req.get("feature_geometry"), dict) else None,
+            )
+            r = run_cut(physics, req)
+            cut_res = {
+                "diameter": r.diameter, "flute_length": r.flute_length, "shank_diameter": r.shank_diameter,
+                "doc": r.doc, "woc": r.woc, "rpm": r.rpm, "feed_ipm": r.feed_ipm,
+                "adj_ipt": r.adj_ipt, "deflection": r.deflection, "rec_limit": r.rec_limit,
+                "feasible": r.feasible, "profile": r.profile, "v1": r.v1, "v2": r.v2,
+                "feature_geometry": r.feature_geometry,
+            }
+        report = evaluate_holistic_oversight(
+            cut_request=cut_req,
+            cut_result=cut_res,
+            feature_geometry=body.get("feature_geometry") or cut_res.get("feature_geometry"),
+            setup_audit=body.get("setup_audit"),
+            include_ai_opinion=bool(body.get("include_ai_opinion", False)),
+        )
+        return jsonify({"success": True, **report.to_dict()})
+    except Exception as e:
+        return _api_error(e)
+
+
+@app.route("/api/library/curate", methods=["POST"])
+def api_library_curate():
+    """Inspect and auto-curate a Fusion 360 tool library (or the working library), populating missing
+    shaft tapers (0.5 mm holder margin), fixing micro-tool shanks, and inferring metadata."""
+    try:
+        from tool_library_curator import curate_tool_library
+        body = _json_body()
+        use_working = bool(body.get("use_working_library", False))
+        apply_working = bool(body.get("apply_to_working_library", False))
+        lib_data = bm.load_working_library() if use_working else None
+        if use_working and lib_data:
+            source = lib_data
+        else:
+            source = body.get("tools") or body.get("library") or []
+
+        report = curate_tool_library(
+            source,
+            fix_micro_shank=bool(body.get("fix_micro_shank", True)),
+            populate_shaft_taper=bool(body.get("populate_shaft_taper", True)),
+            infer_metadata_from_description=bool(body.get("infer_metadata_from_description", True)),
+            use_ai=bool(body.get("use_ai", False)),
+        )
+        if use_working and apply_working and lib_data:
+            lib_data["tools"] = report["curated_tools"]
+            bm.save_working_library(lib_data, lib_data.get("library_name", "Curated_Library"))
+            report["applied_to_working_library"] = True
+
+        return jsonify({"success": True, **report})
+    except Exception as e:
+        return _api_error(e)
+
+
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="127.0.0.1", port=5000, debug=debug_mode)
-
 

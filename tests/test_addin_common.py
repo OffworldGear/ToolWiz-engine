@@ -12,7 +12,7 @@ def load_addin():
     """Load a fresh copy of the add-in module with adsk mocked."""
     adsk, core, cam, fusion = MagicMock(), MagicMock(), MagicMock(), MagicMock()
     # Real (empty) handler base classes so the add-in's handler classes are genuine classes.
-    for name in ('CommandEventHandler', 'CommandCreatedEventHandler', 'InputChangedEventHandler'):
+    for name in ('CommandEventHandler', 'CommandCreatedEventHandler', 'InputChangedEventHandler', 'CustomEventHandler'):
         setattr(core, name, type(name, (object,), {}))
     adsk.core, adsk.cam, adsk.fusion = core, cam, fusion
     sys.modules.update({'adsk': adsk, 'adsk.core': core, 'adsk.cam': cam, 'adsk.fusion': fusion})

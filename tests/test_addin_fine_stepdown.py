@@ -71,6 +71,43 @@ class TestFineStepdownFloor(unittest.TestCase):
         self.assertAlmostEqual(fine(0.15, 3.175), 0.05)      # floor at 0.05 mm
         self.assertAlmostEqual(fine(4.76, 1.5875), 0.79375)  # capped at half the diameter
 
+    def test_apply_passes_tab_params_enables_multiple_depths_and_roughing_passes(self):
+        params = {
+            "doMultipleDepths": param("false", False),
+            "useEvenStepdowns": param("false", False),
+            "maximumStepdown": param("tool_stepdown", 0.0),
+            "doMultiplePasses": param("false", False),
+            "maximumStepover": param("tool_stepover", 0.004),
+            "minimumRoughingStepover": param("0.1 * maximumStepover", 0.0004),
+            "maximumRoughingSteps": param("1", 1),
+            "useFeedOptimization": param("false", False),
+            "reducedFeedrate": param("tool_feedCutting * 0.25", 1.8),
+        }
+        params["maximumStepdown"].isEnabled = False
+        op = SimpleNamespace(
+            name="2D Contour20 (TeethFinishingPath)",
+            strategy="contour2d",
+            parent=SimpleNamespace(name="Op1[FLIP]Frame (Ti)", allOperations=[]),
+            tool=MagicMock(),
+            toolPreset=None,
+            parameters=ParamsByName(params),
+        )
+        notes = self.a.apply_passes_tab_params(
+            op, "Roughing", 0.0056, 0.0200,
+            calc_result={"feed": 9.5, "corner_feed": 4.2},
+            geo_payload={"diameter": 0.040},
+        )
+        self.assertEqual(params["doMultipleDepths"].expression, "true")
+        self.assertEqual(params["useEvenStepdowns"].expression, "true")
+        self.assertTrue(params["maximumStepdown"].isEnabled)
+        self.assertEqual(params["doMultiplePasses"].expression, "true")
+        self.assertEqual(params["minimumRoughingStepover"].expression, self.a.MIN_ROUGHING_STEPOVER_EXPR)
+        self.assertEqual(params["maximumRoughingSteps"].expression, "2")
+        self.assertEqual(params["useFeedOptimization"].expression, "true")
+        self.assertEqual(params["reducedFeedrate"].expression, "4.20 in/min")
+        self.assertTrue(any("Multiple Depths enabled" in n for n in notes))
+        self.assertTrue(any("Roughing Passes enabled" in n for n in notes))
+
 
 if __name__ == "__main__":
     unittest.main()

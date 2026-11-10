@@ -34,7 +34,13 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from toolwiz_common import ToolProfile, default_stickout
+from toolwiz_common import (
+    ToolProfile,
+    default_stickout,
+    calc_corner_engagement,
+    calc_thin_wall_compliance_factor,
+    is_wall_only_operation,
+)
 from toolwiz_common.tool_profile import SHANK_WARNING
 from gwizard_physics import (
     ASTMHardnessConverter,
@@ -88,6 +94,7 @@ class CutRequest:
     # the saved setting and TOOLWIZ_MODEL; None here means v1.
     model: Optional[str] = None
     machine_profile: Optional[Dict[str, Any]] = None   # active machine profile (v2 spindle/holder data)
+    feature_geometry: Optional[Dict[str, Any]] = None  # live B-Rep geometry from cam_geometry_inspector
 
 
 @dataclass
@@ -146,6 +153,8 @@ class CutResult:
     model_note: str = ""            # why v1 was used when v2 was selected, or the v2 summary
     v1: Optional[Dict[str, Any]] = None   # v1's core numbers when v2 produced the result
     v2: Optional[Dict[str, Any]] = None   # v2 details: binding limits, checks, warnings, provenance
+    feature_geometry: Optional[Dict[str, Any]] = None
+    corner_feed_ipm: Optional[float] = None
 
 
 def _ratio(after: float, before: float) -> float:
@@ -235,13 +244,29 @@ def _normalize(req: CutRequest) -> CutRequest:
         r.neck_diameter = r.diameter
         r.neck_length = r.flute_length
 
+    is_plain_drill = (
+        is_drilling_tool_type(r.tool, r.geometry)
+        and not is_tap_tool_type(r.tool)
+        and "ream" not in r.tool.lower()
+        and "ream" not in r.geometry.lower()
+    )
+    if is_plain_drill and r.flutes > 3:
+        r.flutes = 2
+
     if r.fusion_tool:
         # Fusion's own fields are authoritative; stickout only overrides when explicitly set.
         ov = r.stickout if (r.stickout is not None and r.stickout > 0) else None
-        prof = ToolProfile.from_fusion(r.fusion_tool, stickout_override=ov)
+        ft_copy = dict(r.fusion_tool)
+        if is_plain_drill and isinstance(ft_copy.get("geometry"), dict):
+            nof = ft_copy["geometry"].get("NOF")
+            if nof is not None and int(nof) > 3:
+                ft_copy["geometry"] = dict(ft_copy["geometry"], NOF=2)
+        prof = ToolProfile.from_fusion(ft_copy, stickout_override=ov)
         g = prof.geometry
         r.diameter, r.flutes, r.flute_length = g.diameter, g.flutes, g.flute_length
         r.shank_diameter, r.corner_radius, r.stickout = g.shank_diameter, g.corner_radius, prof.stickout
+        if g.thread_pitch and g.thread_pitch > 0.0 and (req.pitch is None or req.pitch == 0.05):
+            r.pitch = g.thread_pitch
         neck = next((sg for sg in prof.segments if sg.kind == "neck"), None)
         if neck is not None:
             r.has_relieved_neck = True
@@ -256,7 +281,7 @@ def _normalize(req: CutRequest) -> CutRequest:
             r.diameter, r.flutes, r.flute_length, r.shank_diameter, r.stickout,
             has_relieved_neck=bool(r.has_relieved_neck or is_form_stepped),
             neck_diameter=r.neck_diameter, neck_length=r.neck_length,
-            taper_angle=r.taper_angle, corner_radius=r.corner_radius)
+            taper_angle=r.taper_angle, corner_radius=r.corner_radius, assume_shaft_taper=True)
     r.profile = prof
     return r
 
@@ -650,8 +675,133 @@ def run_cut(physics, req: CutRequest) -> CutResult:
     )
     if req.model == "v2":
         import v2_bridge
-        return v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
+        result = v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
+    if r.feature_geometry:
+        _apply_feature_geometry(r, result)
     return result
+
+
+def _apply_feature_geometry(r: CutRequest, res: CutResult) -> None:
+    """Incorporate live B-Rep feature geometry (corner radius, feature depth, thin wall/floor)
+    into the CutResult's warnings, corner feed, and compliance-adjusted deflection."""
+    fg = dict(r.feature_geometry or {})
+    dia = res.diameter or r.diameter
+    woc = res.woc or res.rec_woc or (dia * 0.15)
+    stick = r.stickout or 0.0
+    existing_titles = {t.get("title") for t in res.tips if isinstance(t, dict)}
+
+    # 1. Feature Z-depth vs stickout
+    f_depth = fg.get("feature_depth_in")
+    if f_depth is not None and float(f_depth) > 0:
+        f_depth = float(f_depth)
+        req_reach = float(fg.get("required_reach_in") or (f_depth + 0.100))
+        fg["required_reach_in"] = round(req_reach, 5)
+        if stick > 0 and req_reach > stick + 1e-4:
+            fg["stickout_collision"] = True
+            res.feasible = False
+            res.limited_by = "holder_clearance"
+            if "Holder Clearance / Stickout Too Short" not in existing_titles:
+                res.tips.insert(0, {
+                    "title": "Holder Clearance / Stickout Too Short",
+                    "message": (
+                        f"Feature depth is {f_depth:.3f}\" (requires >= {req_reach:.3f}\" stickout with "
+                        f"clearance), but tool stickout is only {stick:.3f}\". Holder collision risk!"
+                    ),
+                    "type": "critical",
+                    "fusion": True,
+                })
+        elif stick - req_reach >= 0.25:
+            excess = stick - req_reach
+            gain_pct = (1.0 - (1.0 / max((stick / max(req_reach, 0.05)) ** 3, 1.0))) * 100.0
+            fg["excess_stickout_in"] = round(excess, 5)
+            fg["choke_up_stiffness_gain_pct"] = round(gain_pct, 1)
+            if "Excessive Stickout vs Feature Depth" not in existing_titles:
+                res.tips.append({
+                    "title": "Excessive Stickout vs Feature Depth",
+                    "message": (
+                        f"Feature depth only requires {req_reach:.3f}\" stickout, but tool is set to "
+                        f"{stick:.3f}\". Choking up by {excess:.3f}\" reduces tool deflection by {gain_pct:.0f}%."
+                    ),
+                    "type": "info",
+                    "fusion": True,
+                })
+
+    # 2. Minimum internal corner radius engagement spike
+    min_cr = fg.get("min_corner_radius_in")
+    if min_cr is not None and float(min_cr) > 0 and dia > 0:
+        min_cr = float(min_cr)
+        eff_woc, feed_scale, overloaded = calc_corner_engagement(dia, min_cr, woc)
+        fg["corner_woc_spike_in"] = round(eff_woc, 5)
+        fg["corner_feed_scale"] = round(feed_scale, 3)
+        fg["corner_overload"] = bool(overloaded)
+        fg["corner_ratio"] = round((dia * 0.5) / min_cr, 3)
+        res.corner_feed_ipm = round(res.feed_ipm * feed_scale, 2)
+        fg["corner_feed_ipm"] = res.corner_feed_ipm
+        if overloaded and "Tight Internal Corner Engagement Spike" not in existing_titles:
+            r_tool = dia * 0.5
+            res.tips.insert(0, {
+                "title": "Tight Internal Corner Engagement Spike",
+                "message": (
+                    f"Internal corner radius ({min_cr:.4f}\") is tight relative to cutter radius "
+                    f"({r_tool:.4f}\"). Radial engagement spikes to {eff_woc:.4f}\" in the corner; "
+                    f"reduce corner feedrate to {res.corner_feed_ipm:.1f} IPM ({feed_scale * 100:.0f}%) "
+                    f"via Fusion Feed Optimization."
+                ),
+                "type": "warning",
+                "fusion": True,
+            })
+
+    # 3. Thin-wall & thin-floor compliance
+    wt = fg.get("min_wall_thickness_in")
+    ft = fg.get("min_floor_thickness_in")
+    wh = fg.get("wall_height_in")
+    wt_f = float(wt) if (wt is not None and float(wt) > 0) else None
+    ft_f = float(ft) if (ft is not None and float(ft) > 0) else None
+    wh_f = float(wh) if (wh is not None and float(wh) > 0) else None
+    check_floor = not is_wall_only_operation(r.operation)
+    if not check_floor:
+        ft_f = None
+        fg["min_floor_thickness_in"] = None
+    is_tw, is_tf, comp_factor = calc_thin_wall_compliance_factor(
+        wt_f, wh_f, ft_f, tool_diameter_in=dia, check_floor=check_floor
+    )
+    fg["is_thin_wall"] = bool(is_tw)
+    fg["is_thin_floor"] = bool(is_tf)
+    fg["workpiece_compliance_factor"] = round(comp_factor, 3)
+    if comp_factor > 1.0:
+        res.springback *= comp_factor
+        res.total_error = res.deflection + res.springback
+        res.wear_comp = -res.total_error
+    if is_tw and wt_f is not None and "Thin-Wall Workpiece Compliance Detected" not in existing_titles:
+        res.tips.insert(0, {
+            "title": "Thin-Wall Workpiece Compliance Detected",
+            "message": (
+                f"B-Rep inspection detected a thin wall ({wt_f:.4f}\" thickness). Workpiece elastic push-off "
+                f"increases total wall error by ~{(comp_factor - 1.0) * 100:.0f}%. Use light radial passes "
+                f"and a spring pass."
+            ),
+            "type": "warning",
+            "fusion": True,
+        })
+    if is_tf and ft_f is not None and "Thin-Floor Workpiece Compliance Detected" not in existing_titles:
+        res.tips.insert(0, {
+            "title": "Thin-Floor Workpiece Compliance Detected",
+            "message": (
+                f"B-Rep inspection detected a thin pocket floor ({ft_f:.4f}\" thickness). Axial tool thrust "
+                f"will deflect the floor downward and leave it proud on springback."
+            ),
+            "type": "warning",
+            "fusion": True,
+        })
+
+    # Also merge any pre-populated warnings from inspect_operation_geometry without duplicating titles
+    existing_titles = {t.get("title") for t in res.tips if isinstance(t, dict)}
+    for w in fg.get("warnings") or []:
+        if isinstance(w, dict) and w.get("title") not in existing_titles:
+            res.tips.insert(0, w)
+            existing_titles.add(w.get("title"))
+
+    res.feature_geometry = fg
 
 
 def provenance_product(result: CutResult, quantity: str, exclude=("spindle_cap",)) -> float:

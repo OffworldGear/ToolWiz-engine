@@ -58,10 +58,12 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
     sfm_num = float(round(sfm_val if not is_metric else sfm_val * 0.3048, 2))
     ipt_num = float(round(ipt_val if not is_metric else ipt_val * 25.4, 6))
     feed_num = float(round(feed_val if not is_metric else feed_val * 25.4, 2))
-    doc_num = float(round(doc_val if not is_metric else doc_val * 25.4, 4))
-    woc_num = float(round(woc_val if not is_metric else woc_val * 25.4, 4))
+    doc_num = float(round(doc_val if not is_metric else doc_val * 25.4, 5 if not is_metric else 4))
+    woc_num = float(round(woc_val if not is_metric else woc_val * 25.4, 5 if not is_metric else 4))
     rf_num = float(round(rf if not is_metric else rf * 25.4, 2))
     pf_num = float(round(pf if not is_metric else pf * 25.4, 2))
+    ramp_angle_val = new_preset_data.get("ramp_angle", new_preset_data.get("ramp-angle", 2.0))
+    ramp_angle_num = float(round(float(ramp_angle_val if ramp_angle_val is not None else 2.0), 2))
 
     mapped_data = {
         "guid": str(uuid.uuid4()),
@@ -87,7 +89,7 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
         "stepover": woc_num,
         "use-stepdown": True,
         "use-stepover": True,
-        "ramp-angle": 2.0,
+        "ramp-angle": ramp_angle_num,
         "tool-coolant": "flood"
     }
     

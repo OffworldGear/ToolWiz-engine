@@ -17,7 +17,7 @@ except (ImportError, ValueError):
     import json_mutator
 
 try:
-    from .toolwiz_common import ToolGeometry, UnitError, safe_eval_length
+    from .toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind
 except (ImportError, ValueError):
     if (not os.path.isdir(os.path.join(_ADDIN_DIR, 'toolwiz_common'))
             and os.path.isdir(os.path.join(_REPO_ROOT, 'toolwiz_common'))
@@ -25,7 +25,7 @@ except (ImportError, ValueError):
         sys.path.insert(0, _REPO_ROOT)
     if _ADDIN_DIR not in sys.path:
         sys.path.insert(0, _ADDIN_DIR)
-    from toolwiz_common import ToolGeometry, UnitError, safe_eval_length
+    from toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind
 
 # Single server base URL used by every request.
 SERVER_BASE_URL = "http://127.0.0.1:5000"
@@ -1034,13 +1034,17 @@ LIMIT_LABELS = {
 
 
 def _limited_by_text(limited):
+    prefix = ""
+    if isinstance(limited, str) and limited.strip().lower().startswith("v2:"):
+        prefix = "v2: "
+        limited = limited.strip()[3:].strip()
     if isinstance(limited, str) and "," in limited:
         limited = [x.strip() for x in limited.split(",")]
     if isinstance(limited, (list, tuple)):
         limited = ", ".join(LIMIT_LABELS.get(str(x), str(x)) for x in limited if x)
     elif limited:
         limited = LIMIT_LABELS.get(str(limited).strip(), str(limited))
-    return str(limited).strip() if limited else ""
+    return (prefix + str(limited).strip()) if limited else ""
 
 
 def format_provenance_line(provenance, top_n=3):
@@ -1253,17 +1257,25 @@ def parse_cam_param_to_inches(p, default=0.0, doc_unit="in"):
 
 
 def parse_cam_feed_to_ipm(p, doc_unit="in"):
-    """Feed CAM parameter -> IPM using the expression's explicit unit. Falls back to the
-    evaluated value (Fusion database unit cm/s) only when the expression is not a plain number."""
+    """Feed CAM parameter -> IPM using the expression's explicit unit. When the expression has
+    no unit token (e.g. a metric tool in an inch document where Fusion writes a unit-less mm/min
+    string on the operation), prefer Fusion's unit-independent evaluated value (mm/min)."""
     if not p:
         return 0.0
     expr = getattr(p, 'expression', None)
-    if expr:
-        try:
-            return parse_feed_expr_to_ipm(expr, doc_unit)
-        except ValueError:
-            pass
     v = _numeric_param_value(p)
+    if expr:
+        m = _FEED_RE.match(str(expr))
+        if m and m.group(2):
+            try:
+                return parse_feed_expr_to_ipm(expr, doc_unit)
+            except ValueError:
+                pass
+        elif m and (v is None or v <= 0):
+            try:
+                return parse_feed_expr_to_ipm(expr, doc_unit)
+            except ValueError:
+                pass
     if v is not None and v > 0:
         ipm = v / 25.4  # Fusion's evaluated feed is mm/min (confirmed: '19.2774in/min' -> 489.647)
         if ipm > MAX_PLAUSIBLE_IPM:
@@ -1271,6 +1283,11 @@ def parse_cam_feed_to_ipm(p, doc_unit="in"):
             return 0.0
         _log(f"Feed expression {expr!r}: evaluated {v!r} mm/min -> {ipm:.1f} IPM")
         return ipm
+    if expr:
+        try:
+            return parse_feed_expr_to_ipm(expr, doc_unit)
+        except ValueError:
+            pass
     return 0.0
 
 
@@ -1308,11 +1325,31 @@ def parse_cam_rpm(p):
 
 
 def format_cutter_type(raw_type, desc=""):
-    """Normalizes cutter types into clean, readable labels (e.g. Flat End Mill, T-Slot Cutter, Chamfer Mill)"""
+    """Normalizes cutter types into clean, readable labels (e.g. Flat End Mill, Twist Drill, Tap)"""
     t_str = (raw_type or "").lower().replace('_', ' ').replace('-', ' ').strip()
     d_str = (desc or "").lower()
-    
-    if "chamfer" in t_str or "chamfer" in d_str:
+
+    if "tap" in t_str or ("tap" in d_str and "taper" not in d_str):
+        if "left" in t_str or "lh" in d_str:
+            return "Tap (Left Hand)"
+        if "form" in t_str or "form" in d_str or "roll" in d_str:
+            return "Form Tap"
+        return "Tap"
+    elif "spot drill" in t_str or "spot drill" in d_str or "spotting" in d_str:
+        return "Spot Drill"
+    elif "center drill" in t_str or "centre drill" in t_str or "center drill" in d_str:
+        return "Center Drill"
+    elif "counter sink" in t_str or "countersink" in t_str or "countersink" in d_str:
+        return "Countersink"
+    elif "counter bore" in t_str or "counterbore" in t_str or "counterbore" in d_str:
+        return "Counterbore"
+    elif "reamer" in t_str or "reamer" in d_str:
+        return "Reamer"
+    elif "boring" in t_str or t_str == "bore":
+        return "Boring Bar"
+    elif "drill" in t_str or ("drill" in d_str and "mill" not in d_str):
+        return "Twist Drill"
+    elif "chamfer" in t_str or "chamfer" in d_str:
         return "Chamfer Mill"
     elif "t-slot" in t_str or "t slot" in t_str or "tslot" in t_str or "tslot" in d_str:
         return "T-Slot Cutter"
@@ -1461,11 +1498,21 @@ def get_op_tool_info(op):
         preset_names = [p.get("name", "Unnamed Preset") for p in presets if p.get("name")]
 
         desc_lower = desc.lower()
-        bmc_lower = str(t_dict.get("BMC", "")).lower()
-        grade_lower = str(t_dict.get("GRADE", "")).lower()
+        geo_dict = t_dict.get("geometry") or {}
+        post_dict = t_dict.get("post-process") or t_dict.get("postProcess") or {}
+        bmc_lower = " ".join(
+            str(x).lower() for x in (
+                t_dict.get("BMC"), t_dict.get("material"), geo_dict.get("BMC"),
+                geo_dict.get("material"), post_dict.get("material")
+            ) if x
+        )
+        grade_lower = str(t_dict.get("GRADE") or t_dict.get("grade") or geo_dict.get("grade") or "").lower()
         text_all = f"{desc_lower} {bmc_lower} {grade_lower}"
 
-        detected_coating = "AlTiN" if ("carbide" in bmc_lower or "carbide" in desc_lower) else "Uncoated"
+        has_hss = bool(re.search(r"\b(hss|hss-e|hsse|hss-co|cobalt|high[\s-]?speed|m2|m35|m42)\b", text_all))
+        is_carbide = ("carbide" in text_all) or (not has_hss)
+
+        detected_coating = "AlTiN" if is_carbide else "Uncoated"
         if "altin" in text_all:
             detected_coating = "AlTiN"
         elif "tialn" in text_all:
@@ -1481,7 +1528,18 @@ def get_op_tool_info(op):
         elif "uncoated" in text_all or "bright" in text_all:
             detected_coating = "Uncoated"
 
-        is_carbide = ("carbide" in bmc_lower or "carbide" in desc_lower or "generic" in grade_lower)
+        is_hole = is_hole_kind(geo.kind)
+        is_tap = is_tap_kind(geo.kind)
+        if is_tap:
+            geo_shape = "form" if ("form" in text_all or "roll" in text_all) else "spiral_flute"
+        elif geo.kind.value == "spot_drill":
+            geo_shape = "Spot Drill"
+        elif geo.kind.value == "reamer":
+            geo_shape = "Reamer"
+        elif is_hole:
+            geo_shape = "Parabolic" if "parabolic" in text_all else "Drill"
+        else:
+            geo_shape = "Square" if corner_radius == 0 else "Bullnose / Radiused"
 
         geo_payload = {
             "diameter": diameter,
@@ -1495,7 +1553,11 @@ def get_op_tool_info(op):
             "stickoutSource": geo.stickout_source,
             "coating": detected_coating,
             "is_carbide": is_carbide,
-            "geometry": "Square" if corner_radius == 0 else "Bullnose / Radiused",
+            "geometry": geo_shape,
+            "kind": geo.kind.value,
+            "isHoleTool": is_hole,
+            "isTap": is_tap,
+            "threadPitch": geo.thread_pitch,
             "desc": desc,
             "number": t_num,
             "tool_type": cutter_type,
@@ -1504,9 +1566,14 @@ def get_op_tool_info(op):
 
         dia_mm = diameter * 25.4
         fl_mm = flute_length * 25.4
+        pitch_str = ""
+        if is_tap and geo.thread_pitch and geo.thread_pitch > 0:
+            tpi = 1.0 / geo.thread_pitch
+            pitch_mm = geo.thread_pitch * 25.4
+            pitch_str = f", Pitch: {geo.thread_pitch:.4f}\" ({tpi:.1f} TPI / {pitch_mm:.2f}mm)"
         summary = (
             f"{tool_label(t_num)}: {desc} | {cutter_type} | Dia: {diameter:.3f}\" ({dia_mm:.2f}mm), "
-            f"{flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm)\n"
+            f"{flutes} Flutes, Flute L: {flute_length:.3f}\" ({fl_mm:.1f}mm){pitch_str}\n"
             f"{describe_stickout(geo)}"
         )
         return geo_payload, summary, preset_names
@@ -1554,10 +1621,9 @@ def ramp_angle_expr(calc_result):
     return f"{a:.2f}"
 
 
-def apply_ramp_diameter(op, diameter_in):
-    """Write the helical ramp diameter the server recommends (v2 ramp model) when the operation still has
-    Fusion's default expression; a value the user typed is kept. Returns 'written', 'kept', 'already',
-    or None (no value from the server, no such parameter, or disabled)."""
+def apply_ramp_diameter(op, diameter_in, override_custom=False):
+    """Write the helical ramp diameter the server recommends (v2 ramp model). When override_custom
+    is True (used by run_autoset), any prior custom value is replaced by ToolWiz."""
     try:
         d = float(diameter_in or 0.0)
     except (TypeError, ValueError):
@@ -1565,33 +1631,146 @@ def apply_ramp_diameter(op, diameter_in):
     if d <= 0.0:
         return None
     p = _safe(lambda: op.parameters.itemByName('helicalRampDiameter'))
-    if p is None or not _safe(lambda: p.isEnabled):
+    if p is None or not _safe(lambda: p.isEnabled) or not isinstance(_safe(lambda: p.expression), str):
         return None
     expr = f"{d:.4f} in"
     current = _norm_expr(_safe(lambda: p.expression))
     if current == _norm_expr(expr):
         return 'already'
-    if current != _norm_expr(FUSION_DEFAULT_RAMP_DIAMETER):
+    if not override_custom and current != _norm_expr(FUSION_DEFAULT_RAMP_DIAMETER):
         _log(f"  helicalRampDiameter kept (user-set): {_safe(lambda: p.expression)!r}")
         return 'kept'
     return 'written' if apply_param(op, 'helicalRampDiameter', expr) else None
 
 
-def apply_fine_stepdown_floor(op):
-    """Replace Fusion's default fine-stepdown expression on `op` with FINE_STEPDOWN_EXPR.
+FUSION_DEFAULT_MIN_ROUGHING_STEPOVER = "0.1 * maximumStepover"
+MIN_ROUGHING_STEPOVER_EXPR = "Math.max(maximumStepover * 0.25; 0.025 mm)"
+FUSION_DEFAULT_REDUCED_FEEDRATE = "tool_feedCutting * 0.25"
 
-    Only Fusion's default is replaced; a value the user typed is kept and logged. Returns
-    'written', 'kept' (user value), 'already' (ours), or None (no such parameter / disabled)."""
+
+def apply_fine_stepdown_floor(op, override_custom=False):
+    """Replace fine-stepdown expression on `op` with FINE_STEPDOWN_EXPR.
+
+    When override_custom=True (used by run_autoset), any prior custom entry is overwritten by ToolWiz."""
     p = _safe(lambda: op.parameters.itemByName('fineStepdown'))
-    if p is None or not _safe(lambda: p.isEnabled):
+    if p is None or not _safe(lambda: p.isEnabled) or not isinstance(_safe(lambda: p.expression), str):
         return None
     current = _norm_expr(_safe(lambda: p.expression))
     if current == _norm_expr(FINE_STEPDOWN_EXPR):
         return 'already'
-    if current != _norm_expr(FUSION_DEFAULT_FINE_STEPDOWN):
+    if not override_custom and current != _norm_expr(FUSION_DEFAULT_FINE_STEPDOWN):
         _log(f"  fineStepdown kept (user-set): {_safe(lambda: p.expression)!r}")
         return 'kept'
     return 'written' if apply_param(op, 'fineStepdown', FINE_STEPDOWN_EXPR) else None
+
+
+def _is_bool_param_false(p):
+    expr = _safe(lambda: p.expression)
+    return isinstance(expr, str) and _norm_expr(expr) in ('false', '0', 'no')
+
+
+def _is_bool_param_true(p):
+    expr = _safe(lambda: p.expression)
+    return isinstance(expr, str) and _norm_expr(expr) in ('true', '1', 'yes')
+
+
+def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_payload=None):
+    """Configure Passes Tab checkboxes and limits (Multiple Depths, Roughing Passes, Feed Optimization)
+    so Fusion enforces the calculated axial DOC and radial WOC on 2D Contour and profile operations.
+    Returns a list of human-readable notes describing what was configured."""
+    notes = []
+    params = getattr(op, 'parameters', None)
+    if params is None:
+        return notes
+
+    strat = str(strategy or "").strip().lower()
+    is_rough_or_semi = ("rough" in strat and "adaptive" not in strat) or ("semi" in strat)
+    is_slot = "slot" in strat
+    is_finish = "finish" in strat and "semi" not in strat
+
+    fg = (calc_result or {}).get("feature_geometry") or {}
+    feat_depth = fg.get("feature_depth_in")
+    needs_multi_depths = is_rough_or_semi or is_slot or (
+        is_finish and feat_depth is not None and doc_in and float(feat_depth) > float(doc_in) + 1e-4
+    )
+
+    # 1. Multiple Depths (axial Z stepdown enforcement)
+    if needs_multi_depths and doc_in and float(doc_in) > 0:
+        md_active = False
+        for chk_name in ('doMultipleDepths', 'useMultipleDepths'):
+            p_chk = _param(params, chk_name)
+            if p_chk is not None:
+                if _is_bool_param_false(p_chk):
+                    apply_param(op, chk_name, 'true', force=True)
+                    md_active = True
+                elif _is_bool_param_true(p_chk):
+                    md_active = True
+        if md_active:
+            p_sd = _param(params, 'maximumStepdown')
+            if p_sd is not None and isinstance(_safe(lambda: p_sd.expression), str):
+                try:
+                    p_sd.isEnabled = True
+                except Exception:
+                    pass
+            p_even = _param(params, 'useEvenStepdowns')
+            if p_even is not None and _is_bool_param_false(p_even):
+                apply_param(op, 'useEvenStepdowns', 'true', force=True)
+            notes.append(f"Multiple Depths enabled (max stepdown {float(doc_in):.4f}\", even stepdowns)")
+
+    # 2. Roughing Passes / Multiple Passes (radial XY stepover enforcement)
+    if is_rough_or_semi and woc_in and float(woc_in) > 0:
+        mp_active = False
+        for chk_name in ('doMultiplePasses', 'useRoughingPasses'):
+            p_chk = _param(params, chk_name)
+            if p_chk is not None:
+                if _is_bool_param_false(p_chk):
+                    apply_param(op, chk_name, 'true', force=True)
+                    mp_active = True
+                elif _is_bool_param_true(p_chk):
+                    mp_active = True
+        if mp_active:
+            p_so = _param(params, 'maximumStepover')
+            if p_so is not None and isinstance(_safe(lambda: p_so.expression), str):
+                try:
+                    p_so.isEnabled = True
+                except Exception:
+                    pass
+            p_min_so = _param(params, 'minimumRoughingStepover')
+            if p_min_so is not None and isinstance(_safe(lambda: p_min_so.expression), str):
+                apply_param(op, 'minimumRoughingStepover', MIN_ROUGHING_STEPOVER_EXPR, force=True)
+            p_steps = _param(params, 'maximumRoughingSteps')
+            if p_steps is not None and isinstance(_safe(lambda: p_steps.expression), str):
+                cur_steps = _expr_number(_safe(lambda: p_steps.expression))
+                if cur_steps is not None and cur_steps < 2:
+                    apply_param(op, 'maximumRoughingSteps', '2', force=True)
+            notes.append(f"Roughing Passes enabled (max stepover {float(woc_in):.4f}\")")
+    elif is_slot:
+        for chk_name in ('doMultiplePasses', 'useRoughingPasses'):
+            p_chk = _param(params, chk_name)
+            if p_chk is not None and _is_bool_param_true(p_chk):
+                apply_param(op, chk_name, 'false', force=True)
+                notes.append("Roughing Passes disabled for single-pass Slotting")
+
+    # 3. Feed Optimization (corner slowdown enforcement when corner engagement spikes or on micro rough/slot)
+    corner_feed = (calc_result or {}).get("corner_feed")
+    feed = (calc_result or {}).get("feed") or (calc_result or {}).get("feedrate")
+    dia = float((geo_payload or {}).get("diameter") or 0.0)
+    needs_feed_opt = (
+        (corner_feed is not None and feed and float(corner_feed) < float(feed) * 0.95)
+        or (0.0 < dia < 0.0625 and (is_rough_or_semi or is_slot) and feed)
+    )
+    if needs_feed_opt and feed:
+        target_cf = float(corner_feed) if (corner_feed is not None and float(corner_feed) > 0) else float(feed) * 0.50
+        for chk_name in ('useFeedOptimization', 'doFeedOptimization', 'feedOptimization'):
+            p_fo = _param(params, chk_name)
+            if p_fo is not None and _is_bool_param_false(p_fo):
+                apply_param(op, chk_name, 'true', force=True)
+        p_rf = _param(params, 'reducedFeedrate')
+        if p_rf is not None and isinstance(_safe(lambda: p_rf.expression), str):
+            if apply_param(op, 'reducedFeedrate', f"{target_cf:.2f} in/min", force=True):
+                notes.append(f"Feed Optimization reduced feedrate set to {target_cf:.2f} IPM")
+
+    return notes
 
 # ==============================================================================
 # COMMAND 1: EXPORT DIGITAL TWIN
@@ -1887,9 +2066,7 @@ def confirm_feasibility(calc_result):
     "feasible": false, ask the user (Yes/No). A missing field counts as feasible."""
     if not isinstance(calc_result, dict) or calc_result.get("feasible", True) is not False:
         return True
-    limited = calc_result.get("limited_by") or "an unspecified limit"
-    if isinstance(limited, (list, tuple)):
-        limited = ", ".join(str(x) for x in limited)
+    limited = _limited_by_text(calc_result.get("limited_by")) or "an unspecified limit"
     res = ui.messageBox(
         f"No safe cut found — limited by {limited}. Apply anyway?",
         "ToolWiz — No Safe Cut Found",
@@ -1906,13 +2083,45 @@ def fusion_tool_payload(geo_payload):
         raw = (geo_payload or {}).get("raw_json")
         t = json.loads(raw) if isinstance(raw, str) else raw
         if isinstance(t, dict) and isinstance(t.get("geometry"), dict):
-            return {"type": t.get("type"), "unit": t.get("unit"), "geometry": t["geometry"]}
+            out = {"type": t.get("type"), "unit": t.get("unit"), "geometry": t["geometry"]}
+            if isinstance(t.get("shaft"), dict) and t["shaft"].get("segments"):
+                out["shaft"] = t["shaft"]
+            return out
     except Exception:
         pass
     return None
 
 
-def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw):
+def _inspect_op_feature_geometry(op, geo_payload=None, woc_in=None):
+    """Safely inspect live B-Rep geometry (feature depth, corner radius, wall/floor thickness)
+    on `op`. Returns a compact dict if any B-Rep metric was found, else None."""
+    if op is None:
+        return None
+    try:
+        dia = (geo_payload or {}).get("diameter")
+        stick = (geo_payload or {}).get("stickout")
+        rep = inspect_operation_geometry(op, tool_diameter_in=dia, stickout_in=stick, nominal_woc_in=woc_in)
+        d = rep.to_dict()
+        if any(d.get(k) is not None for k in (
+            "feature_depth_in", "min_corner_radius_in", "min_wall_thickness_in", "min_floor_thickness_in"
+        )):
+            return d
+    except Exception as ex:
+        _log("B-Rep feature geometry inspection failed", ex)
+    return None
+
+
+def _is_hole_or_tap_mode(geo_payload, strategy):
+    """True when the tool or selected strategy is a hole-making or tapping operation."""
+    gp = geo_payload or {}
+    if gp.get("isHoleTool") or gp.get("isTap"):
+        return True
+    s = str(strategy or "").strip().lower()
+    return any(k in s for k in ("drill", "ream", "tap", "bore"))
+
+
+def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw,
+                       feature_geometry=None):
     """Build the /api/calculate_for_fusion request body (all lengths in inches)."""
     coat = selected_coating_raw.lower()
     coating_code = "AlTiN"
@@ -1932,23 +2141,67 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
         coating_code = "Uncoated"
 
     grade = selected_grade.lower()
-    if "hp" in grade or "high performance" in grade:
-        tool_category = "HP Carbide Endmill"  # bull nose / high feed is carried by "geometry"
-    elif "hss" in grade:
-        tool_category = "HSS Endmill"
-    elif "cobalt" in grade:
-        tool_category = "Cobalt Endmill"
+    is_carbide = "hss" not in grade and "cobalt" not in grade
+    kind = str((geo_payload or {}).get("kind", "")).lower()
+    is_tap = bool((geo_payload or {}).get("isTap")) or "tap" in str(strategy or "").lower()
+    is_hole = bool((geo_payload or {}).get("isHoleTool")) or _is_hole_or_tap_mode(geo_payload, strategy)
+    strat_low = str(strategy or "").lower()
+    geo_name = geo_payload.get("geometry", "Square")
+    tap_type = ""
+    pitch_val = (geo_payload or {}).get("threadPitch")
+
+    if is_tap:
+        tool_category = "Tapping"
+        raw_desc = f"{(geo_payload or {}).get('desc', '')} {(geo_payload or {}).get('tool_type', '')}".lower()
+        if "form" in strat_low or "roll" in strat_low or "form" in raw_desc or "roll" in raw_desc:
+            tap_type = "form"
+        elif "spiral point" in strat_low or "gun" in strat_low or "spiral point" in raw_desc:
+            tap_type = "spiral_point"
+        elif "straight" in strat_low or "hand" in strat_low:
+            tap_type = "straight_flute"
+        elif "spiral flute" in strat_low or "spiral" in raw_desc:
+            tap_type = "spiral_flute"
+        else:
+            tap_type = str(geo_name) if str(geo_name) in ("form", "spiral_flute", "spiral_point", "straight_flute") else "form"
+        geo_name = tap_type
+    elif kind == "reamer" or "ream" in strat_low:
+        tool_category = "Carbide Reamer" if is_carbide else "HSS Reamer"
+        geo_name = "Reamer"
+    elif kind in ("spot_drill", "center_drill"):
+        tool_category = "Carbide Twist Drill" if is_carbide else "HSS Spot Drill"
+        geo_name = "Spot Drill"
+    elif is_hole:
+        if "hp" in grade or "high performance" in grade:
+            tool_category = "HP Carbide Twist Drill"
+        elif "hss" in grade:
+            tool_category = "HSS Twist Drill"
+        elif "cobalt" in grade:
+            tool_category = "Cobalt Twist Drill"
+        else:
+            tool_category = "Carbide Twist Drill"
+        if geo_name not in ("Drill", "Spot Drill", "Parabolic"):
+            geo_name = "Drill"
     else:
-        tool_category = "Carbide Endmill"
+        if "hp" in grade or "high performance" in grade:
+            tool_category = "HP Carbide Endmill"  # bull nose / high feed is carried by "geometry"
+        elif "hss" in grade:
+            tool_category = "HSS Endmill"
+        elif "cobalt" in grade:
+            tool_category = "Cobalt Endmill"
+        else:
+            tool_category = "Carbide Endmill"
 
     ft = fusion_tool_payload(geo_payload)
     return {
         "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
-        "tool": tool_category, "coating": coating_code,
+        "tool": tool_category, "coating": coating_code, "isCarbide": is_carbide,
         **({"fusion_tool": ft} if ft else {}),
         "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
         "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
-        "stickout": geo_payload["stickout"], "geometry": geo_payload["geometry"],
+        "stickout": geo_payload["stickout"], "geometry": geo_name,
+        **({"tapType": tap_type} if tap_type else {}),
+        **({"pitch": float(pitch_val)} if (is_tap and pitch_val and float(pitch_val) > 0) else {}),
+        **({"feature_geometry": feature_geometry} if feature_geometry else {}),
         **({"hasRelievedNeck": True, "neckLength": geo_payload["neckLength"],
             "neckDiameter": geo_payload["neckDiameter"]} if geo_payload.get("neckLength") else {}),
     }
@@ -2028,9 +2281,9 @@ def _set_preset_steps(params, doc_in, woc_in, ctx=None):
             if 'use' in n and ('stepdown' in n or 'stepover' in n):
                 _set_preset_param(ctx, p_obj, field, 'true')
             elif 'stepdown' in n and doc_in:
-                _set_preset_param(ctx, p_obj, field, f"{doc_in:.4f} in"); written.append(n)
+                _set_preset_param(ctx, p_obj, field, f"{doc_in:.5f} in"); written.append(n)
             elif ('stepover' in n or 'optimalload' in n) and woc_in:
-                _set_preset_param(ctx, p_obj, field, f"{woc_in:.4f} in"); written.append(n)
+                _set_preset_param(ctx, p_obj, field, f"{woc_in:.5f} in"); written.append(n)
         except Exception as ex:
             _log(f"Could not set preset parameter {n!r}", ex)
     return written
@@ -2066,8 +2319,9 @@ def _preset_matches(tool, preset_name, speed_values):
     """True when the named preset on `tool` holds the key values (VERIFY_PARAMS) we wrote.
     Checking only spindle speed missed lost feed edits; checking every field gave false
     negatives on formula-valued feeds."""
+    verify_keys = VERIFY_PARAMS if any(k == 'tool_feedCutting' for k, _ in speed_values) else ('tool_spindleSpeed', 'tool_feedPlunge')
     for p_name, p_val in speed_values:
-        if p_name not in VERIFY_PARAMS:
+        if p_name not in verify_keys:
             continue
         found = False
         for pr in getattr(tool, 'presets', []) or []:
@@ -2245,7 +2499,21 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         )
         return False
 
-    payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw)
+    is_hole_mode = _is_hole_or_tap_mode(geo_payload, strategy)
+    is_tap_mode = bool((geo_payload or {}).get("isTap")) or "tap" in str(strategy or "").lower()
+    if is_tap_mode and not (geo_payload.get("threadPitch") and float(geo_payload.get("threadPitch") or 0.0) > 0.0):
+        _log(f"Auto-setter: tap tool on {op_name!r} has no thread pitch (TP) set in Fusion")
+        ui.messageBox(
+            "This tap has no Thread Pitch (TP) defined in its Fusion tool geometry, so ToolWiz cannot compute "
+            "its synchronized tapping feedrate (RPM × Pitch).\n\n"
+            "Set the Thread Pitch on the tap in the Fusion Tool Library (Cutter tab) and run this command again.",
+            "ToolWiz CAM Auto-Setter"
+        )
+        return False
+
+    fg = None if is_hole_mode else _inspect_op_feature_geometry(target_op, geo_payload)
+    payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw,
+                                 feature_geometry=fg)
     tools_at_start = _doc_tool_count()
     _log_custom_diff(target_op, label="BEFORE auto-set")
     _log_op_motion_params(target_op, "BEFORE")
@@ -2277,24 +2545,34 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     feed = calc_result.get("feed", 30.0)
     doc = calc_result.get("doc", 0.25)
     woc = calc_result.get("woc", 0.05)
-    ramp_feed = calc_result.get("ramp_feed", feed * 0.5)
-    plunge_feed = calc_result.get("plunge_feed", feed * 0.25)
-    if plunge_feed <= 0:
-        plunge_feed = ramp_feed if ramp_feed > 0 else (feed * 0.25 if feed > 0 else 5.0)
-    if ramp_feed <= 0:
-        ramp_feed = feed * 0.5 if feed > 0 else 10.0
+    if is_hole_mode:
+        ramp_feed = feed
+        plunge_feed = feed
+    else:
+        ramp_feed = calc_result.get("ramp_feed", feed * 0.5)
+        plunge_feed = calc_result.get("plunge_feed", feed * 0.25)
+        if plunge_feed <= 0:
+            plunge_feed = ramp_feed if ramp_feed > 0 else (feed * 0.25 if feed > 0 else 5.0)
+        if ramp_feed <= 0:
+            ramp_feed = feed * 0.5 if feed > 0 else 10.0
     sfm = calc_result.get("sfm", 300)
     ipt = calc_result.get("ipt", 0.002)
 
     final_preset_name = calc_result["name"]
-    speed_values = [
-        ('tool_spindleSpeed', f"{rpm} rpm"),
-        ('tool_feedCutting', f"{feed:.2f} in/min"),
-        ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
-        ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
-        ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
-    ]
-    ramp_expr = ramp_angle_expr(calc_result)
+    if is_hole_mode:
+        speed_values = [
+            ('tool_spindleSpeed', f"{rpm} rpm"),
+            ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
+        ]
+    else:
+        speed_values = [
+            ('tool_spindleSpeed', f"{rpm} rpm"),
+            ('tool_feedCutting', f"{feed:.2f} in/min"),
+            ('tool_feedRamp', f"{ramp_feed:.2f} in/min"),
+            ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
+            ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
+        ]
+    ramp_expr = None if is_hole_mode else ramp_angle_expr(calc_result)
     if ramp_expr is not None:
         # Operations follow the preset (rampAngle = 'tool_rampAngle'); one with its own value keeps it.
         speed_values.append(('tool_rampAngle', ramp_expr))
@@ -2311,7 +2589,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     #    units are converted by Fusion itself.
     preset_obj, was_updated = _upsert_preset_in_place(target_op, final_preset_name,
                                                       target_preset_to_replace, speed_values,
-                                                      doc_in=doc, woc_in=woc)
+                                                      doc_in=None if is_hole_mode else doc,
+                                                      woc_in=None if is_hole_mode else woc)
     _log(f"  after preset update: document tools {_doc_tool_count()}")
 
     # 2. Link the preset to the operation, unless it is already linked to it. Re-linking hands
@@ -2333,46 +2612,67 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     # 3. Write the operation's own feed/speed only if the linked preset did not deliver the
     #    calculated values. Writing them unconditionally is what made Fusion show a second
     #    'Preset (custom)' entry next to the real preset.
-    op_rpm, op_feed, _, _ = get_op_cut_params(target_op, "in")
+    doc_unit = get_cam_document_units()
+    op_rpm, op_feed, _, _ = get_op_cut_params(target_op, doc_unit, strategy=strategy)
     if preset_linked and not (_close(op_rpm, rpm, 0.01) and _close(op_feed, feed, 0.01)):
         # The preset may already hold the new values (nothing to write back) while the operation
         # still has old ones: ask Fusion to re-apply the tool's presets to its operations.
         if _refresh_operations_from_preset(target_op, final_preset_name):
-            op_rpm, op_feed, _, _ = get_op_cut_params(target_op, "in")
+            op_rpm, op_feed, _, _ = get_op_cut_params(target_op, doc_unit, strategy=strategy)
     preset_ok = preset_linked and _close(op_rpm, rpm, 0.01) and _close(op_feed, feed, 0.01)
     if not preset_ok:
         _log(f"Preset values not in effect on {op_name!r} (linked={preset_linked}, op rpm={op_rpm:.0f} "
              f"feed={op_feed:.2f} IPM vs calculated {rpm} / {feed:.2f}); writing operation parameters")
+        primary_feeds = ('tool_spindleSpeed', 'tool_feedCutting', 'tool_feedPlunge') if is_hole_mode else ('tool_spindleSpeed', 'tool_feedCutting')
         for p_name, p_val in speed_values:
-            apply_param(target_op, p_name, p_val, force=(p_name not in ('tool_spindleSpeed', 'tool_feedCutting')))
+            apply_param(target_op, p_name, p_val, force=(p_name not in primary_feeds))
     _log_speed_sources(target_op)
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
-    fine_note = apply_fine_stepdown_floor(target_op)
-    ramp_dia_note = apply_ramp_diameter(target_op, calc_result.get("ramp_diameter_in"))
+    if is_hole_mode:
+        passes_notes = []
+        fine_note = None
+        ramp_dia_note = None
+        woc_applied = False
+        doc_applied = False
+    else:
+        passes_notes = apply_passes_tab_params(target_op, strategy, doc, woc,
+                                               calc_result=calc_result, geo_payload=geo_payload)
+        fine_note = apply_fine_stepdown_floor(target_op, override_custom=True)
+        ramp_dia_note = apply_ramp_diameter(target_op, calc_result.get("ramp_diameter_in"), override_custom=True)
+        if ramp_expr is not None:
+            p_ra = _safe(lambda: target_op.parameters.itemByName('rampAngle'))
+            if p_ra is not None and isinstance(_safe(lambda: p_ra.expression), str):
+                if _norm_expr(_safe(lambda: p_ra.expression)) != 'tool_rampangle':
+                    apply_param(target_op, 'rampAngle', 'tool_rampAngle', force=True)
+
+        # DOC/WOC: the preset carries them (above). Write the operation's own step parameters only
+        # if the linked preset didn't deliver them, because any operation value that differs from
+        # its preset makes Fusion show 'Preset (custom)'.
+        _, _, op_doc, op_woc = get_op_cut_params(target_op, doc_unit, strategy=strategy)
+        woc_applied = preset_linked and _close(op_woc, woc, 0.01)
+        doc_applied = preset_linked and _close(op_doc, doc, 0.01)
+        if not woc_applied:
+            _log(f"WOC from preset not in effect (op {op_woc:.5f} vs {woc:.5f} in); writing operation parameter")
+            if "Adaptive" in strategy:
+                woc_applied = bool(apply_param(target_op, 'optimalLoad', f"{woc:.5f} in"))
+            elif "finish" in str(strategy).lower() and "semi" not in str(strategy).lower():
+                woc_applied = bool(apply_param(target_op, 'finishingStepover', f"{woc:.5f} in")
+                                   or apply_param(target_op, 'stepover', f"{woc:.5f} in")
+                                   or apply_param(target_op, 'maximumStepover', f"{woc:.5f} in"))
+            else:
+                woc_applied = bool(apply_param(target_op, 'stepover', f"{woc:.5f} in")
+                                   or apply_param(target_op, 'maximumStepover', f"{woc:.5f} in"))
+        if not doc_applied:
+            _log(f"DOC from preset not in effect (op {op_doc:.5f} vs {doc:.5f} in); writing operation parameter")
+            doc_applied = bool(apply_param(target_op, 'maximumStepdown', f"{doc:.5f} in"))
+
     _log_op_motion_params(target_op, "AFTER")
     _log_preset_use_flags(target_op, final_preset_name)
     _regenerate_toolpath(target_op)
     tools_at_end = _doc_tool_count()
     _log(f"Auto-set {op_name!r}: T{t_num}, document tools {tools_at_start} -> {tools_at_end}"
          + ("  (WARNING: a tool was added)" if tools_at_start is not None and tools_at_end != tools_at_start else ""))
-
-    # DOC/WOC: the preset carries them (above). Write the operation's own step parameters only
-    # if the linked preset didn't deliver them, because any operation value that differs from
-    # its preset makes Fusion show 'Preset (custom)'.
-    _, _, op_doc, op_woc = get_op_cut_params(target_op, "in")
-    woc_applied = preset_linked and _close(op_woc, woc, 0.01)
-    doc_applied = preset_linked and _close(op_doc, doc, 0.01)
-    if not woc_applied:
-        _log(f"WOC from preset not in effect (op {op_woc:.4f} vs {woc:.4f} in); writing operation parameter")
-        if "Adaptive" in strategy:
-            woc_applied = bool(apply_param(target_op, 'optimalLoad', f"{woc:.4f} in"))
-        else:
-            woc_applied = bool(apply_param(target_op, 'stepover', f"{woc:.4f} in")
-                               or apply_param(target_op, 'maximumStepover', f"{woc:.4f} in"))
-    if not doc_applied:
-        _log(f"DOC from preset not in effect (op {op_doc:.4f} vs {doc:.4f} in); writing operation parameter")
-        doc_applied = bool(apply_param(target_op, 'maximumStepdown', f"{doc:.4f} in"))
 
     preset_note = f"Preset: {final_preset_name} ({'replaced' if was_updated else 'added'} on the existing tool)"
     if not preset_ok:
@@ -2385,11 +2685,12 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         limited_by=calc_result.get("limited_by"), provenance=calc_result.get("provenance"),
         preset_note=preset_note, model=calc_result.get("model"), model_note=calc_result.get("model_note", ""),
     )
+    if passes_notes:
+        msg += "\n\nPasses Tab: " + "; ".join(passes_notes) + "."
     for w in tool_profile_warnings(calc_result):
         msg += "\n\nCheck: " + w
     if ramp_expr is not None:
-        msg += (f"\n\nRamp angle: {float(ramp_expr):.2f}° (written to the preset; "
-                "operations with their own angle keep it).")
+        msg += f"\n\nRamp angle: {float(ramp_expr):.2f}°."
     if ramp_dia_note == 'written':
         msg += f"\nHelical ramp diameter: {float(calc_result.get('ramp_diameter_in')):.4f}\"."
     elif ramp_dia_note == 'kept':
@@ -2522,6 +2823,73 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
         except Exception as e:
             _report_error("Auto-Setter failed.", e)
 
+STRATEGY_OPTIONS = [
+    'Adaptive Roughing',
+    'Roughing',
+    'Finishing',
+    '3D Contouring / Scallop Finishing',
+    'Floor Finishing (Skim)',
+    'Slotting',
+    'Facing',
+    'Drilling',
+    'Peck Drilling (Deep Hole)',
+    'Reaming',
+    'Tapping (Form / Roll)',
+    'Tapping (Spiral Flute - Blind Hole)',
+    'Tapping (Spiral Point - Through Hole)',
+    'Tapping',
+]
+
+
+def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
+    """Choose the default Strategy dropdown item for a CAM operation and its detected tool."""
+    gp = geo_payload or {}
+    kind = str(gp.get("kind", "")).lower()
+    is_tap = bool(gp.get("isTap")) or kind == "tap"
+    is_hole = bool(gp.get("isHoleTool"))
+    desc_low = f"{gp.get('desc', '')} {gp.get('tool_type', '')}".lower()
+    op_strat = str(getattr(op, 'strategy', '') or '').lower() if op is not None else ''
+    op_name = str(getattr(op, 'name', '') or '').lower() if op is not None else ''
+    cycle_expr = ""
+    try:
+        p_cyc = op.parameters.itemByName('cycleType') if (op and getattr(op, 'parameters', None)) else None
+        if p_cyc and getattr(p_cyc, 'expression', None):
+            cycle_expr = str(p_cyc.expression).lower()
+    except Exception:
+        pass
+
+    if is_tap or 'tap' in op_strat or 'tap' in cycle_expr:
+        if 'form' in desc_low or 'roll' in desc_low:
+            return 'Tapping (Form / Roll)'
+        if 'spiral point' in desc_low or 'gun' in desc_low:
+            return 'Tapping (Spiral Point - Through Hole)'
+        if 'spiral flute' in desc_low or 'spiral' in desc_low:
+            return 'Tapping (Spiral Flute - Blind Hole)'
+        return 'Tapping'
+    if kind == 'reamer' or 'ream' in desc_low or 'ream' in op_strat or 'ream' in op_name or 'ream' in cycle_expr:
+        return 'Reaming'
+    if is_hole or 'drill' in op_strat:
+        if any(k in cycle_expr for k in ('deep', 'chip-breaking', 'peck')) or 'peck' in op_name or 'deep' in op_name:
+            return 'Peck Drilling (Deep Hole)'
+        return 'Drilling'
+
+    if 'adaptive' in op_strat:
+        return 'Adaptive Roughing'
+    if 'face' in op_strat or 'facing' in op_strat:
+        return 'Facing'
+    if 'slot' in op_strat:
+        return 'Slotting'
+    if 'flat' in op_strat or 'horizontal' in op_strat:
+        return 'Floor Finishing (Skim)'
+    if any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']):
+        return '3D Contouring / Scallop Finishing'
+    if any(s in op_strat for s in ['contour', 'trace']):
+        return 'Finishing'
+    if 'pocket' in op_strat:
+        return 'Roughing'
+    if saved_strategy:
+        return pick_saved(saved_strategy, STRATEGY_OPTIONS, 'Adaptive Roughing')
+    return 'Adaptive Roughing'
 class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
         super().__init__()
@@ -2559,25 +2927,10 @@ class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
                                     itm.isSelected = True
                                 elif not is_carb and "HSS" in itm.name:
                                     itm.isSelected = True
-                    if strat_input and hasattr(target_op, 'strategy'):
-                        op_strat = str(target_op.strategy).lower()
+                    if strat_input:
+                        inferred = infer_strategy_for_op(target_op, g_payload)
                         for itm in strat_input.listItems:
-                            if 'adaptive' in op_strat and 'adaptive' in itm.name.lower():
-                                itm.isSelected = True
-                                break
-                            elif ('face' in op_strat or 'facing' in op_strat) and 'facing' in itm.name.lower():
-                                itm.isSelected = True
-                                break
-                            elif ('flat' in op_strat or 'horizontal' in op_strat) and 'floor' in itm.name.lower():
-                                itm.isSelected = True
-                                break
-                            elif any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']) and '3d' in itm.name.lower():
-                                itm.isSelected = True
-                                break
-                            elif any(s in op_strat for s in ['contour', 'trace']) and itm.name.lower() == 'finishing':
-                                itm.isSelected = True
-                                break
-                            elif 'pocket' in op_strat and itm.name.lower() == 'roughing':
+                            if itm.name == inferred:
                                 itm.isSelected = True
                                 break
                             
@@ -2684,34 +3037,9 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 tool_coating_input.listItems.add(label, code.lower() == det_coat.lower())
             
             strat_input = inputs.addDropDownCommandInput('strategy', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
-            op_strat = str(getattr(initial_op, 'strategy', '')).lower() if initial_op else ""
-            default_strat = 'Adaptive Roughing'
-            strat_names = ['Adaptive Roughing', 'Roughing', 'Finishing', '3D Contouring / Scallop Finishing',
-                           'Floor Finishing (Skim)', 'Slotting', 'Facing']
-            if not any(k in op_strat for k in ['adaptive', 'face', 'facing', 'flat', 'horizontal', 'scallop',
-                                               'parallel', 'morphed', 'ramp', 'flow', 'contour', 'trace', 'pocket']):
-                # Nothing recognisable in the operation: fall back to the last strategy used.
-                default_strat = pick_saved(prefs.get('strategy'), strat_names, default_strat)
-            if 'adaptive' in op_strat:
-                default_strat = 'Adaptive Roughing'
-            elif 'face' in op_strat or 'facing' in op_strat:
-                default_strat = 'Facing'
-            elif 'flat' in op_strat or 'horizontal' in op_strat:
-                default_strat = 'Floor Finishing (Skim)'
-            elif any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']):
-                default_strat = '3D Contouring / Scallop Finishing'
-            elif any(s in op_strat for s in ['contour', 'trace']):
-                default_strat = 'Finishing'
-            elif 'pocket' in op_strat:
-                default_strat = 'Roughing'
-
-            strat_input.listItems.add('Adaptive Roughing', default_strat == 'Adaptive Roughing')
-            strat_input.listItems.add('Roughing', default_strat == 'Roughing')
-            strat_input.listItems.add('Finishing', default_strat == 'Finishing')
-            strat_input.listItems.add('3D Contouring / Scallop Finishing', default_strat == '3D Contouring / Scallop Finishing')
-            strat_input.listItems.add('Floor Finishing (Skim)', default_strat == 'Floor Finishing (Skim)')
-            strat_input.listItems.add('Slotting', default_strat == 'Slotting')
-            strat_input.listItems.add('Facing', default_strat == 'Facing')
+            default_strat = infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy'))
+            for s_name in STRATEGY_OPTIONS:
+                strat_input.listItems.add(s_name, default_strat == s_name)
             
             agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
             agg_input.valueOne = prefs.get('aggressiveness', 50)
@@ -3027,7 +3355,7 @@ def _log_speed_sources(op):
         _log("Speed source diagnostic failed", e)
 
 
-def get_op_cut_params(op, doc_unit="in"):
+def get_op_cut_params(op, doc_unit="in", strategy=None):
     """Extracts (rpm, feed_ipm, doc_in, woc_in) from an operation.
 
     Units come from the explicit unit tokens in each parameter's expression (in/min, mm/min,
@@ -3043,17 +3371,26 @@ def get_op_cut_params(op, doc_unit="in"):
         # authoritative (they are what gets posted; in real documents they often differ from the
         # linked preset). The preset is used only when the op still holds Fusion's default formula.
         _log_speed_sources(op)
+        s_low = str(strategy or getattr(op, 'strategy', '') or "").strip().lower()
+        is_hole_op_param = any(k in s_low for k in ("drill", "ream", "tap", "bore"))
+        feed_param_names = ('tool_feedPlunge', 'tool_feedCutting') if is_hole_op_param else ('tool_feedCutting', 'tool_feedPlunge')
         for params in _speed_param_sources(op):
             p_rpm = _param(params, 'tool_spindleSpeed')
             if rpm <= 0 and not _is_fusion_default_formula(p_rpm):
                 rpm = parse_cam_rpm(p_rpm)
-            p_feed = _param(params, 'tool_feedCutting')
-            if feed <= 0 and not _is_fusion_default_formula(p_feed):
-                feed = parse_cam_feed_to_ipm(p_feed, doc_unit)
+            for fp_name in feed_param_names:
+                p_feed = _param(params, fp_name)
+                if feed <= 0 and p_feed is not None and not _is_fusion_default_formula(p_feed):
+                    feed = parse_cam_feed_to_ipm(p_feed, doc_unit)
+                    if feed > 0:
+                        break
         if rpm <= 0:  # nothing but the default formula anywhere: use its evaluated value
             rpm = parse_cam_rpm(_param(getattr(op, 'parameters', None), 'tool_spindleSpeed'))
         if feed <= 0:
-            feed = parse_cam_feed_to_ipm(_param(getattr(op, 'parameters', None), 'tool_feedCutting'), doc_unit)
+            for fp_name in feed_param_names:
+                feed = parse_cam_feed_to_ipm(_param(getattr(op, 'parameters', None), fp_name), doc_unit)
+                if feed > 0:
+                    break
 
         # 3. Axial depth of cut (DOC) - only if parameter is enabled
         for doc_name in ['maximumStepdown', 'stepdown']:
@@ -3063,21 +3400,26 @@ def get_op_cut_params(op, doc_unit="in"):
                 if doc > 0:
                     break
 
-        # 4. Radial width of cut (WOC); finishing stepover first (2D Contour / finishing ops)
-        for woc_fin in ['finishingStepover']:
-            p = op.parameters.itemByName(woc_fin)
+        # 4. Radial width of cut (WOC); prefer finishingStepover only on finishing strategies
+        # (2D Contour always keeps finishingStepover=0.03mm enabled even when Roughing Passes are used).
+        s_low = str(strategy or "").strip().lower()
+        prefer_rough_woc = bool(s_low and not ("finish" in s_low and "semi" not in s_low))
+        if not prefer_rough_woc and not s_low:
+            p_mp = _param(getattr(op, 'parameters', None), 'doMultiplePasses')
+            if p_mp is not None and _norm_expr(_safe(lambda: p_mp.expression)) == 'true':
+                prefer_rough_woc = True
+
+        woc_order = (
+            ['stepover', 'optimalLoad', 'maximumStepover', 'finishingStepover']
+            if prefer_rough_woc
+            else ['finishingStepover', 'stepover', 'optimalLoad', 'maximumStepover']
+        )
+        for woc_name in woc_order:
+            p = op.parameters.itemByName(woc_name)
             if p and getattr(p, 'isEnabled', True):
                 woc = parse_cam_param_to_inches(p, 0.0, doc_unit)
                 if woc > 0:
                     break
-
-        if woc <= 0:
-            for woc_name in ['stepover', 'optimalLoad', 'maximumStepover']:
-                p = op.parameters.itemByName(woc_name)
-                if p and getattr(p, 'isEnabled', True):
-                    woc = parse_cam_param_to_inches(p, 0.0, doc_unit)
-                    if woc > 0:
-                        break
     except Exception as e:
         _log("Reading operation cut parameters failed", e)
 
@@ -3118,11 +3460,14 @@ def build_stock_ops_payload(ops_cache, doc_unit="in"):
         ft = fusion_tool_payload(geo)
         if ft:
             ops_payload[-1]["fusion_tool"] = ft
+        fg = op_info.get("feature_geometry") or _inspect_op_feature_geometry(op_info.get("op"), geo, woc_in=op_info.get("woc"))
+        if fg:
+            ops_payload[-1]["feature_geometry"] = fg
     return ops_payload
 
 
 def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom_rad="0.0000 in", custom_ax="0.0000 in", doc_unit="in",
-                                     radial_pct=100, axial_pct=100):
+                                     radial_pct=100, axial_pct=100, comp_adjust_pct=None):
     """Queries the server's /api/stock_compensation for all cached operations.
     Returns the results list, or [] on failure (reason stored in _stock_last_error and logged)."""
     global _stock_last_error
@@ -3140,6 +3485,8 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
             "axial_pct": axial_pct,
             "operations": build_stock_ops_payload(stock_ops_cache, doc_unit)
         }
+        if comp_adjust_pct is not None:
+            payload["comp_adjust_pct"] = comp_adjust_pct
         res_data = _http_json('/api/stock_compensation', payload, timeout=8.0)
         if res_data.get("success"):
             results = res_data.get("results", [])
@@ -3331,6 +3678,7 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 
             mat_family_input = adsk.core.DropDownCommandInput.cast(inputs.itemById('stockMatFamily'))
             alloy_input = adsk.core.DropDownCommandInput.cast(inputs.itemById('stockMatAlloy'))
+            comp_input = inputs.itemById('stockCompAdjust')
             agg_input = inputs.itemById('stockAggressiveness')
             mode_input = adsk.core.DropDownCommandInput.cast(inputs.itemById('stockBatchMode'))
             custom_rad = inputs.itemById('customRadOffset')
@@ -3442,13 +3790,22 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                         _is_updating_ui = False
                 return
                 
-            # 4. Handle Material / Aggressiveness / Mode changes
-            if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset',
+            # 4. Handle Material / Compensation Trim / Mode changes
+            if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockCompAdjust', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset',
                                'stockRadialPct', 'stockAxialPct']:
                 if not (mat_family_input and mat_family_input.selectedItem) or not materials_ready():
                     return
                 family = mat_family_input.selectedItem.name
                 alloy = alloy_input.selectedItem.name if (alloy_input and alloy_input.selectedItem) else ""
+                comp_adjust = None
+                if comp_input:
+                    slider_input = adsk.core.IntegerSliderCommandInput.cast(comp_input)
+                    if slider_input:
+                        comp_adjust = slider_input.valueOne
+                    elif hasattr(comp_input, 'valueOne'):
+                        comp_adjust = comp_input.valueOne
+                    elif hasattr(comp_input, 'value'):
+                        comp_adjust = comp_input.value
                 agg = 50
                 if agg_input:
                     slider_input = adsk.core.IntegerSliderCommandInput.cast(agg_input)
@@ -3477,7 +3834,8 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 calc_results = query_toolwiz_stock_compensation(
                     family, alloy, agg, mode_code, c_rad, c_ax, doc_unit=doc_u,
                     radial_pct=stock_strength_pct(inputs.itemById('stockRadialPct')),
-                    axial_pct=stock_strength_pct(inputs.itemById('stockAxialPct')))
+                    axial_pct=stock_strength_pct(inputs.itemById('stockAxialPct')),
+                    comp_adjust_pct=comp_adjust)
                 if not calc_results and _stock_last_error:
                     ui.messageBox(
                         f"ToolWiz could not calculate stock compensation:\n{_stock_last_error}\n\nDetails: {_log_path()}",
@@ -3660,9 +4018,12 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             cal_box = inputs.addTextBoxCommandInput('stockCalibration', '', calibration_text_for(default_family) or ' ', 1, True)
             cal_box.isFullWidth = True
 
-            init_agg = prefs.get('aggressiveness', 50)
-            agg_input = inputs.addIntegerSliderCommandInput('stockAggressiveness', 'Aggressiveness', 0, 100)
-            agg_input.valueOne = init_agg
+            comp_input = inputs.addIntegerSliderCommandInput('stockCompAdjust', 'Compensation Trim (% vs Recommended)', -25, 25)
+            comp_input.valueOne = 0
+            comp_input.tooltip = (
+                '0% = Recommended compensation driven by populated speeds & feeds. '
+                'Adjust down to -25% for less compensation or up to +25% for more.'
+            )
 
             init_rad_pct = prefs.get('stock_radial_pct', STOCK_STRENGTH_DEFAULT)
             init_ax_pct = prefs.get('stock_axial_pct', STOCK_STRENGTH_DEFAULT)
@@ -3697,10 +4058,10 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                         sw_id, f'{s_name} ({len(s_ops)} ops)', True, '', True
                     )
             
-            # Initial calculation from Tool Wizard
+            # Initial calculation from Tool Wizard (0% = Recommended baseline from populated speeds & feeds)
             init_results = query_toolwiz_stock_compensation(
-                default_family, init_alloy, init_agg, "auto_compensate", doc_unit=doc_unit,
-                radial_pct=init_rad_pct, axial_pct=init_ax_pct
+                default_family, init_alloy, 50, "auto_compensate", doc_unit=doc_unit,
+                radial_pct=init_rad_pct, axial_pct=init_ax_pct, comp_adjust_pct=0
             )
             res_map = {r.get("id"): r for r in init_results} if init_results else {}
             
@@ -4383,6 +4744,344 @@ COMMAND_SPECS = [
 ]
 
 
+# ==============================================================================
+# TWO-WAY CUSTOMEVENT BRIDGE (Main-Thread Safe Execution for MCP & AI Co-Pilot)
+# ==============================================================================
+
+BRIDGE_CUSTOM_EVENT_ID = 'ToolWizMCPBridgeEvent'
+_bridge_custom_event = None
+_bridge_handlers = []
+
+
+def _iter_all_cam_operations():
+    """Yield (setup_name, op_path, op) for every CAM operation in the active document."""
+    try:
+        doc = app.activeDocument if app else None
+        cam = adsk.cam.CAM.cast(doc.products.itemByProductType('CAMProductType')) if doc else None
+        setups = getattr(cam, 'setups', None) if cam else None
+        if not setups:
+            return
+        for s_idx in range(setups.count):
+            setup = setups.item(s_idx)
+            s_name = getattr(setup, 'name', f'Setup {s_idx + 1}')
+            all_ops = getattr(setup, 'allOperations', None)
+            if not all_ops:
+                continue
+            for o_idx in range(all_ops.count):
+                op = all_ops.item(o_idx)
+                o_name = getattr(op, 'name', f'Op {o_idx + 1}')
+                yield s_name, f"{s_name} > {o_name}", op
+    except Exception as ex:
+        _log("Iterating CAM operations for bridge failed", ex)
+
+
+def _find_cam_operation(query):
+    """Find a CAM operation by name, 'Setup > Op' path, or 0-based index."""
+    q_str = str(query or "").strip()
+    ops = list(_iter_all_cam_operations())
+    if not ops:
+        return None, None, None
+    if not q_str:
+        return ops[0]
+    for s_name, path, op in ops:
+        if getattr(op, 'name', '') == q_str or path == q_str:
+            return s_name, path, op
+    q_low = q_str.lower()
+    for s_name, path, op in ops:
+        if q_low in getattr(op, 'name', '').lower() or q_low in path.lower():
+            return s_name, path, op
+    try:
+        idx = int(q_str)
+        if 0 <= idx < len(ops):
+            return ops[idx]
+    except (TypeError, ValueError):
+        pass
+    return None, None, None
+
+
+def dispatch_bridge_action(action, params=None):
+    """Execute a structured bridge action on Fusion's main UI thread and return a JSON-serializable dict."""
+    params = dict(params or {})
+    if action == "get_setup_summary":
+        snap = snapshot_document()
+        raw_ops = snap.get("ops") or {}
+        setups = []
+        ops_list = []
+        if isinstance(raw_ops, dict):
+            for path_key, o_val in raw_ops.items():
+                sn = path_key.split(" > ", 1)[0] if " > " in path_key else (o_val.get("setup") or "Setup")
+                if sn and sn not in setups:
+                    setups.append(sn)
+                ops_list.append({
+                    "setup": sn,
+                    "path": path_key,
+                    "name": o_val.get("name", ""),
+                    "strategy": o_val.get("strategy", ""),
+                    "tool": o_val.get("tool_desc") or o_val.get("tool") or "",
+                    "params": o_val.get("params") or {},
+                })
+        elif isinstance(raw_ops, list):
+            for o in raw_ops:
+                sn = o.get("setup") if isinstance(o, dict) else None
+                if sn and sn not in setups:
+                    setups.append(sn)
+                if isinstance(o, dict):
+                    ops_list.append(o)
+        return {
+            "success": True,
+            "document": snap.get("document"),
+            "tool_count": snap.get("tool_count"),
+            "setups": setups,
+            "ops": ops_list,
+        }
+
+    if action == "inspect_operation":
+        s_name, path, op = _find_cam_operation(params.get("operation"))
+        if op is None:
+            return {"success": False, "error": f"Operation {params.get('operation')!r} not found in active document."}
+        geo_payload, summary_str, presets = get_op_tool_info(op)
+        rpm, feed, doc, woc = get_op_cut_params(op, "in")
+        dia = (geo_payload or {}).get("diameter")
+        stick = (geo_payload or {}).get("stickout")
+        fg = inspect_operation_geometry(op, tool_diameter_in=dia, stickout_in=stick, nominal_woc_in=woc).to_dict()
+        return {
+            "success": True,
+            "setup": s_name,
+            "path": path,
+            "name": getattr(op, 'name', ''),
+            "strategy": getattr(op, 'strategy', ''),
+            "tool": geo_payload,
+            "tool_summary": summary_str,
+            "presets": presets,
+            "cut_params": {"rpm": rpm, "feed_ipm": feed, "doc_in": doc, "woc_in": woc},
+            "feature_geometry": fg,
+        }
+
+    if action == "audit_setup_sequence":
+        target_setup = str(params.get("setup") or "").strip().lower()
+        issues = []
+        audited_ops = []
+        prev_rough_dia = None
+        prev_rough_rad_stock = None
+
+        for s_name, path, op in _iter_all_cam_operations():
+            if target_setup and target_setup not in s_name.lower():
+                continue
+            geo_payload, _, _ = get_op_tool_info(op)
+            rpm, feed, doc, woc = get_op_cut_params(op, "in")
+            dia = (geo_payload or {}).get("diameter") or 0.0
+            stick = (geo_payload or {}).get("stickout") or 0.0
+            strat = str(getattr(op, 'strategy', '') or '').lower()
+            op_name = str(getattr(op, 'name', '') or '')
+
+            fg = inspect_operation_geometry(
+                op, tool_diameter_in=dia if dia > 0 else None,
+                stickout_in=stick if stick > 0 else None,
+                nominal_woc_in=woc if woc > 0 else None,
+            ).to_dict()
+
+            # Read radial stock-to-leave if present
+            rad_stock_in = None
+            p_rad = _param(getattr(op, 'parameters', None), 'stockToLeave') or _param(getattr(op, 'parameters', None), 'radialStockToLeave')
+            if p_rad is not None:
+                rad_stock_in = parse_cam_param_to_inches(p_rad, 0.0, "in")
+
+            is_rough = any(k in strat or k in op_name.lower() for k in ("adaptive", "rough", "pocket", "clearing"))
+            is_finish = any(k in strat or k in op_name.lower() for k in ("contour", "finish", "scallop", "parallel", "flat", "horizontal"))
+
+            # Sequence check 1: micro-tool following a >=2.5x larger rougher without intermediate rest tool
+            if dia > 0 and dia <= 0.125 and prev_rough_dia is not None and prev_rough_dia >= dia * 2.5:
+                issues.append({
+                    "operation": path,
+                    "severity": "warning",
+                    "kind": "micro_rest_machining_gap",
+                    "message": (
+                        f"Micro-tool ({dia:.4f}\" dia) follows a {prev_rough_dia:.4f}\" roughing tool "
+                        f"({prev_rough_dia / dia:.1f}x diameter step). Ensure rest-machining is enabled "
+                        f"or add an intermediate semi-finishing tool to prevent full-slot shock in corners."
+                    ),
+                })
+
+            # Sequence check 2: finishing pass entering zero or negative roughing stock
+            if is_finish and prev_rough_rad_stock is not None and prev_rough_rad_stock <= 0.0005:
+                issues.append({
+                    "operation": path,
+                    "severity": "warning",
+                    "kind": "insufficient_roughing_stock_for_finish",
+                    "message": (
+                        f"Preceding roughing operation left {prev_rough_rad_stock:.4f}\" radial stock. "
+                        f"Leave at least +0.005\" (0.125 mm) uniform stock for the finishing pass."
+                    ),
+                })
+
+            # Include B-Rep warnings from inspect_operation_geometry
+            for w in fg.get("warnings") or []:
+                issues.append({
+                    "operation": path,
+                    "severity": w.get("type", "warning"),
+                    "kind": "brep_geometry",
+                    "title": w.get("title"),
+                    "message": w.get("message"),
+                })
+
+            if is_rough and dia > 0:
+                prev_rough_dia = dia
+                if rad_stock_in is not None:
+                    prev_rough_rad_stock = rad_stock_in
+
+            audited_ops.append({
+                "path": path,
+                "name": op_name,
+                "strategy": strat,
+                "diameter_in": dia,
+                "stickout_in": stick,
+                "rpm": rpm,
+                "feed_ipm": feed,
+                "doc_in": doc,
+                "woc_in": woc,
+                "radial_stock_in": rad_stock_in,
+                "feature_geometry": fg,
+            })
+
+        return {
+            "success": True,
+            "operations_audited": len(audited_ops),
+            "issues": issues,
+            "operations": audited_ops,
+        }
+
+    if action == "get_toolpath_status":
+        q = str(params.get("operation") or "").strip().lower()
+        statuses = []
+        for s_name, path, op in _iter_all_cam_operations():
+            if q and q not in path.lower() and q not in str(getattr(op, 'name', '')).lower():
+                continue
+            statuses.append({
+                "setup": s_name,
+                "path": path,
+                "name": getattr(op, 'name', ''),
+                "strategy": getattr(op, 'strategy', ''),
+                "hasToolpath": bool(getattr(op, 'hasToolpath', False)),
+                "isToolpathValid": bool(getattr(op, 'isToolpathValid', False)),
+                "hasWarning": bool(getattr(op, 'hasWarning', False)),
+                "hasError": bool(getattr(op, 'hasError', False)),
+                "isSuppressed": bool(getattr(op, 'isSuppressed', False)),
+            })
+        return {"success": True, "operations": statuses}
+
+    if action == "apply_stock_to_leave":
+        target_q = params.get("operation")
+        rad_val = str(params.get("radial_stock") or "0.0000 in").strip()
+        ax_val = str(params.get("axial_stock") or "0.0000 in").strip()
+        s_name, path, op = _find_cam_operation(target_q)
+        if op is None:
+            return {"success": False, "error": f"Operation {target_q!r} not found."}
+        ac = AuditedCommand('mcp_stock_to_leave', target=path, targets=[path]).begin()
+        try:
+            failed = apply_stock_to_op(op, rad_val, ax_val)
+            note = ac.finish("ok" if not failed else f"failed: {failed}")
+            return {
+                "success": len(failed) == 0,
+                "operation": path,
+                "radial_stock": rad_val,
+                "axial_stock": ax_val,
+                "failed_params": failed,
+                "audit_note": note,
+            }
+        except Exception as ex:
+            ac.finish(f"error: {ex}")
+            return {"success": False, "error": str(ex)}
+
+    if action == "curate_setup_tools":
+        doc = getattr(app, 'activeDocument', None)
+        cam_prod = doc.products.itemByProductType('CAMProductType') if doc and getattr(doc, 'products', None) else None
+        cam = adsk.cam.CAM.cast(cam_prod) if cam_prod else None
+        if not cam:
+            return {"success": False, "error": "No active CAM workspace"}
+        target_setup_name = str(params.get("setup") or "").strip()
+        apply_changes = bool(params.get("apply", False))
+        raw_tools = []
+        op_refs = []
+        seen_sigs = set()
+        for s_idx in range(cam.setups.count):
+            setup = cam.setups.item(s_idx)
+            s_name = getattr(setup, "name", f"Setup {s_idx + 1}")
+            if target_setup_name and s_name.lower() != target_setup_name.lower():
+                continue
+            ops = getattr(setup, "allOperations", None)
+            if not ops:
+                continue
+            for o_idx in range(ops.count):
+                op = ops.item(o_idx)
+                t = getattr(op, "tool", None)
+                if t is not None and hasattr(t, "toJson"):
+                    try:
+                        td = json.loads(t.toJson())
+                        sig = td.get("guid") or td.get("description") or str(o_idx)
+                        if sig not in seen_sigs:
+                            seen_sigs.add(sig)
+                            raw_tools.append(td)
+                        op_refs.append((op, td))
+                    except Exception:
+                        pass
+        curation = _http_json('/api/library/curate', {
+            "tools": raw_tools,
+            "fix_micro_shank": bool(params.get("fix_micro_shank", True)),
+            "populate_shaft_taper": bool(params.get("populate_shaft_taper", True)),
+            "infer_metadata_from_description": bool(params.get("infer_metadata_from_description", True)),
+        }, timeout=10.0)
+        applied_ops = 0
+        if apply_changes and curation.get("success") and hasattr(adsk.cam.Tool, "createFromJson"):
+            by_desc = {r.get("description"): r.get("curated_tool") for r in (curation.get("results") or []) if r.get("modified")}
+            for op, orig_td in op_refs:
+                d_key = str(orig_td.get("description") or orig_td.get("product-id") or "Unnamed Tool").strip()
+                new_td = by_desc.get(d_key)
+                if new_td:
+                    try:
+                        op.tool = adsk.cam.Tool.createFromJson(json.dumps(new_td))
+                        applied_ops += 1
+                    except Exception as ex_t:
+                        _log("Applying curated tool JSON failed", ex_t)
+        curation["applied_operations"] = applied_ops
+        return curation
+
+    if action == "snapshot_compare":
+        mode = SNAPSHOT_SAVE if str(params.get("mode", "")).lower() == "save" else SNAPSHOT_COMPARE
+        text = run_snapshot_action(mode)
+        return {"success": True, "mode": mode, "report": text}
+
+    return {"success": False, "error": f"Unknown bridge action {action!r}"}
+
+
+_CustomEventBase = (
+    adsk.core.CustomEventHandler
+    if isinstance(getattr(adsk.core, 'CustomEventHandler', None), type)
+    else object
+)
+
+
+class ToolWizBridgeCustomEventHandler(_CustomEventBase):
+    """Executes queued MCP/bridge requests on Fusion 360's main UI thread."""
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            info = getattr(args, 'additionalInfo', None)
+            payload = json.loads(info) if isinstance(info, str) and info else {}
+            req_id = payload.get("request_id")
+            action = payload.get("action")
+            params = payload.get("params") or {}
+            res = dispatch_bridge_action(action, params)
+            if req_id:
+                try:
+                    _http_json('/api/fusion_bridge/result', {"request_id": req_id, "result": res}, timeout=5.0)
+                except Exception as ex_post:
+                    _log("Posting bridge CustomEvent result failed", ex_post)
+        except Exception as ex:
+            _log("Bridge CustomEvent execution failed", ex)
+
+
 def _remove_ui():
     """Delete this add-in's toolbar controls and command definitions (if present)."""
     workSpace = ui.workspaces.itemById(workspaceToUse)
@@ -4395,6 +5094,14 @@ def _remove_ui():
         cmdDef = ui.commandDefinitions.itemById(cid)
         if cmdDef:
             cmdDef.deleteMe()
+    global _bridge_custom_event
+    try:
+        if app and hasattr(app, 'unregisterCustomEvent'):
+            app.unregisterCustomEvent(BRIDGE_CUSTOM_EVENT_ID)
+    except Exception:
+        pass
+    _bridge_custom_event = None
+    _bridge_handlers.clear()
 
 
 def run(context):
@@ -4418,6 +5125,17 @@ def run(context):
             handlers.append(on_created)
             if panel:
                 panel.controls.addCommand(cmdDef)
+
+        global _bridge_custom_event
+        try:
+            if hasattr(app, 'registerCustomEvent'):
+                _bridge_custom_event = app.registerCustomEvent(BRIDGE_CUSTOM_EVENT_ID)
+                if _bridge_custom_event is not None and hasattr(_bridge_custom_event, 'add'):
+                    on_bridge = ToolWizBridgeCustomEventHandler()
+                    _bridge_custom_event.add(on_bridge)
+                    _bridge_handlers.append(on_bridge)
+        except Exception as ex_ce:
+            _log("Could not register CustomEvent bridge", ex_ce)
 
     except Exception as e:
         _report_error("Add-in start failed.", e)
