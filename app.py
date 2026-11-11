@@ -28,6 +28,7 @@ cutlog.register(app)
 import fusion_bridge
 fusion_bridge.register(app)
 from routes_advice import bp as advice_bp; app.register_blueprint(advice_bp)
+from routes_library import bp as library_bp; app.register_blueprint(library_bp)
 import machine_profiles
 
 # Initialize physics engine
