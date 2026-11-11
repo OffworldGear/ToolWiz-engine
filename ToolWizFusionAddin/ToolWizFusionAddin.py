@@ -2580,14 +2580,14 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
             tool_category = "Carbide Endmill"
 
     ft = fusion_tool_payload(geo_payload)
-    if runout_in is None:
+    # Runout: the dialog's value, else the tool's own toolwiz.runout_*; otherwise it is not sent and the server
+    # picks it from the holder class, else by tool diameter (0.0001 in up to 1/8 in, 0.0002 in above).
+    if runout_in is None and (geo_payload or {}).get("runout_source") == "tool":
         runout_in = (geo_payload or {}).get("runout_in")
-    if runout_in is None:
-        runout_in = twlogic.DEFAULT_RUNOUT_IN
     return {
         "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
         "tool": tool_category, "coating": coating_code, "isCarbide": is_carbide,
-        "runout": float(runout_in),
+        **({"runout": float(runout_in)} if runout_in is not None else {}),
         **({"model": model} if model else {}),
         **(engagement or {}),
         **({"fusion_tool": ft} if ft else {}),
@@ -3598,13 +3598,13 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             agg_input.tooltip = ('50% = relatively safe starting data (about 0.92 x the vendor median chip load); '
                                  '75% = vendor median; 100% = about 1.10 x with deeper engagement and faster wear.')
 
-            # Runout (TIR): the tool's own toolwiz.runout_* value, else 0.0002 in. Editable.
+            # Runout (TIR): the tool's own toolwiz.runout_* value, else blank = automatic (server: holder class, else by diameter).
             doc_u = get_cam_document_units()
-            ro_in = (initial_geo or {}).get('runout_in') or twlogic.DEFAULT_RUNOUT_IN
-            ro_src = 'from the tool' if (initial_geo or {}).get('runout_source') == 'tool' else 'default'
-            runout_input = inputs.addStringValueInput('runout', f'Runout / TIR ({ro_src})', twlogic.fmt_len(ro_in, doc_u, 5 if doc_u != 'mm' else 4))
-            runout_input.tooltip = ('Total indicator runout at the tool tip. Small tools need a low-runout holder; '
-                                    'enter your measured value, e.g. 0.0002 in or 0.005 mm.')
+            ro_tool = (initial_geo or {}).get('runout_source') == 'tool'
+            ro_text = twlogic.fmt_len((initial_geo or {}).get('runout_in'), doc_u, 5 if doc_u != 'mm' else 4) if ro_tool else ''
+            runout_input = inputs.addStringValueInput('runout', 'Runout / TIR (from the tool)' if ro_tool else 'Runout / TIR (blank = automatic)', ro_text)
+            runout_input.tooltip = ('Total indicator runout at the tool tip. Leave blank for automatic: by holder type, else 0.0001 in '
+                                    'for tools up to 1/8 in and 0.0002 in above. Or enter your measured value, e.g. 0.0002 in or 0.005 mm.')
             init_strategy = infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy'))
             rough0 = twlogic.is_roughing_strategy(init_strategy)
             eng_input = inputs.addBoolValueInput('useOpEngagement', "Keep the operation's own stepdown / stepover", True, '', not rough0)
@@ -4060,7 +4060,8 @@ def build_stock_ops_payload(ops_cache, doc_unit="in"):
         ft = fusion_tool_payload(geo)
         if ft:
             ops_payload[-1]["fusion_tool"] = ft
-        ops_payload[-1]["runout"] = geo.get("runout_in") or twlogic.DEFAULT_RUNOUT_IN
+        if geo.get("runout_source") == "tool" and geo.get("runout_in") is not None:
+            ops_payload[-1]["runout"] = geo["runout_in"]    # else the server defaults it by holder class / diameter
         ops_payload[-1]["isCarbide"] = bool(geo.get("is_carbide", True))
         if geo.get("guid"):
             ops_payload[-1]["tool_guid"] = geo["guid"]

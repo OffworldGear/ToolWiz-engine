@@ -92,7 +92,7 @@ def tool_runout_in(tool_dict, default=DEFAULT_RUNOUT_IN):
 def parse_runout_text(text, default=None):
     """'0.0002 in', '0.005 mm', '.0002' (inches) -> inches; blank -> default; bad -> ValueError."""
     s = str(text or "").strip().lower()
-    if not s:
+    if not s or s in ("auto", "automatic"):
         return default
     m = re.match(r'^([-+]?(?:\d+\.?\d*|\.\d+))\s*(mm|millimeters?|in|inch|inches|")?$', s)
     if not m:
