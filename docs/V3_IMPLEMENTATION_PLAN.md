@@ -123,6 +123,32 @@ if given else LCF + 0.5 x SFDM).
    within [0.5 x cell min, 1.25 x cell max] (slot, hem). Pass rate >= 85% of cells.
 3. Print a table of failures. These tolerances are fixed by the planner. Do not change them.
 
+### Revision 2026-11-11 (after WP-A1 round 1)
+
+Part 1 above was mis-specified: it compared one consensus-anchored engine value with each
+individual vendor row, although vendors in the same bucket span about 2.4x (p10-p90) in chip load.
+Measured: 0.92 x bucket median fz lands inside [0.60, 1.25] x the individual row only 72% of the
+time, before SFM is checked. Replacement (tolerances unchanged, applied to the range vendors span):
+
+1. **Per group** = (family, operation, diameter band, engagement class: slot | ae/D <= 0.10 |
+   0.10-0.30 | 0.30-0.60 | > 0.60), >= 2 rows. The engine runs once per group at the group's median
+   ap/D and ae/D on the group's median tool. Pass: SFM in [0.75 x group min, 1.25 x group max] and
+   fz in [0.60 x group min, 1.25 x group max]. Groups whose minimum SFM needs > 60,000 rpm compare
+   SFM with the achievable value (reported as spindle-limited). Targets: >= 90% of groups, >= 85%
+   per operation and for D <= 1/16". The per-row numbers are printed as a diagnostic only.
+2. Cell test (recommended engagement) unchanged.
+
+Engine decisions made with this revision:
+- C3 for rough/adaptive/slot = k x D, k = 0.5% + 1.0% x aggressiveness, with no fixed
+  stock-to-leave cap. Part accuracy comes from the finishing pass: the engine outputs a recommended
+  radial and axial stock to leave = max(0.05 mm, 1.5 x predicted deflection + springback).
+- C2 on the nominal chip, with the worst-flute overload check (C2o) retained.
+- When the chip-load floor exceeds the vendor ceiling (tiny tools), the ceiling wins, with a
+  warning naming the need for a low-runout holder or more rpm.
+- Stability continuity is judged relative to the chip: feed changes < 15% between TIR = 0 and
+  TIR = 0.1 x fz.
+- An adaptive v2 call must take <= 2 s, because the master library builder makes thousands of calls.
+
 ## Work packages
 
 ### Phase 1 (parallel)
