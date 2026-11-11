@@ -95,15 +95,11 @@ class TestConstraintsByHand(unittest.TestCase):
         self.assertAlmostEqual(c.margin, 0.2)
 
     def test_c3_c4_adopted_defaults(self):
-        ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
-        # V3 M2: min(50 % of 0.05 mm stock = 0.00098", k·D with k = 1.0 % at 50 %): the 1/16" tool takes the D term
-        self.assertAlmostEqual(ctx.delta_allow, 0.01 * T12.D)
-        ctx = o._Context(T1, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
-        self.assertAlmostEqual(ctx.delta_allow, 0.5 * 0.05 / 25.4)            # 1/8": 50 % of 0.05 mm stock governs
+        # V3 round 2: C3 = k·D only (k = 1.0 % at 50 %), whatever the diameter; no stock-to-leave term
+        for tool in (T12, T1, o.Tool.build(0.5, 4, 1.0, 1.5)):
+            ctx = o._Context(tool, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
+            self.assertAlmostEqual(ctx.delta_allow, 0.01 * tool.D)
         self.assertAlmostEqual(ctx.stress_limit, 0.375 * 3800.0)              # fatigue, 10⁷ cycles
-        ctx = o._Context(o.Tool.build(0.5, 4, 1.0, 1.5), M17_4, SPEEDIO, "slot", o.Margins(0.5),
-                         stock_to_leave_in=0.1 / 25.4)
-        self.assertAlmostEqual(ctx.delta_allow, 0.5 * 0.1 / 25.4)
         self.assertAlmostEqual(o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.0)).stress_limit,
                                0.7 * 1425.0)
 

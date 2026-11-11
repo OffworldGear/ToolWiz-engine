@@ -209,7 +209,8 @@ def _optimize(physics, r, op, machine_profile):
 
     def compute():
         material = params.material(r.family, hb=hb, coating=r.coating)
-        out = params.optimize(tool, material, op, float(r.aggressiveness), machine_=machine, **kw)
+        out = params.optimize(tool, material, op, float(r.aggressiveness), machine_=machine, robust=False,
+                              robustness=False, **kw)
         return dict(out, ramp=_ramp(tool, material, machine, r, out))
     return _cached(_cache_key(r, op, hb, machine, kw), compute), hb, notes
 
@@ -420,6 +421,17 @@ def apply(physics, r, res, machine_profile=None):
         res.deflection = float(c3["value"])
         res.rec_limit = float(c3.get("limit") or res.rec_limit)
     res.total_error = res.deflection + res.springback
+    if op in ("rough", "adaptive", "slot"):
+        mm = 1.0 / 25.4
+        radial = max(0.05 * mm, 1.5 * res.deflection + res.springback)
+        axial = max(0.05 * mm, 1.5 * abs(res.springback))
+        res.recommended_radial_stock_in = math.ceil(radial / 0.0005 - 1e-9) * 0.0005
+        res.recommended_axial_stock_in = axial
+        res.tips.append({"title": "Stock to leave",
+                         "message": (f"Leave at least {res.recommended_radial_stock_in:.4f}\" radial / "
+                                     f"{res.recommended_axial_stock_in:.4f}\" axial for the finish pass "
+                                     f"(1.5 × the predicted wall deflection plus springback, never under 0.05 mm)."),
+                         "type": "info", "fusion": True})
     res.flutes_cutting = cut.get("flutes_cutting")
     res.runout_regime = cut.get("runout_regime")
     res.tir_all_flutes_in = cut.get("tir_all_flutes_in")
@@ -448,6 +460,9 @@ def apply(physics, r, res, machine_profile=None):
     reduced_tip = len(res.tips) > n_tips
     for w in details["warnings"]:
         lw = w.lower()
+        if "near the rubbing limit" in lw:
+            res.tips.append({"title": "Chip near the rubbing limit", "message": w, "type": "warning", "fusion": True})
+            continue
         if "rub" in lw or "binds" in lw or "differs" in lw or "relaxed" in lw:
             if reduced_tip and "rub" in lw:
                 continue   # the reduced-flutes tip says it

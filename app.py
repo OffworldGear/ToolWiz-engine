@@ -521,7 +521,9 @@ def _runout_fields(res):
         return None if x is None else round(x, n)
     return {"flutes_cutting": res.flutes_cutting, "runout_regime": res.runout_regime,
             "tir_all_flutes_in": r(res.tir_all_flutes_in, 6), "runout_ratio": r(res.runout_ratio, 4),
-            "engagement_source": res.engagement_source}
+            "engagement_source": res.engagement_source,
+            "recommended_radial_stock_in": r(res.recommended_radial_stock_in, 5),
+            "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5)}
 
 
 @app.route("/api/model_settings", methods=["GET", "POST"])
@@ -548,8 +550,8 @@ def calculate():
         # recommendation. rec_doc/rec_woc stay the recommendation either way.
         model = _request_model(data)
         absent = None if model == "v2" else 0.25
-        cut_depth = _optional_length(data, "cutDepth") or absent
-        cut_width = _optional_length(data, "cutWidth") or absent
+        explicit_depth, explicit_width = _optional_length(data, "cutDepth"), _optional_length(data, "cutWidth")
+        cut_depth, cut_width = explicit_depth or absent, explicit_width or absent
         is_metric = bool(data.get("isMetric", False))
         shank_size = float(data.get("shankDiameter") or default_shank(diameter))
 
@@ -579,6 +581,7 @@ def calculate():
             runout=_runout_arg(data),
             cut_depth=cut_depth,
             cut_width=cut_width,
+            engagement_explicit=(explicit_depth is not None or explicit_width is not None),
             tap_type=data.get("tapType", ""),
             pitch=float(data.get("pitch", 0.05)),
             is_metric=is_metric,

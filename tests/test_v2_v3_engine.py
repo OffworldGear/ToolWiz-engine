@@ -43,10 +43,10 @@ class TestC3Allowance(unittest.TestCase):
         ctx = o._Context(tool, mat, params.machine(), "adaptive", params.margins(0.5))
         self.assertAlmostEqual(ctx.delta_allow, 0.000625, places=7)
 
-    def test_quarter_inch_keeps_the_stock_term(self):
+    def test_quarter_inch_is_also_the_diameter_term(self):
         tool, mat = tool_material(0.25, 4)
         ctx = o._Context(tool, mat, params.machine(), "adaptive", params.margins(0.5))
-        self.assertAlmostEqual(ctx.delta_allow, 0.5 * o.STOCK_TO_LEAVE_IN, places=9)
+        self.assertAlmostEqual(ctx.delta_allow, 0.0025, places=7)
 
     def test_finishing_keeps_the_wall_tolerance(self):
         tool, mat = tool_material(0.0625)
@@ -89,7 +89,7 @@ class TestEnvelopeFile(unittest.TestCase):
         self.assertAlmostEqual(o.depth_cap_over_D(b, 0.0), 0.5)
         self.assertAlmostEqual(o.depth_cap_over_D(b, 0.5), 1.0)
         self.assertAlmostEqual(o.depth_cap_over_D(b, 1.0), 3.0)
-        self.assertAlmostEqual(o.depth_cap_over_D(b, 0.75), 2.0)
+        self.assertAlmostEqual(o.depth_cap_over_D(b, 0.75), 3.0 ** 0.5)   # geometric between the median and the max
 
     def test_c8_reads_the_table(self):
         with open(o.ENVELOPE_DEFAULT_PATH, encoding="utf-8") as fh:
@@ -193,6 +193,48 @@ class TestUserEngagement(unittest.TestCase):
         r = run_cut(app.physics, req(0.125, 3, AL))
         self.assertEqual(r.engagement_source, "recommended")
         self.assertAlmostEqual(r.doc, r.rec_doc, places=9)
+
+
+class TestRound2(unittest.TestCase):
+    def test_stock_to_leave_fields_and_tip(self):
+        r = run_cut(app.physics, req(0.25, 4, ST, "Roughing", coating="AlTiN"))
+        mm = 1 / 25.4
+        self.assertGreaterEqual(r.recommended_radial_stock_in, 0.05 * mm - 1e-9)
+        self.assertGreaterEqual(r.recommended_radial_stock_in, 1.5 * r.deflection + r.springback - 1e-9)
+        self.assertAlmostEqual(r.recommended_radial_stock_in / 0.0005, round(r.recommended_radial_stock_in / 0.0005), places=6)
+        self.assertGreaterEqual(r.recommended_axial_stock_in, 0.05 * mm - 1e-9)
+        tip = next(t for t in r.tips if t["title"] == "Stock to leave")
+        self.assertIn("for the finish pass", tip["message"])
+
+    def test_finishing_and_v1_have_no_stock_fields(self):
+        self.assertIsNone(run_cut(app.physics, req(0.25, 4, AL, "Finishing")).recommended_radial_stock_in)
+        self.assertIsNone(run_cut(app.physics, req(0.25, 4, AL, "Roughing", model="v1")).recommended_radial_stock_in)
+
+    def test_ceiling_wins_with_a_warning_on_a_tiny_tool(self):
+        r = run_cut(app.physics, req(0.010, 2, ST, "Slotting", coating="AlTiN"))
+        cut = r.v2["cut"]
+        self.assertLess(cut["fz_in"], 2.0 * cut["rubbing_limit_in"])
+        self.assertTrue(any(t["title"] == "Chip near the rubbing limit" for t in r.tips))
+
+    def test_engagement_source_is_user_only_when_explicit(self):
+        client = app.app.test_client()
+        client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
+        body = dict(family=AL, tool="Carbide Endmill", geometry="Square", operation="Roughing", diameter=0.25, flutes=4,
+                    fluteLength=0.75, stickout=1.0, shankDiameter=0.25, aggressiveness=50, maxRpm=16000, maxHp=10)
+        self.assertEqual(client.post("/api/calculate", json=dict(body, model="v1")).get_json()["engagement_source"],
+                         "recommended")
+        r = client.post("/api/calculate", json=dict(body, model="v1", cutDepth=0.2, cutWidth=0.1)).get_json()
+        self.assertEqual(r["engagement_source"], "user")
+        self.assertIn("recommended_radial_stock_in", r)
+
+    def test_adaptive_call_is_fast_when_warm(self):
+        import time
+        import v2_bridge
+        run_cut(app.physics, req(0.25, 4, ST, "Adaptive Roughing", coating="AlTiN"))
+        v2_bridge._CACHE.clear()
+        t0 = time.time()
+        run_cut(app.physics, req(0.25, 4, ST, "Adaptive Roughing", coating="AlTiN"))
+        self.assertLess(time.time() - t0, 2.0)
 
 
 class TestEndpoints(unittest.TestCase):

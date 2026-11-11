@@ -4,10 +4,11 @@ Tools: 2-flute 0.010", 0.020", 1/32", 1/16" and 3-4 flute 1/8", 1/4" (the 1/8" h
 adaptive roughing and slotting, on the built-in Speedio (16k) profile, aggressiveness 50 %, no user engagement
 (the optimizer's own recommendation).
 
-  (a) feed is non-increasing as runout goes 0, 0.00005, 0.0001, 0.0002, 0.0005", and the step 0 -> 0.00005" changes
-      the feed by less than 15 %
+  (a) feed is non-increasing as runout goes 0, 0.00005, 0.0001, 0.0002, 0.0005", and the feed changes by less than 15 %
+      between TIR = 0 and TIR = 0.1 x fz(TIR = 0) (continuity relative to the chip, not to an absolute runout)
   (b) +10 % runout, stickout or aggressiveness changes the recommended depth, width and feed by less than 25 % each
-  (c) no result has a feed per tooth under twice the rubbing limit (the C1 minimum chip)
+  (c) no result has a feed per tooth under twice the rubbing limit (the C1 minimum chip), except where the vendor chip
+      ceiling is below that floor and wins; the "Chip near the rubbing limit" warning must then be present
   (d) adaptive width of cut is at most 0.40 x D
   (e) every case is feasible (v2 gives a cut, no "no safe cut")
 """
@@ -25,7 +26,7 @@ MATERIALS = (("Aluminum - Wrought (6061)", "Uncoated"), ("Steel - Medium Carbon 
 OPERATIONS = ("Adaptive Roughing", "Slotting")
 RUNOUTS = (0.0, 0.00005, 0.0001, 0.0002, 0.0005)
 BASE_RUNOUT = 0.0002
-STEP_MAX, PERTURB_MAX, AE_ADAPTIVE_MAX = 0.15, 0.25, 0.40
+CONTINUITY_MAX, PERTURB_MAX, AE_ADAPTIVE_MAX = 0.15, 0.25, 0.40
 
 
 def case_id(d, z, family, op):
@@ -47,7 +48,8 @@ def run_case(args):
     cut = (res.v2 or {}).get("cut") or {}
     return {"feasible": bool(res.feasible) and res.model == "v2", "note": res.model_note, "feed": res.feed_ipm,
             "ap": res.rec_doc, "ae": res.rec_woc, "fz": res.adj_ipt, "rpm": res.rpm, "D": d,
-            "rubbing": cut.get("rubbing_limit_in"), "flutes_cutting": getattr(res, "flutes_cutting", None)}
+            "rubbing": cut.get("rubbing_limit_in"), "flutes_cutting": getattr(res, "flutes_cutting", None),
+            "tips": [t.get("title") for t in res.tips]}
 
 
 def _run_all(jobs):
@@ -69,7 +71,12 @@ def sweep():
         keys.append((case, "stickout+10%", None))
         jobs.append((case, BASE_RUNOUT, 1.0, 0.55))
         keys.append((case, "aggressiveness+10%", None))
-    return dict(zip(keys, _run_all(jobs)))
+    out = dict(zip(keys, _run_all(jobs)))
+    # Continuity: runout = 0.1 x the chip load at zero runout.
+    jobs2 = [(case, 0.1 * out[(case, "runout", 0.0)]["fz"], 1.0, 0.5) for case in CASES]
+    for case, r in zip(CASES, _run_all(jobs2)):
+        out[(case, "chip-relative", None)] = r
+    return out
 
 
 def _ids():
@@ -81,7 +88,8 @@ def test_feed_is_non_increasing_in_runout(sweep, case):
     feeds = [sweep[(case, "runout", ro)]["feed"] for ro in RUNOUTS]
     for (r0, f0), (r1, f1) in zip(zip(RUNOUTS, feeds), zip(RUNOUTS[1:], feeds[1:])):
         assert f1 <= f0 * 1.005, f"feed rises from {f0:.3f} at runout {r0} to {f1:.3f} at {r1}: {feeds}"
-    assert abs(feeds[1] - feeds[0]) / feeds[0] < STEP_MAX, f"runout 0 -> 0.00005\" changes the feed {feeds[0]:.3f} -> {feeds[1]:.3f}"
+    c = sweep[(case, "chip-relative", None)]["feed"]
+    assert abs(c - feeds[0]) / feeds[0] < CONTINUITY_MAX, f"TIR 0 -> 0.1 x fz changes the feed {feeds[0]:.3f} -> {c:.3f}"
 
 
 @pytest.mark.parametrize("case", CASES, ids=_ids())
@@ -101,6 +109,8 @@ def test_every_case_is_feasible_and_not_starved(sweep, case):
         r = sweep[(case, "runout", ro)]
         assert r["feasible"], f"runout {ro}: {r['note']}"
         assert r["rubbing"], "v2 cut must report its rubbing limit"
-        assert r["fz"] >= 2.0 * r["rubbing"] * 0.999, f"runout {ro}: fz {r['fz']:.6f} under 2 x rubbing {r['rubbing']:.6f}"
+        if r["fz"] < 2.0 * r["rubbing"] * 0.999:
+            assert "Chip near the rubbing limit" in r["tips"], (
+                f"runout {ro}: fz {r['fz']:.6f} under 2 x rubbing {r['rubbing']:.6f} without the warning")
         if case[4] == "Adaptive Roughing":
             assert r["ae"] <= AE_ADAPTIVE_MAX * r["D"] + 1e-9, f"runout {ro}: ae/D {r['ae'] / r['D']:.2f}"

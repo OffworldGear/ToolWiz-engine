@@ -119,8 +119,9 @@ AE_SANITY = 0.02
 # C11, empirical: the feed an adaptive toolpath sustains on the user's machine (short arcs, direction
 # changes, look-ahead), user-settable. Not the control's programmed maximum.
 EFFECTIVE_ADAPTIVE_FEED_IPM = 200.0
-# C3 for roughing, adaptive and slots (user decision 2026-10-16): wall-normal deflection ≤ STOCK_FRACTION ×
-# the radial stock to leave (default 0.05 mm, user-settable; the user typically leaves 0.05–0.1 mm).
+# Stock to leave (V3 round 2): C3 for roughing, adaptive and slots is k·D only; the stock the finishing pass needs is
+# reported (recommended_radial_stock_in) from the predicted deflection. STOCK_TO_LEAVE_IN/STOCK_FRACTION remain only as
+# the unused legacy option `stock_to_leave_in`.
 STOCK_TO_LEAVE_IN = 0.05 / 25.4
 STOCK_FRACTION = 0.5
 CHIP_LIMITS_PATH = None  # set below, next to LIMITS_PATH
@@ -152,8 +153,8 @@ SRC = {
     "C2": "Chip invariant (user decision 2026-10-16): worst-flute h_max ≤ the vendor median of worst-flute "
           "h_max/D in this diameter band (eccentric runout 0.0002\", 246 vendor side/rough/HEM rows on their own "
           "geometry; data/model_v2/chip_limits.json, tools/v2_invariants.py), scaled by aggressiveness",
-    "C3": "Rough/adaptive/slot (user decision 2026-10-16): wall-normal tip deflection ≤ 50 % of the radial "
-          "stock to leave (default 0.05 mm). Finishing: the user's wall tolerance (default 0.005 mm)",
+    "C3": "Rough/adaptive/slot (planner decision, V3 round 2): wall-normal tip deflection ≤ k·D, k = 0.5 % + 1.0 % × "
+          "aggressiveness. Finishing: the user's wall tolerance (default 0.005 mm)",
     "C4": "Carbide fatigue at 10⁷ cycles, fully reversed bending: 0.375 × TRS 3.8 GPa = 1425 MPa "
           "(0.35–0.4 × TRS; Schleinkofer 1996, Kursawe 2001 via Preis 2004; CERATIZIT TRS), on the fluted "
           "section shared with C3, scaled by aggressiveness (user decision 2026-10-16)",
@@ -226,6 +227,11 @@ AE_ROUGH_MAX_OVER_D, AE_ADAPTIVE_MIN_OVER_D = 0.50, 0.05
 # Chip-load floor (check C14lo): fz ≥ this × the vendor-consensus median fz of the bucket, else 2 × the rubbing limit.
 CHIP_FLOOR_FRACTION, CHIP_FLOOR_RUBBING_FACTOR, CHIP_FLOOR_CEILING_FRACTION = 0.5, 2.0, 0.8
 FLOOR_HIRES_SCALE = 0.95
+# Search resolution (coarse-to-fine, V3 round 2): the grid and fz tolerances of the candidate search; the final cut is
+# re-checked at HIRES_THETA x HIRES_QUAD rotation and quadrature samples with fz placed to HIRES_FZ_TOL.
+SEARCH_FZ_TOL, SEARCH_LOWER_TOL, SEARCH_PHASES = 0.01, 0.05, 8
+SEARCH_THETA, SEARCH_QUAD, SEARCH_GRID = 72, 24, (7, 5)
+HIRES_THETA, HIRES_QUAD, HIRES_FZ_TOL = 360, 64, 0.004
 # Vendor depth caps at aggressiveness a: p25 (a = 0) → median (a = 0.5) → max (a = 1.0), in ap/D.
 DEPTH_CAP_POINTS = (("p25", 0.0), ("median", 0.5), ("max", 1.0))
 # Which engagement-envelope operation each optimizer operation reads.
@@ -276,14 +282,17 @@ def envelope_bucket(table, family, hb, D_in, operation):
 
 def depth_cap_over_D(bucket, aggressiveness, what="ap_over_D"):
     """Vendor depth cap ap/D (or, with what="ae_over_D", the width cap ae/D) at aggressiveness a: p25 at 0, the
-    median at 0.5, the max at 1 (linear between)."""
+    median at 0.5, the max at 1 (geometric between)."""
     if not bucket:
         return None
     pts = [(a, bucket[what][k]) for k, a in DEPTH_CAP_POINTS]
     a = min(max(aggressiveness, 0.0), 1.0)
     for (a0, v0), (a1, v1) in zip(pts, pts[1:]):
         if a <= a1:
-            return v0 + (v1 - v0) * (a - a0) / (a1 - a0)
+            t = (a - a0) / (a1 - a0)
+            if v0 > 0 and v1 > 0:
+                return v0 * (v1 / v0) ** t   # geometric, so a wide median-to-max spread does not make the cap jumpy
+            return v0 + (v1 - v0) * t
     return pts[-1][1]
 
 
@@ -1301,7 +1310,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
                    "wall_metric": "ripple", "consensus": None, "envelope": None, "chip_floor": None,
-                   "user_engagement": False}
+                   "user_engagement": False, "n_phases": None}
 
 
 class _Context:
@@ -1351,10 +1360,13 @@ class _Context:
         self.coeffs = material.coefficients(tool.rake_deg)
         self.lam = margins.lambda_value if margins.lambda_value is not None else material.lam(margins.aggressiveness)
         tir_mm = machine.tir_in * MM_PER_IN
+        self.n_phases = o["n_phases"] or N_RUNOUT_PHASES
+        self._ctabs = {}   # compliance tables by ap, shared by every CutPoint of this context
+        self.last_fz_hi = None   # the previous window's top, the start of the next search
         if machine.runout_model == "eccentric" and tir_mm > 0:
             self.phase_offsets = [forces.runout_offsets(tir_mm, tool.z, "eccentric",
-                                                        2.0 * math.pi / tool.z * i / N_RUNOUT_PHASES)
-                                  for i in range(N_RUNOUT_PHASES)]
+                                                        2.0 * math.pi / tool.z * i / self.n_phases)
+                                  for i in range(self.n_phases)]
         else:
             self.phase_offsets = [forces.runout_offsets(tir_mm, tool.z, machine.runout_model)]
         self.offsets_bound = forces.runout_offsets(tir_mm, tool.z, "bound")
@@ -1398,13 +1410,10 @@ class _Context:
                                 f"(user-set; a target, not pass/fail)")
         else:
             from physics_v2 import params
-            stock_term = STOCK_FRACTION * o["stock_to_leave_in"]
             k_d = params.c3_k(margins.aggressiveness)
-            self.delta_allow = min(stock_term, k_d * tool.D)
-            self.delta_basis = (f"{STOCK_FRACTION:.0%} of the radial stock to leave "
-                                f"{o['stock_to_leave_in'] * MM_PER_IN:.3f} mm = {stock_term:.5f}\"; "
-                                f"diameter term {k_d:.2%}·D = {k_d * tool.D:.5f}\" "
-                                f"({'diameter' if k_d * tool.D < stock_term else 'stock'} term governs)")
+            self.delta_allow = k_d * tool.D
+            self.delta_basis = (f"{k_d:.2%} of the diameter (k = 0.5 % + 1.0 % × aggressiveness; planner decision, "
+                                f"round 2: no fixed stock-to-leave term; true-to-size comes from the finishing pass)")
         # C4
         fatigue = tool.fatigue_fraction * tool.trs_mpa
         if o["stress_limit"] is not None:
@@ -1562,9 +1571,12 @@ class CutPoint:
     def _compliance(self, a_in):
         """∫ (x − a)·x/I dx for a load at a (tip deflection), interpolated on a table over [0, ap]."""
         if self._ctab is None:
-            t, n = self.ctx.tool, 40
-            self._ctab = [compliance_integral(t.segments, self.ap * i / n, 0.0, t.z, t.helix_deg)
-                          for i in range(n + 1)]
+            key = round(self.ap, 9)
+            if key not in self.ctx._ctabs:
+                t, n = self.ctx.tool, 40
+                self.ctx._ctabs[key] = [compliance_integral(t.segments, self.ap * i / n, 0.0, t.z, t.helix_deg)
+                                        for i in range(n + 1)]
+            self._ctab = self.ctx._ctabs[key]
         n = len(self._ctab) - 1
         x = min(max(a_in / self.ap * n, 0.0), n)
         i = min(int(x), n - 1)
@@ -1684,11 +1696,16 @@ class CutPoint:
             if cons_floor > floor:
                 floor, basis = cons_floor, (f"{CHIP_FLOOR_FRACTION:.0%} of the vendor-consensus median "
                                             f"{self.cons['fz_over_D'] * ctx.tool.D:.6f}\" ({self.cons['key']})")
+        # The ceiling wins: the floor never rises above 80 % of the vendor chip ceiling (C2 nominal chip, C14f).
+        ceilings = []
         if ctx.c2_basis == "nominal":
-            # The floor never rises above 80 % of the nominal-chip ceiling (C2), or the window would close on micro tools.
-            ceiling = ctx.h_nominal * ctx.mg.limit_scale / forces.max_chip_thickness(1.0, self.ae_mm, self.D_mm) / MM_PER_IN
-            if floor > CHIP_FLOOR_CEILING_FRACTION * ceiling:
-                floor, basis = CHIP_FLOOR_CEILING_FRACTION * ceiling, f"{CHIP_FLOOR_CEILING_FRACTION:.0%} of the C2 chip ceiling"
+            ceilings.append(ctx.h_nominal * ctx.mg.limit_scale / forces.max_chip_thickness(1.0, self.ae_mm, self.D_mm)
+                            / MM_PER_IN)
+        if self.cons:
+            ceilings.append(ctx.mg.consensus_cap_scale * self.cons["fz_over_D"] * ctx.tool.D)
+        if ceilings and floor > CHIP_FLOOR_CEILING_FRACTION * min(ceilings):
+            floor = CHIP_FLOOR_CEILING_FRACTION * min(ceilings)
+            basis = f"{CHIP_FLOOR_CEILING_FRACTION:.0%} of the vendor chip ceiling (the ceiling wins)"
         return Check("C14lo", "chip-load floor", "min", fz_in, floor, "in", SRC["C14lo"],
                      detail=f"fz {fz_in:.6f}\" vs floor {floor:.6f}\": {basis}")
 
@@ -1784,27 +1801,41 @@ class CutPoint:
         return out
 
     # --- fz window -------------------------------------------------------
-    def fz_window(self, rel_tol=0.002):
-        """(fz_lo, fz_hi) in inches: the smallest fz meeting C1/C10 and the largest meeting C2–C5, C11.
+    def fz_window(self, rel_tol=0.002, lower_tol=None):
+        """(fz_lo, fz_hi) in inches: the smallest fz meeting C1/C10/C14lo and the largest meeting C2–C5, C11.
 
         None when the geometry fails (C6, C7, C8, C12, C13) or C1/C10 cannot be met below FZ_MAX_IN; fz_hi
         is None when the upper limits already fail at fz_lo. self.fz_capped is True when fz_hi stopped at
-        FZ_MAX_IN, the search's explicit ceiling, rather than at a constraint.
+        FZ_MAX_IN, the search's explicit ceiling, rather than at a constraint. lower_tol: the tolerance of the
+        fz_lo search (default rel_tol). The upper search starts from the previous window of this context.
         """
         self.fz_capped = False
         if not self.geometry_ok():
             return None
-        fz_lo = _bisect_min(self.lower_ok, 1e-7, FZ_MAX_IN, rel_tol)
+        fz_lo = _bisect_min(self.lower_ok, 1e-7, FZ_MAX_IN, lower_tol or rel_tol)
         if fz_lo is None:
             return None
         if not self.upper_ok(fz_lo):
             return (fz_lo, None)
-        lo, hi = fz_lo, fz_lo * 2.0
-        while hi < FZ_MAX_IN and self.upper_ok(hi):
-            lo, hi = hi, hi * 2.0
+        hint = self.ctx.last_fz_hi
+        if hint and hint > fz_lo:
+            if self.upper_ok(hint):
+                lo, hi = hint, hint * 1.5
+                while hi < FZ_MAX_IN and self.upper_ok(hi):
+                    lo, hi = hi, hi * 1.5
+            else:
+                hi, lo = hint, hint / 1.5
+                while lo > fz_lo and not self.upper_ok(lo):
+                    hi, lo = lo, lo / 1.5
+                lo = max(lo, fz_lo)
+        else:
+            lo, hi = fz_lo, fz_lo * 2.0
+            while hi < FZ_MAX_IN and self.upper_ok(hi):
+                lo, hi = hi, hi * 2.0
         if hi >= FZ_MAX_IN:
             if self.upper_ok(FZ_MAX_IN):
                 self.fz_capped = True
+                self.ctx.last_fz_hi = FZ_MAX_IN
                 return (fz_lo, FZ_MAX_IN)
             hi = FZ_MAX_IN
         while hi / lo > 1.0 + rel_tol:
@@ -1813,6 +1844,7 @@ class CutPoint:
                 lo = mid
             else:
                 hi = mid
+        self.ctx.last_fz_hi = lo
         return (fz_lo, lo)
 
     def mrr_in3_min(self, fz_in):
@@ -1885,6 +1917,10 @@ def _report(pt, fz_in, checks, f, beam, chips):
         rub = sum(1 for h in chips["c1"] if h < h_min)
         warnings.append(f"WARNING: {rub} flute(s) rub (chip {min(chips['c1']) / MM_PER_IN:.6f}\" under h_min "
                         f"{h_min / MM_PER_IN:.6f}\"); C1 is checked on the {ctx.c1_flute} flute only")
+    if cut["fz_in"] < CHIP_FLOOR_RUBBING_FACTOR * cut["rubbing_limit_in"] and ctx.op != "finish":
+        warnings.append(f"chip near the rubbing limit: fz {fz_in:.6f}\" is under twice the minimum chip "
+                        f"{cut['rubbing_limit_in']:.6f}\" (the vendor chip ceiling is below the floor and wins); a low-runout "
+                        f"holder and/or a higher spindle speed would help")
     if n_cut < n_flutes:
         warnings.append(f"reduced flutes: only {n_cut} of {n_flutes} flutes form a chip at fz {fz_in:.6f}\" with TIR "
                         f"{ctx.mach.tir_in:.5f}\" (the others rub); all flutes cut at TIR ≤ "
@@ -1975,7 +2011,7 @@ def _parameters(tool, material, machine, mg, ctx):
 
 def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, *, margins=None,
              stock=None, wall_height=None, level_time_s=None, path_length_per_level_in=None,
-             depth_trade=DEPTH_TRADE_MRR, grid=(20, 16), ae_max=AE_MAX, n_theta=144, n_quad=48,
+             depth_trade=DEPTH_TRADE_MRR, grid=SEARCH_GRID, ae_max=AE_MAX, n_theta=SEARCH_THETA, n_quad=SEARCH_QUAD,
              robustness=True, robust=True, flat_tol=0.05, find_tir=True, select_tir_in=None, **opts):
     """Choose fz, ap and ae for one operation (inches). Speed comes from C7 for each engagement.
 
@@ -2006,12 +2042,13 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
     ae needs a long toolpath (1/(ap·ae) inches per in³), and once the feed is capped that path costs time.
     """
     mg = margins or Margins(aggressiveness)
-    ctx = _Context(tool, material, machine, operation, mg, n_theta, n_quad, **opts)
+    search_opts = dict(opts) if operation == "finish" else dict(opts, n_phases=opts.get("n_phases") or SEARCH_PHASES)
+    ctx = _Context(tool, material, machine, operation, mg, n_theta, n_quad, **search_opts)
     sel_machine = machine
     if select_tir_in is not None and operation != "finish" and abs(machine.tir_in - select_tir_in) > 1e-12:
         sel_machine = replace(machine, tir_in=select_tir_in)
     ctx_s = ctx if sel_machine is machine else _Context(tool, material, sel_machine, operation, mg, n_theta, n_quad,
-                                                        **opts)
+                                                        **search_opts)
     depth = ctx.depth
     D, lcf = tool.D, tool.lcf
     ap_max = min(x for x in (lcf, ctx.flute_exposed or lcf, depth) if x)
@@ -2163,21 +2200,25 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             # The engagement was ranked at the reference runout; take the best-ranked one that is feasible at the
             # actual runout (fz and every check there).
             actual = []
-            for c in ranked:
+            for i, c in enumerate(ranked):
                 ca = _candidate(ctx, c["ap"], c["ae"], level_time_s, path_length_per_level_in)[0]
+                if ca is None and i == 0 and not depth:
+                    # Shrink the chosen depth continuously toward feasibility rather than jump to another candidate.
+                    ca = _shrink_ap(ctx, c, level_time_s, path_length_per_level_in)
                 if ca is not None:
                     actual.append(ca)
-                if len(actual) >= 8:
+                if len(actual) >= 4:
                     break
             if not actual:
                 return again(select_tir_in=None)
-            if actual[0]["ap"] != chosen["ap"] or actual[0]["ae"] != chosen["ae"]:
-                rule += (f"; the reference-runout choice is infeasible at the actual runout, so the next-best "
-                         f"engagement is taken")
+            if abs(actual[0]["ap"] - chosen["ap"]) > 1e-12 or abs(actual[0]["ae"] - chosen["ae"]) > 1e-12:
+                rule += (f"; the reference-runout choice is infeasible at the actual runout, so the depth is reduced "
+                         f"to {actual[0]['ap']:.5f}\" (ae {actual[0]['ae']:.5f}\")")
             ranked, chosen = actual, actual[0]
         attempts_ranked = ranked
 
-    ctx_hi = _Context(tool, material, machine, operation, mg, 720, 96, **opts)
+    hi_theta, hi_quad = (720, 96) if operation == "finish" else (HIRES_THETA, HIRES_QUAD)
+    ctx_hi = _Context(tool, material, machine, operation, mg, hi_theta, hi_quad, **opts)
     ctx_hi.floor_scale = FLOOR_HIRES_SCALE   # the search and full-resolution windows differ by a percent or two
 
     def hires(c):
@@ -2186,6 +2227,29 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         checks_s, _, _, _ = c["pt"].checks(fz)
         binding, resolution = _binding(checks_s), f"search ({n_theta} rotation samples)"
         pt_hi = CutPoint(ctx_hi, c["ap"], c["ae"], c["pt"].rpm)
+        if operation != "finish":
+            ctx_hi.last_fz_hi = c["fz"]
+            # fz is placed on the full-resolution window (a few samples of the force integral, not a search).
+            win = pt_hi.fz_window(HIRES_FZ_TOL, 0.02)
+            if not (win and win[1]) and not depth and c["ap"] > 0:
+                # The window closes at full resolution: shrink the depth continuously until it opens.
+                lo_f, hi_f, found = 0.3, 1.0, None
+                for _ in range(7):
+                    mid = 0.5 * (lo_f + hi_f)
+                    p2 = CutPoint(ctx_hi, c["ap"] * mid, c["ae"], c["pt"].rpm)
+                    w2 = p2.fz_window(HIRES_FZ_TOL, 0.02)
+                    if w2 and w2[1]:
+                        lo_f, found = mid, (p2, w2)
+                    else:
+                        hi_f = mid
+                if found:
+                    pt_hi, win = found
+                    c["ap"] = pt_hi.ap
+            if win and win[1]:
+                fz = max(win[1], win[0])
+            checks, f, beam, chips = pt_hi.checks(fz)
+            return (fz, checks, f, beam, chips, _binding(checks),
+                    f"full ({hi_theta} rotation samples), fz placed on the window", pt_hi)
         checks, f, beam, chips = pt_hi.checks(fz)
         if not all(k.ok for k in checks.values()):
             win = pt_hi.fz_window()
@@ -2256,7 +2320,7 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
 
 
 def evaluate_user_engagement(tool, material, machine, operation, ap_in, ae_in, aggressiveness=0.5, *, margins=None,
-                             n_theta=720, n_quad=96, **opts):
+                             n_theta=HIRES_THETA, n_quad=HIRES_QUAD, **opts):
     """Speed and feed for the user's own engagement (inches): the optimizer's recommendation is not used.
 
     rpm is C7's speed for this ae (capped by C14v); fz is the highest value every limit allows, which already
@@ -2330,7 +2394,7 @@ def ae_bounds(ctx, ae_max=AE_MAX, is_micro_rough=False):
 def _candidate(ctx, ap, ae, level_time_s=None, path_len=None):
     """(candidate, None, win, pt) for a feasible (ap, ae), else (None, eliminating checks, win, pt)."""
     pt = CutPoint(ctx, ap, ae)
-    win = pt.fz_window()
+    win = pt.fz_window(SEARCH_FZ_TOL, SEARCH_LOWER_TOL)
     if win is None or win[1] is None:
         return None, _eliminators(pt, win), win, pt
     fz = win[1]
@@ -2408,7 +2472,24 @@ class _Selector:
         return pen
 
 
-def _refine(ctx, chosen, cands, selector, level_time_s, path_len, var, bounds, iters=12):
+def _shrink_ap(ctx, c, level_time_s, path_len, iters=10):
+    """The deepest feasible ap below c's (same ae), found by bisection on the depth scale; None when even a
+    sliver is infeasible. Feasibility only worsens with depth, so the result moves continuously with the inputs."""
+    lo_f, hi_f = 0.02, 1.0
+    best = _candidate(ctx, c["ap"] * lo_f, c["ae"], level_time_s, path_len)[0]
+    if best is None:
+        return None
+    for _ in range(iters):
+        mid = 0.5 * (lo_f + hi_f)
+        cand = _candidate(ctx, c["ap"] * mid, c["ae"], level_time_s, path_len)[0]
+        if cand is None:
+            hi_f = mid
+        else:
+            lo_f, best = mid, cand
+    return best
+
+
+def _refine(ctx, chosen, cands, selector, level_time_s, path_len, var, bounds, iters=8):
     """Golden-section search (log scale) on ap or ae of the chosen candidate between its grid neighbours, to take the
     result off the grid node: minimizes the selector's objective. Never returns a worse candidate."""
     key = var

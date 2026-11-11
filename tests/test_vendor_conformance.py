@@ -1,36 +1,36 @@
-"""Vendor conformance: the v2 engine at aggressiveness 50 % against the published ranges (V3 plan, "Acceptance test").
+"""Vendor conformance: the v2 engine at aggressiveness 50 % against the published ranges (V3 plan, "Acceptance test",
+as redefined by the planner in round 2).
 
 Data: every tests/benchmarks/v2/*.json file (rows added later are picked up). Machine: machines/test_generic_60k.json
-(60,000 rpm, ample power, the Speedio's holder stiffness), runout 0.0002", model v2, aggressiveness 0.5. Vendor
-tool geometry comes from the row (DC, LCF, flutes, helix, SFDM); stickout = LB when given, else LCF + 0.5 x SFDM.
-The material is the row's own family at the row's own hardness (the alloy lookup is replaced by the row's HB).
+(60,000 rpm, ample power, the Speedio's holder stiffness), runout 0.0002", model v2, aggressiveness 0.5. The tool is the
+group's median geometry (median DC, LCF, flutes, helix, SFDM; stickout = median LB when published, else LCF + 0.5 x SFDM),
+the material the family at the group's median hardness.
 
-1. Fixed engagement, per row (operations slot, side, hem, rough). The request carries the row's own ap and ae.
-   Pass when SFM is within [0.75 x vendor min, 1.25 x vendor max] and fz within [0.60 x vendor min,
-   1.25 x vendor max] (min = max = nominal when only a nominal is published). Pass rate >= 90 % overall and
-   >= 85 % for each operation and for tools at or below 1/16".
-2. Recommended engagement, per cell. Cell = (material family, operation, diameter band) with >= 3 rows. The
-   request carries no depth or width; the engine's ae/D must lie within [0.8 x cell min, 1.25 x cell max]
-   (operations side, hem, rough) and its ap/D within [0.5 x cell min, 1.25 x cell max] (slot, hem). The engine's
-   value for a cell is the median over the (sampled) rows of the cell, each run on its own tool and material.
-   Pass rate >= 85 % of cells.
+1. Fixed engagement, per GROUP. Rows are grouped by (material family, operation, diameter band, engagement class), engagement
+   class = slot (ae = D) | ae/D <= 0.10 | 0.10-0.30 | 0.30-0.60 | > 0.60; a group needs >= 2 rows. The engine runs once per
+   group with the user's engagement at the group's median ap/D and ae/D. Pass when SFM is within [0.75 x group min,
+   1.25 x group max] and fz within [0.60 x group min, 1.25 x group max], the min/max spanning every row's min, nominal and max
+   values. When the group's minimum SFM needs more than the machine's 60,000 rpm at that diameter, SFM is compared against the
+   achievable value instead (reported as spindle-limited). Pass rate >= 90 % of groups overall, >= 85 % per operation and
+   >= 85 % of the groups whose median diameter is at or below 1/16".
+2. Recommended engagement, per cell (family, operation, diameter band; >= 3 rows). The request carries no depth or width,
+   on the cell's median geometry; the engine's ae/D must lie within [0.8 x cell min, 1.25 x cell max] (side, hem, rough) and
+   its ap/D within [0.5 x cell min, 1.25 x cell max] (slot, hem). Pass rate >= 85 % of cells.
+3. Diagnostic, not gated: per-row fixed-engagement pass rates on a stratified sample of rows (TOOLWIZ_CONFORMANCE_ROWS = rows
+   per cell, default 1; 0 skips; TOOLWIZ_FULL_CONFORMANCE=1 runs every row).
 
-Scope: square-end carbide rows of the families the v2 model is calibrated for; other rows (corner radius, cast iron,
-graphite, copper, cast aluminum, ...) run on v1 and are counted in the printed summary only.
+Scope: square-end carbide rows of the families the v2 model is calibrated for; other rows run on v1 and are not counted.
+These tolerances and thresholds are fixed by the planner; do not change them to make the test pass.
 
-The full set is slow, so by default a deterministic stratified sample runs: every cell, up to SAMPLE_PER_CELL rows
-each (evenly spaced over the cell's rows sorted by id). TOOLWIZ_FULL_CONFORMANCE=1 runs every row. These tolerances
-are fixed by the planner; do not change them to make the test pass.
-
-Environment (diagnostics only; none changes a tolerance): TOOLWIZ_CONFORMANCE_PER_CELL (rows per cell in the sample,
-default 5), TOOLWIZ_CONFORMANCE_WORKERS (processes, default one per core up to 8), TOOLWIZ_CONFORMANCE_DUMP (path of a
-JSON file that receives every row's result). The run takes about 15 minutes on four idle cores; `pytest -k summary -s`
-prints the pass rates and the failure tables without asserting.
+Environment (diagnostics only): TOOLWIZ_CONFORMANCE_WORKERS (processes, default one per core up to 8),
+TOOLWIZ_CONFORMANCE_DUMP (path of a JSON file that receives every result). `pytest -k summary -s` prints the pass rates and
+the failure tables without asserting.
 """
 import collections
 import concurrent.futures
 import glob
 import json
+import math
 import multiprocessing
 import os
 import statistics
@@ -51,7 +51,6 @@ import v2_provisional_limits as pl  # noqa: E402
 BENCH_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2")
 PROFILE_PATH = os.path.join(ROOT, "machines", "test_generic_60k.json")
 FULL = os.environ.get("TOOLWIZ_FULL_CONFORMANCE") == "1"
-SAMPLE_PER_CELL = int(os.environ.get("TOOLWIZ_CONFORMANCE_PER_CELL") or 5)
 
 OPERATIONS = ("slot", "side", "hem", "rough")
 OP_NAME = {"slot": "Slotting", "side": "Roughing", "rough": "Roughing", "hem": "Adaptive Roughing"}
@@ -115,142 +114,197 @@ def rng(v):
     return lo, hi
 
 
-def request_for(row, profile, recommended):
-    t, c = row["tool"], row["cut"]
-    D, lcf = float(t["DC"]), float(t["LCF"])
-    shank = float(t.get("SFDM") or D)
-    lb = t.get("LB")
-    stick = max(float(lb) if lb else lcf + 0.5 * shank, lcf)
-    neck = bool(lb) and float(lb) > lcf * 1.01
+ENGAGEMENT_CLASSES = (("slot", 0.99, 1e9), ("<=0.10", 0.0, 0.10), ("0.10-0.30", 0.10, 0.30), ("0.30-0.60", 0.30, 0.60),
+                       (">0.60", 0.60, 0.99))
+MAX_RPM = 60000.0
+MIN_GROUP_ROWS, MIN_CELL_ROWS = 2, 3
+
+
+def engagement_class(ae_over_d):
+    if ae_over_d >= 0.99:
+        return "slot"
+    for name, lo, hi in ENGAGEMENT_CLASSES[1:]:
+        if lo < ae_over_d <= hi or (lo == 0.0 and ae_over_d <= hi):
+            return name
+    return ">0.60"
+
+
+def group_of(row):
+    d = float(row["tool"]["DC"])
+    return (row["material"]["toolwiz_family"], row["operation"], band_of(d),
+            engagement_class(float(row["cut"]["ae"]) / d))
+
+
+def med(vals):
+    vals = [v for v in vals if v is not None]
+    return statistics.median(vals) if vals else None
+
+
+def span(rows, key):
+    """(min, max) over every row's min, nominal and max values of cut[key]."""
+    vals = [v for r in rows for v in (r["cut"][key].get("min"), r["cut"][key].get("nominal"), r["cut"][key].get("max"))
+            if v is not None]
+    return min(vals), max(vals)
+
+
+def median_tool(rows):
+    """Median geometry of the rows: (DC, LCF, flutes, helix, SFDM, stickout, neck, hardness HB, coating)."""
+    D = med([float(r["tool"]["DC"]) for r in rows])
+    lcf = med([float(r["tool"]["LCF"]) for r in rows])
+    shank = med([float(r["tool"].get("SFDM") or r["tool"]["DC"]) for r in rows])
+    lb = med([float(r["tool"]["LB"]) for r in rows if r["tool"].get("LB")])
+    stick = max(lb if lb else lcf + 0.5 * shank, lcf)
+    neck = bool(lb) and lb > lcf * 1.01
+    flutes = int(round(med([int(r["tool"]["flutes"]) for r in rows])))
+    helix = med([float(r["tool"].get("helix_deg") or 35.0) for r in rows])
+    hb = med([pl.row_hb(r["material"].get("hardness")) for r in rows])
+    coat = collections.Counter(r["tool"].get("coating") or "Uncoated" for r in rows).most_common(1)[0][0]
+    return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, flutes=flutes, helix=helix, hb=hb, coating=coat)
+
+
+def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
+    """A v2 request on the rows' median tool; ap_over_d / ae_over_d None: the engine recommends the engagement."""
+    g = median_tool(rows)
+    D = g["D"]
     return CutRequest(
-        family=row["material"]["toolwiz_family"], alloy="vendor row", tool="HP Carbide Endmill",
-        coating=t.get("coating") or "Uncoated", geometry="Square", operation=OP_NAME[row["operation"]],
-        diameter=D, flutes=int(t["flutes"]), flute_length=lcf, shank_diameter=shank,
-        has_relieved_neck=neck, neck_diameter=float(t.get("neck_diameter") or D) if neck else None,
-        neck_length=stick if neck else 0.5, helix_angle=float(t.get("helix_deg") or 35.0), stickout=stick,
-        aggressiveness=0.5, max_rpm=60000.0, max_hp=50.0, runout=0.0002,
-        cut_depth=None if recommended else min(float(c["ap"]), lcf),
-        cut_width=None if recommended else min(float(c["ae"]), D),
-        model="v2", machine_profile=profile)
+        family=rows[0]["material"]["toolwiz_family"], alloy="vendor group", tool="HP Carbide Endmill",
+        coating=g["coating"], geometry="Square", operation=OP_NAME[op], diameter=D, flutes=g["flutes"],
+        flute_length=g["lcf"], shank_diameter=g["shank"], has_relieved_neck=g["neck"],
+        neck_diameter=D if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
+        stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=0.0002,
+        cut_depth=None if ap_over_d is None else min(ap_over_d * D, g["lcf"]),
+        cut_width=None if ae_over_d is None else min(ae_over_d * D, D), model="v2", machine_profile=profile), g
 
 
-def run_row(args):
-    """Worker: one row -> a small result dict (picklable).
-
-    The request carries the row's own ap and ae (fixed engagement) unless recommended is True. The result holds
-    the speed and feed for that engagement and, in rec_doc / rec_woc, the engine's own recommendation for the
-    row's tool and material, which the per-cell test reads (so one run per row serves both tests).
-    """
-    row, recommended = args
+def run_job(args):
+    """Worker: ("engage"|"recommend", rows) -> a small result dict (picklable)."""
+    kind, rows = args
     with open(PROFILE_PATH, encoding="utf-8") as fh:
         profile = json.load(fh)
-    hb = pl.row_hb(row["material"].get("hardness"))
+    g = median_tool(rows)
     real = app.physics.resolve_alloy_hardness
-    app.physics.resolve_alloy_hardness = lambda family, alloy: hb
+    app.physics.resolve_alloy_hardness = lambda family, alloy: g["hb"]
     try:
-        res = run_cut(app.physics, request_for(row, profile, recommended))
-    except Exception as ex:   # a crash is a failed row, not a crashed run
-        return {"id": row["id"], "error": f"{type(ex).__name__}: {ex}"}
+        op = rows[0]["operation"]
+        if kind == "engage":
+            ap = med([float(r["cut"]["ap"]) / float(r["tool"]["DC"]) for r in rows])
+            ae = med([min(float(r["cut"]["ae"]) / float(r["tool"]["DC"]), 1.0) for r in rows])
+            req, _ = request_for(rows, op, profile, ap, ae)
+        else:
+            req, _ = request_for(rows, op, profile)
+        res = run_cut(app.physics, req)
+    except Exception as ex:   # a crash is a failed job, not a crashed run
+        return {"error": f"{type(ex).__name__}: {ex}"}
     finally:
         app.physics.resolve_alloy_hardness = real
-    D = float(row["tool"]["DC"])
-    return {"id": row["id"], "model": res.model, "feasible": bool(res.feasible), "sfm": res.sfm,
-            "fz": res.adj_ipt, "ap_over_D": res.rec_doc / D, "ae_over_D": res.rec_woc / D,
-            "engagement_source": res.engagement_source, "rec_ok": bool((res.v2 or {}).get("recommended")),
-            "limited_by": res.limited_by, "note": res.model_note}
+    D = g["D"]
+    return {"model": res.model, "feasible": bool(res.feasible), "sfm": res.sfm, "fz": res.adj_ipt, "rpm": res.rpm,
+            "ap_over_D": res.rec_doc / D, "ae_over_D": res.rec_woc / D, "limited_by": res.limited_by,
+            "rec_ok": bool((res.v2 or {}).get("recommended")), "source": res.engagement_source}
 
 
 def _pool_map(items):
     ctx = multiprocessing.get_context("fork")
     workers = int(os.environ.get("TOOLWIZ_CONFORMANCE_WORKERS") or max(1, min(os.cpu_count() or 1, 8)))
     with concurrent.futures.ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as ex:
-        return list(ex.map(run_row, items, chunksize=4))
+        return list(ex.map(run_job, items, chunksize=2))
 
 
 @pytest.fixture(scope="module")
 def conformance():
     t0 = time.time()
     families = set(params.load()["families"])
-    all_rows = load_rows()
-    rows = [r for r in all_rows if in_scope(r, families)]
+    rows = [r for r in load_rows() if in_scope(r, families)]
+    groups, cells = collections.defaultdict(list), collections.defaultdict(list)
+    for r in rows:
+        groups[group_of(r)].append(r)
+        cells[cell_of(r)].append(r)
+    groups = {k: v for k, v in groups.items() if len(v) >= MIN_GROUP_ROWS}
+    cells = {k: v for k, v in cells.items() if len(v) >= MIN_CELL_ROWS}
+    per_cell = int(os.environ.get("TOOLWIZ_CONFORMANCE_ROWS") or 1)
     by_cell = collections.defaultdict(list)
     for r in rows:
         by_cell[cell_of(r)].append(r)
-    sample = rows if FULL else stratified(by_cell, SAMPLE_PER_CELL)
+    diag = rows if FULL else (stratified(by_cell, per_cell) if per_cell > 0 else [])
 
-    fixed = {r["id"]: (r, out) for r, out in zip(sample, _pool_map([(r, False) for r in sample]))}
-    cells = {k: v for k, v in by_cell.items() if len(v) >= 3}
-    cell_sample = {k: [r for r in sample if cell_of(r) == k] for k in cells}
-    rec_out = {(k, r["id"]): fixed[r["id"]][1] for k in cells for r in cell_sample[k]}
-
+    gkeys, ckeys = sorted(groups), sorted(cells)
+    jobs = ([("engage", groups[k]) for k in gkeys] + [("recommend", cells[k]) for k in ckeys]
+            + [("engage", [r]) for r in diag])
+    out = _pool_map(jobs)
+    g_out = dict(zip(gkeys, out[:len(gkeys)]))
+    c_out = dict(zip(ckeys, out[len(gkeys):len(gkeys) + len(ckeys)]))
+    r_out = {r["id"]: o for r, o in zip(diag, out[len(gkeys) + len(ckeys):])}
     dump = os.environ.get("TOOLWIZ_CONFORMANCE_DUMP")
-    if dump:   # raw per-row results, for diagnosing failures without re-running the engine
+    if dump:
         with open(dump, "w", encoding="utf-8") as fh:
-            json.dump({rid: out for rid, (_, out) in fixed.items()}, fh)
-    info = {"rows_total": len(all_rows), "rows_in_scope": len(rows), "rows_run": len(sample),
-            "cells": len(cells), "mode": "full" if FULL else f"stratified sample (<= {SAMPLE_PER_CELL} per cell)",
-            "seconds": time.time() - t0}
-    return {"fixed": fixed, "cells": cells, "cell_sample": cell_sample, "rec": rec_out, "info": info}
+            json.dump({"groups": {"|".join(map(str, k)): v for k, v in g_out.items()},
+                       "cells": {"|".join(k): v for k, v in c_out.items()}, "rows": r_out}, fh)
+    info = {"rows_total": len(load_rows()), "rows_in_scope": len(rows), "groups": len(groups), "cells": len(cells),
+            "diag_rows": len(diag), "mode": "full" if FULL else "median-geometry groups", "seconds": time.time() - t0}
+    return {"groups": groups, "g_out": g_out, "cells": cells, "c_out": c_out, "rows": {r["id"]: r for r in diag},
+            "r_out": r_out, "info": info}
 
 
-def fixed_verdict(row, out):
-    """(passed, reason) for the fixed-engagement test."""
+def verdict(rows, out, d_override=None):
+    """(passed, reason, spindle_limited) of one engine result against the span of rows."""
     if "error" in out:
-        return False, "error: " + out["error"]
+        return False, "error: " + out["error"], False
     if out["model"] != "v2" or not out["feasible"]:
-        return False, f"v2 gave no cut ({out['limited_by'] or out['note']})"
-    c = row["cut"]
-    s_lo, s_hi = rng(c.get("sfm"))
-    f_lo, f_hi = rng(c.get("fz"))
+        return False, f"v2 gave no cut ({out['limited_by']})", False
+    s_lo, s_hi = span(rows, "sfm")
+    f_lo, f_hi = span(rows, "fz")
+    D = d_override or median_tool(rows)["D"]
+    achievable = math.pi * D * MAX_RPM / 12.0
+    limited = s_lo > achievable
+    if limited:
+        s_lo, s_hi = min(s_lo, achievable), min(s_hi, achievable)
     bad = []
     if out["sfm"] < SFM_LO * s_lo or out["sfm"] > SFM_HI * s_hi:
         bad.append(f"SFM {out['sfm']:.0f} not in [{SFM_LO * s_lo:.0f}, {SFM_HI * s_hi:.0f}]")
     if out["fz"] < FZ_LO * f_lo or out["fz"] > FZ_HI * f_hi:
         bad.append(f"fz {out['fz']:.5f} not in [{FZ_LO * f_lo:.5f}, {FZ_HI * f_hi:.5f}]")
-    return not bad, "; ".join(bad)
+    return not bad, "; ".join(bad), limited
+
+
+def group_report(c):
+    res = []
+    for key, rows in sorted(c["groups"].items()):
+        ok, why, limited = verdict(rows, c["g_out"][key])
+        res.append({"key": key, "n": len(rows), "ok": ok, "why": why, "limited": limited, "op": key[1],
+                    "micro": median_tool(rows)["D"] <= MICRO_MAX_D})
+    return res
+
+
+def group_table(res, limit=70):
+    bad = [r for r in res if not r["ok"]]
+    lines = [f"{len(bad)} failing groups of {len(res)} (first {min(limit, len(bad))}):"]
+    for r in bad[:limit]:
+        fam, op, band, cls = r["key"]
+        lines.append(f"  {fam[:30]:<30} {op:<5} {band:<9} {cls:<9} n {r['n']:>3}{' [spindle-limited]' if r['limited'] else ''}  {r['why']}")
+    return "\n".join(lines)
 
 
 def _rate(passed):
     return sum(passed) / len(passed) if passed else 1.0
 
 
-def fixed_report(conformance):
-    results = []
-    for rid, (row, out) in conformance["fixed"].items():
-        ok, why = fixed_verdict(row, out)
-        results.append({"row": row, "ok": ok, "why": why, "op": row["operation"],
-                        "micro": float(row["tool"]["DC"]) <= MICRO_MAX_D})
-    return results
-
-
-def failure_table(results, limit=60):
-    bad = [r for r in results if not r["ok"]]
-    lines = [f"{len(bad)} failing rows (first {min(limit, len(bad))}):"]
-    for r in bad[:limit]:
-        row = r["row"]
-        lines.append(f"  {row['id']:<70} D {float(row['tool']['DC']):.4f} {r['op']:<5} {r['why']}")
-    return "\n".join(lines)
-
-
-def cell_report(conformance):
+def cell_report(c):
     out = []
-    for key, rows in sorted(conformance["cells"].items()):
+    for key, rows in sorted(c["cells"].items()):
         fam, op, band = key
-        got = [conformance["rec"][(key, r["id"])] for r in conformance["cell_sample"][key]]
-        errs = [g for g in got if "error" in g or g["model"] != "v2" or not g["rec_ok"]]
-        entry = {"cell": key, "n_rows": len(rows), "n_run": len(got), "checks": [], "ok": True}
-        if len(errs) * 2 > len(got):
-            entry.update(ok=False, why=f"v2 gave no cut for {len(errs)} of {len(got)} rows")
+        got = c["c_out"][key]
+        entry = {"cell": key, "n_rows": len(rows), "checks": [], "ok": True}
+        if "error" in got or got["model"] != "v2" or not got["rec_ok"]:
+            entry.update(ok=False, why="v2 gave no recommendation")
             out.append(entry)
             continue
-        got = [g for g in got if g not in errs]
         for what, lo_f, hi_f, applies in (("ae/D", AE_LO, AE_HI, op != "slot"), ("ap/D", AP_LO, AP_HI, op in ("slot", "hem"))):
             if not applies:
                 continue
             idx = "ae" if what == "ae/D" else "ap"
-            vals = [r["cut"][idx] / float(r["tool"]["DC"]) for r in rows]
+            vals = [min(r["cut"][idx] / float(r["tool"]["DC"]), 1.0 if idx == "ae" else 1e9) for r in rows]
             lo, hi = lo_f * min(vals), hi_f * max(vals)
-            mine = statistics.median(g[f"{idx}_over_D"] for g in got)
+            mine = got[f"{idx}_over_D"]
             ok = lo <= mine <= hi
             entry["checks"].append((what, mine, lo, hi, ok))
             entry["ok"] &= ok
@@ -268,39 +322,49 @@ def cell_table(report):
     return "\n".join(lines)
 
 
+def row_diagnostic(c):
+    res = []
+    for rid, row in c["rows"].items():
+        ok, why, _ = verdict([row], c["r_out"][rid], float(row["tool"]["DC"]))
+        res.append((row["operation"], ok))
+    return res
+
+
 def test_conformance_summary(conformance, capsys):
-    results = fixed_report(conformance)
-    cells = cell_report(conformance)
-    by_op = {op: _rate([r["ok"] for r in results if r["op"] == op]) for op in OPERATIONS}
+    res, cells = group_report(conformance), cell_report(conformance)
+    by_op = {op: _rate([r["ok"] for r in res if r["op"] == op]) for op in OPERATIONS}
+    diag = row_diagnostic(conformance)
     with capsys.disabled():
         i = conformance["info"]
-        print(f"\nvendor conformance [{i['mode']}]: {i['rows_run']} of {i['rows_in_scope']} in-scope rows "
-              f"({i['rows_total']} in the dataset), {i['cells']} cells, {i['seconds']:.0f} s")
-        print(f"  fixed engagement: overall {_rate([r['ok'] for r in results]):.1%}; "
+        print(f"\nvendor conformance [{i['mode']}]: {i['groups']} groups and {i['cells']} cells from {i['rows_in_scope']} in-scope "
+              f"rows ({i['rows_total']} in the dataset), {i['seconds']:.0f} s")
+        print(f"  fixed engagement, groups: overall {_rate([r['ok'] for r in res]):.1%}; "
               + ", ".join(f"{op} {v:.1%}" for op, v in by_op.items())
-              + f"; micro <= 1/16\" {_rate([r['ok'] for r in results if r['micro']]):.1%}")
+              + f"; micro <= 1/16\" {_rate([r['ok'] for r in res if r['micro']]):.1%}; "
+              f"spindle-limited groups {sum(r['limited'] for r in res)}")
         print(f"  recommended engagement: {_rate([e['ok'] for e in cells]):.1%} of {len(cells)} cells")
-        print(failure_table(results))
+        print(f"  diagnostic (not gated), per-row fixed engagement on {len(diag)} rows: {_rate([ok for _, ok in diag]):.1%}")
+        print(group_table(res))
         print(cell_table(cells))
 
 
 def test_fixed_engagement_overall(conformance):
-    results = fixed_report(conformance)
-    rate = _rate([r["ok"] for r in results])
-    assert rate >= OVERALL_MIN, f"overall {rate:.1%} < {OVERALL_MIN:.0%}\n{failure_table(results)}"
+    res = group_report(conformance)
+    rate = _rate([r["ok"] for r in res])
+    assert rate >= OVERALL_MIN, f"overall {rate:.1%} of groups < {OVERALL_MIN:.0%}\n{group_table(res)}"
 
 
 @pytest.mark.parametrize("op", OPERATIONS)
 def test_fixed_engagement_per_operation(conformance, op):
-    results = [r for r in fixed_report(conformance) if r["op"] == op]
-    rate = _rate([r["ok"] for r in results])
-    assert rate >= PER_GROUP_MIN, f"{op}: {rate:.1%} < {PER_GROUP_MIN:.0%}\n{failure_table(results)}"
+    res = [r for r in group_report(conformance) if r["op"] == op]
+    rate = _rate([r["ok"] for r in res])
+    assert rate >= PER_GROUP_MIN, f"{op}: {rate:.1%} of groups < {PER_GROUP_MIN:.0%}\n{group_table(res)}"
 
 
 def test_fixed_engagement_micro_tools(conformance):
-    results = [r for r in fixed_report(conformance) if r["micro"]]
-    rate = _rate([r["ok"] for r in results])
-    assert rate >= PER_GROUP_MIN, f"tools <= 1/16\": {rate:.1%} < {PER_GROUP_MIN:.0%}\n{failure_table(results)}"
+    res = [r for r in group_report(conformance) if r["micro"]]
+    rate = _rate([r["ok"] for r in res])
+    assert rate >= PER_GROUP_MIN, f"groups <= 1/16\": {rate:.1%} < {PER_GROUP_MIN:.0%}\n{group_table(res)}"
 
 
 def test_recommended_engagement_cells(conformance):
