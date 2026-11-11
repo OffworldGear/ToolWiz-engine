@@ -85,6 +85,13 @@
    "url": "https://harveyperformance.widen.net/content/eg9ic5aejz/pdf/SF_43600.pdf",
    "date_accessed": "2026-11-11",
    "revision": null
+  },
+  {
+   "doc_id": "SF_867300",
+   "title": "Speeds & Feeds: Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II), 8 Flutes (8673xx, 8950xx)",
+   "url": "https://harveyperformance.widen.net/content/gfswg6ozhp/pdf/SF_867300.pdf",
+   "date_accessed": "2026-11-11",
+   "revision": null
   }
  ],
  "rows": [
@@ -43167,6 +43174,1911 @@
     "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
    ],
    "notes": "Staggered-tooth keyseat cutter; teeth_per_face is half of the 6 teeth (stagger rule, not vendor-published). Radial per-pass value is .06 x Dia from the chart; catalog max radial depth in tool.max_radial_depth."
+  },
+  {
+   "id": "harvey_SF_867300_28_al_wrought_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness <= 28 Rc (<= 271 HBn); Aluminum Alloys",
+    "row_label": "Aluminum Alloys: Wrought (1xxx, 2xxx, 3xxx, 5xxx, 6xxx, 7xxx, 8xxx)",
+    "column_label": "0.375",
+    "cells": "SFM 1000; Chip Load (IPT) .00176; Radial .12 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum Alloys: Wrought (1xxx, 2xxx, 3xxx, 5xxx, 6xxx, 7xxx, 8xxx)",
+    "hardness": {
+     "min": null,
+     "max": 28,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 1000
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00176
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.045
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".12 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_28_al_cast_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness <= 28 Rc (<= 271 HBn); Aluminum Alloys",
+    "row_label": "Aluminum Alloys: Casting - 8%-12% Si (3xx, A3xx, C3xx, 4xx, A4xx, B4xx)",
+    "column_label": "0.375",
+    "cells": "SFM 650; Chip Load (IPT) .00159; Radial .12 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum Alloys: Casting - 8%-12% Si (3xx, A3xx, C3xx, 4xx, A4xx, B4xx)",
+    "hardness": {
+     "min": null,
+     "max": 28,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Aluminum - Cast",
+    "representative_alloy": "A356"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 650
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00159
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.045
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".12 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_28_brass_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness <= 28 Rc (<= 271 HBn); Copper Alloys: Brass (Copper Zinc alloys, C2xxxx, C3xxxx, C4xxxx, C66400-C69800)",
+    "row_label": "Brass (Copper Zinc alloys, C2xxxx, C3xxxx, C4xxxx, C66400-C69800)",
+    "column_label": "0.375",
+    "cells": "SFM 500; Chip Load (IPT) .00141; Radial .12 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Copper Alloys: Brass (Copper Zinc alloys, C2xxxx, C3xxxx, C4xxxx, C66400-C69800)",
+    "hardness": {
+     "min": null,
+     "max": 28,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Brass",
+    "representative_alloy": "C36000"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 500
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00141
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.045
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".12 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_steel_low_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); Carbon Steels",
+    "row_label": "Carbon Steels (group listed on sheet)",
+    "column_label": "0.375",
+    "cells": "SFM 600; Chip Load (IPT) .00064; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: Free-Machining/Low Carbon steels, 10xx - 1029 & all 10Lxx, 11xx - 1139 & all 11Lxx, 12xx - 1215 & all 12Lxx",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 600
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00064
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_steel_med_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); Carbon Steels",
+    "row_label": "Carbon Steels (group listed on sheet)",
+    "column_label": "0.375",
+    "cells": "SFM 200; Chip Load (IPT) .00059; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: 1030 - 1095, 1140 - 1151, 13xx, 15xx, 2xxx, 3xxx, 4xxx & 4xLxx, 5xxx & 5xLxx, 50xxx & 50Lxxx, 51xxx & 51Lxxx, 52xxx & 52Lxxx, 6xxx, 8xxx, 9xxx",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Medium Carbon (1045)",
+    "representative_alloy": "1045"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 200
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00059
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_ss304_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); Stainless Steels",
+    "row_label": "Stainless Steels (group listed on sheet)",
+    "column_label": "0.375",
+    "cells": "SFM 200; Chip Load (IPT) .00059; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steels: 201, 202, 203, 205, 301, 302, 304, 304L, 308, 309, 310, 314, 316, 316L, 317, 321, 329, 330, 347, 348, 385, 403, 405, 409, 410, 413, 420, 429, 430, 434, 436, 442, 446, 501, 502",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 200
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00059
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_ss_ph_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); Stainless Steels",
+    "row_label": "Stainless Steels: 414, 431, 440A, 440B, 440C, 13-8, 15-5, 15-7, 17-4, 17-7",
+    "column_label": "0.375",
+    "cells": "SFM 150; Chip Load (IPT) .00037; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steels: 414, 431, 440A, 440B, 440C, 13-8, 15-5, 15-7, 17-4, 17-7",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00037
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_tool_h_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); Tool Steels",
+    "row_label": "Tool Steels: D, H, M, T, S series",
+    "column_label": "0.375",
+    "cells": "SFM 150; Chip Load (IPT) .00037; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Tool Steels: D, H, M, T, S series",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00037
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_ti_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); Titanium Alloys",
+    "row_label": "Titanium Alloys",
+    "column_label": "0.375",
+    "cells": "SFM 150; Chip Load (IPT) .00037; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00037
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_29_inconel_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 29-37 Rc (279-344 HBn); High Temp Alloys",
+    "row_label": "High Temp Alloys (group listed on sheet)",
+    "column_label": "0.375",
+    "cells": "SFM 70; Chip Load (IPT) .00037; Radial .08 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Temp Alloys: Inconel, Hastelloy, Waspalloy, Monel, Nimonic, Haynes, Discoloy, Incoloy",
+    "hardness": {
+     "min": 29,
+     "max": 37,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 70
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00037
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.03
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".08 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_38_ss304_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 38-45 Rc (353-421 HBn); Stainless Steels",
+    "row_label": "Stainless Steels: 201, 202 ... 502",
+    "column_label": "0.375",
+    "cells": "SFM 100; Chip Load (IPT) .00052; Radial .06 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steels: 201, 202 ... 502",
+    "hardness": {
+     "min": 38,
+     "max": 45,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00052
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0225
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".06 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_38_ss_ph_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 38-45 Rc (353-421 HBn); Stainless Steels",
+    "row_label": "Stainless Steels: 414, 431, 440A, 440B, 440C, 13-8, 15-5, 15-7, 17-4, 17-7",
+    "column_label": "0.375",
+    "cells": "SFM 90; Chip Load (IPT) .00032; Radial .06 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steels: 414, 431, 440A, 440B, 440C, 13-8, 15-5, 15-7, 17-4, 17-7",
+    "hardness": {
+     "min": 38,
+     "max": 45,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00032
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0225
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".06 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_38_tool_h_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 38-45 Rc (353-421 HBn); Tool Steels",
+    "row_label": "Tool Steels: D, H, M, T, S series",
+    "column_label": "0.375",
+    "cells": "SFM 90; Chip Load (IPT) .00032; Radial .06 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Tool Steels: D, H, M, T, S series",
+    "hardness": {
+     "min": 38,
+     "max": 45,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00032
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0225
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".06 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_38_ti_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 38-45 Rc (353-421 HBn); Titanium Alloys",
+    "row_label": "Titanium Alloys",
+    "column_label": "0.375",
+    "cells": "SFM 75; Chip Load (IPT) .00032; Radial .06 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys",
+    "hardness": {
+     "min": 38,
+     "max": 45,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 75
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00032
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0225
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".06 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
+  },
+  {
+   "id": "harvey_SF_867300_38_inconel_867330",
+   "source": {
+    "doc_id": "SF_867300",
+    "page": 1,
+    "table": "Hardness: 38-45 Rc (353-421 HBn); High Temp Alloys",
+    "row_label": "High Temp Alloys: Inconel, Hastelloy ...",
+    "column_label": "0.375",
+    "cells": "SFM 50; Chip Load (IPT) .00032; Radial .06 x Dia; Axial Full Width",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "867330",
+    "series": "8673xx",
+    "style": "keyseat_staggered_tooth",
+    "product_name": "Keyseat Cutters - Staggered Tooth - Square, Deep Slotting (Type II)",
+    "tool_material": "carbide",
+    "coating": "uncoated",
+    "teeth": 8,
+    "tooth_form": "staggered",
+    "teeth_per_face": 4,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face",
+    "cutting_faces": [
+     "periphery",
+     "top",
+     "bottom"
+    ],
+    "cutting_faces_basis": "Vendor (https://www.harveytool.com/products/specialty-profiles/keyseat-cutters/staggered-tooth): staggered-tooth keyseat cutters are \"relieved to allow cutting on both sides of head\" (quoted by the owner guidance and the vendor listing); sheet chip loads are given for one side or both sides engaged",
+    "cutter_diameter": 0.375,
+    "cutter_thickness": 0.062,
+    "neck_diameter": 0.125,
+    "neck_length": 0.187,
+    "shank_diameter": 0.375,
+    "OAL": 2.5,
+    "corner_radius": 0.0,
+    "corner_style": "square",
+    "included_angle_deg": null,
+    "max_radial_depth": null,
+    "geometry_url": "https://www.harveytool.com/products/tool-details-867330",
+    "missing": [
+     "teeth_per_face",
+     "max_radial_depth"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Temp Alloys: Inconel, Hastelloy ...",
+    "hardness": {
+     "min": 38,
+     "max": 45,
+     "scale": "HRC"
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "full_slot",
+   "cut": {
+    "faces_engaged": [
+     "periphery",
+     "bottom"
+    ],
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 50
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.00032
+    },
+    "fz_basis": "IPT per tooth, cutter engaged on one side only",
+    "ae_radial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0225
+    },
+    "ap_axial": {
+     "min": null,
+     "max": null,
+     "nominal": 0.062
+    },
+    "axial_feed": {
+     "min": null,
+     "max": null,
+     "nominal": null
+    },
+    "passes": {
+     "min": null,
+     "max": null,
+     "nominal": null,
+     "published": null
+    },
+    "adjustments": [
+     {
+      "condition": "cutter engaged on both sides",
+      "factor": {
+       "min": 0.5,
+       "max": 0.6
+      },
+      "published": "reduce chiploads to 50-60% of posted values",
+      "applies_to": "fz"
+     },
+     {
+      "condition": "cutter width > .5 x diameter",
+      "factor": {
+       "min": 0.8,
+       "max": 0.8
+      },
+      "published": "reduce radial step over to 80% of posted values",
+      "applies_to": "ae_radial"
+     }
+    ],
+    "published": {
+     "ae_radial": ".06 x Dia",
+     "ap_axial": "Full Width"
+    },
+    "missing": [
+     "axial_feed",
+     "passes"
+    ]
+   },
+   "vendor_notes": [
+    "Chip loads are for one-side engagement and cutter width < .5 x diameter; both sides engaged: reduce chiploads to 50-60% of posted values; width > .5 x diameter: reduce radial step over to 80%",
+    "Suggested starting values; chip loads reflect uncoated cutters and may be increased up to 15% if coated; ferrous <= 28 Rc +10-20%"
+   ],
+   "notes": "Staggered-tooth Type II deep-slotting keyseat cutter, 8 flutes; teeth_per_face is half of the 8 teeth (stagger rule, not vendor-published). Radial per-pass value is the chart's x Dia times 0.375. Catalog geometry from the tool-detail page (coating code 'UN' read as uncoated, matching the sheet's uncoated chip-load basis). Added 2026-11-11 for the shop's planned 3/8 x 1/16 titanium job; the sheet is the 8-flute one, whose chip loads are about 0.78 x the 6-flute sheet."
   }
  ]
 }

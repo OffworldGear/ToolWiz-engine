@@ -468,6 +468,23 @@ def _request_model(data):
     return v2_bridge.resolve_model(data.get("model"), use_saved=not is_test_client)[0]
 
 
+def _tslot_args(data):
+    """Optional T-slot / keyseat request fields (see tslot_model) as CutRequest keyword arguments."""
+    def num(key):
+        v = data.get(key)
+        return float(v) if v not in (None, "") else None
+    faces = data.get("cuttingFaces")
+    tpf = data.get("teethPerFace")
+    return dict(
+        tooth_form=(str(data["toothForm"]).lower() if data.get("toothForm") else None),
+        cutting_faces=([str(f).lower() for f in faces] if isinstance(faces, (list, tuple)) and faces else None),
+        teeth_per_face=(int(tpf) if tpf not in (None, "") else None),
+        tslot_operation=str(data.get("tslotOperation") or "full_slot").lower(),
+        slot_height=num("slotHeight"),
+        radial_depth_total=num("radialDepthTotal"),
+    )
+
+
 def _model_fields(res):
     return {"model": res.model, "model_note": res.model_note, "v1": res.v1, "v2": res.v2}
 
@@ -530,6 +547,7 @@ def calculate():
             model=_request_model(data),
             machine_profile=active_machine(),
             feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
+            **_tslot_args(data),
         )
         res = run_cut(physics, req)
 
@@ -576,6 +594,7 @@ def calculate():
             "profile": res.profile,
             **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            **({"tslot": res.tslot} if res.tslot else {}),
             **_model_fields(res),
         }
         if res.tap_drill:
@@ -633,6 +652,7 @@ def calculate_for_fusion():
             model=_request_model(data),
             machine_profile=active_machine(),
             feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
+            **_tslot_args(data),
         )
         res = run_cut(physics, req)
 
@@ -664,6 +684,7 @@ def calculate_for_fusion():
             "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
             **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            **({"tslot": res.tslot} if res.tslot else {}),
             "oversight": __import__("oversight_engine").evaluate_holistic_oversight(
                 data,
                 {"diameter": res.diameter, "flute_length": res.flute_length, "shank_diameter": res.shank_diameter,
