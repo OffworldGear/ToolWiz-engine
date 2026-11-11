@@ -52,3 +52,12 @@
 .tip-sev-heading { font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0.4rem 0 -0.2rem; color: var(--text-secondary); }
 .tip-sev-critical { color: #f87171; }
 .tip-sev-warning { color: #fbbf24; }
+
+/* T-slot inputs */
+.tslot-inputs { grid-column: 1 / -1; padding: 0.75rem; margin-top: 0.5rem; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; background: rgba(56, 189, 248, 0.05); }
+.tslot-heading { margin: 0 0 0.5rem; font-size: var(--fs-md); color: #38bdf8; }
+.tslot-grid { gap: 0.75rem; }
+.tslot-faces { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.check-inline { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0; font-weight: 500; color: #e2e8f0; cursor: pointer; }
+.check-inline input { width: auto; accent-color: var(--accent); }
+.tslot-note { font-size: var(--fs-xs); color: var(--text-secondary); line-height: 1.45; margin-top: 0.4rem; overflow-wrap: anywhere; }

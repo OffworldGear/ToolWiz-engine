@@ -40,7 +40,7 @@
 
     function engagementCard(res) {
         const src = res.engagement_source;
-        if (!src) return '';
+        if (!src || res.tslot) return '';   // the T-slot model sets its own radial depth per pass (see the T-slot plan card)
         const recD = res.rec_doc, recW = res.rec_woc;
         const sd = $('cutDepth_val'), sw = $('cutWidth_val');
         const userD = sd ? parseFloat(sd.value) : NaN, userW = sw ? parseFloat(sw.value) : NaN;
@@ -131,7 +131,7 @@
         const defl = T.finite(t.deflection_in) ? `${T.len(t.deflection_in)} <small>of ${T.len(t.deflection_limit_in)} limit</small>` : '—';
         const clr = T.finite(t.neck_clearance_in) ? T.len(t.neck_clearance_in) : '—';
         const prov = (t.provisional || []).length ? T.callout('warn', 'Provisional geometry', `Assumed, not measured: ${T.esc(t.provisional.join(', '))}. Measure neck diameter, reach and tooth form before trusting the neck deflection and pass count.`) : '';
-        const formWord = { staggered: 'staggered', straight: 'straight', unknown: 'unknown (treated as staggered)' }[t.tooth_form] || t.tooth_form || '—';
+        const formWord = !t.tooth_form ? 'unknown (treated as staggered)' : { staggered: 'staggered', straight: 'straight', unknown: 'unknown (treated as staggered)' }[t.tooth_form] || t.tooth_form || '—';
         return `<div class="v3-title">T-slot / keyseat plan <span class="v3-pill">${T.esc(String(t.operation || '').replace('_', ' '))}</span></div>
             ${prov}
             <div class="v3-kv">

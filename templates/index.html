@@ -480,6 +480,7 @@
                                 <label for="cutterThickness">Cutter thickness (<span class="unit-lbl">in</span>)</label>
                                 <input type="number" id="cutterThickness" class="tool-dialog-input" step="any" value="0.125" oninput="calculate()">
                             </div>
+                            {% include 'partials/tslot_inputs.html' %}
                         </div>
 
                         <!-- More: rarely-needed Fusion fields -->
@@ -1695,9 +1696,11 @@
             const g = {};
             const put = (k, v) => { if (Number.isFinite(v)) g[k] = v; };
             const diaVal = fieldNum('diameter');
-            const fluteVal = fieldNum('fluteLength');
-            const tStartVal = fieldNum('taperStart') || fluteVal;
-            const tEndVal = fieldNum('shoulderLength') || tStartVal;
+            // T-slot / keyseat / woodruff: the cut length (LCF) is the cutter width, the neck runs straight to the reach.
+            const isSlotGeo = /t-slot|keyseat|woodruff/i.test(geo) && Number.isFinite(fieldNum('cutterThickness'));
+            const fluteVal = isSlotGeo ? fieldNum('cutterThickness') : fieldNum('fluteLength');
+            const tEndVal = fieldNum('shoulderLength') || fluteVal;
+            const tStartVal = isSlotGeo ? tEndVal : (fieldNum('taperStart') || fluteVal);
             const neckDVal = fieldNum('shoulderDiameter') || diaVal;
             const sfdmVal = fieldNum('shaftDiameter') || diaVal;
 
@@ -3268,6 +3271,7 @@
                 autoSetTracker.cornerRadius = true;
             }
             document.getElementById('thicknessGroup').style.display = isFormTool ? 'block' : 'none';
+            try { updateTslotVisibility(isFormTool); } catch (e) {}
 
             if(isFormTool || geo === 'Lollipop') {
                 document.getElementById('fluteLengthGroup').style.display = 'none';
@@ -3376,7 +3380,7 @@
             autoSetDialsOnNextCalc = false;
             
             // Cutter fields that are plain lengths: shift between in and mm (blank stays blank).
-            ['shaftDiameter', 'shoulderDiameter', 'shoulderLength', 'overallLength', 'tipDiameter', 'taperStart'].forEach(id => {
+            ['shaftDiameter', 'shoulderDiameter', 'shoulderLength', 'overallLength', 'tipDiameter', 'taperStart', 'slotHeight', 'radialDepthTotal'].forEach(id => {
                 const inp = document.getElementById(id);
                 if (!inp) return;
                 const v = parseFloat(inp.value);
@@ -4055,6 +4059,7 @@
                 isCarbide: isToolCarbide(),
                 fusion_tool: fusionTool
             };
+            if (isFormTool) { try { Object.assign(payload, tslotPayload()); } catch (e) { console.warn('tslot fields', e); } }
             // Send the chosen model once it is known; before that the server falls back to the saved setting.
             const modelSel = document.getElementById('cutModelSelect');
             if (cutModelLoaded && modelSel && modelSel.value) payload.model = modelSel.value;
@@ -7004,5 +7009,6 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
     </script>
     <script src="/static/js/tw_common.js?v=1"></script>
     <script src="/static/js/results_v3.js?v=1"></script>
+    <script src="/static/js/tslot_ui.js?v=1"></script>
 </body>
 </html>

@@ -32,6 +32,7 @@ from routes_advice import bp as advice_bp; app.register_blueprint(advice_bp)
 from routes_library import bp as library_bp; app.register_blueprint(library_bp)
 from routes_master_library import bp as master_library_bp; app.register_blueprint(master_library_bp)
 from routes_strategy import bp as strategy_bp; app.register_blueprint(strategy_bp)
+from routes_ui_support import bp as ui_support_bp; app.register_blueprint(ui_support_bp)
 import machine_profiles
 
 # Initialize physics engine
