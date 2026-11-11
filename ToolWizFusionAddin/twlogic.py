@@ -764,6 +764,89 @@ def validate_parameter_changes(params):
 
 
 # ==============================================================================
+# update_tool_fields (bridge action, Advisor Chat): which tool fields may be written, and how
+# ==============================================================================
+
+# Mirrors fusion_bridge.TOOL_FIELDS_ALLOWED: the server enforces it, the add-in checks again.
+#   coating           written into the tool description (ToolWiz reads the coating from description / BMC / GRADE)
+#   BMC, GRADE, comment   Fusion tool JSON keys
+#   description       the full description text
+#   add_keywords / remove_keywords   words added to / removed from the description (e.g. "staggered")
+TOOL_FIELDS_ALLOWED = ("coating", "BMC", "GRADE", "comment", "description", "add_keywords", "remove_keywords")
+_COATING_CANON = {c.lower(): c for c in ("AlTiN", "TiAlN", "AlCrN", "ZrN", "DLC", "Diamond", "TiSiN", "TiCN", "TiN", "Uncoated")}
+_COATING_WORD_RE = re.compile(r"(?<![A-Za-z0-9])(AlTiN|TiAlN|AlCrN|ZrN|DLC|Diamond|TiSiN|TiCN|TiN|Uncoated|Bright)(?![A-Za-z0-9])", re.I)
+_KEYWORD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ./+\-]{0,39}$")
+
+
+def coating_in_text(text):
+    """The coating named in a text (canonical spelling), or None."""
+    m = _COATING_WORD_RE.search(str(text or ""))
+    if not m:
+        return None
+    w = m.group(1).lower()
+    return "Uncoated" if w == "bright" else _COATING_CANON.get(w)
+
+
+def validate_tool_fields(fields):
+    """Split a ``fields`` request into (accepted, skipped). Skipped entries are {field, reason}: not on the allow-list, wrong type,
+    unknown coating, or a keyword with characters a description never needs."""
+    ok, skipped = {}, []
+    for name, val in (fields or {}).items():
+        if name not in TOOL_FIELDS_ALLOWED:
+            skipped.append({"field": name, "reason": "field is not on the add-in's allowed list"})
+        elif name in ("add_keywords", "remove_keywords"):
+            if isinstance(val, list) and 0 < len(val) <= 8 and all(isinstance(w, str) and _KEYWORD_RE.match(w.strip()) for w in val):
+                ok[name] = [w.strip() for w in val]
+            else:
+                skipped.append({"field": name, "reason": "needs 1-8 short words (letters, digits, space . / + -)"})
+        elif not isinstance(val, str) or not val.strip() or len(val) > 300:
+            skipped.append({"field": name, "reason": "needs a non-empty text of at most 300 characters"})
+        elif name == "coating":
+            canon = _COATING_CANON.get(val.strip().lower()) or ("Uncoated" if val.strip().lower() in ("none", "bright") else None)
+            if canon:
+                ok[name] = canon
+            else:
+                skipped.append({"field": name, "reason": f"unknown coating {val!r}"})
+        else:
+            ok[name] = val.strip()
+    return ok, skipped
+
+
+def apply_tool_field_changes(tool, fields):
+    """Pure: the tool JSON dict with validated ``fields`` applied, and the changes: ``{field: {"old", "new"}}`` (only fields that
+    really change). Order: description, remove_keywords, add_keywords, coating (into the description), then BMC / GRADE / comment.
+    The input dict is not modified."""
+    import copy
+    t = copy.deepcopy(tool if isinstance(tool, dict) else {})
+    old_desc = str(t.get("description") or "")
+    desc = old_desc
+    changes = {}
+    if "description" in fields:
+        desc = fields["description"]
+    for w in fields.get("remove_keywords") or []:
+        desc = re.sub(r"(?<![A-Za-z0-9])" + re.escape(w) + r"(?![A-Za-z0-9])", " ", desc, flags=re.I)
+        desc = re.sub(r"\s{2,}", " ", desc).strip()
+    for w in fields.get("add_keywords") or []:
+        if not re.search(r"(?<![A-Za-z0-9])" + re.escape(w) + r"(?![A-Za-z0-9])", desc, flags=re.I):
+            desc = (desc + " " + w).strip()
+    if "coating" in fields:
+        old_coat = coating_in_text(" ".join(str(x) for x in (old_desc, t.get("BMC"), t.get("GRADE")) if x))
+        if coating_in_text(desc) != fields["coating"] or len(_COATING_WORD_RE.findall(desc)) != 1:
+            desc = re.sub(r"\s{2,}", " ", _COATING_WORD_RE.sub(" ", desc)).strip()
+            desc = (desc + " " + fields["coating"]).strip()
+        if old_coat != fields["coating"]:
+            changes["coating"] = {"old": old_coat or "unknown", "new": fields["coating"]}
+    if desc != old_desc:
+        changes["description"] = {"old": old_desc, "new": desc}
+        t["description"] = desc
+    for k in ("BMC", "GRADE", "comment"):
+        if k in fields and str(t.get(k) or "") != fields[k]:
+            changes[k] = {"old": t.get(k), "new": fields[k]}
+            t[k] = fields[k]
+    return t, changes
+
+
+# ==============================================================================
 # Strategy planner
 # ==============================================================================
 

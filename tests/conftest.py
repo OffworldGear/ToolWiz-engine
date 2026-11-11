@@ -15,3 +15,13 @@ def _legacy_tests_use_v1(monkeypatch):
     for the v1 tables, so the test environment pins v1 through TOOLWIZ_MODEL; v2 tests pass model="v2" explicitly,
     and tests of the default clear the variable (see tests/test_v2_bridge.py)."""
     monkeypatch.setenv("TOOLWIZ_MODEL", "v1")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_ai_settings(tmp_path, monkeypatch):
+    """Advisor Chat: keys and saved chats go to a per-test temp directory, and no real provider key leaks in from the
+    environment (the provider layer is mocked in tests; a real LLM is never called)."""
+    monkeypatch.setenv("TOOLWIZ_AI_SETTINGS_PATH", str(tmp_path / "ai_settings.json"))
+    monkeypatch.setenv("TOOLWIZ_ADVISOR_CHATS_DIR", str(tmp_path / "advisor_chats"))
+    for k in ("ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)

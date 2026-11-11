@@ -13,6 +13,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import fusion_bridge
+import setup_advisor
 from app import app, physics, active_machine, machine_limits
 from pipeline import CutRequest, run_cut
 from toolwiz_common import default_shank
@@ -32,6 +33,7 @@ SERVER_INSTRUCTIONS = (
     "(toolwiz_calculate_cut, toolwiz_strategy_compare, toolwiz_setup_advisor, toolwiz_holder_advice, toolwiz_tool_advice) or tell "
     "the user it is unavailable. Use your own knowledge only to explain, prioritise and suggest toolpath strategy in words. "
     "Changes to a Fusion 360 operation may only use values ToolWiz recommended; the add-in asks the user to confirm them. "
+    "Record what the owner tells you that Fusion does not say (coatings, runout, holders, material) with toolwiz_set_assumption. "
     "Lengths are inches, feeds inches per minute unless a result says otherwise.")
 
 NO_NUMBERS_NOTE = (" Rule: every speed, feed, depth, width, stock or time you report from this tool's result must be quoted "
@@ -53,6 +55,7 @@ MCP_TOOLS: List[Dict[str, Any]] = [
                 "tool": {"type": "string", "description": "Tool category (default 'Carbide Endmill')"},
                 "geometry": {"type": "string", "description": "Cutter geometry ('Square', 'Ball', 'Radiused', 'High Feed', 'Chamfer')"},
                 "coating": {"type": "string", "description": "Tool coating ('AlTiN', 'TiAlN', 'Uncoated', 'ZrN', 'Diamond')"},
+                "isCarbide": {"type": "boolean", "description": "Solid carbide tool (default true); false for HSS / cobalt"},
                 "diameter": {"type": "number", "description": "Cutting diameter in inches"},
                 "flutes": {"type": "integer", "description": "Number of flutes"},
                 "fluteLength": {"type": "number", "description": "Flute length (LCF) in inches"},
@@ -305,6 +308,67 @@ MCP_TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "toolwiz_set_assumption",
+        "description": (
+            "Record something the owner told you that Fusion does not say (all tools are AlTiN, T3 runs 0.0003 in runout, the material, the holder "
+            "type, tool material, finish mode) so that toolwiz_setup_advisor applies it to every run of this MCP session. Changes nothing in Fusion. "
+            "action 'set' (default) needs key and value; 'clear' removes by id, by key, or all; 'list' shows the active assumptions. Keys: "
+            + "; ".join(f"{k} ({v})" for k, v in setup_advisor.ASSUMPTION_KEYS.items()) + "."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["set", "clear", "list"]},
+                "key": {"type": "string", "enum": list(setup_advisor.ASSUMPTION_KEYS)},
+                "value": {"description": "text or number, e.g. 'AlTiN', 'carbide', 0.0003, 'surface'"},
+                "unit": {"type": "string", "enum": ["in", "mm"], "description": "unit of a runout value (default in)"},
+                "scope": {"type": "object", "description": "omit for all tools; or {tools: [tool numbers], diameter_in: n, op_ids: ['Setup > Op']}"},
+                "override": {"type": "boolean", "description": "also replace what the snapshot already says (default: fill gaps only for coating, material, grade, holder)"},
+                "id": {"type": "string", "description": "assumption id to clear"},
+            },
+        },
+    },
+    {
+        "name": "toolwiz_apply_recommendation",
+        "description": (
+            "Queue ToolWiz's own recommended values for one Fusion operation, through the validated apply path: every parameter must be on the allow-list "
+            "and every value must equal an apply_plan value of the LAST toolwiz_setup_advisor result for that op_id (anything else is rejected and nothing is "
+            "sent). The add-in then asks the owner to confirm in Fusion. Returns the queued request_id; read the outcome with fusion_bridge_result."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "op_id": {"type": "string", "description": "'Setup > Operation' path from the advisor result"},
+                "params": {"type": "object", "description": "{Fusion parameter name: expression string with units}, e.g. {'tool_spindleSpeed': '11522 rpm'}"},
+                "reason": {"type": "string"},
+            },
+            "required": ["op_id", "params"],
+        },
+    },
+    {
+        "name": "fusion_update_tool_fields",
+        "description": (
+            "Change allow-listed fields of ONE tool in the Fusion document tool library: coating (written into the description), BMC, GRADE, comment, "
+            "description, add_keywords / remove_keywords (e.g. 'staggered'). The add-in shows old -> new and asks the owner to confirm in Fusion, writes "
+            "through the audited path and reports {ok, applied, skipped, error}. Returns the queued request_id; read the outcome with fusion_bridge_result."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "tool_number": {"type": "integer", "description": "Fusion tool number (T3 = 3); or give tool_guid"},
+                "tool_guid": {"type": "string"},
+                "fields": {"type": "object", "description": "{coating, BMC, GRADE, comment, description, add_keywords: [words], remove_keywords: [words]}"},
+                "reason": {"type": "string"},
+            },
+            "required": ["fields"],
+        },
+    },
+    {
+        "name": "fusion_bridge_result",
+        "description": "Read the add-in's result for a queued change (request_id from toolwiz_apply_recommendation or fusion_update_tool_fields): pending until the owner has answered in Fusion.",
+        "inputSchema": {"type": "object", "properties": {"request_id": {"type": "string"}}, "required": ["request_id"]},
+    },
+    {
         "name": "toolwiz_library_audit",
         "description": (
             "Audit a Fusion tool library against ToolWiz: STOP / CAUTION / INFO per tool and preset (speeds, feeds, geometry, duplicates). "
@@ -379,6 +443,31 @@ def _call_endpoint(method: str, path: str, args: Dict[str, Any]) -> Dict[str, An
         return data
 
 
+def _mcp_assumption(args: Dict[str, Any]) -> Dict[str, Any]:
+    """``toolwiz_set_assumption``: the MCP session's assumptions (module-level: an external assistant has no chat object)."""
+    from advisor_chat import assumptions as asm
+    store = asm.MCP_ASSUMPTIONS
+    action = str(args.get("action") or "set").lower()
+    if action == "list":
+        return {"success": True, "active_assumptions": [asm.public(r) for r in store]}
+    if action == "clear":
+        if not (args.get("id") or args.get("key") or args.get("all")):
+            return {"success": False, "error": "give an assumption id, a key, or all: true"}
+        gone = asm.remove(store, rec_id=args.get("id"), key=args.get("key"), all_=bool(args.get("all")))
+        return {"success": True, "removed": [asm.public(r) for r in gone], "active_assumptions": [asm.public(r) for r in store]}
+    if action != "set":
+        return {"success": False, "error": "action must be 'set', 'clear' or 'list'"}
+    raw = {"key": args.get("key"), "value": args.get("value"), "scope": args.get("scope"), "unit": args.get("unit")}
+    if "override" in args:
+        raw["override"] = args["override"]
+    try:
+        rec = asm.add(store, raw)
+    except ValueError as ex:
+        return {"success": False, "error": str(ex)}
+    return {"success": True, "assumption": asm.public(rec), "active_assumptions": [asm.public(r) for r in store],
+            "note": "Recorded for toolwiz_setup_advisor runs in this MCP session; Fusion is unchanged. Run the advisor again."}
+
+
 def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Execute one MCP tool by name and return a structured result dict."""
     args = dict(arguments or {})
@@ -408,6 +497,7 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
             cut_depth=float(args["cutDepth"]) if args.get("cutDepth") is not None else None,
             cut_width=float(args["cutWidth"]) if args.get("cutWidth") is not None else None,
             model=args.get("model"),
+            is_carbide=bool(args.get("isCarbide", True)),
             machine_profile=active_machine(),
             feature_geometry=args.get("feature_geometry") if isinstance(args.get("feature_geometry"), dict) else None,
         )
@@ -479,8 +569,31 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
             },
         )
 
+    if name == "toolwiz_set_assumption":
+        return _mcp_assumption(args)
+
+    if name == "toolwiz_apply_recommendation":
+        return _call_endpoint("POST", "/api/setup_advisor/apply", {k: args[k] for k in ("op_id", "params", "reason") if k in args})
+
+    if name == "fusion_update_tool_fields":
+        payload = {k: args[k] for k in ("tool_number", "tool_guid", "fields") if args.get(k) is not None}
+        payload["reason"] = str(args.get("reason") or "ToolWiz MCP assistant")
+        res = fusion_bridge.submit_command("update_tool_fields", payload, wait=0.0)
+        return res
+
+    if name == "fusion_bridge_result":
+        rid = str(args.get("request_id") or "").strip()
+        if not rid:
+            return {"success": False, "error": "request_id is required"}
+        res = fusion_bridge.peek_result(rid)
+        return {"success": True, "pending": True} if res is None else {"success": True, "pending": False, "result": res}
+
     if name in _ENDPOINT_TOOLS:
         method, path = _ENDPOINT_TOOLS[name]
+        if name == "toolwiz_setup_advisor" and "assumptions" not in args:
+            from advisor_chat.assumptions import MCP_ASSUMPTIONS
+            if MCP_ASSUMPTIONS:
+                args["assumptions"] = list(MCP_ASSUMPTIONS)
         return _call_endpoint(method, path, args)
 
     if name == "toolwiz_master_library_build":
@@ -516,6 +629,37 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
     return {"success": False, "error": f"Unknown MCP tool: {name!r}"}
 
 
+REVIEW_SETUP_TEXT = """Review the setup the owner has open in Fusion 360 with ToolWiz, as a second pair of eyes. ToolWiz is the only source of numbers.
+
+Rules: every speed, feed, chip load, rpm, depth, width, stock or time you tell the owner must be copied, with its units, from a toolwiz_* tool result in this conversation. Never estimate or recall a handbook value; if a number is missing, call the matching tool or say it is unavailable. Use your own knowledge only to explain, prioritise and suggest strategy in words.
+
+Steps:
+1. Call fusion_get_setup_summary to read the live setup (it also refreshes ToolWiz's snapshot). If Fusion is not connected, say so and stop.
+2. Make sure the material is known ({material}). If not, ask the owner for the ToolWiz material family and alloy (toolwiz_search_materials helps).
+3. Ask what Fusion does not say: tool coatings (when the advisor reports an unknown coating), holder types and measured runout, tool material. Record each answer with toolwiz_set_assumption (scope it to specific tools when it is not true for all).
+4. Call toolwiz_setup_advisor (omit 'setup' to use the live Fusion state) and walk through the result: STOP findings first, then CAUTION, then useful INFO and the strategy suggestions. For each operation say what is wrong, why it matters and what to do, quoting ToolWiz's numbers. Ask before moving on.
+5. When the owner agrees to a change, apply only ToolWiz's own values with toolwiz_apply_recommendation (op_id and values from the advisor's apply_plan), or tool fields (coating, BMC, GRADE, description keywords such as "staggered") with fusion_update_tool_fields. Both only queue the change: the owner confirms in Fusion. Read the outcome with fusion_bridge_result and report it honestly (applied, skipped or declined).
+6. Use toolwiz_strategy_compare, toolwiz_holder_advice and toolwiz_tool_advice for strategy, holder and tool questions."""
+
+MCP_PROMPTS: List[Dict[str, Any]] = [
+    {"name": "review_setup",
+     "description": "Walk through a ToolWiz review of the Fusion setup that is open now: live setup, assumptions, Setup Advisor findings, strategy, and confirmed changes.",
+     "arguments": [{"name": "family", "description": "ToolWiz material family, if known (e.g. 'Titanium Alloy')", "required": False},
+                   {"name": "alloy", "description": "ToolWiz alloy / condition, if known", "required": False}]},
+]
+
+
+def get_mcp_prompt(name: str, arguments: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    if name != "review_setup":
+        return None
+    a = arguments or {}
+    fam = str(a.get("family") or "").strip()
+    alloy = str(a.get("alloy") or "").strip()
+    material = (f"the owner gave family {fam!r}" + (f" and alloy {alloy!r}" if alloy else "")) if fam else "it may be in the snapshot or an earlier answer"
+    return {"description": MCP_PROMPTS[0]["description"],
+            "messages": [{"role": "user", "content": {"type": "text", "text": REVIEW_SETUP_TEXT.format(material=material)}}]}
+
+
 def handle_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Process a single JSON-RPC 2.0 MCP message and return the response dict (or None for notifications)."""
     if not isinstance(msg, dict):
@@ -539,7 +683,7 @@ def handle_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "id": msg_id,
             "result": {
                 "protocolVersion": MCP_PROTOCOL_VERSION,
-                "capabilities": {"tools": {"listChanged": False}},
+                "capabilities": {"tools": {"listChanged": False}, "prompts": {"listChanged": False}},
                 "serverInfo": SERVER_INFO,
                 "instructions": SERVER_INSTRUCTIONS,
             },
@@ -554,6 +698,15 @@ def handle_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "id": msg_id,
             "result": {"tools": list_mcp_tools()},
         }
+
+    if method == "prompts/list":
+        return {"jsonrpc": "2.0", "id": msg_id, "result": {"prompts": MCP_PROMPTS}}
+
+    if method == "prompts/get":
+        pr = get_mcp_prompt(str(params.get("name") or ""), params.get("arguments") if isinstance(params.get("arguments"), dict) else {})
+        if pr is None:
+            return {"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32602, "message": f"Unknown prompt: {params.get('name')!r}"}}
+        return {"jsonrpc": "2.0", "id": msg_id, "result": pr}
 
     if method == "tools/call":
         tool_name = str(params.get("name") or "")

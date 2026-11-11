@@ -5932,6 +5932,174 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
             "previous": previous, "audit_note": note, "error": error or (None if applied else "nothing was applied")}
 
 
+# ---- update_tool_fields (bridge action, Advisor Chat): coating / BMC / GRADE / description keywords of a document tool ----
+
+def _doc_tool_matches(lib, number=None, guid=None):
+    """[(library index, tool JSON dict)] of the document-library tools with this guid (preferred) or tool number."""
+    out = []
+    for i in range(getattr(lib, 'count', 0) or 0):
+        d = _safe(lambda: json.loads(lib.item(i).toJson()))
+        if not isinstance(d, dict):
+            continue
+        if guid:
+            if d.get('guid') == guid:
+                out.append((i, d))
+        elif number is not None and _safe(lambda: extract_tool_number(None, d)) == number:
+            out.append((i, d))
+    return out
+
+
+def format_tool_fields_confirmation(label, description, changes, skipped, reason, n_ops):
+    lines = [f"ToolWiz wants to change tool {label} in this document's tool library:", f"  {description}", ""]
+    for name, ch in changes.items():
+        lines.append(f"  {name}: {ch.get('old')!s} -> {ch.get('new')!s}")
+    for name, why in skipped.items():
+        lines.append(f"  (skipped {name}: {why})")
+    lines += ["", f"Reason: {reason or 'ToolWiz Advisor Chat'}"]
+    if n_ops:
+        lines.append(f"The change applies to the tool itself, so it affects all {n_ops} operation(s) that use it (no speed or feed values change).")
+    lines.append("Each change is audited and Fusion's Undo reverts it. Apply?")
+    return "\n".join(lines)
+
+
+def update_tool_fields(tool_number=None, tool_guid=None, fields=None, reason="", confirm=True):
+    """Bridge action `update_tool_fields`: write allow-listed fields (coating, BMC, GRADE, comment, description or description
+    keywords such as "staggered") of ONE tool of the document tool library after the user confirms.
+
+    Steps: find the tool by guid (preferred) or tool number (an ambiguous number is refused); re-check the allow-list
+    (twlogic.validate_tool_fields); work out old -> new; ask Yes/No showing each change; write through the audited path
+    (AuditedCommand + one audit line per field) with the tool JSON round trip `Tool.createFromJson` +
+    `DocumentToolLibrary.update(tool, False)` (updateFeedAndSpeed False: operation values are not touched); re-read the tool to
+    confirm what Fusion kept. Each change can be reverted with Fusion's Undo; the old values are also saved to revert_<time>.json.
+
+    Returns {ok, success, applied: {field: {old, new}}, skipped: {field: reason}, error, tool: {number, guid, description}}."""
+    def fail(msg, skipped=None, tool=None):
+        return {"ok": False, "success": False, "applied": {}, "skipped": skipped or {}, "error": msg, "tool": tool}
+    label = tool_label(tool_number) if tool_number is not None else f"guid {tool_guid}"
+    cam = _active_cam()
+    lib = getattr(cam, 'documentToolLibrary', None) if cam else None
+    if lib is None:
+        return fail("No active CAM document with a tool library (open the Manufacture workspace).")
+    accepted, rejected = twlogic.validate_tool_fields(fields if isinstance(fields, dict) else {})
+    skipped = {r["field"]: r["reason"] for r in rejected}
+    if not accepted:
+        return fail("nothing to apply", skipped)
+    matches = _doc_tool_matches(lib, number=tool_number, guid=tool_guid)
+    if not matches:
+        return fail(f"Tool {label} was not found in the document tool library.", skipped)
+    if len(matches) > 1:
+        names = "; ".join(str(d.get('description') or '?')[:40] for _, d in matches[:4])
+        return fail(f"{len(matches)} tools in the library have number {tool_number} ({names}); it cannot be told which one to change.", skipped)
+    idx, td = matches[0]
+    info = {"number": tool_number, "guid": td.get('guid'), "description": td.get('description')}
+    if not td.get('guid'):
+        return fail("This tool has no guid, so Fusion cannot be asked to update exactly this tool.", skipped, info)
+    new_td, changes = twlogic.apply_tool_field_changes(td, accepted)
+    for f in accepted:
+        key = f if f in ("coating", "BMC", "GRADE", "comment", "description") else "description"
+        if key not in changes:
+            skipped[f] = "already as requested"
+    if not changes:
+        return {"ok": True, "success": True, "applied": {}, "skipped": skipped, "error": None, "tool": info}
+    if confirm:
+        n_ops = _safe(lambda: lib.operationsByTool(lib.item(idx)).count)
+        text = format_tool_fields_confirmation(label, td.get('description') or '', changes, skipped, reason,
+                                               n_ops if isinstance(n_ops, int) else None)
+        ans = ui.messageBox(text, "ToolWiz - change tool fields", adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+                            adsk.core.MessageBoxIconTypes.QuestionIconType)
+        if ans != adsk.core.DialogResults.DialogYes:
+            audit({'event': 'tool_fields_declined', 'tool_number': tool_number, 'tool_guid': td.get('guid'), 'fields': sorted(changes)})
+            return fail("declined by the user", skipped, info)
+    ac = AuditedCommand('update_tool_fields', target=label, expected_doc_changes=True).begin()
+    audit({'event': 'tool_fields_confirmed', 'tool_number': tool_number, 'tool_guid': td.get('guid'), 'reason': reason,
+           'changes': {k: v for k, v in changes.items()}})
+    before_count = _safe(lambda: lib.count)
+    error = None
+    try:
+        if not hasattr(lib, 'update') or not hasattr(adsk.cam.Tool, 'createFromJson'):
+            raise RuntimeError("this Fusion version has no DocumentToolLibrary.update / Tool.createFromJson")
+        new_tool = adsk.cam.Tool.createFromJson(json.dumps(new_td))
+        result = lib.update(new_tool, False)
+        _log(f"update_tool_fields {label}: documentToolLibrary.update returned {result!r}")
+    except Exception as ex:
+        error = str(ex)
+        _log("update_tool_fields failed", ex)
+    applied = {}
+    after = _doc_tool_matches(lib, guid=td.get('guid')) if not error else []
+    kept = after[0][1] if after else None
+    for name, ch in changes.items():
+        if error:
+            audit({'event': 'tool_field_change', 'tool_number': tool_number, 'tool_guid': td.get('guid'), 'field': name,
+                   'old': ch.get('old'), 'new': ch.get('new'), 'ok': False, 'error': error})
+            continue
+        if name == "coating":
+            ok_f = kept is None or twlogic.coating_in_text(" ".join(str(kept.get(k) or "") for k in ("description", "BMC", "GRADE"))) == ch['new']
+        else:
+            ok_f = kept is None or str(kept.get(name) or "") == str(ch['new'] or "")
+        audit({'event': 'tool_field_change', 'tool_number': tool_number, 'tool_guid': td.get('guid'), 'field': name,
+               'old': ch.get('old'), 'new': ch.get('new'), 'ok': ok_f})
+        if ok_f:
+            applied[name] = {"old": ch.get('old'), "new": ch.get('new')}
+        else:
+            skipped[name] = "Fusion did not keep the new value"
+    after_count = _safe(lambda: lib.count)
+    warn = ""
+    if before_count is not None and after_count is not None and after_count != before_count:
+        warn = f" WARNING: the tool count changed from {before_count} to {after_count}; check the tool library (Undo reverts it)."
+        _log(warn)
+    note = ac.finish("ok" if applied and not error else f"applied {len(applied)}, skipped {len(skipped)}" + (f", error {error}" if error else ""))
+    if applied:
+        try:
+            rp = os.path.join(_toolwiz_dir(), f"revert_{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}.json")
+            with open(rp, 'w', encoding='utf-8') as f:
+                json.dump({"tool": label, "guid": td.get('guid'), "reason": reason,
+                           "previous": {k: v["old"] for k, v in applied.items()}, "applied": applied}, f, indent=2)
+        except Exception as ex:
+            _log("Could not write the revert file", ex)
+    ok = bool(applied) and not error
+    err = error or (None if applied else "nothing was applied")
+    return {"ok": ok, "success": ok, "applied": applied, "skipped": skipped, "tool": info, "audit_note": (note + warn).strip(),
+            "error": (err + warn) if err else None}
+
+
+# ---- get_viewport_image (bridge action, Advisor Chat): a screenshot of the active viewport for a vision-capable model ----
+
+_VIEWPORT_MAX_BYTES = 3 * 1024 * 1024
+
+
+def get_viewport_image(width=1280, height=800):
+    """Save the active viewport to a temporary PNG (Viewport.saveAsImageFile(filename, width, height); 0 = the viewport's own size;
+    https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/core_Viewport_saveAsImageFile.htm), return it base64 encoded and
+    delete the file. Read-only: nothing in the document changes."""
+    import base64
+    vp = getattr(app, 'activeViewport', None) if app else None
+    if vp is None or not hasattr(vp, 'saveAsImageFile'):
+        return {"ok": False, "success": False, "error": "Fusion has no active viewport (open a document and make a view visible)."}
+    w = int(width) if isinstance(width, int) and 0 <= width <= 4096 else 1280
+    h = int(height) if isinstance(height, int) and 0 <= height <= 4096 else 800
+    path = os.path.join(_toolwiz_dir(), f"viewport_{uuid.uuid4().hex[:8]}.png")
+    try:
+        os.makedirs(_toolwiz_dir(), exist_ok=True)
+        if not vp.saveAsImageFile(path, w, h) or not os.path.exists(path):
+            return {"ok": False, "success": False, "error": "Fusion could not save the viewport image."}
+        size = os.path.getsize(path)
+        if size > _VIEWPORT_MAX_BYTES:
+            return {"ok": False, "success": False, "error": f"The viewport image is too large to send ({size // 1024} KB); make the Fusion window smaller."}
+        with open(path, 'rb') as f:
+            data = base64.b64encode(f.read()).decode('ascii')
+        audit({'event': 'viewport_image', 'bytes': size, 'width': w, 'height': h})
+        return {"ok": True, "success": True, "media_type": "image/png", "data_base64": data, "width": w, "height": h}
+    except Exception as ex:
+        _log("get_viewport_image failed", ex)
+        return {"ok": False, "success": False, "error": f"Could not capture the viewport: {ex}"}
+    finally:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+
 # ---- generic read-only result dialog (opened from the main thread when a background request finishes) -------
 
 _text_result = {"title": "", "text": "", "jumps": []}
@@ -7181,6 +7349,13 @@ def dispatch_bridge_action(action, params=None):
         return apply_operation_parameters(params.get("op_id") or params.get("operation"),
                                           params.get("params"), params.get("reason") or "",
                                           advisor_generated_at=params.get("advisor_generated_at"))
+
+    if action == "update_tool_fields":
+        # params: {tool_number | tool_guid, fields: {coating, BMC, GRADE, comment, description, add_keywords, remove_keywords}, reason}
+        return update_tool_fields(params.get("tool_number"), params.get("tool_guid"), params.get("fields"), params.get("reason") or "")
+
+    if action == "get_viewport_image":
+        return get_viewport_image(params.get("width", 1280), params.get("height", 800))
 
     if action == "curate_setup_tools":
         doc = getattr(app, 'activeDocument', None)

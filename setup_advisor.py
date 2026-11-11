@@ -472,6 +472,7 @@ def _run_endmill(physics, machine, ctx, tool, operation, depth, width):
         stickout=tool["stickout_in"], aggressiveness=ctx["aggressiveness"], max_rpm=machine["max_rpm"],
         max_hp=machine["max_hp"], runout=ctx["runout"], cut_depth=depth, cut_width=width,
         fusion_tool=_fusion_tool_dict(tool, tool["stickout_in"]), model=ctx["model"],
+        is_carbide=tool.get("is_carbide") is not False, finish_mode=ctx.get("finish_mode"),
         machine_profile=machine["profile"] if machine.get("profile", {}).get("spindle_options") else None)
     return run_cut(physics, req)
 
@@ -1312,18 +1313,214 @@ def _order(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(findings, key=lambda f: rank.get(f["severity"], 3))
 
 
+# ===================================================================================================================
+# session assumptions (Advisor Chat / MCP): what the owner told us that the Fusion snapshot does not say
+# ===================================================================================================================
+
+#: key -> description. An assumption is ``{"key", "value", "scope", "override"}``; ``scope`` is ``{"all": true}`` (default),
+#: ``{"tools": [tool numbers]}``, ``{"diameter_in": 0.25}`` (or ``diameter_mm``) or ``{"op_ids": ["Setup > Op" or a name part]}``.
+#: Nothing here writes to Fusion: the values only change what the advisor and ToolWiz are run with.
+ASSUMPTION_KEYS = {
+    "coating": "tool coating (AlTiN, TiAlN, AlCrN, ZrN, DLC, Diamond, TiSiN, TiCN, TiN, Uncoated); fills in tools whose coating the snapshot does not know",
+    "tool_material": "tool substrate: carbide, hss or cobalt (changes the physics: carbide is the default)",
+    "tool_grade": "carbide grade / vendor series text (recorded and shown; ToolWiz physics does not use it)",
+    "family": "ToolWiz material family (e.g. 'Titanium Alloy')",
+    "alloy": "ToolWiz alloy / condition",
+    "aggressiveness": "0..1 fraction (0.5 = relatively safe) or a percentage above 1",
+    "runout": "holder total indicated runout (inches by default, or {value, unit: 'mm'})",
+    "finish_mode": "finishing mode: cleanup, surface or accuracy (finishing operations only)",
+    "holder_type": "holder type text (shrink fit, hydraulic, ER collet, ...); fills in operations whose holder the snapshot does not know",
+}
+_COATING_NAMES = {n.lower(): n for _, n in _COATINGS}
+_COATING_NAMES.update({"none": "Uncoated", "bright": "Uncoated", "no coating": "Uncoated", "dlc": "DLC", "diamond": "Diamond"})
+_MATERIAL_ALIASES = {"carbide": "carbide", "solid carbide": "carbide", "hss": "hss", "high speed steel": "hss", "hss-e": "hss",
+                     "cobalt": "cobalt", "hss-co": "cobalt", "m42": "cobalt", "m35": "cobalt"}
+FINISH_MODES = ("cleanup", "surface", "accuracy")
+
+
+def normalize_assumption(rec: Any) -> Dict[str, Any]:
+    """One clean assumption record or ValueError. Accepts ``{"key", "value", "scope"?, "override"?, "unit"?}``."""
+    if not isinstance(rec, dict):
+        raise ValueError("an assumption must be an object {key, value, scope?}")
+    key = str(rec.get("key") or "").strip().lower()
+    if key not in ASSUMPTION_KEYS:
+        raise ValueError(f"unknown assumption key {key!r}; allowed: {', '.join(ASSUMPTION_KEYS)}")
+    val = rec.get("value")
+    if isinstance(val, dict):
+        val = val.get("value")
+    unit = str(rec.get("unit") or (rec["value"].get("unit") if isinstance(rec.get("value"), dict) else "") or "").strip().lower()
+    if key == "coating":
+        v = _COATING_NAMES.get(str(val or "").strip().lower())
+        if v is None:
+            raise ValueError(f"unknown coating {val!r}; use one of {', '.join(sorted(set(_COATING_NAMES.values())))}")
+        val = v
+    elif key == "tool_material":
+        v = _MATERIAL_ALIASES.get(str(val or "").strip().lower())
+        if v is None:
+            raise ValueError("tool_material must be carbide, hss or cobalt")
+        val = v
+    elif key in ("tool_grade", "family", "alloy", "holder_type"):
+        val = str(val or "").strip()
+        if not val or len(val) > 120:
+            raise ValueError(f"{key} needs a short text value")
+    elif key == "finish_mode":
+        val = str(val or "").strip().lower()
+        if val not in FINISH_MODES:
+            raise ValueError(f"finish_mode must be one of {', '.join(FINISH_MODES)}")
+    elif key in ("runout", "aggressiveness"):
+        if isinstance(val, bool):
+            raise ValueError(f"{key} must be a number")
+        try:
+            val = float(val)
+        except (TypeError, ValueError):
+            raise ValueError(f"{key} must be a number") from None
+        if val != val or val in (float("inf"), float("-inf")) or val < 0:
+            raise ValueError(f"{key} must be a finite number >= 0")
+        if key == "runout" and unit in ("mm", "millimeter", "millimeters"):
+            val = val / MM_PER_IN
+        if key == "aggressiveness":
+            val = val / 100.0 if val > 1.0 else val
+            if val > 1.0:
+                raise ValueError("aggressiveness must be 0..1 (or a percentage up to 100)")
+    scope_in = rec.get("scope")
+    scope: Dict[str, Any] = {}
+    if isinstance(scope_in, dict):
+        if scope_in.get("tools"):
+            tl = scope_in["tools"] if isinstance(scope_in["tools"], (list, tuple)) else [scope_in["tools"]]
+            nums = []
+            for t in tl:
+                try:
+                    nums.append(int(str(t).strip().lstrip("Tt")))
+                except ValueError:
+                    raise ValueError(f"tool scope {t!r} is not a tool number") from None
+            scope["tools"] = nums
+        if scope_in.get("diameter_in") is not None:
+            scope["diameter_in"] = float(scope_in["diameter_in"])
+        elif scope_in.get("diameter_mm") is not None:
+            scope["diameter_in"] = float(scope_in["diameter_mm"]) / MM_PER_IN
+        if scope_in.get("op_ids"):
+            ol = scope_in["op_ids"] if isinstance(scope_in["op_ids"], (list, tuple)) else [scope_in["op_ids"]]
+            scope["op_ids"] = [str(o).strip() for o in ol if str(o).strip()]
+    if not scope:
+        scope = {"all": True}
+    return {"key": key, "value": val, "scope": scope, "override": bool(rec.get("override", key not in
+            ("coating", "tool_material", "tool_grade", "holder_type"))), "id": str(rec.get("id") or "")}
+
+
+def normalize_assumptions(recs: Any) -> List[Dict[str, Any]]:
+    """Clean list of assumption records (ValueError on a bad one). ``None`` / ``[]`` -> ``[]``."""
+    if recs in (None, "", {}):
+        return []
+    if not isinstance(recs, (list, tuple)):
+        raise ValueError("'assumptions' must be a list of {key, value, scope?} objects")
+    return [normalize_assumption(r) for r in recs]
+
+
+def _scope_hit(scope: Dict[str, Any], op: Dict[str, Any]) -> bool:
+    if scope.get("all"):
+        return True
+    tool = op["tool"]
+    if "tools" in scope and tool.get("number") in scope["tools"]:
+        return True
+    d = tool.get("diameter_in")
+    if "diameter_in" in scope and d and abs(d - scope["diameter_in"]) <= max(1e-4, 0.002 * scope["diameter_in"]):
+        return True
+    for q in scope.get("op_ids") or []:
+        ql = q.lower()
+        if ql == str(op["op_id"]).lower() or ql in str(op["op_id"]).lower() or ql == str(op["name"]).lower():
+            return True
+    return False
+
+
+def describe_scope(scope: Dict[str, Any]) -> str:
+    if scope.get("all"):
+        return "all tools"
+    parts = []
+    if scope.get("tools"):
+        parts.append("tools " + ", ".join(f"T{n}" for n in scope["tools"]))
+    if scope.get("diameter_in"):
+        parts.append(f"tools of {scope['diameter_in']:.4f} in diameter")
+    if scope.get("op_ids"):
+        parts.append("operations " + ", ".join(scope["op_ids"]))
+    return "; ".join(parts) or "all tools"
+
+
+def apply_assumptions(norm: Dict[str, Any], assumptions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Apply normalized assumptions to a normalized setup (in place). Returns ``{"base": {family, alloy, aggressiveness,
+    runout overrides for scope 'all'}, "applied": {op_id: [{key, value, effect}]}}``. Per-operation values land in
+    ``op["ctx_overrides"]`` (family, alloy, aggressiveness, runout, finish_mode) and on ``op["tool"]`` (coating, is_carbide,
+    tool_grade, holder, holder_runout_in). Coating, tool material, grade and holder only fill gaps unless ``override``."""
+    base: Dict[str, Any] = {}
+    applied: Dict[str, List[Dict[str, Any]]] = {}
+
+    def log(op, rec, effect):
+        applied.setdefault(op["op_id"], []).append({"key": rec["key"], "value": rec["value"], "scope": describe_scope(rec["scope"]),
+                                                    "effect": effect})
+    for rec in assumptions:
+        k, v = rec["key"], rec["value"]
+        if rec["scope"].get("all") and k in ("family", "alloy", "aggressiveness", "runout"):
+            base[k] = v
+        for op in norm["ops"]:
+            if not _scope_hit(rec["scope"], op):
+                continue
+            tool, ov = op["tool"], op.setdefault("ctx_overrides", {})
+            if k in ("family", "alloy", "aggressiveness", "runout"):
+                ov[k] = v
+                if k == "runout" and tool.get("holder_runout_in") is None:
+                    tool["holder_runout_in"] = v
+                log(op, rec, "used for this operation")
+            elif k == "finish_mode":
+                if op["kind"] == "finish":
+                    ov["finish_mode"] = v
+                    log(op, rec, "used for this finishing operation")
+            elif k == "coating":
+                if tool.get("coating") is None or rec["override"]:
+                    prev = tool.get("coating")
+                    tool["coating"], tool["coating_assumed"] = v, True
+                    log(op, rec, "assumed (the snapshot did not say)" if prev is None else f"overrides the snapshot's {prev}")
+                else:
+                    log(op, rec, f"not applied: the snapshot already says {tool['coating']}")
+            elif k == "tool_material":
+                tool["is_carbide"], tool["tool_material"] = v == "carbide", v
+                log(op, rec, "used for this operation")
+            elif k == "tool_grade":
+                tool["tool_grade"] = v
+                log(op, rec, "recorded (no physics effect)")
+            elif k == "holder_type":
+                if not tool.get("holder") or rec["override"]:
+                    tool["holder"] = v
+                    log(op, rec, "assumed (the snapshot did not say)")
+                else:
+                    log(op, rec, f"not applied: the snapshot already says {tool['holder']}")
+    return {"base": base, "applied": applied}
+
+
+
 def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Optional[str] = None,
            aggressiveness: float = 0.5, runout: Optional[float] = None, model: str = "v2", physics: Any = None,
            machine_profile: Optional[Dict[str, Any]] = None, use_llm: bool = False,
            llm: Optional[Callable[[str, str], Any]] = None, strategies: bool = True,
-           api_key: Optional[str] = None) -> Dict[str, Any]:
+           api_key: Optional[str] = None, assumptions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """Audit a Fusion setup snapshot against ToolWiz. See docs/SETUP_ADVISOR.md for the accepted ``setup`` and the result.
 
     ``aggressiveness`` 0..1 (a value above 1 is read as a percentage); ``runout`` inches (default 0.0002);
-    ``llm`` is ``(system, prompt) -> text | {"text": ...}`` (default: Gemini through ``ai_machinist``). Raises
+    ``llm`` is ``(system, prompt) -> text | {"text": ...}`` (default: Gemini through ``ai_machinist``).
+    ``assumptions``: session assumptions (see ``normalize_assumption``) the owner gave that the snapshot lacks (coating, tool
+    material, runout, material, ...); they override ``family`` / ``alloy`` / ``aggressiveness`` / ``runout`` when scoped to all
+    tools and are listed in the result (``assumptions``, per operation ``assumptions_applied``). Raises
     ValueError on bad input. The result is stored for ``get_last()``."""
     import strategy_planner
     norm = normalize_setup(setup)
+    assum = normalize_assumptions(assumptions)
+    amod = apply_assumptions(norm, assum) if assum else {"base": {}, "applied": {}}
+    if "family" in amod["base"]:
+        family = amod["base"]["family"]
+    if "alloy" in amod["base"]:
+        alloy = amod["base"]["alloy"]
+    if "aggressiveness" in amod["base"]:
+        aggressiveness = amod["base"]["aggressiveness"]
+    if "runout" in amod["base"]:
+        runout = amod["base"]["runout"]
     fam = (family or norm["family"] or "").strip()
     alo = (alloy if alloy is not None else norm["alloy"]) or ""
     if not fam and (not norm["ops"] or not all(o.get("family") for o in norm["ops"])):
@@ -1353,6 +1550,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
         ctx = dict(base_ctx)
         if op.get("family"):
             ctx["family"], ctx["alloy"] = str(op["family"]), str(op.get("alloy") or "")
+        ctx.update(op.get("ctx_overrides") or {})
         tool0, kind, cur = op["tool"], op["kind"], op["current"]
         entry: Dict[str, Any] = {
             "op_id": op["op_id"], "name": op["name"], "setup": op["setup"], "strategy": op["strategy"], "kind": kind,
@@ -1360,6 +1558,10 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 k: v for k, v in op["geometry"].items() if k != "feature_geometry" and v is not None},
             "toolwiz": {"recommended": None, "at_current_engagement": None, "tslot": None},
             "findings": [], "apply_plan": None, "notes": []}
+        if amod["applied"].get(op["op_id"]):
+            entry["assumptions_applied"] = amod["applied"][op["op_id"]]
+            if tool0.get("coating_assumed"):
+                entry["notes"].append(f"coating {tool0['coating']} is an assumption you gave, not read from Fusion")
         fl = tool0.get("flutes")
         if cur["rpm"] and cur["feed_ipm"] and fl:
             entry["current"]["chip_load_ipt"] = round(cur["feed_ipm"] / (cur["rpm"] * fl), 6)
@@ -1477,6 +1679,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     "verdict": "STOP" if n_stop else ("CAUTION" if n_caution else "PASS")},
         "operations": ops_out, "setup_findings": setup_findings, "strategy_suggestions": strat_out,
         "strategy_notes": strat_notes + list(norm["notes"]),
+        "assumptions": [{"key": a["key"], "value": a["value"], "scope": describe_scope(a["scope"])} for a in assum],
         "narrative": None, "narrative_check": {"ok": True, "rejected_numbers": [], "checked": 0},
         "narrative_note": None if use_llm else "LLM narrative not requested (use_llm: false).",
     }

@@ -1,0 +1,142 @@
+<!-- VIEW 6: ADVISOR CHAT (a conversation next to Fusion; ToolWiz stays the source of every number) -->
+<div id="chatView" style="display: none;">
+    <style>
+        #chatView .chat-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        #chatView .chat-actions .btn-ratio { padding: 5px 12px; cursor: pointer; }
+        #chatView .chat-live { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.9rem; margin-top: 0.5rem; font-size: var(--fs-sm); color: #cbd5e1; }
+        #chatView .chat-dot { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: #64748b; margin-right: 0.35rem; }
+        #chatView .chat-dot.on { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.7); }
+        #chatView .chat-dot.stale { background: var(--warning); }
+        #chatView .chat-pickers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem 0.75rem; margin-top: 0.75rem; align-items: end; }
+        #chatView .chat-pickers label { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--fs-xs); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; margin: 0; }
+        #chatView .chat-pickers .check-inline { flex-direction: row; align-items: center; gap: 0.4rem; }
+        #chatView .chat-pickers .check-inline input { width: auto; }
+        #chatView .chat-pickers select, #chatView .chat-pickers input:not([type=checkbox]) { width: 100%; min-width: 0; font-size: var(--fs-md); padding: 0.4rem 0.5rem; text-transform: none; letter-spacing: 0; font-weight: 500; }
+        #chatView details.chat-box { margin-top: 0.75rem; border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.5rem 0.75rem; background: rgba(0, 0, 0, 0.18); }
+        #chatView details.chat-box > summary { cursor: pointer; font-weight: 700; font-size: var(--fs-md); }
+        #chatView .chat-key { display: grid; grid-template-columns: 7rem minmax(0, 1fr) auto auto; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
+        #chatView .chat-key input { min-width: 0; width: 100%; font-size: var(--fs-md); padding: 0.4rem 0.5rem; }
+        #chatView .chat-key .btn-ratio { padding: 4px 10px; cursor: pointer; }
+        #chatView .chat-layout { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; gap: 1.25rem; align-items: start; }
+        #chatView .chat-main { display: flex; flex-direction: column; min-width: 0; }
+        #chatView .chat-log { display: flex; flex-direction: column; gap: 0.7rem; overflow-y: auto; max-height: min(68vh, 760px); min-height: 14rem; padding: 0.5rem 0.25rem 0.5rem 0; }
+        #chatView .chat-msg { max-width: 92%; padding: 0.6rem 0.85rem; border-radius: 12px; font-size: var(--fs-md); line-height: 1.5; overflow-wrap: anywhere; }
+        #chatView .chat-msg.user { align-self: flex-end; background: rgba(59, 130, 246, 0.28); border: 1px solid rgba(59, 130, 246, 0.5); }
+        #chatView .chat-msg.assistant { align-self: flex-start; background: rgba(30, 41, 59, 0.85); border: 1px solid var(--panel-border); }
+        #chatView .chat-msg p { margin: 0 0 0.5rem; }
+        #chatView .chat-msg p:last-child, #chatView .chat-msg ul:last-child { margin-bottom: 0; }
+        #chatView .chat-msg ul { margin: 0.2rem 0 0.5rem; padding-left: 1.2rem; }
+        #chatView .chat-msg code { background: rgba(0, 0, 0, 0.35); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+        #chatView .chat-msg pre { background: rgba(0, 0, 0, 0.4); padding: 0.5rem; border-radius: 6px; overflow-x: auto; font-size: var(--fs-sm); }
+        #chatView .chat-meta { font-size: var(--fs-xs); color: var(--text-secondary); margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.2rem 0.7rem; }
+        #chatView .chat-note { align-self: center; max-width: 96%; font-size: var(--fs-sm); color: var(--text-secondary); font-style: italic; text-align: center; overflow-wrap: anywhere; }
+        #chatView mark.unv { background: rgba(245, 158, 11, 0.28); color: #fde68a; border-bottom: 2px dotted var(--warning); border-radius: 3px; padding: 0 2px; }
+        #chatView mark.unv sup { font-size: 0.62em; margin-left: 2px; text-transform: uppercase; letter-spacing: 0.03em; }
+        #chatView .chat-guard { margin: 0 0 0.5rem; }
+        #chatView .chat-trace { margin: 0.2rem 0 0; font-size: var(--fs-sm); }
+        #chatView .chat-trace summary { cursor: pointer; color: var(--text-secondary); }
+        #chatView .chat-call { border-left: 3px solid rgba(148, 163, 184, 0.4); padding: 0.2rem 0 0.2rem 0.6rem; margin: 0.4rem 0; }
+        #chatView .chat-call.err { border-left-color: var(--danger); }
+        #chatView .chat-call pre { max-height: 14rem; overflow: auto; margin: 0.25rem 0; background: rgba(0, 0, 0, 0.35); padding: 0.4rem; border-radius: 6px; font-size: var(--fs-xs); white-space: pre-wrap; overflow-wrap: anywhere; }
+        #chatView .chat-compose { display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: flex-end; }
+        #chatView .chat-compose textarea { flex: 1 1 auto; min-width: 0; min-height: 3.2rem; max-height: 10rem; resize: vertical; font-size: var(--fs-md); padding: 0.5rem 0.6rem; }
+        #chatView .chat-compose .btn-ratio { padding: 0.6rem 1.1rem; cursor: pointer; }
+        #chatView .chat-side { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+        #chatView .chat-side h3 { margin: 0 0 0.4rem; font-size: var(--fs-md); }
+        #chatView .chat-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: var(--fs-sm); padding: 2px 4px 2px 9px; border-radius: 12px; background: rgba(59, 130, 246, 0.16); border: 1px solid rgba(59, 130, 246, 0.4); margin: 0.15rem 0.2rem 0.15rem 0; overflow-wrap: anywhere; }
+        #chatView .chat-chip button { background: transparent; border: 0; color: #cbd5e1; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 5px; }
+        #chatView .chat-addrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem; margin-top: 0.5rem; }
+        #chatView .chat-addrow input, #chatView .chat-addrow select { min-width: 0; width: 100%; font-size: var(--fs-sm); padding: 0.35rem 0.45rem; }
+        #chatView .chat-addrow .btn-ratio { grid-column: 1 / -1; padding: 4px 10px; cursor: pointer; }
+        #chatView .chat-prop { border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.5rem 0.65rem; margin: 0.45rem 0; background: rgba(0, 0, 0, 0.2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+        #chatView .chat-prop .st { display: inline-block; font-size: var(--fs-xs); font-weight: 700; padding: 1px 7px; border-radius: 6px; background: rgba(148, 163, 184, 0.2); text-transform: uppercase; }
+        #chatView .chat-prop .st.applied { background: rgba(34, 197, 94, 0.25); color: #86efac; }
+        #chatView .chat-prop .st.failed, #chatView .chat-prop .st.rejected, #chatView .chat-prop .st.declined, #chatView .chat-prop .st.declined_in_fusion { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        #chatView .chat-prop .st.queued, #chatView .chat-prop .st.pending { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+        #chatView .chat-prop .acts { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+        #chatView .chat-prop .acts .btn-ratio { padding: 3px 10px; cursor: pointer; }
+        #chatView .chat-hist { max-height: 11rem; overflow-y: auto; }
+        #chatView .chat-hist button.item { display: block; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: #cbd5e1; cursor: pointer; padding: 0.3rem 0.2rem; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+        #chatView .chat-hist button.item.cur { color: #fff; font-weight: 700; }
+        #chatView .chat-busy { align-self: flex-start; color: var(--text-secondary); font-size: var(--fs-sm); }
+        @media (max-width: 900px) {
+            #chatView .chat-layout { grid-template-columns: minmax(0, 1fr); }
+            #chatView .chat-msg { max-width: 100%; }
+            #chatView .chat-key { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+            #chatView .chat-key label { grid-column: 1 / -1; }
+            #chatView .chat-log { max-height: 60vh; }
+        }
+    </style>
+    <div class="glass-panel v3-intro">
+        <div class="v3-row">
+            <div style="flex:1; min-width: 14rem;">
+                <h2 class="v3-h2">Advisor Chat</h2>
+                <p class="v3-lead">Another set of eyes on your Fusion screen. Keep this window beside Fusion: the assistant reads your live setup, works through the Setup Advisor with you, and can only quote numbers that ToolWiz calculated. Nothing changes in Fusion unless you approve it here and confirm it in Fusion.</p>
+            </div>
+            <div class="chat-actions">
+                <button type="button" class="btn-ratio v3-btn" id="chatStartBtn">Start from Setup Advisor</button>
+                <button type="button" class="btn-ratio" id="chatNewBtn">New chat</button>
+            </div>
+        </div>
+        <div id="chatLive" class="chat-live" role="status" aria-live="polite"></div>
+        <details id="chatStartBox" class="chat-box">
+            <summary>Start from Setup Advisor: which material is this setup cutting?</summary>
+            <div class="chat-pickers">
+                <label>Material family<select id="chatFamily"></select></label>
+                <label>Alloy<select id="chatAlloy"></select></label>
+                <label>&nbsp;<button type="button" class="btn-ratio v3-btn" id="chatStartGo" style="padding:6px 12px;cursor:pointer;">Run the advisor and open the chat</button></label>
+            </div>
+        </details>
+        <div class="chat-pickers">
+            <label>Provider<select id="chatProvider"></select></label>
+            <label>Model<select id="chatModel"></select></label>
+            <label>Effort<select id="chatEffort"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></label>
+            <label class="check-inline" style="text-transform:none;letter-spacing:0;font-size:var(--fs-sm);" title="Withhold a reply that contains numbers ToolWiz did not provide and make the model answer again">
+                <input type="checkbox" id="chatStrict"> Strict numbers
+            </label>
+        </div>
+        <div id="chatModelNote" class="v3-sub"></div>
+        <details id="chatSettings" class="chat-box">
+            <summary>API keys and settings</summary>
+            <p class="v3-sub">Keys are stored only on this computer (<code>data/ai_settings.json</code>) and never sent back to the browser after saving. You can also set <code>ANTHROPIC_API_KEY</code> / <code>GEMINI_API_KEY</code> in the environment.</p>
+            <div class="chat-key"><label for="chatKeyAnthropic"><strong>Claude</strong></label><input type="password" id="chatKeyAnthropic" autocomplete="off" placeholder="Anthropic API key"><button type="button" class="btn-ratio v3-btn" data-key-save="anthropic">Save</button><button type="button" class="btn-ratio" data-key-clear="anthropic">Remove</button></div>
+            <div id="chatKeyStatusAnthropic" class="v3-sub"></div>
+            <div class="chat-key"><label for="chatKeyGemini"><strong>Gemini</strong></label><input type="password" id="chatKeyGemini" autocomplete="off" placeholder="Google AI Studio API key"><button type="button" class="btn-ratio v3-btn" data-key-save="gemini">Save</button><button type="button" class="btn-ratio" data-key-clear="gemini">Remove</button></div>
+            <div id="chatKeyStatusGemini" class="v3-sub"></div>
+            <label class="check-inline" style="margin-top:0.5rem;"><input type="checkbox" id="chatViewport"> Let the assistant take a screenshot of the Fusion viewport (sent to the provider; needs a vision-capable model)</label>
+        </details>
+    </div>
+    <div class="chat-layout">
+        <section class="glass-panel chat-main" aria-label="Conversation">
+            <div id="chatLog" class="chat-log" role="log" aria-live="polite"></div>
+            <div class="chat-compose">
+                <textarea id="chatInput" rows="2" placeholder="Ask about your setup, or tell me what Fusion does not know (for example: all my tools are AlTiN coated)" aria-label="Message"></textarea>
+                <button type="button" class="btn-ratio v3-btn" id="chatSend">Send</button>
+            </div>
+            <div id="chatErr" class="v3-status err" role="alert"></div>
+        </section>
+        <aside class="chat-side">
+            <section class="glass-panel">
+                <h3>Assumptions</h3>
+                <div class="v3-sub">Things Fusion does not say. Applied to every run in this chat; nothing is written to Fusion.</div>
+                <div id="chatAssumptions"></div>
+                <div class="chat-addrow">
+                    <select id="chatAsmKey" aria-label="Assumption"></select>
+                    <input id="chatAsmVal" aria-label="Value" placeholder="value, e.g. AlTiN">
+                    <input id="chatAsmScope" aria-label="Tool numbers" placeholder="tools, e.g. 3, 5 (empty = all)">
+                    <select id="chatAsmUnit" aria-label="Unit"><option value="in">in</option><option value="mm">mm</option></select>
+                    <button type="button" class="btn-ratio" id="chatAsmAdd">Add assumption</button>
+                </div>
+            </section>
+            <section class="glass-panel">
+                <h3>Proposed changes</h3>
+                <div class="v3-sub">Approve only queues a change. Fusion then asks you to confirm it.</div>
+                <div id="chatProposals"><div class="v3-sub">None yet.</div></div>
+            </section>
+            <section class="glass-panel">
+                <h3>Saved chats</h3>
+                <div id="chatHistory" class="chat-hist"></div>
+            </section>
+        </aside>
+    </div>
+</div>

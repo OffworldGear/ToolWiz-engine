@@ -18,3 +18,7 @@ data/machine_settings.json
 data/cutlog.db
 data/machines/
 data/model_settings.json
+
+# Advisor Chat: API keys and saved conversations stay local
+data/ai_settings.json
+data/advisor_chats/
