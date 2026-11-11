@@ -23,6 +23,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 BUILTIN_DIR = os.path.join(ROOT, "machines")
 USER_DIR = os.path.join(ROOT, "data", "machines")
 DEFAULT_MACHINE_ID = "speedio_s500x2"
+TEST_PROFILE_PREFIX = "test_"   # machines/test_*.json are test fixtures, never listed to users
 KW_TO_HP = 1.341
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,47}$")
@@ -72,7 +73,8 @@ def _read_dir(path):
 
 def list_profiles(builtin_dir=None, user_dir=None):
     """{id: {"profile", "builtin", "modified"}}; a user file replaces a built-in of the same id."""
-    builtin = _read_dir(builtin_dir or BUILTIN_DIR)
+    builtin = {mid: p for mid, p in _read_dir(builtin_dir or BUILTIN_DIR).items()
+               if not mid.startswith(TEST_PROFILE_PREFIX)}
     user = _read_dir(user_dir or USER_DIR)
     out = {mid: {"profile": p, "builtin": True, "modified": False} for mid, p in builtin.items()}
     for mid, p in user.items():
