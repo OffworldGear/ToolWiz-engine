@@ -126,7 +126,8 @@
    "name": "4mm x 0.5mm Klot/Harfington solid carbide T-slot cutter",
    "planned": false,
    "source_url": null,
-   "source_note": "No listing found on harfington.com or elsewhere (searched 2026-11-11). Geometry other than diameter and kerf is assumed: 6 mm shank, 4 teeth (owner instruction); neck 0.58 x D and reach 1.67 x D keep the proportions of the 6x2 cutter.",
+   "source_note": "Owner actively uses this 4 mm x 0.5 mm Klot/Harfington carbide coated T-slot cutter; no listing with its geometry was found (searched 2026-11-11). Neck and reach are scaled by D from the library-derived 8 x 1 cutter (fusion_klot_8x1: neck 4.0 mm = 0.5 x D, reach 3.5 mm = 0.4375 x D), which the owner says should have similar proportional geometry: neck 2.0 mm, reach 1.75 mm. The owner suspects the 8 x 1 library geometry may be off; if it is, these two values are off by the same ratio. Assumed: 6 mm shank (shop rule for 3 to 6 mm tools), 4 teeth (owner instruction), AlTiN coating (coated, grade not stated).",
+   "geometry_basis": "scaled from fusion_klot_8x1",
    "diameter_mm": 4.0,
    "kerf_mm": 0.5,
    "shank_diameter_mm": 6.0,
@@ -140,10 +141,10 @@
     "bottom"
    ],
    "teeth_per_face": null,
-   "coating": "Uncoated",
+   "coating": "AlTiN",
    "tool_material": "carbide",
-   "neck_diameter_mm": 2.3,
-   "reach_mm": 6.7,
+   "neck_diameter_mm": 2.0,
+   "reach_mm": 1.75,
    "provisional": [
     "neck_diameter",
     "reach",

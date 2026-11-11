@@ -14,7 +14,7 @@ from toolwiz_common.tool_strategy import plan_strategies, slot_faces
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 from toolwiz_common import (
     ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
-    ToolGeometry, ToolProfile, default_stickout, default_shank, to_inches, UnitError, safe_eval_length,
+    ToolGeometry, ToolProfile, default_stickout, default_shank, default_shank_inches, to_inches, UnitError, safe_eval_length,
     tool_unit as tool_unit_of,
     calc_thin_wall_compliance_factor,
 )
@@ -34,6 +34,7 @@ from routes_master_library import bp as master_library_bp; app.register_blueprin
 from routes_strategy import bp as strategy_bp; app.register_blueprint(strategy_bp)
 from routes_ui_support import bp as ui_support_bp; app.register_blueprint(ui_support_bp)
 from routes_setup_advisor import bp as setup_advisor_bp; app.register_blueprint(setup_advisor_bp)
+from routes_runout import bp as runout_bp; app.register_blueprint(runout_bp)
 import machine_profiles
 
 # Initialize physics engine
@@ -429,6 +430,17 @@ def api_machines():
     return jsonify({**_machine_list(), "id": mid})
 
 
+@app.route("/api/machines/stiffness_default", methods=["GET"])
+def api_machine_stiffness_default():
+    """GET ?taper=BT30&dual_contact=0: the estimated holder/spindle stiffness for a taper class."""
+    taper = request.args.get("taper", "")
+    dc = request.args.get("dual_contact")
+    est = machine_profiles.default_holder_stiffness(taper, None if dc in (None, "") else dc in ("1", "true", "True"))
+    if est is None:
+        return jsonify({"success": False, "error": "unknown taper class"}), 400
+    return jsonify({"success": True, "taper": taper, "stiffness": est})
+
+
 @app.route("/api/machines/<mid>", methods=["GET", "DELETE"])
 def api_machine(mid):
     """GET one full profile. DELETE removes the user's file; a built-in machine reverts to its shipped profile."""
@@ -437,8 +449,14 @@ def api_machine(mid):
         return jsonify({"success": False, "error": "unknown machine"}), 404
     if request.method == "GET":
         e = profiles[mid]
+        hs, src = machine_profiles.effective_holder_stiffness(e["profile"])
+        sp = (e["profile"].get("spindle_options") or {}).get(e["profile"].get("active_spindle"))
+        est = (machine_profiles.default_holder_stiffness(e["profile"].get("spindle_taper"),
+                                                         machine_profiles.is_dual_contact(e["profile"], sp))
+               if e["profile"].get("spindle_taper") else None)
         return jsonify({"success": True, "id": mid, "profile": e["profile"], "builtin": e["builtin"],
-                        "modified": e["modified"]})
+                        "modified": e["modified"], "stiffness": hs, "stiffness_source": src,
+                        "stiffness_estimate": est})
     if not machine_profiles.delete_user_profile(mid):
         return jsonify({"success": False, "error": "This is a built-in machine with no saved edits."}), 400
     settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
@@ -564,7 +582,7 @@ def calculate():
         explicit_depth, explicit_width = _optional_length(data, "cutDepth"), _optional_length(data, "cutWidth")
         cut_depth, cut_width = explicit_depth or absent, explicit_width or absent
         is_metric = bool(data.get("isMetric", False))
-        shank_size = float(data.get("shankDiameter") or default_shank(diameter))
+        shank_size = float(data.get("shankDiameter") or default_shank_inches(diameter, "mm" if is_metric else "inches"))
 
         req = CutRequest(
             family=data.get("family", ""),
@@ -672,7 +690,9 @@ def calculate_for_fusion():
         data = _json_body()
         fusion_tool = _fusion_tool_arg(data)
         diameter = float(data.get("diameter", 0.25))
-        shank_size = float(data.get("shankDiameter") or default_shank(diameter))
+        _fu = (fusion_tool or {}).get("unit") or ((fusion_tool or {}).get("geometry") or {}).get("unit")
+        shank_size = float(data.get("shankDiameter") or default_shank_inches(
+            diameter, "mm" if str(_fu).lower() in ("mm", "millimeters", "millimeter") else "inches"))
         pitch = data.get("pitch")
 
         # The operation's own stepdown / stepover (inches) when the add-in sends them (stepdown/stepover, or

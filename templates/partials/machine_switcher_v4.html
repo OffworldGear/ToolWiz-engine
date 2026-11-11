@@ -1,0 +1,9 @@
+<!-- Compact active-machine switcher (top of the page). Logic: static/js/machine_editor_v4.js -->
+<div class="me4-top" id="machineSwitcher" role="group" aria-label="Active machine">
+    <label for="machineSwitchTop">Machine</label>
+    <select id="machineSwitchTop" aria-label="Active machine" onchange="MachineEditorV4.switchMachine()"></select>
+    <label for="spindleSwitchTop" class="visually-hidden" style="position:absolute;left:-9999px">Spindle</label>
+    <select id="spindleSwitchTop" aria-label="Active spindle" onchange="MachineEditorV4.switchSpindle()"></select>
+    <span id="machineSwitchMeta" class="me4-meta"></span>
+    <button type="button" class="btn-ratio" onclick="openMachineEditor()">Edit&hellip;</button>
+</div>

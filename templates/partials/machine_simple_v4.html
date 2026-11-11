@@ -1,0 +1,14 @@
+<!-- Machine editor v4: simple spindle mode (peak torque + base rpm + continuous power -> curve) -->
+<fieldset class="me4-box">
+    <legend>Simple mode</legend>
+    <div class="me4-grid">
+        <div><label for="machineEdSimpleTorque">Peak torque (N&middot;m)</label>
+            <input type="number" id="machineEdSimpleTorque" class="tool-dialog-input" step="any" min="0"></div>
+        <div><label for="machineEdSimpleBase">Base rpm (end of constant torque)</label>
+            <input type="number" id="machineEdSimpleBase" class="tool-dialog-input" step="any" min="0"></div>
+        <div><label for="machineEdSimplePower">Continuous power (kW)</label>
+            <input type="number" id="machineEdSimplePower" class="tool-dialog-input" step="any" min="0"></div>
+        <div style="align-self:end"><button type="button" class="btn-ratio" onclick="MachineEditorV4.generateSimple()">Generate curves</button></div>
+    </div>
+    <p class="me4-note">Fills the fields and curves below: peak torque holds up to the base rpm, continuous power is constant above it. The curves are saved as derived, not quoted; edit the points for the real chart.</p>
+</fieldset>

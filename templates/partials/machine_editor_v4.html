@@ -1,0 +1,50 @@
+<!-- Machine editor v4: brand, model, controller, spindle taper, feeds, coolant, holder stiffness. Logic: static/js/machine_editor_v4.js -->
+<style>
+    .me4-box { border: 1px solid var(--panel-border); border-radius: 8px; padding: 0.6rem 0.7rem; margin-bottom: 0.6rem; background: rgba(15, 23, 42, 0.35); }
+    .me4-box > legend, .me4-title { font-size: var(--fs-sm); font-weight: 700; color: #e2e8f0; padding: 0 0.3rem; }
+    .me4-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem 0.6rem; }
+    .me4-grid label { font-size: var(--fs-sm); color: var(--text-secondary); display: block; margin-bottom: 2px; }
+    .me4-check { display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); color: #cbd5e1; padding-top: 1.35rem; }
+    .me4-note { font-size: var(--fs-xs); color: var(--text-secondary); line-height: 1.45; margin: 0.35rem 0 0; overflow-wrap: anywhere; }
+    .me4-est { font-size: var(--fs-sm); color: #cbd5e1; margin: 0.3rem 0; overflow-wrap: anywhere; }
+    .me4-est .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: var(--fs-xs); font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; margin-right: 0.3rem; }
+    .me4-box details summary { cursor: pointer; color: var(--accent); font-size: var(--fs-xs); font-weight: 600; margin-top: 0.3rem; }
+    .me4-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; font-size: var(--fs-sm); color: var(--text-secondary); }
+    .me4-top select { width: auto; min-width: 0; max-width: 100%; flex: 0 1 240px; padding: 0.3rem 0.5rem; font-size: var(--fs-sm); }
+    .me4-top .me4-meta { color: #cbd5e1; }
+    .me4-top button { flex: 0 0 auto; padding: 0.3rem 0.65rem; font-size: var(--fs-sm); }
+</style>
+<fieldset class="me4-box">
+    <legend>Machine</legend>
+    <div class="me4-grid">
+        <div><label for="machineEdBrand">Brand</label>
+            <input type="text" id="machineEdBrand" class="tool-dialog-input" maxlength="80" autocomplete="off" placeholder="e.g. Brother"></div>
+        <div><label for="machineEdModel">Model</label>
+            <input type="text" id="machineEdModel" class="tool-dialog-input" maxlength="80" autocomplete="off" placeholder="e.g. Speedio S500X2"></div>
+        <div><label for="machineEdController">Controller</label>
+            <input type="text" id="machineEdController" class="tool-dialog-input" maxlength="80" autocomplete="off" placeholder="e.g. CNC-C00"></div>
+        <div><label for="machineEdTaper">Spindle taper</label>
+            <select id="machineEdTaper" class="tool-dialog-input" onchange="MachineEditorV4.onTaperChange()"></select></div>
+        <div class="me4-check"><input type="checkbox" id="machineEdDual" onchange="MachineEditorV4.onTaperChange()"><label for="machineEdDual" style="margin:0">Dual contact (this spindle)</label></div>
+        <div><label for="machineEdMaxFeed">Max cutting feed (mm/min)</label>
+            <input type="number" id="machineEdMaxFeed" class="tool-dialog-input" step="any" min="0"></div>
+        <div><label for="machineEdRapidX">Rapid X (m/min)</label><input type="number" id="machineEdRapidX" class="tool-dialog-input" step="any" min="0"></div>
+        <div><label for="machineEdRapidY">Rapid Y (m/min)</label><input type="number" id="machineEdRapidY" class="tool-dialog-input" step="any" min="0"></div>
+        <div><label for="machineEdRapidZ">Rapid Z (m/min)</label><input type="number" id="machineEdRapidZ" class="tool-dialog-input" step="any" min="0"></div>
+        <div><label for="machineEdTsc">Through-spindle coolant (bar, optional)</label>
+            <input type="number" id="machineEdTsc" class="tool-dialog-input" step="any" min="0"></div>
+    </div>
+</fieldset>
+<fieldset class="me4-box" aria-describedby="machineEdStiffNote">
+    <legend>Holder / spindle stiffness</legend>
+    <div id="machineEdStiffNow" class="me4-est" role="status" aria-live="polite"></div>
+    <div class="me4-grid">
+        <div><label for="machineEdStiffK">Override: radial stiffness (N/&micro;m)</label>
+            <input type="number" id="machineEdStiffK" class="tool-dialog-input" step="any" min="0" placeholder="blank = use estimate" oninput="MachineEditorV4.refreshStiff()"></div>
+        <div><label for="machineEdStiffKt">Override: rotational (N&middot;m/&micro;rad)</label>
+            <input type="number" id="machineEdStiffKt" class="tool-dialog-input" step="any" min="0" placeholder="blank = use estimate" oninput="MachineEditorV4.refreshStiff()"></div>
+        <div style="align-self:end"><button type="button" class="btn-ratio" onclick="MachineEditorV4.useEstimate()">Use taper estimate</button></div>
+    </div>
+    <p id="machineEdStiffNote" class="me4-note">Used by the deflection model (tool, holder and spindle in series). Without a measured value the engine uses an estimate from the taper class; measure with a dial indicator and a push-load test and enter it here.</p>
+    <details><summary>Sources for the estimate</summary><p id="machineEdStiffSrc" class="me4-note"></p></details>
+</fieldset>

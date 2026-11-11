@@ -13,7 +13,8 @@ Findings
   STOP     stepdown > cutting length (LCF; the kerf of a slot mill); stepover > D (or > the T-slot neck
            reach (D - neck) / 2); chip load f_z > 2 x ToolWiz; rpm x f_z x flutes differs from v_f by > 10%;
            an end-mill strategy on a form tool; missing or zero feed / speed.
-  CAUTION  f_z < 0.5 x or > 1.4 x ToolWiz; rpm above the machine maximum; a standard ER collet on a tool whose
+  CAUTION  f_z < 0.5 x or > 1.4 x ToolWiz; rpm above the machine maximum; a shank smaller than the shop rule (shank_suspect: 1/8" up to 1/8" tools,
+           1/4" up to 1/4", else D; 4 mm / 6 mm / D metric) with the proposed value; a standard ER collet on a tool whose
            required runout is in the precision / ultra class; stickout LB > 4 x D on a tool of 1/8" or less
            without a reduced neck; duplicate presets; a tool that cannot be read (no unit).
   INFO     no presets for the selected material; measured runout missing; material or operation not recognised.
@@ -25,7 +26,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from master_library import GENERATOR, cached_cut, cut_request
-from toolwiz_common.geometry import ToolGeometry
+from toolwiz_common.geometry import ToolGeometry, default_shank_inches, shank_looks_wrong
 from toolwiz_common.tool_profile import ToolProfile
 from toolwiz_common.tool_strategy import END_MILL_STRATEGIES, FORM_KINDS, T_SLOT_AXIAL, T_SLOT_FULL
 from toolwiz_common.tool_types import ToolKind, classify, is_hole_kind, is_milling_kind
@@ -61,6 +62,8 @@ _MATERIALS: List[Tuple[str, str]] = [
     (r"steel", "Steel - Medium Carbon (1045)"),
     (r"plastic|delrin|acetal|nylon|peek|\babs\b", "Plastics: Soft (Acetal, HDPE, PEEK)"),
 ]
+
+_SHANK_RULE_KINDS = frozenset({ToolKind.FLAT, ToolKind.BALL, ToolKind.BULL, ToolKind.RADIUS})
 
 # Words that make a preset name a non-cutting / generic preset (no numeric comparison).
 _GENERIC_NAMES = ("default", "deburr")
@@ -203,6 +206,16 @@ def _tool_checks(rep: _Report, idx: int, tool: dict, kind: ToolKind, prof: ToolP
                 f"Stickout LB {_fmt(prof.stickout * (MM if unit == 'millimeters' else 1), unit)} is "
                 f"{prof.stickout / d_in:.1f} x D on a tool of 1/8\" or less with no reduced neck.",
                 tool_index=idx, tool=tool, toolwiz_value=f"<= {LB_OVER_D:g} x D or add a reduced neck")
+    if kind in _SHANK_RULE_KINDS:
+        f = MM if unit == "millimeters" else 1.0
+        if shank_looks_wrong(d_in * f, g.shank_diameter * f, unit):
+            want = default_shank_inches(d_in, unit)
+            rep.add(CAUTION, "shank_suspect",
+                    f"Shank {_fmt(g.shank_diameter * f, unit)} on a {_fmt(d_in * f, unit)} {tool.get('type', 'tool')} is "
+                    f"smaller than the shop's shank rule; proposed {_fmt(want * f, unit)}, tapering to the cutting "
+                    f"diameter. The tool is modelled as a thinner (more flexible) rod until corrected.",
+                    tool_index=idx, tool=tool, toolwiz_value=round(want * f, 5),
+                    preset_value=round(g.shank_diameter * f, 5))
     htxt = _holder_text(tool)
     if htxt and _ER_RE.search(htxt) and ref is not None:
         try:
