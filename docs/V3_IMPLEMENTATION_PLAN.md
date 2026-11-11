@@ -190,6 +190,34 @@ these cutters on the same job (cycle time, chip load, deflection, relative tool 
 can judge whether the Harvey cutter is worth it, and the advisor should flag when a premium
 cutter's benefit comes from published vendor data versus physics alone.
 
+### Master library builder (owner request 2026-11-11)
+
+The owner wants one master library of every tool across open documents, hub/team libraries, cloud
+and local libraries, populated with ToolWiz presets for selected materials and strategies, written
+as separate libraries per **material set** (same tools, different presets). Default sets
+(`data/material_sets.json`, editable):
+- **Non-ferrous:** 6061-T6, 7075-T6, brass C36000, bronze (C54400 phosphor, C63000 Ni-Al),
+  copper C11000.
+- **Steels & exotics:** 4140 pre-hard ~30 HRC, 304/316, 17-4 PH, Ti-6Al-4V, zirconium 702,
+  hardened tool steel (~50-60 HRC), CPM MagnaCut annealed and hardened, Black Titanium 5545.
+
+**WP-B5 (server; owner: `master_library.py`, `routes_master_library.py`, `data/material_sets.json`,
+tests).** Merge harvested libraries (dedupe by cutter geometry, but keep separate entries when the
+holder/stickout differs by > 10%, since presets depend on stickout); per tool, plan strategies with
+`toolwiz_common.tool_strategy`; generate presets for each selected material x strategy with the
+pipeline; tag ToolWiz-owned presets so a rebuild replaces only those and keeps the owner's own;
+run `library_audit` on the result (zero STOP required); write one Fusion-importable library per
+set. Selective by tools (type, diameter range, source library, ids), sets, materials, strategies
+and aggressiveness. Runs as a background job with progress and a result cache.
+
+**WP-C1 additions (add-in).** Harvest from every source: the open documents' tool libraries,
+hub/team libraries, cloud and local libraries, and an opt-in scan of a chosen hub project's
+documents. Send them to WP-B5, then import the generated libraries into Fusion as named libraries
+(e.g. `ToolWiz - Non-ferrous`, `ToolWiz - Steels & exotics`), updating in place on rebuild.
+
+**WP-C2 additions (web).** A Master Library page: sources, tool filter, set and material pickers,
+strategy picker, aggressiveness, progress, results with the audit, and download.
+
 ### Phase 3 (after Phase 2 merges)
 
 **WP-C1 Fusion add-in (owner: `ToolWizFusionAddin/`).** Every command: auto-setter, stock to
