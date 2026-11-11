@@ -519,9 +519,21 @@ def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
         return [], _scrub_key(f"Model discovery network error: {str(e)}", api_key)
 
 
+def _default_key() -> str:
+    """The Gemini key from the environment (GEMINI_API_KEY / GOOGLE_API_KEY) or the one saved in the Advisor Chat settings."""
+    env = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+    if env:
+        return env
+    try:
+        from advisor_chat import settings as _ai
+        return (_ai.key_for("gemini") or "").strip()
+    except Exception:
+        return ""
+
+
 def api_key_available(api_key: str = None) -> bool:
-    """True when a Gemini API key is passed or set in GEMINI_API_KEY / GOOGLE_API_KEY."""
-    return bool((api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip())
+    """True when a Gemini API key is passed, set in GEMINI_API_KEY / GOOGLE_API_KEY, or saved in the Advisor Chat settings."""
+    return bool((api_key or _default_key()).strip())
 
 
 is_available = api_key_available
@@ -586,7 +598,7 @@ def generate_text(system_instruction: str, prompt: str, api_key: str = None, pre
     """Plain LLM completion for the setup advisor: ``{"success", "text", "model", "error"}``.
 
     No key -> ``success`` False with ``error`` "no API key". Never raises."""
-    key = (api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+    key = (api_key or _default_key()).strip()
     if not key:
         return {"success": False, "text": None, "model": None, "error": "no API key"}
     try:
@@ -673,7 +685,7 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, p
     Concatenates all response parts to prevent truncation.
     Falls back gracefully to the built-in offline machining knowledge engine if no key is configured or API errors occur.
     """
-    key = (api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+    key = (api_key or _default_key()).strip()
     context_str = format_context_for_prompt(context or {})
 
     if not key:

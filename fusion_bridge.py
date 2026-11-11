@@ -12,6 +12,7 @@ tailored to ToolWiz's ``adsk.cam`` operations and ``AuditedCommand`` safety mode
 """
 from __future__ import annotations
 
+import re
 import threading
 import time
 import uuid
@@ -27,7 +28,17 @@ ALLOWED_ACTIONS = (
     "apply_stock_to_leave",
     "snapshot_compare",
     "apply_operation_parameters",
+    "update_tool_fields",
+    "get_viewport_image",
 )
+
+# Tool fields ``update_tool_fields`` may write on a tool of the document tool library (Advisor Chat). The add-in checks again.
+#   coating                 coating name; written into the tool description (ToolWiz reads the coating from description / BMC / GRADE)
+#   BMC / GRADE / comment   Fusion tool JSON keys (base material code such as "carbide", grade text, comment)
+#   description             the full description text
+#   add_keywords / remove_keywords   words added to / removed from the description (e.g. "staggered")
+TOOL_FIELDS_ALLOWED = ("coating", "BMC", "GRADE", "comment", "description", "add_keywords", "remove_keywords")
+_KEYWORD_OK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ./+\-]{0,39}$")
 
 # Fusion CAM parameter names ``apply_operation_parameters`` may write (feeds, speeds, stepdown, stepover / optimal
 # load, stock to leave, ramp, tabs). The value is an expression string with units ("0.0625 in", "12000 rpm").
@@ -125,14 +136,49 @@ def _check_apply_params(params: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def check_tool_fields(params: Dict[str, Any]) -> Optional[str]:
+    """Error text when ``update_tool_fields`` params are malformed or name a field outside the allow-list, else None."""
+    num, guid = params.get("tool_number"), str(params.get("tool_guid") or "").strip()
+    if isinstance(num, bool) or not ((isinstance(num, int) and num >= 0) or guid):
+        return "update_tool_fields needs 'tool_number' (a whole number) or 'tool_guid'"
+    fields = params.get("fields")
+    if not isinstance(fields, dict) or not fields:
+        return "update_tool_fields needs a non-empty 'fields' object"
+    for name, val in fields.items():
+        if name not in TOOL_FIELDS_ALLOWED:
+            return f"field {name!r} may not be written; allowed: {', '.join(TOOL_FIELDS_ALLOWED)}"
+        if name in ("add_keywords", "remove_keywords"):
+            if not isinstance(val, list) or not val or len(val) > 8 or not all(isinstance(w, str) and _KEYWORD_OK.match(w.strip()) for w in val):
+                return f"{name!r} must be a list of 1-8 short words (letters, digits, space . / + -)"
+        elif not isinstance(val, str) or not val.strip() or len(val) > 300:
+            return f"value of {name!r} must be a non-empty text of at most 300 characters"
+        elif name == "coating":
+            import setup_advisor
+            if val.strip().lower() not in setup_advisor._COATING_NAMES:
+                return f"unknown coating {val!r}; use one of {', '.join(sorted(set(setup_advisor._COATING_NAMES.values())))}"
+    return None
+
+
+def _check_params(action: str, params: Dict[str, Any]) -> Optional[str]:
+    if action == "apply_operation_parameters":
+        return _check_apply_params(params)
+    if action == "update_tool_fields":
+        return check_tool_fields(params)
+    if action == "get_viewport_image":
+        for k in ("width", "height"):
+            v = params.get(k)
+            if v is not None and (isinstance(v, bool) or not isinstance(v, int) or not 0 <= v <= 4096):
+                return f"'{k}' must be a whole number of pixels between 0 and 4096"
+    return None
+
+
 def enqueue_command(action: str, params: Optional[Dict[str, Any]] = None) -> str:
     """Queue a command for the Fusion add-in's CustomEvent handler and return its ``request_id``."""
     if action not in ALLOWED_ACTIONS:
         raise ValueError(f"Unsupported bridge action {action!r}. Allowed: {', '.join(ALLOWED_ACTIONS)}")
-    if action == "apply_operation_parameters":
-        bad = _check_apply_params(dict(params or {}))
-        if bad:
-            raise ValueError(bad)
+    bad = _check_params(action, dict(params or {}))
+    if bad:
+        raise ValueError(bad)
     req_id = str(uuid.uuid4())
     ev = threading.Event()
     item = {
@@ -204,10 +250,9 @@ def execute_bridge_action(
         return {"success": False, "error": f"Unsupported bridge action {action!r}"}
 
     params = dict(params or {})
-    if action == "apply_operation_parameters":
-        bad = _check_apply_params(params)
-        if bad:
-            return {"success": False, "error": bad}
+    bad = _check_params(action, params)
+    if bad:
+        return {"success": False, "error": bad}
     with _lock:
         direct = _direct_executor
 

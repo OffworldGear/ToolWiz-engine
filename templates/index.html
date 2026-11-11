@@ -212,6 +212,7 @@
                     <button class="nav-tab" id="tabTwinBtn" onclick="switchTab('digital-twin')">📦 Digital Twin Library Manager</button>
                     <button class="nav-tab" id="tabPlannerBtn" onclick="switchTab('planner')">🧭 Strategy Planner</button>
                     <button class="nav-tab" id="tabAdvisorBtn" onclick="switchTab('advisor')">🩺 Setup Advisor</button>
+                    <button class="nav-tab" id="tabChatBtn" onclick="switchTab('chat')">💬 Advisor Chat</button>
                 </div>
                 <button type="button" class="btn-ai-launcher" onclick="toggleAiChatDrawer()" title="Open ToolWiz AI Machinist Assistant">
                     <span class="ai-sparkle">✨</span> 💬 AI Machinist <span class="ai-chip-status">Co-Pilot</span>
@@ -1100,6 +1101,7 @@
         </div>
         {% include 'partials/planner.html' %}
         {% include 'partials/advisor.html' %}
+        {% include 'partials/advisor_chat.html' %}
     </div>
 
     <!-- Floating AI Machinist Launcher Button -->
@@ -1532,7 +1534,8 @@
             'threading': ['tabThreadBtn', 'threadingView'],
             'digital-twin': ['tabTwinBtn', 'digitalTwinView'],
             'planner': ['tabPlannerBtn', 'plannerView'],
-            'advisor': ['tabAdvisorBtn', 'advisorView']
+            'advisor': ['tabAdvisorBtn', 'advisorView'],
+            'chat': ['tabChatBtn', 'chatView']
         };
         function switchTab(tabName) {
             Object.keys(TAB_VIEWS).forEach(name => {
@@ -1554,6 +1557,8 @@
                 if (typeof initPlanner === 'function') initPlanner();
             } else if (tabName === 'advisor') {
                 if (typeof initSetupAdvisor === 'function') initSetupAdvisor();
+            } else if (tabName === 'chat') {
+                if (typeof initAdvisorChat === 'function') initAdvisorChat();
             }
             try { history.replaceState(null, '', '#' + tabName); } catch (e) { /* ignore */ }
         }
@@ -6414,6 +6419,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
     <script src="/static/js/planner_ui.js?v=1"></script>
     <script src="/static/js/master_ui.js?v=1"></script>
     <script src="/static/js/advisor_ui.js?v=1"></script>
+    <script src="/static/js/advisor_chat.js?v=1"></script>
     <script src="/static/js/tw_boot.js?v=1"></script>
 </body>
 </html>
