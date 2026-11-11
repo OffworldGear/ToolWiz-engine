@@ -354,7 +354,7 @@ def format_critical_confirmation(calc):
     lines = ["ToolWiz raised CRITICAL warnings for this cut:", ""]
     for f in crit:
         lines.append(f"- {f['title']}" + (f": {f['message']}" if f["message"] else ""))
-    lines += ["", "Write these cutting data to the operation anyway?"]
+    lines += ["", "Apply anyway?"]
     return "\n".join(lines)
 
 
@@ -642,6 +642,19 @@ def extract_recommendations(parsed):
             add("finding", f, o.get("op_id"), f"{o.get('name') or o.get('op_id')}: {f.get('title', '')}", sev_of(f.get("severity")))
     for s in parsed["strategy_suggestions"]:
         add("strategy", s, s.get("op_id"), strategy_suggestion_text(s), "INFO")
+    # The advisor's own apply_plan per operation (docs/SETUP_ADVISOR.md): ToolWiz's recommended engagement, or
+    # the speeds/feeds/stock ToolWiz computed for the operation's current engagement. Choose one per operation.
+    for o in parsed["operations"]:
+        plan = o.get("apply_plan")
+        if not isinstance(plan, dict):
+            continue
+        for key, label in (("recommended", "ToolWiz recommended engagement and cutting data"),
+                           ("keep_engagement", "ToolWiz cutting data for the current stepdown/stepover")):
+            ch = _dict_changes(plan.get(key))
+            if ch:
+                recs.append({"id": f"r{len(recs) + 1}", "kind": "apply_plan", "op_id": o.get("op_id"),
+                             "title": f"{o.get('name') or o.get('op_id')}: {label}", "severity": "INFO",
+                             "detail": "", "changes": {o.get("op_id"): ch}})
     return recs
 
 
@@ -672,29 +685,35 @@ def summarize_changes(changes, current=None):
     return lines
 
 
-def build_apply_request(changes, reason="ToolWiz Setup Advisor", recommendations=None):
-    """/api/setup_advisor/apply body: the bridge commands ({op_id, params, reason}) for the chosen changes."""
-    return {"changes": [{"op_id": op, "params": p, "reason": reason} for op, p in changes.items()],
-            "selected": [r["id"] for r in (recommendations or [])],
-            "recommendations": [{"id": r["id"], "title": r["title"]} for r in (recommendations or [])]}
+def build_apply_requests(changes, reason="ToolWiz setup advisor recommendation", wait=60):
+    """One /api/setup_advisor/apply body per operation: {op_id, params, reason, wait}. The server checks every
+    value against that op's apply_plan and (wait > 0) blocks for the add-in's confirmed result."""
+    return [{"op_id": op, "params": dict(p), "reason": reason, "wait": wait} for op, p in changes.items()]
 
 
-def parse_apply_response(res):
-    """Normalise the apply response: (executed_by_server, results). `results` is a list of
-    {op_id, applied, skipped, error}; `executed_by_server` is True when it carries bridge results."""
+def normalize_apply_result(res):
+    """One apply response (the add-in's bridge result, which the server returns with `accepted`) as
+    {ok, applied: [{param, old, new}], skipped: [{param, reason}], error, rejected}. `applied` / `skipped` may be
+    dicts ({name: {old, new}} / {name: reason}) or lists."""
     res = res if isinstance(res, dict) else {}
-    items = res.get("results")
-    if isinstance(items, list):
-        out = []
-        for r in items:
-            if not isinstance(r, dict):
-                continue
-            inner = r.get("result") if isinstance(r.get("result"), dict) else r
-            out.append({"op_id": r.get("op_id") or inner.get("op_id") or inner.get("operation"),
-                        "applied": inner.get("applied") or [], "skipped": inner.get("skipped") or [],
-                        "error": inner.get("error") or (None if inner.get("ok", inner.get("success", True)) else "failed")})
-        return True, out
-    return False, []
+    inner = res.get("result") if isinstance(res.get("result"), dict) else res
+    applied, skipped = [], []
+    ap = inner.get("applied")
+    if isinstance(ap, dict):
+        applied = [{"param": k, "old": (v or {}).get("old"), "new": (v or {}).get("new")} for k, v in ap.items()]
+    elif isinstance(ap, list):
+        applied = [x if isinstance(x, dict) else {"param": str(x)} for x in ap]
+    sk = inner.get("skipped")
+    if isinstance(sk, dict):
+        skipped = [{"param": k, "reason": v} for k, v in sk.items()]
+    elif isinstance(sk, list):
+        skipped = [x if isinstance(x, dict) else {"param": str(x), "reason": ""} for x in sk]
+    err = inner.get("error") or res.get("error")
+    rej = res.get("rejected")
+    if isinstance(rej, dict) and rej and not err:
+        err = "ToolWiz rejected: " + "; ".join(f"{k}: {v}" for k, v in rej.items())
+    ok = bool(inner.get("ok", inner.get("success", False))) and not err
+    return {"ok": ok, "applied": applied, "skipped": skipped, "error": err}
 
 
 def format_apply_results(results):
@@ -707,9 +726,9 @@ def format_apply_results(results):
             head += f" - {r['error']}"
         lines.append(head)
         for x in a:
-            lines.append("   " + (x if isinstance(x, str) else f"{x.get('param')}: {x.get('old')} -> {x.get('new')}"))
+            lines.append(f"   {x.get('param')}: {x.get('old')} -> {x.get('new')}")
         for x in s:
-            lines.append("   skipped " + (x if isinstance(x, str) else f"{x.get('param')}: {x.get('reason')}"))
+            lines.append(f"   skipped {x.get('param')}: {x.get('reason')}")
     return "\n".join(lines)
 
 
@@ -717,15 +736,11 @@ def format_apply_results(results):
 # apply_operation_parameters (bridge action): validation
 # ==============================================================================
 
+# Mirrors fusion_bridge.APPLY_ALLOWED_PARAMS (docs/SETUP_ADVISOR.md): the server enforces it, the add-in checks again.
 ALLOWED_PARAMS = frozenset((
-    "tool_spindleSpeed", "tool_feedCutting", "tool_feedRamp", "tool_feedPlunge", "tool_feedTransition",
-    "tool_feedEntry", "tool_feedExit", "tool_feedRetract", "tool_rampSpindleSpeed", "tool_rampAngle",
-    "maximumStepdown", "stepdown", "optimalLoad", "stepover", "maximumStepover", "finishingStepover",
-    "minimumStepover", "fineStepdown", "stockToLeave", "radialStockToLeave", "verticalStockToLeave",
-    "axialStockToLeave", "useStockToLeave", "isStockToLeave", "simpleStockToLeave", "rampAngle",
-    "helicalRampDiameter", "numberOfStepdowns", "doMultiplePasses", "numberOfStepovers", "useStepdown",
-    "useStepover", "minimumCutRadius", "smoothingDeviation", "tolerance", "useTabs", "tabWidth", "tabHeight",
-    "tabDistance", "tabPositioning", "tabCount", "useStockToLeaveFloor",
+    "tool_spindleSpeed", "tool_feedCutting", "tool_feedPlunge", "tool_feedRamp", "tool_rampAngle", "rampAngle",
+    "helicalRampDiameter", "maximumStepdown", "stepdown", "maximumStepover", "stepover", "optimalLoad",
+    "stockToLeave", "verticalStockToLeave", "tabWidth", "tabHeight",
 ))
 _EXPR_OK = re.compile(r"^[A-Za-z0-9_\s.+\-*/();,<>=?:'%^]+$")
 
@@ -798,14 +813,12 @@ def format_strategy_result(res, unit="in"):
     lines = []
     if not opts:
         return "No options returned."
-    hdr = f"{'Option':<46}{'levels':>6}{'ap':>9}{'ae':>9}{'rpm':>7}{'feed':>8}{'min/part':>9}{'life':>7}{'wear':>6}"
-    lines.append(hdr)
+    lines.append("Option | levels | ap (in) | ae (in) | rpm | feed (IPM) | min/part | tool life | wear")
     for o in opts:
-        mark = "*" if o.get("name") == res.get("recommended") else " "
-        name = str(o.get("name", ""))[:44]
-        lines.append(f"{mark}{name:<45}{o.get('levels', '-')!s:>6}{_n(o.get('ap'), 4):>9}{_n(o.get('ae'), 4):>9}"
-                     f"{_n(o.get('rpm'), 0):>7}{_n(o.get('feed_ipm'), 1):>8}{_n(o.get('cycle_time_min'), 2):>9}"
-                     f"{_n(o.get('relative_tool_life'), 1):>7}{_n(o.get('tool_wear_per_part'), 2):>6}")
+        mark = "* " if o.get("name") == res.get("recommended") else "  "
+        lines.append(f"{mark}{o.get('name', '')} | {o.get('levels', '-')} | {_n(o.get('ap'), 4)} | {_n(o.get('ae'), 4)} | "
+                     f"{_n(o.get('rpm'), 0)} | {_n(o.get('feed_ipm'), 1)} | {_n(o.get('cycle_time_min'), 2)} | "
+                     f"{_n(o.get('relative_tool_life'), 1)} | {_n(o.get('tool_wear_per_part'), 2)}")
     lines.append("(* = recommended; ap/ae in inches, feed IPM, wear relative to the least-wear option)")
     if res.get("recommended"):
         lines += ["", f"RECOMMENDED: {res['recommended']}"]

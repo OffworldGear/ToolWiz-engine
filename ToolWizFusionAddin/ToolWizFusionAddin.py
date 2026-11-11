@@ -42,6 +42,7 @@ CLIENT_HEADER_VALUE = 'fusion-addin'
 app = None
 ui = None
 handlers = []
+hidden_handlers = []   # handlers of the hidden result dialogs (kept alive, cleared on stop)
 
 exportCommandId = 'ToolWizExportTwinCmd'
 importCommandId = 'ToolWizImportTwinCmd'
@@ -5414,6 +5415,1340 @@ class ToolWizSnapshotExecuteHandler(adsk.core.CommandEventHandler):
             _report_error("Document snapshot failed.", e)
 
 
+# ==============================================================================
+# SHARED HELPERS FOR THE v3 COMMANDS (setup snapshot, result dialogs, op lookup)
+# ==============================================================================
+
+def _active_cam():
+    try:
+        return adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
+    except Exception:
+        return None
+
+
+def _iter_ops_unique():
+    """[(setup name, unique "Setup > Op" path, op)] for every operation of the active document. Paths are made
+    unique with a " #n" suffix exactly like snapshot_document, so an op_id means the same op everywhere."""
+    out, seen = [], set()
+    cam = _active_cam()
+    if not cam:
+        return out
+    for setup in _coll_items(cam.setups):
+        s_name = _safe(lambda: setup.name) or "Setup"
+        for op in _coll_items(setup.allOperations):
+            path = f"{s_name} > {_safe(lambda: op.name) or 'Op'}"
+            if path in seen:
+                n = 2
+                while f"{path} #{n}" in seen:
+                    n += 1
+                path = f"{path} #{n}"
+            seen.add(path)
+            out.append((s_name, path, op))
+    return out
+
+
+def _op_by_id(op_id):
+    """(setup name, path, op) for an op_id ("Setup > Op" path as produced by _iter_ops_unique), else
+    (None, None, None). A plain operation name is accepted when it is unambiguous."""
+    q = str(op_id or "").strip()
+    ops = _iter_ops_unique()
+    for s_name, path, op in ops:
+        if path == q:
+            return s_name, path, op
+    named = [t for t in ops if str(_safe(lambda: t[2].name) or "") == q]
+    return named[0] if len(named) == 1 else (None, None, None)
+
+
+def _signed_len_in(p, doc_unit="in"):
+    """Length parameter -> inches, negatives allowed (heights/depths). Fusion's evaluated value is cm."""
+    if not p:
+        return None
+    v = _numeric_param_value(p)
+    if v is not None:
+        return v / 2.54
+    try:
+        return parse_length_expr_to_inches(getattr(p, 'expression', None), doc_unit)
+    except Exception:
+        return None
+
+
+HEIGHT_PARAMS = (('top', 'topHeight_value'), ('bottom', 'bottomHeight_value'), ('clearance', 'clearanceHeight_value'),
+                 ('retract', 'retractHeight_value'), ('feed', 'feedHeight_value'))
+RAPID_CM_PER_S = 5000.0 / 60.0   # 50 m/min, the planner's rapid rate
+
+
+def _toolpath_length_in(op):
+    """Cutting (feed) distance of the op's toolpath in inches, or None. CAM.getMachiningTime ->
+    MachiningTime.feedDistance (cm): https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/cam_MachiningTime.htm"""
+    try:
+        if not getattr(op, 'hasToolpath', False):
+            return None
+        cam = _active_cam()
+        mt = cam.getMachiningTime(op, 100, RAPID_CM_PER_S, 0)
+        d = twlogic.num(getattr(mt, 'feedDistance', None))
+        return d / 2.54 if d is not None else None
+    except Exception as ex:
+        _log("Toolpath length unavailable", ex)
+        return None
+
+
+def _stock_values_in(op, doc_unit="in"):
+    out = {}
+    for key, names in (("radial", ('stockToLeave', 'radialStockToLeave')), ("axial", ('verticalStockToLeave', 'axialStockToLeave'))):
+        for n in names:
+            p = _param(getattr(op, 'parameters', None), n)
+            if p is not None:
+                out[key] = _signed_len_in(p, doc_unit)
+                break
+    out["active"] = bool(is_op_stock_to_leave_active(op)) if getattr(op, 'parameters', None) else False
+    return out
+
+
+def _expr_in(value_in, unit="in"):
+    return None if value_in is None else f"{value_in:.5f} in"
+
+
+def _rest_machining_flag(op):
+    """True/False from the operation's rest-machining parameter, None when it has none."""
+    p = _param(getattr(op, 'parameters', None), 'doRestMachining')
+    if p is None:
+        return None
+    return _norm_expr(_safe(lambda: p.expression)) == 'true'
+
+
+def _tab_geometry(op, length_in, doc_unit):
+    """Tabs {count, width_in, height_in} when the op uses tabs. Width and height are read from tabWidth /
+    tabHeight; the count is the tabCount parameter, else toolpath length / tabDistance (best effort)."""
+    p = getattr(op, 'parameters', None)
+    use = _param(p, 'useTabs')
+    if use is None or _norm_expr(_safe(lambda: use.expression)) != 'true':
+        return None
+    width = _signed_len_in(_param(p, 'tabWidth'), doc_unit)
+    height = _signed_len_in(_param(p, 'tabHeight'), doc_unit)
+    count = None
+    pc = _param(p, 'tabCount')
+    cnt = twlogic.num(_safe(lambda: pc.value.value)) if pc is not None else None
+    if cnt:
+        count = int(cnt)
+    else:
+        dist = _signed_len_in(_param(p, 'tabDistance'), doc_unit)
+        if dist and dist > 0 and length_in:
+            count = max(1, int(round(length_in / dist)))
+    return {"count": count, "width_in": width, "height_in": height}
+
+
+def op_geometry(op, geo, kind, doc_unit="in"):
+    """Feature geometry the advisor's strategy comparison needs (docs/SETUP_ADVISOR.md `geometry`), inches.
+    Reliable: top_height_in, bottom_height_in, depth_in (heights), toolpath_length_in (needs a generated
+    toolpath), tabs (when the op uses tabs; the count is best effort). Best effort: slot_height_in for slot-mill
+    (T-slot) operations = the cutter's flute length (its kerf). NOT derived: slot_width_in, channel_width_in and
+    radial_depth_in (Fusion exposes no feature width for a 2D contour; use the Strategy Planner command)."""
+    p = getattr(op, 'parameters', None)
+    top = _signed_len_in(_param(p, 'topHeight_value'), doc_unit)
+    bot = _signed_len_in(_param(p, 'bottomHeight_value'), doc_unit)
+    length = _toolpath_length_in(op)
+    g = {"top_height_in": top, "bottom_height_in": bot,
+         "depth_in": abs(top - bot) if (top is not None and bot is not None) else None,
+         "toolpath_length_in": length}
+    tabs = _tab_geometry(op, length, doc_unit)
+    if tabs:
+        g["tabs"] = tabs
+    if kind == "slot" and geo and geo.get("fluteLength"):
+        g["slot_height_in"] = geo["fluteLength"]
+    return {k: v for k, v in g.items() if v is not None}
+
+
+def op_advisor_entry(op, path, doc_unit="in", defaults=None):
+    """One operation of the Setup Advisor / bridge snapshot, in the field names of docs/SETUP_ADVISOR.md:
+    op_id (= "Setup > Op" path), name, setup, strategy (op.strategy), tool (the Fusion tool JSON, parsed),
+    holder {description}, coating, params (expression strings: spindle speed, feeds, stepdown, stepover /
+    optimal load, stockToLeave, verticalStockToLeave), geometry, rest_machining. Extras the advisor ignores:
+    strategy_label, is_roughing / is_finishing and finishMode / targetRa / wallTolerance for finishing ops."""
+    geo, summary, presets = get_op_tool_info(op)
+    strat_raw = str(_safe(lambda: op.strategy) or "")
+    strat_label = infer_strategy_for_op(op, geo)
+    op_name = _safe(lambda: op.name) or path
+    rpm, feed, doc, woc = get_op_cut_params(op, doc_unit, strategy=strat_label)
+    params_obj = getattr(op, 'parameters', None)
+    stock = _stock_values_in(op, doc_unit)
+    plunge = parse_cam_feed_to_ipm(_param(params_obj, 'tool_feedPlunge'), doc_unit)
+    ramp = parse_cam_feed_to_ipm(_param(params_obj, 'tool_feedRamp'), doc_unit)
+    params = {}
+    if rpm:
+        params["tool_spindleSpeed"] = f"{rpm:.0f} rpm"
+    if feed:
+        params["tool_feedCutting"] = f"{feed:.3f} in/min"
+    if plunge:
+        params["tool_feedPlunge"] = f"{plunge:.3f} in/min"
+    if ramp:
+        params["tool_feedRamp"] = f"{ramp:.3f} in/min"
+    if doc:
+        params["maximumStepdown"] = _expr_in(doc)
+    if woc:
+        params["optimalLoad" if "adaptive" in strat_raw.lower() or "adaptive" in strat_label.lower() else "stepover"] = _expr_in(woc)
+    if stock.get("active"):
+        if stock.get("radial") is not None:
+            params["stockToLeave"] = _expr_in(stock["radial"])
+        if stock.get("axial") is not None:
+            params["verticalStockToLeave"] = _expr_in(stock["axial"])
+    entry = {
+        "op_id": path, "path": path, "name": op_name, "setup": path.split(" > ", 1)[0], "strategy": strat_raw,
+        "strategy_label": strat_label,
+        "is_roughing": twlogic.is_roughing_strategy(strat_label, str(op_name)),
+        "is_finishing": twlogic.is_finishing_strategy(strat_label, str(op_name)),
+        "suppressed": bool(_safe(lambda: op.isSuppressed, False)),
+        "params": params,
+        "rest_machining": _rest_machining_flag(op),
+        "preset": _jsonable(_op_preset_name(op)),
+        "heights": {k: _signed_len_in(_param(params_obj, n), doc_unit) for k, n in HEIGHT_PARAMS},
+    }
+    raw = {}
+    if geo:
+        try:
+            raw = json.loads(geo.get("raw_json") or "{}")
+        except Exception:
+            raw = {}
+        entry["tool"] = raw or None
+        hold = raw.get("holder") if isinstance(raw.get("holder"), dict) else None
+        if hold:
+            entry["holder"] = {"description": str(hold.get("description") or hold.get("product-id") or "")}
+            ro, ro_src = geo.get("runout_in"), geo.get("runout_source")
+            if ro_src == "tool" and ro is not None:
+                entry["holder"]["runout_in"] = ro
+        entry["coating"] = geo.get("coating")
+        entry["geometry"] = op_geometry(op, geo, geo.get("kind"), doc_unit)
+        entry["tool_summary"] = {"number": geo.get("number"), "guid": geo.get("guid"), "kind": geo.get("kind"),
+                                 "runout_in": geo.get("runout_in"), "runout_source": geo.get("runout_source")}
+    else:
+        entry["tool"] = None
+        entry["tool_error"] = summary
+        entry["geometry"] = op_geometry(op, None, None, doc_unit)
+    fin = dict(defaults or {})
+    fin.update(_finish_prefs.get(path, {}))
+    if entry["is_finishing"] and fin:
+        entry.update(twlogic.finish_fields(fin.get("mode"), fin.get("ra_uin"), fin.get("wall_in")))
+    return entry
+
+
+def build_setup_snapshot(setup_name=None, doc_unit=None, finish_defaults=None):
+    """The active document's setup (or `setup_name`) as the Setup Advisor request's `setup` object:
+    {"document", "name", "setups", "unit", "ops": [op_advisor_entry...]} (the advisor reads `ops`)."""
+    doc_unit = doc_unit or get_cam_document_units()
+    ops, names = [], []
+    for s_name, path, op in _iter_ops_unique():
+        if setup_name and s_name != setup_name:
+            continue
+        if s_name not in names:
+            names.append(s_name)
+        try:
+            ops.append(op_advisor_entry(op, path, doc_unit, finish_defaults))
+        except Exception as ex:
+            _log(f"Setup snapshot: could not read {path}", ex)
+    return {"name": setup_name or (names[0] if len(names) == 1 else ", ".join(names)), "setups": names,
+            "document": _doc_name(), "unit": doc_unit, "ops": ops}
+
+
+def push_live_state(snap=None):
+    """POST the setup snapshot to /api/fusion_bridge/state so the server (MCP, setup advisor with
+    from_bridge) sees the live setup. Quiet on failure; returns True when posted. Called from the main thread
+    by the Setup Advisor command and by the get_setup_summary bridge action."""
+    try:
+        snap = snap or build_setup_snapshot()
+        cam = _active_cam()
+        lib = getattr(cam, 'documentToolLibrary', None) if cam else None
+        res = _http_json('/api/fusion_bridge/state', {
+            "document": snap.get("document"), "setups": snap.get("setups"), "ops": snap.get("ops"),
+            "tool_count": getattr(lib, 'count', None)}, timeout=5.0, log_errors=False)
+        return bool(isinstance(res, dict) and res.get("success"))
+    except Exception as ex:
+        _log("Pushing the live setup state failed", ex)
+        return False
+
+
+def current_param_expressions(changes):
+    """{op_id: {param: current expression}} for the parameters in `changes`, read from Fusion."""
+    cur = {}
+    for op_id, params in changes.items():
+        _, _, op = _op_by_id(op_id)
+        for name in params:
+            p = _param(getattr(op, 'parameters', None), name) if op is not None else None
+            cur.setdefault(op_id, {})[name] = (_safe(lambda: p.expression) if p is not None else None) or "?"
+    return cur
+
+
+_preapproved = {}   # (op_id, frozenset(params.items())) -> True: the user already confirmed in the advisor dialog
+
+
+def preapprove_changes(changes):
+    for op_id, params in changes.items():
+        _preapproved[(op_id, frozenset(params.items()))] = True
+
+
+def format_apply_confirmation(path, old_new, skipped, reason):
+    lines = [f"ToolWiz wants to change {len(old_new)} parameter(s) on:", f"  {path}", ""]
+    for name, (old, new) in old_new.items():
+        lines.append(f"  {name}: {old} -> {new}")
+    for name, why in skipped.items():
+        lines.append(f"  (skipped {name}: {why})")
+    lines += ["", f"Reason: {reason or 'ToolWiz recommendation'}",
+              "These values come from ToolWiz's calculation. Each change is audited and Fusion's Undo reverts it. Apply?"]
+    return "\n".join(lines)
+
+
+def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_generated_at=None):
+    """Bridge action `apply_operation_parameters` (docs/SETUP_ADVISOR.md): write {Fusion parameter name:
+    expression} to ONE operation after the user confirms.
+
+    Steps: find the op by its "Setup > Op" path; re-check the allow-list (twlogic.ALLOWED_PARAMS) and the
+    expressions; skip (not fail) parameters the op lacks or that are disabled; show the user each parameter's
+    old and new value and ask Yes/No (skipped when the user already confirmed the same values in the Setup
+    Advisor dialog); write through the audited path (AuditedCommand + one audit line per parameter, like
+    apply_stock_to_leave). Writing stockToLeave / verticalStockToLeave also switches on "Stock to leave" (and
+    unlocks separate radial/axial values) when it is off, which the confirmation states. Each write is an
+    ordinary Fusion edit, so Fusion's Undo reverts it; the old expressions are also saved to revert_<time>.json.
+
+    Returns {ok, success, applied: {name: {old, new}}, skipped: {name: reason}, error, operation}."""
+    def fail(msg, skipped=None):
+        return {"ok": False, "success": False, "applied": {}, "skipped": skipped or {}, "error": msg}
+    s_name, path, op = _op_by_id(op_id)
+    if op is None:
+        return fail(f"Operation {op_id!r} not found.")
+    accepted, rejected = twlogic.validate_parameter_changes(params if isinstance(params, dict) else {})
+    skipped = {r["param"]: r["reason"] for r in rejected}
+    plan = {}
+    for name, expr in accepted.items():
+        p = _param(getattr(op, 'parameters', None), name)
+        if p is None:
+            skipped[name] = "operation has no such parameter"
+        elif not getattr(p, 'isEnabled', True) and name not in ('stockToLeave', 'verticalStockToLeave'):
+            skipped[name] = "parameter is disabled on this operation"
+        else:
+            plan[name] = (p, _safe(lambda: p.expression), expr)
+    if not plan:
+        r = fail("nothing to apply", skipped)
+        r["operation"] = path
+        return r
+    key = (op_id, frozenset((n, plan[n][2]) for n in plan))
+    pre = any(k[0] == op_id and k[1] >= frozenset(key[1]) for k in _preapproved)
+    if confirm and not pre:
+        text = format_apply_confirmation(path, {n: (o, e) for n, (_, o, e) in plan.items()}, skipped,
+                                         reason + (f" (advisor result of {advisor_generated_at})" if advisor_generated_at else ""))
+        ans = ui.messageBox(text, "ToolWiz - apply recommended parameters", adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+                            adsk.core.MessageBoxIconTypes.QuestionIconType)
+        if ans != adsk.core.DialogResults.DialogYes:
+            audit({'event': 'apply_declined', 'op_path': path, 'params': sorted(plan)})
+            r = fail("declined by the user", skipped)
+            r["operation"] = path
+            return r
+    for k in [k for k in _preapproved if k[0] == op_id]:
+        _preapproved.pop(k, None)
+    ac = AuditedCommand('apply_operation_parameters', target=path, targets=[path]).begin()
+    audit({'event': 'apply_confirmed', 'op_path': path, 'reason': reason, 'advisor_generated_at': advisor_generated_at,
+           'params': {n: plan[n][2] for n in plan}})
+    applied, previous, error = {}, {}, None
+    try:
+        if any(n in plan for n in ('stockToLeave', 'verticalStockToLeave')) and not is_op_stock_to_leave_active(op):
+            for chk in ('useStockToLeave', 'isStockToLeave'):
+                _set_bool_param(op, chk, True)
+            _set_bool_param(op, 'simpleStockToLeave', False)
+        for name in sorted(plan):
+            p, old_e, expr = plan[name]
+            try:
+                _set_expression(op, p, name, expr)
+                applied[name] = {"old": old_e, "new": _safe(lambda: p.expression) or expr}
+                previous[name] = old_e
+            except Exception as ex:
+                skipped[name] = f"Fusion rejected the value: {ex}"
+    except Exception as ex:
+        error = str(ex)
+    note = ac.finish("ok" if applied and not error else f"applied {len(applied)}, skipped {len(skipped)}"
+                     + (f", error {error}" if error else ""))
+    if previous:
+        try:
+            rp = os.path.join(_toolwiz_dir(), f"revert_{datetime.datetime.now().strftime('%Y%m%dT%H%M%S')}.json")
+            with open(rp, 'w', encoding='utf-8') as f:
+                json.dump({"operation": path, "reason": reason, "previous": previous, "applied": applied}, f, indent=2)
+        except Exception as ex:
+            _log("Could not write the revert file", ex)
+    ok = bool(applied) and not error
+    return {"ok": ok, "success": ok, "operation": path, "reason": reason, "applied": applied, "skipped": skipped,
+            "previous": previous, "audit_note": note, "error": error or (None if applied else "nothing was applied")}
+
+
+# ---- generic read-only result dialog (opened from the main thread when a background request finishes) -------
+
+_text_result = {"title": "", "text": "", "jumps": []}
+
+
+def show_text_result(title, text, jumps=None):
+    """Show `text` in a scrollable ToolWiz dialog. `jumps` is [(label, guid)] for an optional 'select the
+    operations that use this tool' control. Falls back to a message box when the dialog is unavailable."""
+    _text_result.update(title=title, text=text, jumps=list(jumps or []))
+    try:
+        cd = ui.commandDefinitions.itemById(textResultCommandId)
+        if cd is not None:
+            cd.execute()
+            return
+    except Exception as ex:
+        _log("Result dialog unavailable; using a message box", ex)
+    ui.messageBox(text, title)
+
+
+def select_ops_using_tool(guid):
+    """Select (in Fusion's browser) every operation that uses the tool with this guid. Returns the count."""
+    sel = ui.activeSelections
+    sel.clear()
+    n = 0
+    for _, path, op in _iter_ops_unique():
+        t = getattr(op, 'tool', None)
+        try:
+            g = json.loads(t.toJson()).get('guid') if t else None
+        except Exception:
+            g = None
+        if g and g == guid:
+            sel.add(op)
+            n += 1
+    return n
+
+
+class ToolWizTextResultExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            dd = inputs.itemById('resultJump')
+            if dd is not None and dd.selectedItem and getattr(dd, 'isVisible', True):
+                label = dd.selectedItem.name
+                guid = dict(_text_result["jumps"]).get(label)
+                if guid:
+                    n = select_ops_using_tool(guid)
+                    ui.messageBox(f"Selected {n} operation(s) that use this tool." if n else
+                                  "No operation in this document uses that tool. Find it in the Tool Library "
+                                  f"dialog ({label}).", "ToolWiz")
+        except Exception as e:
+            _report_error("Could not jump to the tool.", e)
+
+
+class ToolWizTextResultCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            try:
+                cmd.okButtonText = 'Close' if not _text_result["jumps"] else 'Select operations'
+            except Exception:
+                pass
+            on_exec = ToolWizTextResultExecuteHandler()
+            cmd.execute.add(on_exec)
+            hidden_handlers.append(on_exec)
+            inputs = cmd.commandInputs
+            text = _text_result["text"] or ""
+            box = inputs.addTextBoxCommandInput('resultText', _text_result["title"] or 'ToolWiz', text,
+                                                max(6, min(28, text.count("\n") + 2)), True)
+            box.isFullWidth = True
+            if _text_result["jumps"]:
+                dd = inputs.addDropDownCommandInput('resultJump', 'Jump to tool', adsk.core.DropDownStyles.TextListDropDownStyle)
+                for i, (label, _g) in enumerate(_text_result["jumps"]):
+                    dd.listItems.add(label, i == 0)
+        except Exception as e:
+            _report_error("Result dialog failed.", e)
+
+
+# ==============================================================================
+# v3 COMMANDS: shared dialog pieces
+# ==============================================================================
+
+def _add_material_inputs(inputs, prefix, prefs, optional=False):
+    """Family + alloy dropdowns with ids <prefix>MatFamily / <prefix>MatAlloy. With optional=True the family
+    list starts with '(any material)'. Returns False when no material list is available."""
+    load_materials()
+    _add_materials_notice(inputs, f'{prefix}MaterialsNotice')
+    if not materials_ready():
+        return False
+    families = _materials["families"]
+    fam = inputs.addDropDownCommandInput(f'{prefix}MatFamily', 'Material Family', adsk.core.DropDownStyles.TextListDropDownStyle)
+    saved = pick_saved(prefs.get('family'), families, None)
+    init_family = saved if (saved or not optional) else None
+    if not optional and init_family is None:
+        init_family = families[0]
+    if optional:
+        fam.listItems.add('(any material)', init_family is None)
+    for m in families:
+        fam.listItems.add(m, m == init_family)
+    alloy = inputs.addDropDownCommandInput(f'{prefix}MatAlloy', 'Specific Alloy', adsk.core.DropDownStyles.TextListDropDownStyle)
+    init_alloys = alloys_for(init_family or families[0]) or ["Standard Grade"]
+    init_alloy = pick_saved(prefs.get('alloy'), init_alloys, init_alloys[0])
+    for a_ in init_alloys:
+        alloy.listItems.add(a_, a_ == init_alloy)
+    return True
+
+
+class ToolWizV3InputChangedHandler(adsk.core.InputChangedEventHandler):
+    """Keeps every <prefix>MatAlloy list in step with its <prefix>MatFamily choice."""
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            ea = adsk.core.InputChangedEventArgs.cast(args)
+            iid = ea.input.id
+            if iid.endswith('MatFamily'):
+                alloy = ea.inputs.itemById(iid[:-len('MatFamily')] + 'MatAlloy')
+                if alloy:
+                    alloy.listItems.clear()
+                    alloys = alloys_for(_selected_name(ea.input)) or ["Standard Grade"]
+                    for i, a in enumerate(alloys):
+                        alloy.listItems.add(a, i == 0)
+        except Exception as e:
+            _log("v3 input-changed handler failed", e)
+
+
+def _family_alloy(inputs, prefix):
+    fam = _selected_name(inputs.itemById(f'{prefix}MatFamily'))
+    if fam.startswith('('):
+        fam = ""
+    return fam, (_selected_name(inputs.itemById(f'{prefix}MatAlloy')) if fam else "")
+
+
+def _new_command(args, handler_cls, with_input_changed=True, ok_text=None):
+    """Common commandCreated boilerplate: returns (cmd, inputs)."""
+    cmd = args.command
+    cmd.isExecutedWhenPreEmpted = False
+    cmd.isRepeatable = False
+    cmd.isAutoExecute = False
+    if ok_text:
+        try:
+            cmd.okButtonText = ok_text
+        except Exception:
+            pass
+    on_exec = handler_cls()
+    cmd.execute.add(on_exec)
+    handlers.append(on_exec)
+    if with_input_changed:
+        on_chg = ToolWizV3InputChangedHandler()
+        cmd.inputChanged.add(on_chg)
+        handlers.append(on_chg)
+    return cmd, cmd.commandInputs
+
+
+def _server_error_box(what, err):
+    """Message for a failed background request (offline / HTTP error)."""
+    if isinstance(err, (urllib.error.URLError, OSError, ValueError)):
+        ui.messageBox(_offline_message(what), "Tool Wizard Server Offline")
+    else:
+        _report_error(f"ToolWiz could not {what}.", err)
+
+
+def _int_slider(inputs, input_id):
+    inp = inputs.itemById(input_id)
+    try:
+        return int(inp.valueOne) if inp is not None else 50
+    except Exception:
+        return 50
+
+
+# ==============================================================================
+# COMMAND 8: SETUP ADVISOR
+# ==============================================================================
+
+_advisor_state = {"parsed": None, "recs": [], "reason": "ToolWiz Setup Advisor"}
+
+
+class ToolWizSetupAdvisorCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd, inputs = _new_command(args, ToolWizSetupAdvisorExecuteHandler, ok_text='Run Advisor')
+            cam = _active_cam()
+            if not cam or not _coll_items(cam.setups):
+                ui.messageBox('Please switch to the Manufacture (CAM) workspace with an active setup.', 'ToolWiz Setup Advisor')
+                return
+            names = [_safe(lambda: s.name) or '?' for s in _coll_items(cam.setups)]
+            sel = _selected_operation()
+            pre = _op_setup_name(sel) if sel is not None else names[0]
+            dd = inputs.addDropDownCommandInput('advSetup', 'Setup', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for n in names:
+                dd.listItems.add(n, n == pre)
+            if len(names) > 1:
+                dd.listItems.add('(all setups)', False)
+            prefs = load_prefs()
+            if not _add_material_inputs(inputs, 'adv', prefs):
+                return
+            agg = inputs.addIntegerSliderCommandInput('advAggressiveness', 'Aggressiveness', 0, 100)
+            agg.valueOne = prefs.get('aggressiveness', 50)
+            doc_u = get_cam_document_units()
+            inputs.addStringValueInput('advRunout', 'Runout / TIR (blank = each tool\'s own, else 0.0002 in)', '')
+            inputs.addBoolValueInput('advLlm', 'Add an AI narrative (numbers are verified against ToolWiz results)', True, '', False)
+            fm = inputs.addDropDownCommandInput('advFinishMode', 'Finish mode for finishing ops', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for label, code in twlogic.FINISH_MODES:
+                fm.listItems.add(label, code == 'cleanup')
+            fm.tooltip = ('Applies to finishing operations that you did not set individually with the Speeds & Feeds '
+                          'command (that choice is remembered per operation for this session).')
+            inputs.addStringValueInput('advRa', 'Target surface finish (Ra)', twlogic.ra_uin_to_text(twlogic.DEFAULT_RA_UIN, doc_u))
+            inputs.addStringValueInput('advTol', 'Wall tolerance', twlogic.fmt_len(twlogic.DEFAULT_WALL_TOL_IN, doc_u, 5 if doc_u != 'mm' else 4))
+            box = inputs.addTextBoxCommandInput(
+                'advInfo', '',
+                f'Pushes this setup (strategy, tool, holder, feeds, stepdown/stepover, stock to leave, heights, toolpath '
+                f'length) to ToolWiz for review. Model: {model_label(load_model_setting())}. Nothing is changed in '
+                'Fusion until you tick recommendations and confirm.', 4, True)
+            box.isFullWidth = True
+        except Exception as e:
+            _report_error("Setup Advisor failed to open.", e)
+
+
+class ToolWizSetupAdvisorExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            if not materials_ready():
+                ui.messageBox(_materials.get("notice") or "Material list unavailable.", "ToolWiz Setup Advisor")
+                return
+            family, alloy = _family_alloy(inputs, 'adv')
+            setup_name = _selected_name(inputs.itemById('advSetup'))
+            setup_name = None if setup_name.startswith('(') else setup_name
+            agg = _int_slider(inputs, 'advAggressiveness')
+            doc_u = get_cam_document_units()
+            try:
+                runout = twlogic.parse_runout_text(inputs.itemById('advRunout').value, None)
+                fin = {"mode": twlogic.finish_mode_code(_selected_name(inputs.itemById('advFinishMode'))),
+                       "ra_uin": twlogic.parse_ra_text(inputs.itemById('advRa').value, doc_u),
+                       "wall_in": parse_length_expr_to_inches(inputs.itemById('advTol').value, doc_u)}
+            except (ValueError, ArithmeticError) as ve:
+                ui.messageBox(str(ve), 'ToolWiz Setup Advisor')
+                return
+            use_llm = bool(inputs.itemById('advLlm').value)
+            save_prefs(family=family, alloy=alloy, aggressiveness=agg)
+            snap = build_setup_snapshot(setup_name, doc_u, fin)
+            if not snap["ops"]:
+                ui.messageBox('This setup has no operations to review.', 'ToolWiz Setup Advisor')
+                return
+            push_live_state()
+            body = {"setup": snap, "family": family, "alloy": alloy, "aggressiveness": agg / 100.0,
+                    "use_llm": use_llm, "unit": doc_u}
+            if runout is not None:
+                body["runout"] = runout
+            model = load_model_setting()
+            if model:
+                body["model"] = model
+            audit({'event': 'setup_advisor_request', 'ops': len(snap["ops"]), 'use_llm': use_llm})
+            ui.messageBox(f"Sending {len(snap['ops'])} operation(s) to ToolWiz. The results dialog opens when "
+                          "the review is done; you can keep working meanwhile.", "ToolWiz Setup Advisor")
+            run_async(lambda: _http_json('/api/setup_advisor', body, timeout=240.0), _advisor_done)
+        except Exception as e:
+            _report_error("Setup Advisor failed.", e)
+
+
+def _advisor_done(res, err):
+    if err is not None:
+        _server_error_box("run the setup advisor", err)
+        return
+    parsed = twlogic.parse_advisor_response(res)
+    if not parsed["ok"]:
+        ui.messageBox(f"The setup advisor returned an error:\n{(res or {}).get('error') or res}", "ToolWiz Setup Advisor")
+        return
+    _advisor_state.update(parsed=parsed, recs=twlogic.extract_recommendations(parsed))
+    try:
+        cd = ui.commandDefinitions.itemById(advisorResultCommandId)
+        if cd is None:
+            raise RuntimeError("result command missing")
+        cd.execute()
+    except Exception as ex:
+        _log("Advisor result dialog unavailable", ex)
+        show_text_result("ToolWiz Setup Advisor", twlogic.format_advisor_summary(parsed))
+
+
+def _selected_rec_ids(inputs):
+    dd = inputs.itemById('advRecs')
+    if dd is None:
+        return set()
+    names = {i.name for i in dd.listItems if i.isSelected}
+    return {r["id"] for r in _advisor_state["recs"] if _rec_label(r) in names}
+
+
+def _rec_label(r):
+    return f"[{r['severity']}] {r['title']}"[:110]
+
+
+def _changes_preview(inputs):
+    ids = _selected_rec_ids(inputs)
+    changes, conflicts = twlogic.merge_selected_changes(_advisor_state["recs"], ids)
+    if not changes:
+        return changes, "Nothing selected."
+    lines = twlogic.summarize_changes(changes, current_param_expressions(changes))
+    if conflicts:
+        lines += ["", "Conflicting recommendations (the later one wins):"] + conflicts
+    return changes, "\n".join(lines)
+
+
+class ToolWizSetupAdvisorResultCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd = args.command
+            cmd.isExecutedWhenPreEmpted = False
+            try:
+                cmd.okButtonText = 'Apply selected'
+            except Exception:
+                pass
+            on_exec = ToolWizSetupAdvisorResultExecuteHandler()
+            cmd.execute.add(on_exec)
+            on_chg = ToolWizSetupAdvisorResultChangedHandler()
+            cmd.inputChanged.add(on_chg)
+            hidden_handlers.extend([on_exec, on_chg])
+            parsed = _advisor_state["parsed"]
+            inputs = cmd.commandInputs
+            text = twlogic.format_advisor_summary(parsed)
+            box = inputs.addTextBoxCommandInput('advSummary', 'Findings', text, max(8, min(26, text.count("\n") + 2)), True)
+            box.isFullWidth = True
+            recs = _advisor_state["recs"]
+            if recs:
+                dd = inputs.addDropDownCommandInput('advRecs', 'Recommendations to apply', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+                for r in recs:
+                    dd.listItems.add(_rec_label(r), False)
+                pv = inputs.addTextBoxCommandInput('advChanges', 'Parameters that will change', 'Nothing selected.', 6, True)
+                pv.isFullWidth = True
+            else:
+                inputs.addTextBoxCommandInput('advNone', '', 'No recommendation carries parameter changes that can be '
+                                              'applied automatically. Use the findings above when editing the operations.', 3, True)
+        except Exception as e:
+            _report_error("Advisor results failed to open.", e)
+
+
+class ToolWizSetupAdvisorResultChangedHandler(adsk.core.InputChangedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            ea = adsk.core.InputChangedEventArgs.cast(args)
+            if ea.input.id == 'advRecs':
+                _, text = _changes_preview(ea.inputs)
+                pv = ea.inputs.itemById('advChanges')
+                if pv:
+                    pv.text = text
+        except Exception as e:
+            _log("Advisor result input-changed failed", e)
+
+
+class ToolWizSetupAdvisorResultExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            ids = _selected_rec_ids(inputs)
+            changes, text = _changes_preview(inputs)
+            if not changes:
+                return
+            n_params = sum(len(p) for p in changes.values())
+            ok = ui.messageBox(
+                f"ToolWiz will change {n_params} parameter(s) on {len(changes)} operation(s):\n\n{text}\n\n"
+                "Each change is audited and can be undone with Fusion's Undo; the old values are saved to a revert "
+                "file. Apply?", "ToolWiz Setup Advisor", adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+                adsk.core.MessageBoxIconTypes.QuestionIconType)
+            if ok != adsk.core.DialogResults.DialogYes:
+                return
+            reqs = twlogic.build_apply_requests(changes, _advisor_state["reason"])
+            preapprove_changes(changes)     # the user just confirmed these exact values; the bridge action does not ask again
+
+            def work():
+                out = []
+                for body in reqs:
+                    try:
+                        out.append((body["op_id"], _http_json('/api/setup_advisor/apply', body, timeout=150.0), None))
+                    except Exception as ex:
+                        out.append((body["op_id"], None, ex))
+                return out
+            run_async(work, _advisor_apply_done)
+        except Exception as e:
+            _report_error("Applying recommendations failed.", e)
+
+
+def _advisor_apply_done(out, err):
+    """Main-thread end of the apply: one /api/setup_advisor/apply response per operation. The server checks the
+    values against its last advisor result and queues the bridge action; the add-in's bridge handler (on the
+    main thread, while this request waits in a worker) writes them and returns {ok, applied, skipped, error}."""
+    try:
+        if err is not None:
+            _server_error_box("apply the recommendations", err)
+            return
+        results, notes = [], []
+        for op_id, res, ex in out or []:
+            if ex is not None:
+                results.append({"op_id": op_id, "applied": [], "skipped": [], "error":
+                                "ToolWiz server unreachable or too old for /api/setup_advisor/apply: " + str(ex)})
+                continue
+            r = twlogic.normalize_apply_result(res)
+            r["op_id"] = op_id
+            if isinstance(res, dict) and res.get("success") is False and not r["error"]:
+                r["error"] = str(res.get("error") or "the apply request failed")
+            results.append(r)
+        ui.messageBox(f"Setup Advisor changes:\n\n{twlogic.format_apply_results(results)}\n\n"
+                      "Regenerate the toolpaths before posting.", "ToolWiz Setup Advisor")
+    except Exception as e:
+        _report_error("Applying recommendations failed.", e)
+
+
+# ==============================================================================
+# COMMAND 9: STRATEGY PLANNER
+# ==============================================================================
+
+FEATURE_TYPES = [("Contour cut-out around a part (tabs)", "profile_cutout"), ("Slot (fixed width)", "slot"),
+                 ("T-slot / keyseat", "tslot")]
+
+
+def _op_depth_in(op, doc_unit="in"):
+    p = getattr(op, 'parameters', None)
+    top, bot = _signed_len_in(_param(p, 'topHeight_value'), doc_unit), _signed_len_in(_param(p, 'bottomHeight_value'), doc_unit)
+    return abs(top - bot) if (top is not None and bot is not None) else None
+
+
+class ToolWizStrategyCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd, inputs = _new_command(args, ToolWizStrategyExecuteHandler, ok_text='Compare')
+            cam = _active_cam()
+            if not cam:
+                ui.messageBox('Please switch to the Manufacture (CAM) workspace.', 'ToolWiz Strategy Planner')
+                return
+            ops_map = {}
+            pre = discover_tool_ops(cam, ops_map)
+            global strategy_ops_map
+            strategy_ops_map = ops_map
+            dd = inputs.addDropDownCommandInput('stratOp', 'Prefill from operation', adsk.core.DropDownStyles.TextListDropDownStyle)
+            dd.listItems.add('(none - enter the job below)', not pre)
+            for label in ops_map:
+                dd.listItems.add(label, label == pre)
+            doc_u = get_cam_document_units()
+            op = ops_map.get(pre)
+            depth = _op_depth_in(op, doc_u) if op is not None else None
+            length = _toolpath_length_in(op) if op is not None else None
+            ft = inputs.addDropDownCommandInput('stratFeature', 'Feature', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for i, (label, code) in enumerate(FEATURE_TYPES):
+                ft.listItems.add(label, i == 0)
+            inputs.addStringValueInput('stratDepth', 'Depth / part thickness', twlogic.fmt_len(depth, doc_u) if depth else '')
+            inputs.addStringValueInput('stratLength', 'Contour length / slot length', twlogic.fmt_len(length, doc_u) if length else '')
+            inputs.addStringValueInput('stratWidth', 'Slot width (slot) or channel width (optional)', '')
+            inputs.addIntegerSpinnerCommandInput('stratTabs', 'Tabs (count, 0 = none)', 0, 200, 1, 0)
+            inputs.addStringValueInput('stratTabWidth', 'Tab width', twlogic.fmt_len(0.1, doc_u))
+            inputs.addStringValueInput('stratTabHeight', 'Tab height', twlogic.fmt_len(0.04, doc_u))
+            inputs.addStringValueInput('stratSlotHeight', 'T-slot: slot height (Z)', '')
+            inputs.addStringValueInput('stratRadial', 'T-slot: radial depth', '')
+            prefs = load_prefs()
+            if not _add_material_inputs(inputs, 'strat', prefs):
+                return
+            agg = inputs.addIntegerSliderCommandInput('stratAggressiveness', 'Aggressiveness', 0, 100)
+            agg.valueOne = prefs.get('aggressiveness', 50)
+            inputs.addStringValueInput('stratRunout', 'Runout / TIR (blank = default 0.0002 in)', '')
+            # Candidate cutters: the document's tools (and, for T-slots, the shop cutters from /api/shop_tools).
+            cands = inputs.addDropDownCommandInput('stratCandidates', 'Candidate tools', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            global strategy_candidates
+            strategy_candidates = {}
+            for label, t in _document_tool_candidates():
+                strategy_candidates[label] = t
+                cands.listItems.add(label, False)
+            shop = inputs.addDropDownCommandInput('stratShop', 'T-slot shop cutters', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            global strategy_shop_tools
+            strategy_shop_tools = {}
+            try:
+                res = _http_json('/api/shop_tools', timeout=4.0, log_errors=False)
+                for t in (res.get('tools') or []) if isinstance(res, dict) else []:
+                    label = f"{t.get('name') or t.get('id')}" + (" (planned)" if t.get('planned') else "")
+                    strategy_shop_tools[label] = t.get('id')
+                    shop.listItems.add(label, False)
+            except Exception as ex:
+                _log("Shop tool list unavailable (older server?)", ex)
+                shop.listItems.add('(shop tool list unavailable)', False)
+            box = inputs.addTextBoxCommandInput(
+                'stratInfo', '', 'Tick two or more candidate tools. For a cut-out the planner compares a contour slot, '
+                'smaller-tool slots and adaptive, on cycle time and tool wear, and gives Fusion settings (tabs, stepdown, '
+                'optimal load, ramp). Tick shop cutters to compare T-slot cutters.', 4, True)
+            box.isFullWidth = True
+        except Exception as e:
+            _report_error("Strategy Planner failed to open.", e)
+
+
+strategy_ops_map = {}
+strategy_candidates = {}
+strategy_shop_tools = {}
+
+
+def _document_tool_candidates():
+    """[(label, Fusion tool dict)] for milling tools in the document tool library."""
+    out = []
+    cam = _active_cam()
+    lib = getattr(cam, 'documentToolLibrary', None) if cam else None
+    for i in range(getattr(lib, 'count', 0) or 0):
+        try:
+            t = json.loads(lib.item(i).toJson())
+        except Exception:
+            continue
+        if str(t.get('type', '')).lower() in ('holder', 'probe'):
+            continue
+        g = t.get('geometry') or {}
+        num_ = (t.get('post-process') or t.get('postProcess') or {}).get('number')
+        out.append((f"{tool_label(num_)}: {t.get('description', '')} ({g.get('DC', '?')} {t.get('unit', '')})"[:90], t))
+    return out
+
+
+class ToolWizStrategyExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            if not materials_ready():
+                ui.messageBox(_materials.get("notice") or "Material list unavailable.", "ToolWiz Strategy Planner")
+                return
+            doc_u = get_cam_document_units()
+
+            def length(iid, required=False):
+                txt = (inputs.itemById(iid).value or '').strip()
+                if not txt:
+                    if required:
+                        raise ValueError(f"Please fill in: {inputs.itemById(iid).name}.")
+                    return None
+                return parse_length_expr_to_inches(txt, doc_u)
+            kind = dict(FEATURE_TYPES).get(_selected_name(inputs.itemById('stratFeature')), 'profile_cutout')
+            family, alloy = _family_alloy(inputs, 'strat')
+            agg = _int_slider(inputs, 'stratAggressiveness')
+            try:
+                runout = twlogic.parse_runout_text(inputs.itemById('stratRunout').value, None)
+                tabs_n = int(inputs.itemById('stratTabs').value)
+                if kind == "tslot":
+                    feature = twlogic.strategy_feature_from_inputs(
+                        kind, None, length('stratLength', True), slot_height_in=length('stratSlotHeight', True),
+                        radial_depth_in=length('stratRadial', True))
+                else:
+                    tabs = {"count": tabs_n, "width": length('stratTabWidth'), "height": length('stratTabHeight')} if tabs_n else None
+                    feature = twlogic.strategy_feature_from_inputs(
+                        kind, length('stratDepth', True), length('stratLength', True),
+                        width_in=length('stratWidth', kind == "slot"), tabs=tabs)
+            except (ValueError, ArithmeticError) as ve:
+                ui.messageBox(str(ve), 'ToolWiz Strategy Planner')
+                return
+            cands = []
+            if kind == "tslot":
+                for label, tid in strategy_shop_tools.items():
+                    if any(i.name == label and i.isSelected for i in inputs.itemById('stratShop').listItems):
+                        cands.append({"id": tid})
+            else:
+                for item in inputs.itemById('stratCandidates').listItems:
+                    if item.isSelected and item.name in strategy_candidates:
+                        c = twlogic.tool_candidate_from_fusion(strategy_candidates[item.name])
+                        if c:
+                            cands.append(c)
+            if not cands:
+                ui.messageBox("Tick at least one candidate tool (document tools for a cut-out / slot, shop cutters for a T-slot).",
+                              'ToolWiz Strategy Planner')
+                return
+            body = {"family": family, "alloy": alloy, "aggressiveness": agg / 100.0, "feature": feature,
+                    "candidate_tools": cands}
+            if runout is not None:
+                body["runout"] = runout
+            model = load_model_setting()
+            if model:
+                body["model"] = model
+            save_prefs(family=family, alloy=alloy, aggressiveness=agg)
+            run_async(lambda: _http_json('/api/strategy/compare', body, timeout=180.0),
+                      lambda res, err: _strategy_done(res, err, doc_u))
+        except Exception as e:
+            _report_error("Strategy Planner failed.", e)
+
+
+def _strategy_done(res, err, doc_u):
+    if err is not None:
+        _server_error_box("compare strategies", err)
+        return
+    if not isinstance(res, dict) or not res.get("success"):
+        ui.messageBox(f"The planner could not compare these tools:\n{(res or {}).get('error')}", "ToolWiz Strategy Planner")
+        return
+    show_text_result("ToolWiz Strategy Planner", twlogic.format_strategy_result(res, doc_u))
+
+
+# ==============================================================================
+# COMMAND 10: MASTER LIBRARY BUILDER
+# ==============================================================================
+
+MASTER_TOOL_TYPES = ["flat end mill", "bull nose end mill", "ball end mill", "slot mill", "chamfer mill", "face mill",
+                     "drill", "reamer", "tap right hand", "spot drill", "thread mill", "boring bar"]
+MASTER_STRATEGIES = ["Adaptive Roughing", "Roughing", "Finishing", "Slotting"]
+ML_POLL_SECONDS = 1.5
+ML_MAX_POLL_ERRORS = 5
+_ml_sets = {}        # label -> set id
+_ml_materials = {}   # label -> material id
+
+
+def _scan_hub_with_progress(scan_names, title="ToolWiz hub scan"):
+    """Ask, then scan the named hub projects with a cancellable progress dialog. Returns (entries, note)."""
+    if ui.messageBox(
+            f"Scan {len(scan_names)} hub project(s)?\n\nEvery Fusion design in them is opened read-only (not visible), "
+            "its tool library is read, and it is closed without saving. This can take minutes for large projects; "
+            "you can cancel.", title, adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+            adsk.core.MessageBoxIconTypes.QuestionIconType) != adsk.core.DialogResults.DialogYes:
+        return [], ""
+    prog = ui.createProgressDialog()
+    prog.isCancelButtonShown = True
+    prog.show(title, "Scanning %v of %m designs", 0, 100, 0)
+
+    def _progress(done, total, label):
+        prog.maximumValue = max(1, total)
+        prog.progressValue = min(done, max(1, total))
+        prog.message = f"%v of %m: {label[-60:]}"
+        try:
+            adsk.doEvents()          # let Fusion repaint and deliver the Cancel click
+        except Exception:
+            pass
+        return not prog.wasCancelled
+    try:
+        scanned, rep = scan_hub_projects(scan_names, _progress)
+    finally:
+        prog.hide()
+    note = (f"\nHub scan: {rep['opened']} design(s) read, {len(rep['skipped'])} skipped"
+            + (" (cancelled)" if rep['cancelled'] else "") + ".")
+    for lab, why in rep["skipped"][:8]:
+        note += f"\n   skipped {lab}: {why}"
+    return scanned, note
+
+
+class ToolWizMasterLibraryCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd, inputs = _new_command(args, ToolWizMasterLibraryExecuteHandler, with_input_changed=False, ok_text='Build libraries')
+            global discovered_libraries_map
+            discovered_libraries_map.clear()
+            discovered_libraries_map.update(discover_libraries())
+            src = inputs.addDropDownCommandInput('mlSources', 'Sources (tools are merged and de-duplicated)', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            for name in discovered_libraries_map:
+                src.listItems.add(name, True)
+            projects = hub_project_names()
+            if projects:
+                grp = inputs.addGroupCommandInput('hubScanGroup', 'Hub project scan (optional, slow)')
+                grp.isExpanded = False
+                grp.children.addBoolValueInput('scanHubProjects', 'Also scan the documents of the chosen hub projects', True, '', False)
+                dd = grp.children.addDropDownCommandInput('hubProjects', 'Hub projects', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+                for p in projects:
+                    dd.listItems.add(p, False)
+            doc_u = get_cam_document_units()
+            types = inputs.addDropDownCommandInput('mlTypes', 'Tool types (none ticked = all)', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            for t in MASTER_TOOL_TYPES:
+                types.listItems.add(t, False)
+            inputs.addStringValueInput('mlDiaMin', f'Smallest diameter (blank = no limit; {doc_u})', '')
+            inputs.addStringValueInput('mlDiaMax', f'Largest diameter (blank = no limit; {doc_u})', '')
+            # Material sets from the server (editable on the web page).
+            _ml_sets.clear()
+            _ml_materials.clear()
+            sets_dd = inputs.addDropDownCommandInput('mlSets', 'Material sets (one library each)', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            mat_dd = inputs.addDropDownCommandInput('mlMaterials', 'Materials (none ticked = every material of the sets)', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            try:
+                res = _http_json('/api/twin/material_sets', timeout=6.0)
+                for s in ((res or {}).get('material_sets') or {}).get('sets') or []:
+                    label = s.get('name') or s.get('id')
+                    _ml_sets[label] = s.get('id')
+                    sets_dd.listItems.add(label, True)
+                    for m in s.get('materials') or []:
+                        ml = f"{label.replace('ToolWiz - ', '')}: {m.get('label') or m.get('id')}"
+                        _ml_materials[ml] = m.get('id')
+                        mat_dd.listItems.add(ml, False)
+            except Exception as ex:
+                _log("Material sets unavailable", ex)
+                ui.messageBox(_offline_message("list the material sets"), "Tool Wizard Server Offline")
+            strat = inputs.addDropDownCommandInput('mlStrategies', 'Strategies', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+            for st in MASTER_STRATEGIES:
+                strat.listItems.add(st, True)
+            prefs = load_prefs()
+            agg = inputs.addIntegerSliderCommandInput('mlAggressiveness', 'Aggressiveness', 0, 100)
+            agg.valueOne = prefs.get('aggressiveness', 50)
+            inputs.addStringValueInput('mlRunout', 'Runout / TIR (blank = each tool\'s own, else 0.0002 in)', '')
+            loc = inputs.addDropDownCommandInput('mlLocation', 'Import the libraries into', adsk.core.DropDownStyles.TextListDropDownStyle)
+            loc.listItems.add('Local libraries', True)
+            loc.listItems.add('Cloud libraries', False)
+            box = inputs.addTextBoxCommandInput(
+                'mlInfo', '',
+                f'Builds one library per material set ("ToolWiz - <set>") with ToolWiz presets for every selected '
+                f'material and strategy, audited (no STOP). Model: {model_label(load_model_setting())}. Rebuilding updates '
+                f'the library of the same name in place and replaces only presets ToolWiz wrote earlier. The build runs on '
+                f'the server; Fusion stays usable and shows progress.', 5, True)
+            box.isFullWidth = True
+        except Exception as e:
+            _report_error("Master Library Builder failed to open.", e)
+
+
+def _checked(inputs, input_id):
+    dd = inputs.itemById(input_id)
+    return [i.name for i in dd.listItems if i.isSelected] if dd is not None else []
+
+
+class ToolWizMasterLibraryExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            doc_u = get_cam_document_units()
+            selected = _checked(inputs, 'mlSources')
+            scan_in = inputs.itemById('scanHubProjects')
+            scan_names = _checked(inputs, 'hubProjects') if (scan_in and scan_in.value) else []
+            if not selected and not scan_names:
+                ui.messageBox('Please tick at least one source.', 'ToolWiz Master Library Builder')
+                return
+            try:
+                runout = twlogic.parse_runout_text(inputs.itemById('mlRunout').value, None)
+                tf = {}
+                types = _checked(inputs, 'mlTypes')
+                if types:
+                    tf["types"] = types
+                for iid, key in (('mlDiaMin', 'diameter_min'), ('mlDiaMax', 'diameter_max')):
+                    txt = (inputs.itemById(iid).value or '').strip()
+                    if txt:
+                        tf[key] = parse_length_expr_to_inches(txt, doc_u) * (25.4 if twlogic.is_metric(doc_u) else 1.0)
+                if "diameter_min" in tf or "diameter_max" in tf:
+                    tf["diameter_unit"] = "mm" if twlogic.is_metric(doc_u) else "in"
+            except (ValueError, ArithmeticError) as ve:
+                ui.messageBox(str(ve), 'ToolWiz Master Library Builder')
+                return
+            libs = harvest_selected(selected, discovered_libraries_map)
+            note = ""
+            if scan_names:
+                scanned, note = _scan_hub_with_progress(scan_names)
+                libs += scanned
+            if not libs:
+                ui.messageBox("No tools found in the selected sources." + note, 'ToolWiz Master Library Builder')
+                return
+            sets = [_ml_sets[n] for n in _checked(inputs, 'mlSets') if n in _ml_sets]
+            mats = [_ml_materials[n] for n in _checked(inputs, 'mlMaterials') if n in _ml_materials]
+            strategies = _checked(inputs, 'mlStrategies')
+            agg = _int_slider(inputs, 'mlAggressiveness')
+            location = "cloud" if _selected_name(inputs.itemById('mlLocation')).lower().startswith("cloud") else "local"
+            save_prefs(aggressiveness=agg)
+            body = twlogic.build_sets_request(libs, sets, mats, strategies, agg, model=load_model_setting(),
+                                              runout=runout, tool_filter=tf)
+            audit({'event': 'master_library_start', 'libraries': len(libs), 'tools': sum(len(l['tools']) for l in libs),
+                   'sets': sets, 'materials': mats, 'location': location})
+            prog = None
+            try:
+                prog = ui.createProgressDialog()
+                prog.isCancelButtonShown = True
+                prog.show("ToolWiz master library", "Starting the build on the server...", 0, 100, 0)
+            except Exception as ex:
+                _log("Progress dialog unavailable", ex)
+            run_async(lambda: _http_json('/api/twin/build_sets', body, timeout=120.0),
+                      lambda res, err: _ml_started(res, err, location, prog, note))
+        except Exception as e:
+            _report_error("Master Library Builder failed.", e)
+
+
+def _ml_hide(prog):
+    try:
+        if prog is not None:
+            prog.hide()
+    except Exception:
+        pass
+
+
+def _ml_started(res, err, location, prog, note):
+    if err is not None:
+        _ml_hide(prog)
+        _server_error_box("start the master library build", err)
+        return
+    job = (res or {}).get("job_id") if isinstance(res, dict) else None
+    if not job:
+        _ml_hide(prog)
+        ui.messageBox(f"The server did not start the build:\n{(res or {}).get('error') or res}", "ToolWiz Master Library Builder")
+        return
+    _ml_poll(job, location, prog, note, 0)
+
+
+def _ml_poll(job, location, prog, note, errors):
+    def work():
+        time.sleep(ML_POLL_SECONDS)
+        return _http_json(f"/api/twin/build_sets/{job}", timeout=20.0, log_errors=False)
+    run_async(work, lambda res, err: _ml_polled(job, location, prog, note, errors, res, err))
+
+
+def _ml_polled(job, location, prog, note, errors, res, err):
+    try:
+        if prog is not None and getattr(prog, 'wasCancelled', False) is True:
+            _ml_hide(prog)
+            ui.messageBox(f"Stopped waiting for the build. It keeps running on the server (job {job}); "
+                          "run the command again to import it when it is done is not supported - rebuild instead.",
+                          "ToolWiz Master Library Builder")
+            return
+        if err is not None or not isinstance(res, dict):
+            if errors + 1 >= ML_MAX_POLL_ERRORS:
+                _ml_hide(prog)
+                _server_error_box("read the build progress", err or ValueError("bad response"))
+                return
+            _ml_poll(job, location, prog, note, errors + 1)
+            return
+        state = res.get("state")
+        if state == "error" or res.get("success") is False:
+            _ml_hide(prog)
+            ui.messageBox(f"The build failed:\n{res.get('error')}", "ToolWiz Master Library Builder")
+            return
+        if state != "done":
+            pct, text = twlogic.format_build_progress(res)
+            if prog is not None:
+                try:
+                    prog.progressValue = int(pct)
+                    prog.message = text
+                except Exception:
+                    pass
+            _ml_poll(job, location, prog, note, 0)
+            return
+        result = res.get("result") or {}
+        libs = result.get("libraries") or []
+        if prog is not None:
+            try:
+                prog.message = "Downloading the libraries..."
+            except Exception:
+                pass
+
+        def fetch():
+            out = {}
+            for lib in libs:
+                url = lib.get("download_url")
+                if url:
+                    out[lib.get("name")] = _http_json(url, timeout=180.0)
+            return out
+        run_async(fetch, lambda d, e: _ml_import(result, d, e, location, prog, note))
+    except Exception as ex:
+        _ml_hide(prog)
+        _report_error("Master library progress failed.", ex)
+
+
+def _ml_import(result, downloads, err, location, prog, note):
+    _ml_hide(prog)
+    if err is not None:
+        _server_error_box("download the built libraries", err)
+        return
+    lines = []
+    ac = AuditedCommand('master_library_import', target=f"{len(downloads)} ToolWiz librar(ies) in {location}", detect=False).begin()
+    for name, data in (downloads or {}).items():
+        tools = (data or {}).get("data") if isinstance(data, dict) else None
+        if not tools:
+            lines.append(f"{name}: download had no tools ({(data or {}).get('error') if isinstance(data, dict) else data})")
+            continue
+        status, detail = import_library_by_name(name, tools, location)
+        lines.append({"updated": f"{name}: updated in place ({len(tools)} tools)",
+                      "created": f"{name}: created ({len(tools)} tools)",
+                      "file": f"{name}: written to {detail} (Fusion API unavailable: import it from the Tool Library)",
+                      "failed": f"{name}: FAILED - {detail}"}[status])
+    ac.finish(f"{len(lines)} librar(ies) processed")
+    show_text_result("ToolWiz Master Library Builder",
+                     "\n".join(lines) + "\n\n" + twlogic.format_build_result(result) + note)
+
+
+# ==============================================================================
+# COMMAND 11: LIBRARY AUDIT
+# ==============================================================================
+
+class ToolWizLibraryAuditCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            cmd, inputs = _new_command(args, ToolWizLibraryAuditExecuteHandler, ok_text='Audit')
+            global discovered_libraries_map
+            discovered_libraries_map.clear()
+            discovered_libraries_map.update(discover_libraries())
+            if not discovered_libraries_map:
+                ui.messageBox('No tool libraries were found.', 'ToolWiz Library Audit')
+                return
+            active = _doc_name()
+            dd = inputs.addDropDownCommandInput('auSource', 'Library', adsk.core.DropDownStyles.TextListDropDownStyle)
+            names = list(discovered_libraries_map)
+            pre = next((n for n in names if n == f"Open document: {active}"), names[0])
+            for n in names:
+                dd.listItems.add(n, n == pre)
+            prefs = load_prefs()
+            if not _add_material_inputs(inputs, 'au', prefs, optional=True):
+                return
+            agg = inputs.addIntegerSliderCommandInput('auAggressiveness', 'Aggressiveness', 0, 100)
+            agg.valueOne = prefs.get('aggressiveness', 50)
+            inputs.addStringValueInput('auRunout', 'Runout / TIR (blank = default 0.0002 in)', '')
+            box = inputs.addTextBoxCommandInput(
+                'auInfo', '', 'Checks every tool and preset against ToolWiz (chip load, speeds, stepdown, holder, '
+                f'stickout, duplicate presets). Model: {model_label(load_model_setting())}. Nothing is changed.', 3, True)
+            box.isFullWidth = True
+        except Exception as e:
+            _report_error("Library Audit failed to open.", e)
+
+
+class ToolWizLibraryAuditExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            name = _selected_name(inputs.itemById('auSource'))
+            entries = harvest_selected([name], discovered_libraries_map)
+            if not entries:
+                ui.messageBox(f"{name} holds no tools.", 'ToolWiz Library Audit')
+                return
+            tools = entries[0]["tools"]
+            family, _ = _family_alloy(inputs, 'au')
+            agg = _int_slider(inputs, 'auAggressiveness')
+            try:
+                runout = twlogic.parse_runout_text(inputs.itemById('auRunout').value, None)
+            except ValueError as ve:
+                ui.messageBox(str(ve), 'ToolWiz Library Audit')
+                return
+            body = {"library": {"tools": tools}, "aggressiveness": agg}
+            if family:
+                body["material"] = family
+            if runout is not None:
+                body["runout"] = runout
+            model = load_model_setting()
+            if model:
+                body["model"] = model
+            is_doc = discovered_libraries_map[name]["type"] == "document"
+            run_async(lambda: _http_json('/api/twin/audit', body, timeout=300.0),
+                      lambda res, err: _audit_done(res, err, name, tools, is_doc))
+        except Exception as e:
+            _report_error("Library Audit failed.", e)
+
+
+def _audit_done(res, err, name, tools, is_doc):
+    if err is not None:
+        _server_error_box("audit the library", err)
+        return
+    if not isinstance(res, dict) or not res.get("success"):
+        ui.messageBox(f"The audit failed:\n{(res or {}).get('error')}", "ToolWiz Library Audit")
+        return
+    text, jumps = twlogic.format_audit_report(res)
+    jump_guids = []
+    for label, idx in jumps:
+        g = twlogic.tool_guid(tools[idx]) if 0 <= idx < len(tools) else None
+        if g:
+            jump_guids.append((label, g))
+    head = f"Audit of {name}\n" + ("" if is_doc else "(jump-to-tool selects operations in this document that use the same tool guid)\n")
+    show_text_result("ToolWiz Library Audit", head + text, jump_guids)
+
+
 COMMAND_SPECS = [
     (exportCommandId, 'Export Digital Twin',
      'Exports selected Hub / Cloud / Local library to ToolWiz with automated backup.', 'ToolWizExportCreatedHandler'),
@@ -5433,6 +6768,25 @@ COMMAND_SPECS = [
     (snapshotCommandId, 'Document Snapshot / Compare',
      'Save a snapshot of every operation in this document and compare later to see exactly what changed.',
      'ToolWizSnapshotCreatedHandler'),
+    (advisorCommandId, 'ToolWiz Setup Advisor',
+     'Review the whole setup (strategy, tool, holder, feeds, stock, heights) and apply the recommended parameter changes.',
+     'ToolWizSetupAdvisorCreatedHandler'),
+    (strategyCommandId, 'ToolWiz Strategy Planner',
+     'Compare contour slot, small-tool slot and adaptive (tab milling) or T-slot cutters on cycle time and tool wear.',
+     'ToolWizStrategyCreatedHandler'),
+    (masterLibCommandId, 'ToolWiz Master Library Builder',
+     'Merge every tool library, build one ToolWiz library per material set with audited presets and import it into Fusion.',
+     'ToolWizMasterLibraryCreatedHandler'),
+    (libAuditCommandId, 'ToolWiz Library Audit',
+     'Audit a tool library against ToolWiz: STOP / CAUTION / info per tool and preset.',
+     'ToolWizLibraryAuditCreatedHandler'),
+]
+
+# Result dialogs are opened by the add-in itself (never placed on the panel).
+HIDDEN_COMMAND_SPECS = [
+    (advisorResultCommandId, 'ToolWiz Setup Advisor Results', 'Setup Advisor findings and recommendations.',
+     'ToolWizSetupAdvisorResultCreatedHandler'),
+    (textResultCommandId, 'ToolWiz Results', 'ToolWiz result text.', 'ToolWizTextResultCreatedHandler'),
 ]
 
 
@@ -5495,36 +6849,17 @@ def dispatch_bridge_action(action, params=None):
     """Execute a structured bridge action on Fusion's main UI thread and return a JSON-serializable dict."""
     params = dict(params or {})
     if action == "get_setup_summary":
-        snap = snapshot_document()
-        raw_ops = snap.get("ops") or {}
-        setups = []
-        ops_list = []
-        if isinstance(raw_ops, dict):
-            for path_key, o_val in raw_ops.items():
-                sn = path_key.split(" > ", 1)[0] if " > " in path_key else (o_val.get("setup") or "Setup")
-                if sn and sn not in setups:
-                    setups.append(sn)
-                ops_list.append({
-                    "setup": sn,
-                    "path": path_key,
-                    "name": o_val.get("name", ""),
-                    "strategy": o_val.get("strategy", ""),
-                    "tool": o_val.get("tool_desc") or o_val.get("tool") or "",
-                    "params": o_val.get("params") or {},
-                })
-        elif isinstance(raw_ops, list):
-            for o in raw_ops:
-                sn = o.get("setup") if isinstance(o, dict) else None
-                if sn and sn not in setups:
-                    setups.append(sn)
-                if isinstance(o, dict):
-                    ops_list.append(o)
+        # Rich per-op snapshot (op_id, tool JSON, holder, coating, params incl. stock to leave, rest machining,
+        # geometry) in the field names of docs/SETUP_ADVISOR.md; also pushed to /api/fusion_bridge/state.
+        snap = build_setup_snapshot()
+        lib = getattr(_active_cam(), 'documentToolLibrary', None)
+        push_live_state(snap)
         return {
             "success": True,
             "document": snap.get("document"),
-            "tool_count": snap.get("tool_count"),
-            "setups": setups,
-            "ops": ops_list,
+            "tool_count": getattr(lib, 'count', None),
+            "setups": snap.get("setups"),
+            "ops": snap.get("ops"),
         }
 
     if action == "inspect_operation":
@@ -5684,6 +7019,12 @@ def dispatch_bridge_action(action, params=None):
             ac.finish(f"error: {ex}")
             return {"success": False, "error": str(ex)}
 
+    if action == "apply_operation_parameters":
+        # params: {op_id, params: {<Fusion parameter name>: <expression>}, reason}
+        return apply_operation_parameters(params.get("op_id") or params.get("operation"),
+                                          params.get("params"), params.get("reason") or "",
+                                          advisor_generated_at=params.get("advisor_generated_at"))
+
     if action == "curate_setup_tools":
         doc = getattr(app, 'activeDocument', None)
         cam_prod = doc.products.itemByProductType('CAMProductType') if doc and getattr(doc, 'products', None) else None
@@ -5786,14 +7127,42 @@ def _remove_ui():
         cmdDef = ui.commandDefinitions.itemById(cid)
         if cmdDef:
             cmdDef.deleteMe()
-    global _bridge_custom_event
-    try:
-        if app and hasattr(app, 'unregisterCustomEvent'):
-            app.unregisterCustomEvent(BRIDGE_CUSTOM_EVENT_ID)
-    except Exception:
-        pass
+    for cid, _, _, _ in HIDDEN_COMMAND_SPECS:
+        cmdDef = ui.commandDefinitions.itemById(cid)
+        if cmdDef:
+            cmdDef.deleteMe()
+    global _bridge_custom_event, _async_event
+    stop_bridge_poller()
+    for ev_id in (BRIDGE_CUSTOM_EVENT_ID, ASYNC_EVENT_ID):
+        try:
+            if app and hasattr(app, 'unregisterCustomEvent'):
+                app.unregisterCustomEvent(ev_id)
+        except Exception:
+            pass
     _bridge_custom_event = None
+    _async_event = None
     _bridge_handlers.clear()
+    _async_handlers.clear()
+    hidden_handlers.clear()
+
+
+def _add_button(cid, name, tooltip):
+    """addButtonDefinition with this command's icon folder (resources/<command id>/16x16.png, 32x32.png) when
+    the folder exists next to this file."""
+    res = os.path.join(_ADDIN_DIR, 'resources', cid)
+    if os.path.isdir(res):
+        try:
+            return ui.commandDefinitions.addButtonDefinition(cid, name, tooltip, res)
+        except TypeError:
+            pass
+    return ui.commandDefinitions.addButtonDefinition(cid, name, tooltip)
+
+
+def _running_under_mock():
+    try:
+        return type(adsk.core).__module__.startswith('unittest.mock')
+    except Exception:
+        return False
 
 
 def run(context):
@@ -5811,14 +7180,19 @@ def run(context):
         workSpace = ui.workspaces.itemById(workspaceToUse)
         panel = workSpace.toolbarPanels.itemById(panelToUse) if workSpace else None
         for cid, name, tooltip, handler_cls in COMMAND_SPECS:
-            cmdDef = ui.commandDefinitions.addButtonDefinition(cid, name, tooltip)
+            cmdDef = _add_button(cid, name, tooltip)
             on_created = globals()[handler_cls]()
             cmdDef.commandCreated.add(on_created)
             handlers.append(on_created)
             if panel:
                 panel.controls.addCommand(cmdDef)
+        for cid, name, tooltip, handler_cls in HIDDEN_COMMAND_SPECS:
+            cmdDef = _add_button(cid, name, tooltip)
+            on_created = globals()[handler_cls]()
+            cmdDef.commandCreated.add(on_created)
+            hidden_handlers.append(on_created)
 
-        global _bridge_custom_event
+        global _bridge_custom_event, _async_event
         try:
             if hasattr(app, 'registerCustomEvent'):
                 _bridge_custom_event = app.registerCustomEvent(BRIDGE_CUSTOM_EVENT_ID)
@@ -5826,8 +7200,15 @@ def run(context):
                     on_bridge = ToolWizBridgeCustomEventHandler()
                     _bridge_custom_event.add(on_bridge)
                     _bridge_handlers.append(on_bridge)
+                _async_event = app.registerCustomEvent(ASYNC_EVENT_ID)
+                if _async_event is not None and hasattr(_async_event, 'add'):
+                    on_async = ToolWizAsyncCustomEventHandler()
+                    _async_event.add(on_async)
+                    _async_handlers.append(on_async)
         except Exception as ex_ce:
             _log("Could not register CustomEvent bridge", ex_ce)
+        if _bridge_custom_event is not None and not _running_under_mock():
+            start_bridge_poller()
 
     except Exception as e:
         _report_error("Add-in start failed.", e)
