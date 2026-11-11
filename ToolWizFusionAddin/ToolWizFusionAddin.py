@@ -336,7 +336,9 @@ def _assign_tool_preset(op, preset, reason):
 # Parameters recorded per operation (expression + evaluated value each).
 SNAPSHOT_PARAMS = ('tool_spindleSpeed', 'tool_feedCutting', 'maximumStepdown', 'stepdown',
                    'stepover', 'optimalLoad', 'use_tool_stepdown', 'use_tool_stepover', 'fineStepdown',
-                   'rampAngle', 'tool_rampAngle', 'helicalRampDiameter')
+                   'rampAngle', 'tool_rampAngle', 'helicalRampDiameter', 'tool_feedRamp', 'tool_feedPlunge',
+                   'finishingStepover', 'maximumStepover', 'useStockToLeave', 'stockToLeave',
+                   'verticalStockToLeave', 'simpleStockToLeave')
 
 
 def _snapshot_op(op):
@@ -1924,6 +1926,191 @@ def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_
 # COMMAND 1: EXPORT DIGITAL TWIN
 # ==============================================================================
 
+def _coll_items(coll):
+    """Items of a Fusion collection (count/item) or any iterable, never raising."""
+    try:
+        if hasattr(coll, 'count') and hasattr(coll, 'item'):
+            return [coll.item(i) for i in range(coll.count)]
+        return list(coll or [])
+    except Exception:
+        return []
+
+
+def _url_name(u):
+    """Display name of an adsk.core.URL (leaf name; https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/core_URL.htm)."""
+    for attr in ('leafName', 'leafPath'):
+        v = _safe(lambda: getattr(u, attr))
+        if isinstance(v, str) and v:
+            return v
+    return _safe(lambda: u.toString()) or "library"
+
+
+def _tool_library_at(tool_libs, url):
+    """ToolLibraries.toolLibraryAtURL (the documented name; older code used toolLibraryAtUrl)."""
+    fn = getattr(tool_libs, 'toolLibraryAtURL', None) or getattr(tool_libs, 'toolLibraryAtUrl', None)
+    return fn(url) if fn else None
+
+
+def _walk_library_urls(tool_libs, root, depth=0, max_depth=6):
+    """Every library asset URL under `root`, recursing into sub-folders (childAssetURLs / childFolderURLs:
+    https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/cam_ToolLibraries.htm)."""
+    out = []
+    try:
+        out += _coll_items(tool_libs.childAssetURLs(root))
+        if depth < max_depth:
+            for f in _coll_items(tool_libs.childFolderURLs(root)):
+                out += _walk_library_urls(tool_libs, f, depth + 1, max_depth)
+    except Exception as e:
+        _log(f"Listing libraries under {_url_name(root)} failed", e)
+    return out
+
+
+# LibraryLocations values: https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/cam_LibraryLocations.htm
+# (Local 0, Cloud 1, Network 2 [internal], Fusion360 5 [Autodesk samples, not harvested], Hub 6). Looked up with
+# getattr so a Fusion build without a value (e.g. Hub in older versions) just skips that source.
+HARVEST_LOCATIONS = (("Local", "LocalLibraryLocation"), ("Cloud", "CloudLibraryLocation"), ("Hub", "HubLibraryLocation"))
+
+
+def discover_libraries():
+    """{display name: {"type": source, "url", "obj"}} for the local, cloud and hub tool libraries, plus the
+    tool library of every open CAM document and the active document's tools in use."""
+    found = {}
+    try:
+        tool_libs = adsk.cam.CAMManager.get().libraryManager.toolLibraries
+    except Exception as e:
+        _log("Tool library manager unavailable", e)
+        tool_libs = None
+    if tool_libs is not None:
+        for label, enum_name in HARVEST_LOCATIONS:
+            loc = getattr(adsk.cam.LibraryLocations, enum_name, None)
+            if loc is None:
+                _log(f"LibraryLocations.{enum_name} is not available in this Fusion version; {label} libraries skipped")
+                continue
+            try:
+                root = tool_libs.urlByLocation(loc)
+                if not root:
+                    continue
+                for u in _walk_library_urls(tool_libs, root):
+                    lib = _tool_library_at(tool_libs, u)
+                    if lib:
+                        found[f"{label}: {_url_name(u)}"] = {"type": label.lower(), "url": u, "obj": lib}
+            except Exception as e:
+                _log(f"{label} tool library discovery failed", e)
+    try:
+        for doc in _coll_items(app.documents):
+            cam = adsk.cam.CAM.cast(doc.products.itemByProductType('CAMProductType'))
+            if cam:
+                found[f"Open document: {_safe(lambda: doc.name) or '?'}"] = {"type": "document", "doc": doc, "cam": cam}
+    except Exception as e:
+        _log("Open document discovery failed", e)
+    return found
+
+
+def _library_tools_json(lib):
+    out = []
+    for i in range(lib.count):
+        try:
+            out.append(json.loads(lib.item(i).toJson()))
+        except Exception as e:
+            _log(f"Could not read tool {i} of a library", e)
+    return out
+
+
+def harvest_selected(selected, found):
+    """Entries [{library_name, source, tools}] for the selected display names of `found`."""
+    entries = []
+    for name in selected:
+        info = found.get(name)
+        if not info:
+            continue
+        try:
+            if info["type"] == "document":
+                lib = info["cam"].documentToolLibrary
+            else:
+                lib = info.get("obj")
+            e = twlogic.harvest_entry(name, info["type"], _library_tools_json(lib) if lib else [])
+        except Exception as ex:
+            _log(f"Harvesting {name!r} failed", ex)
+            e = None
+        if e:
+            entries.append(e)
+    return entries
+
+
+DESIGN_EXTENSIONS = ('f3d', 'f3z', 'fusion')
+
+
+def _collect_design_files(folder, path, out, depth=0, max_depth=12):
+    """Append (folder path, DataFile) for every Fusion design under a DataFolder (dataFiles / dataFolders)."""
+    for df in _coll_items(_safe(lambda: folder.dataFiles)):
+        ext = str(_safe(lambda: df.fileExtension) or '').lower()
+        if ext in DESIGN_EXTENSIONS:
+            out.append((path, df))
+    if depth < max_depth:
+        for sub in _coll_items(_safe(lambda: folder.dataFolders)):
+            _collect_design_files(sub, f"{path}/{_safe(lambda: sub.name) or '?'}", out, depth + 1, max_depth)
+
+
+def hub_project_names():
+    """Names of the projects in the active hub (app.data.dataProjects:
+    https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/core_Data.htm)."""
+    return [str(_safe(lambda: p.name) or '?') for p in _coll_items(_safe(lambda: app.data.dataProjects))]
+
+
+def scan_hub_projects(project_names, progress=None):
+    """Opt-in scan: open each design in the named hub projects READ-ONLY and invisibly
+    (Documents.open(dataFile, False): https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/core_Documents_open.htm),
+    read its document tool library, and close it WITHOUT saving. Documents that were already open are used as
+    they are and left open. `progress(done, total, label)` returns False to cancel. Returns
+    (entries, report) with report = {opened, skipped: [(label, reason)], cancelled}."""
+    wanted = set(project_names)
+    files = []
+    for proj in _coll_items(_safe(lambda: app.data.dataProjects)):
+        pname = str(_safe(lambda: proj.name) or '?')
+        if pname in wanted:
+            _collect_design_files(proj.rootFolder, pname, files)
+    open_ids = {}
+    for d in _coll_items(app.documents):
+        did = _safe(lambda: d.dataFile.id)
+        if did:
+            open_ids[did] = d
+    entries, report = [], {"opened": 0, "skipped": [], "cancelled": False}
+    total = len(files)
+    for i, (path, df) in enumerate(files):
+        label = f"{path}/{_safe(lambda: df.name) or '?'}"
+        if progress and progress(i, total, label) is False:
+            report["cancelled"] = True
+            break
+        doc, we_opened = open_ids.get(_safe(lambda: df.id)), False
+        try:
+            if doc is None:
+                doc = app.documents.open(df, False)
+                we_opened = True
+            if doc is None:
+                report["skipped"].append((label, "could not be opened"))
+                continue
+            cam = adsk.cam.CAM.cast(doc.products.itemByProductType('CAMProductType'))
+            if not cam:
+                report["skipped"].append((label, "no CAM data"))
+                continue
+            e = twlogic.harvest_entry(f"Hub: {label}", "hub", _library_tools_json(cam.documentToolLibrary))
+            report["opened"] += 1
+            if e:
+                entries.append(e)
+        except Exception as ex:
+            _log(f"Scanning {label!r} failed", ex)
+            report["skipped"].append((label, str(ex)[:120]))
+        finally:
+            if we_opened and doc is not None:
+                try:
+                    doc.close(False)     # never save
+                except Exception as ex:
+                    _log(f"Could not close {label!r}", ex)
+    if progress:
+        progress(total, total, "done")
+    return entries, report
+
+
 class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
         super().__init__()
@@ -1932,13 +2119,13 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
             eventArgs = adsk.core.CommandEventArgs.cast(args)
             inputs = eventArgs.command.commandInputs
             lib_select = inputs.itemById('libSelect')
-            if not lib_select:
-                ui.messageBox('Please select library items to export.')
-                return
-                
-            selected_items = [item.name for item in lib_select.listItems if item.isSelected]
-            if not selected_items:
-                ui.messageBox('Please check at least one library to export.')
+            scan_in = inputs.itemById('scanHubProjects')
+            proj_select = inputs.itemById('hubProjects')
+            selected_items = [item.name for item in lib_select.listItems if item.isSelected] if lib_select else []
+            scan_names = ([i.name for i in proj_select.listItems if i.isSelected]
+                          if (scan_in and scan_in.value and proj_select) else [])
+            if not selected_items and not scan_names:
+                ui.messageBox('Please check at least one library (or a hub project to scan) to export.')
                 return
 
             merge_input = inputs.itemById('mergeIntoMaster')
@@ -1946,46 +2133,41 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
             merge_into_master = merge_input.value if merge_input else True
             auto_dedup = dedup_input.value if dedup_input else False
 
-            libraries_payload = []
-            total_extracted_tools = 0
+            libraries_payload = harvest_selected(selected_items, discovered_libraries_map)
+            scan_note = ""
+            if scan_names:
+                if ui.messageBox(
+                        f"Scan {len(scan_names)} hub project(s)?\\n\\nEvery Fusion design in them is opened read-only "
+                        "(not visible), its tool library is read, and it is closed without saving. This can take "
+                        "minutes for large projects; you can cancel.",
+                        "ToolWiz hub scan", adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+                        adsk.core.MessageBoxIconTypes.QuestionIconType) == adsk.core.DialogResults.DialogYes:
+                    prog = ui.createProgressDialog()
+                    prog.isCancelButtonShown = True
+                    prog.show("ToolWiz hub scan", "Scanning %v of %m designs", 0, 100, 0)
 
-            for selected_name in selected_items:
-                lib_info = discovered_libraries_map.get(selected_name)
-                if not lib_info:
-                    continue
-                    
-                tools_json_list = []
-                if lib_info["type"] == "document":
-                    camObj = adsk.cam.CAM.cast(app.activeDocument.products.itemByProductType('CAMProductType'))
-                    seen_tools = set()
-                    if camObj:
-                        for setup in camObj.setups:
-                            for op in setup.allOperations:
-                                if hasattr(op, 'tool') and op.tool:
-                                    t_json = op.tool.toJson()
-                                    t_dict = json.loads(t_json)
-                                    t_desc = t_dict.get("description", "")
-                                    t_num = extract_tool_number(op, t_dict)
-                                    key = f"{t_num}_{t_desc}"
-                                    if key not in seen_tools:
-                                        seen_tools.add(key)
-                                        tools_json_list.append(t_dict)
-                else:
-                    lib_obj = lib_info.get("obj")
-                    if lib_obj:
-                        for i in range(lib_obj.count):
-                            t = lib_obj.item(i)
-                            tools_json_list.append(json.loads(t.toJson()))
+                    def _progress(done, total, label):
+                        prog.maximumValue = max(1, total)
+                        prog.progressValue = min(done, max(1, total))
+                        prog.message = f"%v of %m: {label[-60:]}"
+                        try:
+                            adsk.doEvents()          # let Fusion repaint and deliver the Cancel click
+                        except Exception:
+                            pass
+                        return not prog.wasCancelled
+                    try:
+                        scanned, rep = scan_hub_projects(scan_names, _progress)
+                    finally:
+                        prog.hide()
+                    libraries_payload += scanned
+                    scan_note = (f"\\nHub scan: {rep['opened']} design(s) read, {len(rep['skipped'])} skipped"
+                                 + (" (cancelled)" if rep['cancelled'] else "") + ".")
+                    for lab, why in rep["skipped"][:8]:
+                        scan_note += f"\\n   skipped {lab}: {why}"
 
-                if tools_json_list:
-                    total_extracted_tools += len(tools_json_list)
-                    libraries_payload.append({
-                        "library_name": selected_name,
-                        "tools": tools_json_list
-                    })
-
+            total_extracted_tools = sum(len(l["tools"]) for l in libraries_payload)
             if not libraries_payload:
-                ui.messageBox("No tools found in the selected libraries to export.")
+                ui.messageBox("No tools found in the selected libraries to export." + scan_note)
                 return
 
             if len(libraries_payload) > 1 or merge_into_master:
@@ -1996,6 +2178,7 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
                 }
             else:
                 payload = {
+                    "libraries": libraries_payload,
                     "library_name": libraries_payload[0]["library_name"],
                     "tools": libraries_payload[0]["tools"],
                     "deduplicate": auto_dedup
@@ -2003,7 +2186,7 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
 
             # Post to ToolWiz server
             try:
-                res_data = _http_json('/api/twin/export_receive', payload, timeout=30.0)
+                res_data = _http_json('/api/twin/export_receive', payload, timeout=60.0)
             except (urllib.error.URLError, OSError, ValueError):
                 if ui:
                     ui.messageBox(_offline_message("export tool libraries"), "Tool Wizard Server Offline")
@@ -2013,30 +2196,29 @@ class ToolWizExportExecuteHandler(adsk.core.CommandEventHandler):
                 lib_display_name = res_data.get("library_name", "Master_Shop_Tool_Crib")
                 final_count = res_data.get("tool_count", total_extracted_tools)
                 backup_name = res_data.get("backup", {}).get("filename", "")
-                
+
                 dedup_info = ""
                 summary = res_data.get("summary") or res_data.get("report") or {}
                 if summary.get("duplicates_removed", 0) > 0:
-                    dedup_info = f"Duplicates Removed & Merged: {summary.get('duplicates_removed')}\n"
+                    dedup_info = f"Duplicates Removed & Merged: {summary.get('duplicates_removed')}\\n"
 
                 msg = (
-                    f"Tool Libraries Exported Successfully!\n"
-                    f"====================================\n"
-                    f"Target Library: {lib_display_name}\n"
-                    f"Libraries Processed: {len(libraries_payload)}\n"
-                    f"Total Unique Tools: {final_count}\n"
+                    f"Tool Libraries Exported Successfully!\\n"
+                    f"====================================\\n"
+                    f"Target Library: {lib_display_name}\\n"
+                    f"Libraries Processed: {len(libraries_payload)}\\n"
+                    f"Total Unique Tools: {final_count}\\n"
                     f"{dedup_info}"
-                    f"Backup Snapshot: {backup_name}\n\n"
-                    f"Next Steps:\n"
-                    f"1. Open {SERVER_BASE_URL} in your browser.\n"
-                    f"2. Switch to 'Digital Twin Library Manager'.\n"
-                    f"3. Select material & tweak aggressiveness per tool or material.\n"
-                    f"4. Click 'Import Digital Twin' in Fusion when done."
+                    f"Backup Snapshot: {backup_name}{scan_note}\\n\\n"
+                    f"Next Steps:\\n"
+                    f"1. Open {SERVER_BASE_URL} in your browser (Digital Twin Library Manager), or\\n"
+                    f"2. run 'ToolWiz Master Library Builder' here to build one library per material set.\\n"
+                    f"3. Click 'Import Digital Twin' in Fusion when done."
                 )
                 ui.messageBox(msg, 'ToolWiz Digital Twin Export')
             else:
                 ui.messageBox(f"Export failed: {res_data.get('error')}")
-                
+
         except Exception as e:
             _report_error("Digital Twin Export failed.", e)
 
@@ -2052,55 +2234,31 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
             onExecute = ToolWizExportExecuteHandler()
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
-            
+
             inputs = cmd.commandInputs
             global discovered_libraries_map
             discovered_libraries_map.clear()
-            
-            camMgr = adsk.cam.CAMManager.get()
-            toolLibs = camMgr.libraryManager.toolLibraries
-            
-            # 1. Cloud Libraries
-            try:
-                cloud_url = toolLibs.urlByLocation(adsk.cam.LibraryLocations.CloudLibraryLocation)
-                if cloud_url:
-                    child_urls = toolLibs.childAssetURLs(cloud_url)
-                    for i in range(child_urls.count if hasattr(child_urls, 'count') else len(child_urls)):
-                        u = child_urls.item(i) if hasattr(child_urls, 'item') else child_urls[i]
-                        lib = toolLibs.toolLibraryAtUrl(u)
-                        if lib:
-                            name = f"Cloud: {u.leafPath if hasattr(u, 'leafPath') else u.toString()}"
-                            discovered_libraries_map[name] = {"type": "cloud", "url": u, "obj": lib}
-            except Exception as e:
-                _log("Cloud tool library discovery failed", e)
-                
-            # 2. Local Libraries
-            try:
-                local_url = toolLibs.urlByLocation(adsk.cam.LibraryLocations.LocalLibraryLocation)
-                if local_url:
-                    child_urls = toolLibs.childAssetURLs(local_url)
-                    for i in range(child_urls.count if hasattr(child_urls, 'count') else len(child_urls)):
-                        u = child_urls.item(i) if hasattr(child_urls, 'item') else child_urls[i]
-                        lib = toolLibs.toolLibraryAtUrl(u)
-                        if lib:
-                            name = f"Local: {u.leafPath if hasattr(u, 'leafPath') else u.toString()}"
-                            discovered_libraries_map[name] = {"type": "local", "url": u, "obj": lib}
-            except Exception as e:
-                _log("Local tool library discovery failed", e)
-                
-            # 3. Active Document Tools (Always accessible)
-            discovered_libraries_map["Active Document: All Tools in Use"] = {"type": "document", "obj": None}
-            
+            discovered_libraries_map.update(discover_libraries())
+
             lib_select = inputs.addDropDownCommandInput('libSelect', 'Select Libraries to Export', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
             for i, name in enumerate(discovered_libraries_map.keys()):
                 lib_select.listItems.add(name, i == 0)
 
             inputs.addBoolValueCommandInput('mergeIntoMaster', 'Merge into Master Tool Crib', True, '', True)
             inputs.addBoolValueCommandInput('autoDeduplicate', 'Deduplicate Identical Cutters (merges same-geometry tools)', True, '', False)
-                
-            info = inputs.addTextBoxCommandInput('info', '', 'Select one or more libraries above. ToolWiz will consolidate your cutters, combine unique cutting presets, and eliminate redundant duplicates.', 3, True)
+
+            projects = hub_project_names()
+            if projects:
+                grp = inputs.addGroupCommandInput('hubScanGroup', 'Hub project scan (optional, slow)')
+                grp.isExpanded = False
+                grp.children.addBoolValueInput('scanHubProjects', 'Scan the documents of the chosen hub projects', True, '', False)
+                dd = grp.children.addDropDownCommandInput('hubProjects', 'Hub projects', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+                for p in projects:
+                    dd.listItems.add(p, False)
+
+            info = inputs.addTextBoxCommandInput('info', '', 'Select one or more libraries above (open documents, local, cloud and hub libraries). ToolWiz will consolidate your cutters, combine unique cutting presets, and eliminate redundant duplicates.', 3, True)
             info.isFullWidth = True
-            
+
         except Exception as e:
             _report_error("Command Created failed.", e)
 
@@ -2108,11 +2266,78 @@ class ToolWizExportCreatedHandler(adsk.core.CommandCreatedEventHandler):
 # COMMAND 2: IMPORT DIGITAL TWIN
 # ==============================================================================
 
+def _local_library_dir():
+    """Fusion's local library folder on disk (file fallback only)."""
+    base = os.environ.get('APPDATA')
+    if base:
+        return os.path.join(base, 'Autodesk', 'CAM360', 'libraries', 'Local')
+    return os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'Autodesk', 'CAM360', 'libraries', 'Local')
+
+
+def _find_library_url(tool_libs, root, name):
+    """URL of the library called `name` (file extension ignored, case-insensitive) in the root of a
+    location, else None. Only exact name matches count: other libraries are never touched."""
+    want = name.strip().lower()
+    for u in _coll_items(tool_libs.childAssetURLs(root)):
+        leaf = _url_name(u)
+        if leaf.lower() == want or os.path.splitext(leaf)[0].lower() == want:
+            return u
+    return None
+
+
+def import_library_by_name(name, tools, location="local"):
+    """Import `tools` as the library `name` in Fusion's local or cloud library location. A library of the same
+    name is updated IN PLACE (ToolLibraries.updateToolLibrary), otherwise it is created
+    (ToolLibraries.importToolLibrary); nothing else in the location is touched, so a rebuild never creates
+    duplicates. Returns (status, detail) with status "updated", "created" or "file" (fallback: the JSON was
+    written to the local library folder because the API call is unavailable or failed) and raises nothing.
+
+    API: https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/cam_ToolLibraries.htm
+         ToolLibrary.createFromJson: https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/cam_ToolLibrary.htm
+    """
+    text = json.dumps({"data": tools})
+    why = ""
+    try:
+        tool_libs = adsk.cam.CAMManager.get().libraryManager.toolLibraries
+        enum_name = "CloudLibraryLocation" if str(location).lower() == "cloud" else "LocalLibraryLocation"
+        loc = getattr(adsk.cam.LibraryLocations, enum_name)
+        root = tool_libs.urlByLocation(loc)
+        new_lib = adsk.cam.ToolLibrary.createFromJson(text)
+        if new_lib is None:
+            raise ValueError("Fusion could not parse the library JSON")
+        existing = _find_library_url(tool_libs, root, name)
+        if existing is not None:
+            if tool_libs.updateToolLibrary(existing, new_lib):
+                return "updated", _url_name(existing)
+            why = "updateToolLibrary returned False"
+        else:
+            url = tool_libs.importToolLibrary(new_lib, root, name)
+            if url:
+                return "created", _url_name(url)
+            why = "importToolLibrary returned no URL"
+    except Exception as e:
+        why = f"{type(e).__name__}: {e}"
+        _log(f"Importing library {name!r} through the Fusion API failed", e)
+    try:
+        d = _local_library_dir()
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, f"{name.replace(':', '_').replace('/', '_')}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        _log(f"Library {name!r} written to a file instead of the Fusion API: {why}")
+        return "file", path
+    except Exception as e2:
+        _log(f"Writing library file for {name!r} failed", e2)
+        return "failed", f"{why}; file write failed: {e2}"
+
+
 class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args):
         try:
+            inputs = adsk.core.CommandEventArgs.cast(args).command.commandInputs
+            location = "cloud" if _selected_name(inputs.itemById('importLocation')).lower().startswith("cloud") else "local"
             # Fetch latest mutated library JSON from ToolWiz server
             try:
                 res_data = _http_json('/api/twin/get_import_payload', timeout=30.0)
@@ -2120,45 +2345,39 @@ class ToolWizImportExecuteHandler(adsk.core.CommandEventHandler):
                 if ui:
                     ui.messageBox(_offline_message("import tool libraries"), "Tool Wizard Server Offline")
                 return
-            
+
             if not res_data.get("success") or not res_data.get("library"):
                 ui.messageBox("No modified Digital Twin library found on ToolWiz server.\nPlease generate presets in ToolWiz first.")
                 return
-                
-            ac = AuditedCommand('import_digital_twin', target='ToolWiz server library').begin()
+
             library_data = res_data["library"]
             lib_name = library_data.get("library_name", "ToolWiz_Twin_Library")
             tools_list = library_data.get("tools", [])
-            
+
             if not tools_list:
                 ui.messageBox("The Digital Twin library has 0 tools.")
                 return
-                
-            # Save local staging copy
-            local_appdata = os.environ.get('APPDATA', '')
-            staging_dir = os.path.join(local_appdata, 'Autodesk', 'CAM360', 'libraries', 'Local')
-            os.makedirs(staging_dir, exist_ok=True)
-            staging_file = os.path.join(staging_dir, f"{lib_name.replace(':', '_')}.json")
-            
-            existed = os.path.exists(staging_file)
-            with open(staging_file, "w", encoding="utf-8") as f:
-                json.dump({"data": tools_list}, f, indent=2)
-            note = ac.finish(f"wrote {len(tools_list)} tools to staging file"
-                             + (" (overwrote existing file)" if existed else ""), target=staging_file)
-                
+
+            ac = AuditedCommand('import_digital_twin', target=f"library {lib_name} ({location})").begin()
+            status, detail = import_library_by_name(lib_name, tools_list, location)
+            note = ac.finish(f"{status}: {len(tools_list)} tools in {lib_name}",
+                             target=detail if status == "file" else None)
+            verb = {"updated": f"Updated the existing {location} library in place",
+                    "created": f"Created the {location} library",
+                    "file": "Saved the library file to your Fusion local libraries folder (the Fusion API call was not available)",
+                    "failed": "Could not import the library"}[status]
             msg = (
                 f"Digital Twin Ready for Synchronization!\n"
                 f"====================================\n"
                 f"Library: {lib_name}\n"
                 f"Tools Processed: {len(tools_list)}\n\n"
-                f"The updated library has been saved to your Fusion Local Libraries directory:\n"
-                f"📂 {staging_file}\n\n"
-                f"Your tools now contain all material presets (Roughing, Adaptive, Finishing, Slotting) in their Cutting Data tab!"
+                f"{verb}:\n{detail}\n\n"
+                f"A library of the same name is updated, never duplicated. Your tools contain the ToolWiz presets in their Cutting Data tab."
             )
             if note:
                 msg += "\n\n" + note
             ui.messageBox(msg, 'ToolWiz Digital Twin Import')
-            
+
         except Exception as e:
             _finish_active_command(f"error: {e}")
             _report_error("Digital Twin Import failed.", e)
@@ -2175,6 +2394,9 @@ class ToolWizImportCreatedHandler(adsk.core.CommandCreatedEventHandler):
             onExecute = ToolWizImportExecuteHandler()
             cmd.execute.add(onExecute)
             handlers.append(onExecute)
+            dd = cmd.commandInputs.addDropDownCommandInput('importLocation', 'Import into', adsk.core.DropDownStyles.TextListDropDownStyle)
+            dd.listItems.add('Local libraries', True)
+            dd.listItems.add('Cloud libraries', False)
         except Exception as e:
             _report_error("Command Created failed.", e)
 
@@ -4982,7 +5204,7 @@ def plan_duplicate_cleanup(entries):
             if m['used'] or m is keeper:
                 continue
             pp = m['tool'].get('post-process') or m['tool'].get('postProcess') or {}
-            info = {'index': m['index'], 'number': pp.get('number'),
+            info = {'index': m['index'], 'number': pp.get('number'), 'guid': m['tool'].get('guid'),
                     'description': m['tool'].get('description', ''), 'keep_index': keeper['index']}
             extra = _preset_names(m['tool']) - kept_presets
             if extra:
@@ -5085,6 +5307,15 @@ class ToolWizCleanupExecuteHandler(adsk.core.CommandEventHandler):
                                 expected_doc_changes=True).begin()
             for r in sorted(remove, key=lambda x: x['index'], reverse=True):   # highest index first
                 ok = False
+                # Address the tool by guid: if the library changed since planning, the index may now point at
+                # another tool, so a guid mismatch skips the removal.
+                cur = _safe(lambda: json.loads(lib.item(r['index']).toJson()).get('guid'))
+                if r.get('guid') and cur and cur != r['guid']:
+                    _log(f"Clean Up: library item {r['index']} is no longer guid {r['guid']}; not removed")
+                    audit({'event': 'tool_removed', 'library_index': r['index'], 'guid': r['guid'], 'ok': False,
+                           'error': 'guid mismatch'})
+                    failed += 1
+                    continue
                 try:
                     if hasattr(lib, 'remove'):
                         ok = bool(lib.remove(r['index']))
@@ -5092,7 +5323,7 @@ class ToolWizCleanupExecuteHandler(adsk.core.CommandEventHandler):
                         ok = bool(lib.item(r['index']).deleteMe())
                 except Exception as ex:
                     _log(f"Could not remove tool at library index {r['index']}", ex)
-                audit({'event': 'tool_removed', 'library_index': r['index'], 'tool_number': r.get('number'),
+                audit({'event': 'tool_removed', 'library_index': r['index'], 'guid': r.get('guid'), 'tool_number': r.get('number'),
                        'description': r.get('description'), 'kept_index': r.get('keep_index'), 'ok': ok})
                 removed += 1 if ok else 0
                 failed += 0 if ok else 1
