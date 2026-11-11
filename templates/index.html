@@ -6,6 +6,7 @@
     <title>ToolWiz - Speeds & Feeds & Digital Twin</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/style.css?v=3.5">
+    <link rel="stylesheet" href="/static/v3.css?v=1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Cutting-model selector, model badge and v2 detail panel */
@@ -268,8 +269,9 @@
                         <div class="model-select-row">
                             <label for="cutModelSelect">Cutting model</label>
                             <select id="cutModelSelect" aria-label="Cutting model" onchange="onCutModelChange()">
-                                <option value="v2" selected>v2 (physics engine — default)</option>
-                                <option value="v1">v1 (GWizard tables + rules)</option>
+                                <option value="" selected>loading&hellip;</option>
+                                <option value="v2">physics (default)</option>
+                                <option value="v1">legacy tables</option>
                             </select>
                             <span id="cutModelSource" class="model-source" aria-live="polite"></span>
                         </div>
@@ -282,9 +284,17 @@
                                 <label for="maxHp">Max HP</label>
                                 <input type="number" id="maxHp" class="tool-dialog-input" value="10.0" step="0.01" oninput="onMachineLimitInput('maxHp')">
                             </div>
-                            <div class="input-group" style="margin:0;">
-                                <label for="runout">Runout (<span class="unit-lbl">in</span>)</label>
+                            <div class="input-group runout-group" id="runoutGroup" style="margin:0;">
+                                <label for="runout">Runout, TIR at the tool tip (<span class="unit-lbl">in</span>)</label>
                                 <input type="number" id="runout" class="tool-dialog-input" value="0.0002" step="0.0001" oninput="onRunoutInput()">
+                                <div id="runoutHint" class="runout-hint" style="display:none;">
+                                    <strong>Tools under 1/8 in: runout changes the result a lot.</strong> It sets how many flutes cut and the chip load on each. Measure it at the tool tip and enter the real value.
+                                    <div class="runout-presets" role="group" aria-label="Typical runout by holder type">
+                                        <button type="button" class="btn-ratio" onclick="setRunoutPreset(0.0001)" title="Shrink fit, hydraulic, powRgrip: about 3 um at 3 x D">0.0001 shrink / powRgrip</button>
+                                        <button type="button" class="btn-ratio" onclick="setRunoutPreset(0.0002)" title="ER-UP or precision collet: about 5 um at 3 x D">0.0002 precision ER</button>
+                                        <button type="button" class="btn-ratio" onclick="setRunoutPreset(0.0004)" title="Standard ER collet: up to 10 um at 3 x D">0.0004 standard ER</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -327,7 +337,7 @@
                                 <label for="cutDepth_range"><span id="cutDepthLabelText">Axial Depth of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutDepth" class="auto-set-badge" onclick="confirmAutoSet('cutDepth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
                                 <input type="number" id="cutDepth_val" step="0.0001" value="0.250" class="inline-num" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_range').value = this.value; calculate()">
                             </div>
-                            <input type="range" id="cutDepth_range" min="0.0001" max="2.0" step="0.0001" value="0.25" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
+                            <input type="range" id="cutDepth_range" min="0.0001" max="2.0" step="0.0001" value="0.25" oninput="markManualEdit('cutDepth'); document.getElementById('cutDepth_val').value = fmtEngagement(this); calculate()">
                         </div>
 
                         <div class="slider-group" id="cutWidthGroup" style="margin-bottom:0;">
@@ -335,7 +345,8 @@
                                 <label for="cutWidth_range"><span id="cutWidthLabelText">Radial Width of Cut (<span class="unit-lbl">in</span>)</span> <span id="badge_cutWidth" class="auto-set-badge" onclick="confirmAutoSet('cutWidth')" style="display:none;" title="Currently auto-set by Tool Wizard. Click to confirm."><span class="pulse-dot"></span>Auto</span></label>
                                 <input type="number" id="cutWidth_val" step="0.0001" value="0.100" class="inline-num" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_range').value = this.value; calculate()">
                             </div>
-                            <input type="range" id="cutWidth_range" min="0.0001" max="2.0" step="0.0001" value="0.1" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_val').value = parseFloat(this.value).toFixed(isMetric ? 3 : 4); calculate()">
+                            <input type="range" id="cutWidth_range" min="0.0001" max="2.0" step="0.0001" value="0.1" oninput="markManualEdit('cutWidth'); document.getElementById('cutWidth_val').value = fmtEngagement(this); calculate()">
+                        <div id="engagementRangeNote" class="range-note"></div>
                         </div>
                     </div>
 
@@ -498,7 +509,7 @@
                 <section class="results-panel">
                     <!-- CUTTING MODEL (which model produced these numbers) -->
                     <div id="modelRow" class="model-row">
-                        <span id="modelBadge" class="model-badge" role="status">Model: v1</span>
+                        <span id="modelBadge" class="model-badge" role="status">Model: &hellip;</span>
                         <div id="modelNote" class="model-note" style="display:none;"></div>
                     </div>
 
@@ -523,9 +534,11 @@
                         <div class="sub-val" id="ipr_row" style="margin-top:2px;">Feed / Rev: <span id="feed_ipr" style="font-weight:600; color:var(--accent);">0.0000</span> <span class="ipr-lbl">in/rev</span></div>
                     </div>
 
+                    {% include 'partials/results_v3.html' %}
+
                     <!-- v2 PHYSICS DETAIL (only when the v2 model produced the result) -->
                     <details id="v2Panel" class="glass-panel why-panel" style="grid-column: span 2; display:none;">
-                        <summary><span class="why-title">v2 physics detail</span> <span id="v2Status" class="why-status"></span></summary>
+                        <summary><span class="why-title">Physics model detail</span> <span id="v2Status" class="why-status"></span></summary>
                         <div class="why-body">
                             <div class="v2-section">Binding constraints</div>
                             <div id="v2Binding"></div>
@@ -533,10 +546,10 @@
                             <div id="v2Consensus"></div>
                             <div class="v2-section">Warnings</div>
                             <div id="v2Warnings"></div>
-                            <div class="v2-section">v1 vs v2</div>
+                            <div class="v2-section">Legacy tables vs physics</div>
                             <div class="why-table-wrap">
                                 <table id="v2Compare" class="why-table">
-                                    <thead><tr><th>Quantity</th><th class="v2-num">v1</th><th class="v2-num">v2</th><th class="v2-num">Change</th></tr></thead>
+                                    <thead><tr><th>Quantity</th><th class="v2-num">Legacy</th><th class="v2-num">Physics</th><th class="v2-num">Change</th></tr></thead>
                                     <tbody id="v2CompareRows"></tbody>
                                 </table>
                             </div>
@@ -3272,8 +3285,8 @@
         
         function applyRecommendations() {
             if (lastRecDoc > 0) {
-                let rd = (isMetric ? lastRecDoc * 25.4 : lastRecDoc).toFixed(isMetric ? 3 : 4);
-                let rw = (isMetric ? lastRecWoc * 25.4 : lastRecWoc).toFixed(isMetric ? 3 : 4);
+                let rd = (isMetric ? lastRecDoc * 25.4 : lastRecDoc).toFixed(isMetric ? 4 : 5);
+                let rw = (isMetric ? lastRecWoc * 25.4 : lastRecWoc).toFixed(isMetric ? 4 : 5);
 
                 const depthRange = document.getElementById('cutDepth_range');
                 const widthRange = document.getElementById('cutWidth_range');
@@ -3718,7 +3731,8 @@
 
         /* ---- Cutting model selector, model badge and the v2 detail panel -------------------------- */
         let cutModelLoaded = false;   // true once the saved model is known; calculate() then sends it explicitly
-        const MODEL_SOURCE_LABELS = { 'saved setting': 'saved', 'TOOLWIZ_MODEL': 'from TOOLWIZ_MODEL', 'default': 'default', 'request': 'this session' };
+        const MODEL_SOURCE_LABELS = { 'saved setting': 'saved', 'TOOLWIZ_MODEL': 'from TOOLWIZ_MODEL', 'default': 'server default', 'request': 'this session' };
+        const MODEL_LABELS = { v2: 'physics', v1: 'legacy tables' };
         function showCutModel(model, source) {
             const sel = document.getElementById('cutModelSelect');
             if (sel && (model === 'v1' || model === 'v2')) sel.value = model;
@@ -3735,7 +3749,7 @@
         async function onCutModelChange() {
             const sel = document.getElementById('cutModelSelect');
             const src = document.getElementById('cutModelSource');
-            if (!sel) return;
+            if (!sel || !sel.value) return;
             const wanted = sel.value;
             try {
                 const r = await fetch('/api/model_settings', {
@@ -3770,7 +3784,7 @@
             const note = document.getElementById('modelNote');
             const isV2 = !!res && res.model === 'v2';
             if (badge) {
-                badge.textContent = isV2 ? 'Model: v2 (physics)' : 'Model: v1';
+                badge.textContent = isV2 ? 'Model: physics' : 'Model: legacy tables';
                 badge.className = 'model-badge' + (isV2 ? ' model-v2' : '') + (badge.classList.contains('busy') ? ' busy' : '');
             }
             if (note) {
@@ -3958,6 +3972,7 @@
 
         async function calculate() {
             try { syncAutoToolFields(); } catch(e) { console.warn('auto fields', e); }
+            try { scaleEngagementSliders(); updateRunoutProminence(); } catch(e) { console.warn('slider scale', e); }
             try { saveState(); } catch(e) {}
             drawToolVisualization();
             if (abortController) abortController.abort();
@@ -4296,6 +4311,7 @@
                     renderProvenancePanel(res);
                     renderModelBadge(res);
                     renderV2Panel(res);
+                    try { renderV3Result(res); } catch (e) { console.warn('v3 result', e); }
                     refreshCalibrationStatus();
                     
                     // Render Tips & Machining Advisor
@@ -4305,11 +4321,23 @@
                     if (tipsContainer) tipsContainer.style.display = 'flex';
 
                     if (res.tips && res.tips.length > 0) {
+                        // Most serious first: critical, then warning, then info; each group gets a heading with its count.
+                        const sevRank = { critical: 0, warning: 1, info: 2 };
+                        const sevName = { critical: 'Critical', warning: 'Warnings', info: 'Notes' };
+                        const sortedTips = res.tips.map((t, i) => ({ t, i }))
+                            .sort((a, b) => ((sevRank[a.t.type] ?? 2) - (sevRank[b.t.type] ?? 2)) || (a.i - b.i)).map(x => x.t);
+                        const sevCounts = { critical: 0, warning: 0, info: 0 };
+                        sortedTips.forEach(t => { sevCounts[t.type in sevCounts ? t.type : 'info']++; });
                         if (advisorBadge) {
-                            advisorBadge.innerText = `${res.tips.length} Note${res.tips.length > 1 ? 's' : ''} Active`;
+                            advisorBadge.innerText = [sevCounts.critical ? sevCounts.critical + ' critical' : '', sevCounts.warning ? sevCounts.warning + ' warning' + (sevCounts.warning > 1 ? 's' : '') : '', sevCounts.info ? sevCounts.info + ' note' + (sevCounts.info > 1 ? 's' : '') : ''].filter(Boolean).join(' \u00B7 ');
                             advisorBadge.className = 'advisor-badge badge-active';
                         }
-                        tipsList.innerHTML = res.tips.map(t => {
+                        let lastSev = null;
+                        tipsList.innerHTML = sortedTips.map(t => {
+                            const sevKey = t.type in sevRank ? t.type : 'info';
+                            const heading = sevKey !== lastSev ? `<div class="tip-sev-heading tip-sev-${sevKey}">${sevName[sevKey]} (${sevCounts[sevKey]})</div>` : '';
+                            lastSev = sevKey;
+                            return heading + (() => {
                             let color = t.type === 'critical' ? '#ef4444' : (t.type === 'warning' ? '#f59e0b' : '#38bdf8');
                             let icon = t.type === 'critical' ? 'fa-triangle-exclamation' : (t.type === 'warning' ? 'fa-circle-exclamation' : 'fa-circle-info');
                             let isWear = false;
@@ -4333,6 +4361,7 @@
                                 </div>
                                 <div class="tip-body">${renderTipMarkup(t.message)}</div>
                             </div>`;
+                            })();
                         }).join('');
                     } else {
                         if (advisorBadge) {
@@ -6020,7 +6049,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
                 maxHp: parseFloat(document.getElementById('maxHp')?.value) || (machineProfile && machineProfile.max_hp) || 10.0,
                 runout: runoutInches,
                 custom_preset_name: customPresetName,
-                model: document.getElementById('cutModelSelect')?.value || 'v2'
+                model: document.getElementById('cutModelSelect')?.value || undefined
             };
 
             const statusBox = document.getElementById('twinStatusBox');
@@ -6973,5 +7002,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
 
         init();
     </script>
+    <script src="/static/js/tw_common.js?v=1"></script>
+    <script src="/static/js/results_v3.js?v=1"></script>
 </body>
 </html>
