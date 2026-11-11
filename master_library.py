@@ -716,10 +716,21 @@ def audit_and_prune(lib: dict, physics: Any, *, aggressiveness: Any, max_rpm: fl
     """Audit a built library with ``library_audit`` and drop every ToolWiz-generated preset that has a STOP finding
     (the library dict is edited in place). Returns {"summary": {STOP, CAUTION, INFO, tools, presets} after the
     drops, "dropped": [{"tool","preset","code","message"}], "owner_stop": [...STOP findings on the owner's own
-    presets, untouched], "cautions_by_code": {...}}. The summary counts the findings that remain; it is not re-audited."""
+    presets, untouched], "cautions_by_code": {...}}. The summary counts the findings that remain; it is not re-audited.
+    By default only the ToolWiz presets are audited (the owner's presets are not ours to fix and auditing them
+    roughly doubles the time); ``include_owner_presets`` audits every preset and lists STOP findings on the
+    owner's own ones in ``owner_stop``."""
     import library_audit
+    view = lib["tools"]
+    if not include_owner_presets:
+        view = []
+        for t in lib["tools"]:
+            sv = t.get("start-values")
+            if isinstance(sv, dict) and isinstance(sv.get("presets"), list):
+                t = {**t, "start-values": {**sv, "presets": [p for p in sv["presets"] if is_toolwiz_preset(p)]}}
+            view.append(t)
     report = library_audit.audit_library(
-        {"tools": lib["tools"]}, physics, max_rpm=max_rpm, max_hp=max_hp, runout_in=runout,
+        {"tools": view}, physics, max_rpm=max_rpm, max_hp=max_hp, runout_in=runout,
         aggressiveness=normalize_aggressiveness(aggressiveness), model=model, machine_profile=machine_profile)
     drop: Dict[Tuple[int, str], dict] = {}
     owner_stop: List[dict] = []

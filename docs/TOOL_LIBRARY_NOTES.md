@@ -153,3 +153,21 @@ Jobs live in memory (the last 20); each built library is also saved through `Bac
   repairs), `build_sets` + polling for progress, the per-library audit summary (`toolwiz_STOP`, `cautions_by_code`,
   `dropped_presets`, `owner_preset_stop_findings`), the skipped list, and the download links.
   Address tools by `guid` in every `/api/twin/*` call.
+
+## 4. Timings on the owner's titanium library (Offworldgear_TI_Steel1_Updated4, 22 cutting tools after merge)
+
+Both default sets in one job, 50% aggressiveness, runout 0.0002 in, default machine limits, the model named below.
+Measured through the job API on a 4-core machine.
+
+| Model | Tools | ToolWiz presets (Non-ferrous / Steels & exotics) | Total presets in the libraries | Generate | Audit + save | Total |
+|---|---|---|---|---|---|---|
+| v1 | 22 | 280 / 456 | 599 / 775 | 2.0 s | 1.4 s | 3.4 s |
+| v2 | 22 | 268 / 425 | 587 / 744 | 447 s | 250 s | 697 s |
+
+Audit result (ToolWiz presets only): 0 STOP after pruning in both models. v1: nothing dropped; 112 / 66 CAUTION (mostly
+`duplicate_preset` where micro tools hit the 16000 rpm cap and the chip-load floor so two materials give the same numbers, and
+`long_stickout` / `er_holder` tool findings that belong to the owner's tools). v2: 3 ToolWiz presets dropped for
+`chip_load_too_high` (Black Ti 5545 - Adaptive Roughing on the 1/32" end mill, Tool Steel 54HRC and MagnaCut 62HRC - Adaptive Roughing on
+the .040" end mill; 2.04x to 3.17x the audit's family-level value). The owner's own presets in that library carry 105 (v1) STOP findings
+(`audit_owner_presets: true`): end-mill strategies on form tools, stepdown over the cutting length, chip load over twice the ToolWiz value.
+They were left untouched.
