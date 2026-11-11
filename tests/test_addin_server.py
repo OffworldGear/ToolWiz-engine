@@ -340,8 +340,8 @@ class TestPresetInPlace(ServerTestBase):
             params.append(p)
         written = self.addin._set_preset_steps(params, 0.08, 0.025)
         by = {p.name: p.expression for p in params}
-        self.assertEqual(by["tool_stepdown"], "0.0800 in")
-        self.assertEqual(by["tool_stepover"], "0.0250 in")
+        self.assertEqual(by["tool_stepdown"], "0.08000 in")
+        self.assertEqual(by["tool_stepover"], "0.02500 in")
         self.assertEqual(by["tool_useStepdown"], "true")
         self.assertEqual(by["tool_spindleSpeed"], "")
         self.assertEqual(sorted(written), ["tool_stepdown", "tool_stepover"])

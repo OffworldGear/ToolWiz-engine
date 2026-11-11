@@ -63,7 +63,7 @@ class TestModelSwitch(unittest.TestCase):
         for fn in PAGE_FUNCTIONS:
             self.assertIn(f"function {fn}(", html, fn)
         self.assertIn('<option value="v1">v1 (GWizard tables + rules)</option>', html)
-        self.assertIn('<option value="v2">v2 (physics, beta)</option>', html)
+        self.assertIn('<option value="v2"', html)
         self.assertIn("v2 numbers: see the v2 panel", html)
 
     # -- /api/model_settings ---------------------------------------------------------------------

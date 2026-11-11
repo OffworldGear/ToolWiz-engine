@@ -34,7 +34,10 @@ def assert_tiles(tc, prof):
 
 class TestToolProfile(unittest.TestCase):
     def test_t13_full(self):
-        with open(os.path.join(ROOT, 't13_full.json')) as f:
+        path = os.path.join(ROOT, 't13_full.json')
+        if not os.path.exists(path):
+            self.skipTest("t13_full.json is a local Fusion dump (git-ignored)")
+        with open(path) as f:
             t = json.load(f)
         prof = ToolProfile.from_fusion(t)
         assert_tiles(self, prof)
