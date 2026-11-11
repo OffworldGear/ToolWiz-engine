@@ -157,7 +157,15 @@ comparison; stock-to-leave advice for true-to-size parts tied to the deflection 
 2026-11-11: staggered-tooth keyseat cutters (Harvey: "relieved to allow cutting on both sides of
 head") are the up/down cutter class. Teeth alternate faces, so each face (and each periphery side
 under a staggered layout) has about half the teeth: axial face cutting uses `teeth_per_face = z/2`
-for feed per tooth, and peripheral slotting chip load follows the vendor's staggered-tooth data; conformance
+for feed per tooth, and peripheral slotting chip load follows the vendor's staggered-tooth data.
+Owner's shop T-slot cutter (used for up and down cutting; must be a named test case and a preset in
+`data/shop_tools.json`): "6mm x 2mm Titanium Coated Carbide T Slot End Mill Cutter"
+(https://www.harfington.com/products/p-1341326): D 6 mm, cutting depth (kerf) 2 mm, shank 6 mm,
+shank length 31 mm, OAL 50 mm, 4 flutes, solid carbide, "titanium" coating. Neck diameter, reach
+and tooth form are not published (owner to measure; until then take neck = 3.5 mm and reach = 10 mm
+as provisional, flagged in the output). No vendor cutting data exists for it: its numbers come from
+the physics, checked for plausibility against Harvey keyseat data of similar diameter.
+If its teeth are not staggered (every tooth has both face edges), `teeth_per_face = z`; conformance
 against `tests/benchmarks/tslot/`; M6 of REVIEW Part 5.4 (roughing limit step, ramp from the
 un-thinned chip load, docstring).
 
