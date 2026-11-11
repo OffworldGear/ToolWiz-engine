@@ -210,6 +210,8 @@
                     <button class="nav-tab active" id="tabCalcBtn" onclick="switchTab('calculator')">⚡ Speeds & Feeds Calculator</button>
                     <button class="nav-tab" id="tabThreadBtn" onclick="switchTab('threading')">🧵 Thread & Tap Calculator</button>
                     <button class="nav-tab" id="tabTwinBtn" onclick="switchTab('digital-twin')">📦 Digital Twin Library Manager</button>
+                    <button class="nav-tab" id="tabPlannerBtn" onclick="switchTab('planner')">🧭 Strategy Planner</button>
+                    <button class="nav-tab" id="tabAdvisorBtn" onclick="switchTab('advisor')">🩺 Setup Advisor</button>
                 </div>
                 <button type="button" class="btn-ai-launcher" onclick="toggleAiChatDrawer()" title="Open ToolWiz AI Machinist Assistant">
                     <span class="ai-sparkle">✨</span> 💬 AI Machinist <span class="ai-chip-status">Co-Pilot</span>
@@ -1063,6 +1065,8 @@
                 </section>
             </main>
         </div>
+        {% include 'partials/planner.html' %}
+        {% include 'partials/advisor.html' %}
     </div>
 
     <!-- Floating AI Machinist Launcher Button -->
@@ -1489,23 +1493,36 @@
             {v: 75.0, l: "75 mm"}
         ];
 
+        // Every top-level view: tab name -> [nav button id, view id]
+        const TAB_VIEWS = {
+            'calculator': ['tabCalcBtn', 'calculatorView'],
+            'threading': ['tabThreadBtn', 'threadingView'],
+            'digital-twin': ['tabTwinBtn', 'digitalTwinView'],
+            'planner': ['tabPlannerBtn', 'plannerView'],
+            'advisor': ['tabAdvisorBtn', 'advisorView']
+        };
         function switchTab(tabName) {
-            document.getElementById('tabCalcBtn').classList.toggle('active', tabName === 'calculator');
-            document.getElementById('tabThreadBtn').classList.toggle('active', tabName === 'threading');
-            document.getElementById('tabTwinBtn').classList.toggle('active', tabName === 'digital-twin');
-            document.getElementById('calculatorView').style.display = tabName === 'calculator' ? 'block' : 'none';
-            document.getElementById('threadingView').style.display = tabName === 'threading' ? 'block' : 'none';
-            document.getElementById('digitalTwinView').style.display = tabName === 'digital-twin' ? 'block' : 'none';
-            
+            Object.keys(TAB_VIEWS).forEach(name => {
+                const btn = document.getElementById(TAB_VIEWS[name][0]);
+                const view = document.getElementById(TAB_VIEWS[name][1]);
+                if (btn) { btn.classList.toggle('active', name === tabName); btn.setAttribute('aria-current', name === tabName ? 'page' : 'false'); }
+                if (view) view.style.display = name === tabName ? 'block' : 'none';
+            });
             if (tabName === 'digital-twin') {
                 loadDigitalTwin();
+                if (typeof initMasterLibrary === 'function') initMasterLibrary();
             } else if (tabName === 'threading') {
                 if (!threadStandardsLoaded) {
                     loadThreadStandards();
                 } else {
                     calculateThread();
                 }
+            } else if (tabName === 'planner') {
+                if (typeof initPlanner === 'function') initPlanner();
+            } else if (tabName === 'advisor') {
+                if (typeof initSetupAdvisor === 'function') initSetupAdvisor();
             }
+            try { history.replaceState(null, '', '#' + tabName); } catch (e) { /* ignore */ }
         }
 
         // Stickout rule: ensures collet clamps on shank above flutes & shoulder reach.
@@ -3468,6 +3485,7 @@
                 }
             }
             
+            try { if (typeof window.onUnitToggled === 'function') window.onUnitToggled(); } catch (e) { console.warn('unit hook', e); }
             buildDatalist();
             calculate();
             if (threadStandardsLoaded) {
@@ -7010,5 +7028,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
     <script src="/static/js/tw_common.js?v=1"></script>
     <script src="/static/js/results_v3.js?v=1"></script>
     <script src="/static/js/tslot_ui.js?v=1"></script>
+    <script src="/static/js/planner_ui.js?v=1"></script>
+    <script src="/static/js/tw_boot.js?v=1"></script>
 </body>
 </html>

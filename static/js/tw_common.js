@@ -94,3 +94,25 @@
 
     window.TW = { len, feed, sfm, ipt, num, pct, toIn, fromIn, unitName, api, sevBadge, chips, callout, subTabs, safeStore, finite, esc: E, metric, MM };
 })();
+
+/* Material family / alloy pickers filled from the page's /api/data lists (allFamilies, fullAlloys). */
+(function () {
+    'use strict';
+    window.TW.fillFamilies = function (famId, alloyId, pref) {
+        const fam = document.getElementById(famId), al = document.getElementById(alloyId);
+        if (!fam || typeof allFamilies === 'undefined' || !allFamilies.length) return false;
+        const keep = pref && pref.family || fam.value;
+        fam.innerHTML = allFamilies.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+        if (keep && allFamilies.includes(keep)) fam.value = keep;
+        window.TW.fillAlloys(famId, alloyId, pref && pref.alloy);
+        fam.onchange = () => window.TW.fillAlloys(famId, alloyId);
+        return !!al;
+    };
+    window.TW.fillAlloys = function (famId, alloyId, pref) {
+        const fam = document.getElementById(famId), al = document.getElementById(alloyId);
+        if (!fam || !al || typeof fullAlloys === 'undefined') return;
+        const rows = fullAlloys.filter(a => a.family === fam.value);
+        al.innerHTML = rows.map(a => `<option value="${esc(alloyValue(a))}">${esc(alloyLabel(a))}</option>`).join('');
+        if (pref && Array.from(al.options).some(o => o.value === pref)) al.value = pref;
+    };
+})();
