@@ -1,0 +1,127 @@
+{
+  "library_name": "Master_Shop_Tool_Crib",
+  "tools": [
+    {
+      "type": "flat end mill",
+      "description": "1/4 3-Flute Carbide Endmill",
+      "post-process": {
+        "number": 1
+      },
+      "geometry": {
+        "DC": 0.25,
+        "NOF": 3,
+        "LCF": 0.75,
+        "SF": 0.25
+      },
+      "start-values": {
+        "presets": [
+          {
+            "name": "Preset Inconel Roughing",
+            "guid": "p-101",
+            "f_z": 0.001,
+            "n": 3500
+          },
+          {
+            "name": "Preset Aluminum High Speed",
+            "guid": "p-102",
+            "f_z": 0.004,
+            "n": 18000
+          },
+          {
+            "guid": "8a8f3e78-3cff-4cb0-9d00-99b8473c4670",
+            "name": "Black Titanium 5545 - Adaptive Roughing",
+            "description": "Black Titanium 5545 - Adaptive Roughing (Aggressiveness: 25%)",
+            "operation_type": "Adaptive Roughing",
+            "material": {
+              "category": "all",
+              "query": "Black Titanium 5545",
+              "use-hardness": false
+            },
+            "n": 7727,
+            "n_ramp": 7727,
+            "v_c": 154.15259999999998,
+            "f_z": 0.04138253383399498,
+            "f_n": 0.12414760150198495,
+            "v_f": 959.3246185556262,
+            "v_f_leadIn": 959.3246185556262,
+            "v_f_leadOut": 959.3246185556262,
+            "v_f_transition": 959.3246185556262,
+            "v_f_ramp": 479.6623092778131,
+            "v_f_plunge": 239.83115463890655,
+            "stepdown": 6.35,
+            "stepover": 0.508,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 1.275,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "bd31bd24-a041-4340-b7fb-5209f6b1a7f5",
+            "name": "Black Titanium 5545 - Floor Finishing",
+            "description": "Black Titanium 5545 - Floor Finishing | Wear Comp: -0.0009\" (Aggressiveness: 25%)",
+            "operation_type": "Floor Finishing",
+            "material": {
+              "category": "all",
+              "query": "Black Titanium 5545",
+              "use-hardness": false
+            },
+            "n": 7727,
+            "n_ramp": 7727,
+            "v_c": 154.15259999999998,
+            "f_z": 0.0103632,
+            "f_n": 0.0310896,
+            "v_f": 240.2383799623397,
+            "v_f_leadIn": 240.2383799623397,
+            "v_f_leadOut": 240.2383799623397,
+            "v_f_transition": 240.2383799623397,
+            "v_f_ramp": 120.11918998116985,
+            "v_f_plunge": 60.05959499058493,
+            "stepdown": 0.254,
+            "stepover": 4.1274999999999995,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 1.275,
+            "tool-coolant": "flood"
+          },
+          {
+            "guid": "65123893-335c-4c1f-ae6b-909c987221d0",
+            "name": "Black Titanium 5545 - Finishing",
+            "description": "Black Titanium 5545 - Finishing | Wear Comp: -0.0012\" (Aggressiveness: 25%)",
+            "operation_type": "Finishing",
+            "material": {
+              "category": "all",
+              "query": "Black Titanium 5545",
+              "use-hardness": false
+            },
+            "n": 7727,
+            "n_ramp": 7727,
+            "v_c": 154.15259999999998,
+            "f_z": 0.028194617373759508,
+            "f_n": 0.08458385212127853,
+            "v_f": 653.60402207137,
+            "v_f_leadIn": 653.60402207137,
+            "v_f_leadOut": 653.60402207137,
+            "v_f_transition": 653.60402207137,
+            "v_f_ramp": 326.802011035685,
+            "v_f_plunge": 163.4010055178425,
+            "stepdown": 9.779000000000005,
+            "stepover": 0.22225,
+            "use-stepdown": true,
+            "use-stepover": true,
+            "ramp-angle": 1.275,
+            "tool-coolant": "flood"
+          }
+        ]
+      },
+      "custom_aggressiveness": 25.0,
+      "guid": "882d3d7c-7f63-4a95-b7e6-e143b8fcb5db"
+    }
+  ],
+  "source_libraries": [
+    {
+      "name": "Master_Shop_Tool_Crib",
+      "tools_count": 1
+    }
+  ],
+  "last_modified": "2026-09-30T14:34:21.715266"
+}
