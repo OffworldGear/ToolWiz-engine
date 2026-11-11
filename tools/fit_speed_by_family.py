@@ -43,7 +43,7 @@ def rows_with_features():
             continue
         if pl.missing_geometry(r):
             continue
-        hb = cal.row_hb(r["material"].get("hardness"))
+        hb = cal.row_hb(r["material"].get("hardness"), fam)
         sfm = pl.nominal(c["sfm"])
         if not hb or not sfm:
             continue

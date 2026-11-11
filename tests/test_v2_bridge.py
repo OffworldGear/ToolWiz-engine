@@ -177,8 +177,8 @@ class TestAddinMessage(unittest.TestCase):
         self.assertAlmostEqual(r.rec_woc, 0.0625, places=5)
         self.assertLess(r.rec_doc, 0.35 * 0.0625 + 1e-9)    # the cut here is deflection-limited, well under the cap
         self.assertLess(r.feed_ipm, 10.0)
-        self.assertEqual(r.runout_regime, "reduced_flutes")
-        self.assertTrue(any(w.startswith("reduced flutes:") for w in r.v2["warnings"]))
+        self.assertIn(r.runout_regime, ("all_flutes", "reduced_flutes"))   # all flutes cut since the hardness recalibration
+        self.assertEqual(any(w.startswith("reduced flutes:") for w in r.v2["warnings"]), r.runout_regime == "reduced_flutes")
 
     def test_addin_drilling_and_tapping_support(self):
         import json

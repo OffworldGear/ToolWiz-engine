@@ -96,6 +96,11 @@ class CutRequest:
     machine_profile: Optional[Dict[str, Any]] = None   # active machine profile (v2 spindle/holder data)
     # True when cut_depth/cut_width came from the user (sliders, Fusion stepdown/stepover); None: infer from them.
     engagement_explicit: Optional[bool] = None
+    # Finish modes (finish_modes.py): "cleanup" (default) | "surface" | "accuracy"; Ra target (micro-inches) and wall
+    # tolerance (inches) override the mode's defaults.
+    finish_mode: Optional[str] = None
+    target_ra: Optional[float] = None
+    wall_tolerance: Optional[float] = None
     feature_geometry: Optional[Dict[str, Any]] = None  # live B-Rep geometry from cam_geometry_inspector
     # T-slot / keyseat / woodruff cutters (tslot_model); all optional
     tooth_form: Optional[str] = None                 # "straight" | "staggered" | None (unknown -> staggered)
@@ -143,6 +148,7 @@ class CutResult:
     # deflection + springback) rounded up to 0.0005"; axial = max(0.05 mm, 1.5 x axial springback).
     recommended_radial_stock_in: Optional[float] = None
     recommended_axial_stock_in: Optional[float] = None
+    finish: Optional[Dict[str, Any]] = None     # finish_modes block for finishing operations
     mrr: float = 0.0
     deflection: float = 0.0
     springback: float = 0.0
@@ -718,6 +724,9 @@ def run_cut(physics, req: CutRequest) -> CutResult:
     if req.model == "v2":
         import v2_bridge
         result = v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
+    if result.is_finishing and not (ctx.is_hole_tool or ctx.is_tapping or ctx.is_saw) and result.feed_ipm > 0:
+        import finish_modes
+        finish_modes.apply(physics, r, result)
     if r.feature_geometry:
         _apply_feature_geometry(r, result)
     return result

@@ -2,7 +2,7 @@
 as redefined by the planner in round 2).
 
 Data: every tests/benchmarks/v2/*.json file (rows added later are picked up). Machine: machines/test_generic_60k.json
-(60,000 rpm, ample power, the Speedio's holder stiffness), runout 0.0002", model v2, aggressiveness 0.5. The tool is the
+(60,000 rpm, ample power, the Speedio's holder stiffness), runout 0.0001" (vendor conditions: precision holder; owner decision 2026-11-11), model v2, aggressiveness 0.5. The tool is the
 group's median geometry (median DC, LCF, flutes, helix, SFDM; stickout = median LB when published, else LCF + 0.5 x SFDM),
 the material the family at the group's median hardness.
 
@@ -118,6 +118,8 @@ def rng(v):
 ENGAGEMENT_CLASSES = (("slot", 0.99, 1e9), ("<=0.10", 0.0, 0.10), ("0.10-0.30", 0.10, 0.30), ("0.30-0.60", 0.30, 0.60),
                        (">0.60", 0.60, 0.99))
 MAX_RPM = 60000.0
+GATED_TIR = 0.0001        # the gated runs; the 0.0002 in summary shows what an ER-collet holder costs
+SUMMARY_TIR = 0.0002
 MIN_GROUP_ROWS, MIN_CELL_ROWS = 2, 3
 
 
@@ -167,12 +169,12 @@ def median_tool(rows):
     incomplete = neck and neck_d is None   # reach beyond the flutes but no published neck diameter
     flutes = int(round(med([int(r["tool"]["flutes"]) for r in rows])))
     helix = med([float(r["tool"].get("helix_deg") or 35.0) for r in rows])
-    hb = med([pl.row_hb(r["material"].get("hardness")) for r in rows])
+    hb = med([pl.row_hb(r["material"].get("hardness"), r["material"].get("toolwiz_family")) for r in rows])
     coat = collections.Counter(r["tool"].get("coating") or "Uncoated" for r in rows).most_common(1)[0][0]
     return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, neck_d=neck_d, incomplete=incomplete, flutes=flutes, helix=helix, hb=hb, coating=coat)
 
 
-def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
+def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None, runout=None):
     """A v2 request on the rows' median tool; ap_over_d / ae_over_d None: the engine recommends the engagement."""
     g = median_tool(rows)
     D = g["D"]
@@ -181,14 +183,15 @@ def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
         coating=g["coating"], geometry="Square", operation=OP_NAME[op], diameter=D, flutes=g["flutes"],
         flute_length=g["lcf"], shank_diameter=g["shank"], has_relieved_neck=g["neck"],
         neck_diameter=g["neck_d"] if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
-        stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=0.0002,
+        stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=GATED_TIR if runout is None else runout,
         cut_depth=None if ap_over_d is None else min(ap_over_d * D, g["lcf"]),
         cut_width=None if ae_over_d is None else min(ae_over_d * D, D), model="v2", machine_profile=profile), g
 
 
 def run_job(args):
     """Worker: ("engage"|"recommend", rows) -> a small result dict (picklable)."""
-    kind, rows = args
+    kind, rows = args[0], args[1]
+    tir = args[2] if len(args) > 2 else None
     with open(PROFILE_PATH, encoding="utf-8") as fh:
         profile = json.load(fh)
     g = median_tool(rows)
@@ -199,9 +202,9 @@ def run_job(args):
         if kind == "engage":
             ap = med([float(r["cut"]["ap"]) / float(r["tool"]["DC"]) for r in rows])
             ae = med([min(float(r["cut"]["ae"]) / float(r["tool"]["DC"]), 1.0) for r in rows])
-            req, _ = request_for(rows, op, profile, ap, ae)
+            req, _ = request_for(rows, op, profile, ap, ae, tir)
         else:
-            req, _ = request_for(rows, op, profile)
+            req, _ = request_for(rows, op, profile, runout=tir)
         res = run_cut(app.physics, req)
     except Exception as ex:   # a crash is a failed job, not a crashed run
         return {"error": f"{type(ex).__name__}: {ex}"}
@@ -210,7 +213,7 @@ def run_job(args):
     D = g["D"]
     return {"model": res.model, "feasible": bool(res.feasible), "sfm": res.sfm, "fz": res.adj_ipt, "rpm": res.rpm,
             "ap_over_D": res.rec_doc / D, "ae_over_D": res.rec_woc / D, "limited_by": res.limited_by,
-            "rec_ok": bool((res.v2 or {}).get("recommended")), "source": res.engagement_source}
+            "feed": res.feed_ipm, "rec_ok": bool((res.v2 or {}).get("recommended")), "source": res.engagement_source}
 
 
 def _pool_map(items):
@@ -239,8 +242,9 @@ def conformance():
 
     gkeys, ckeys = sorted(groups), sorted(cells)
     jobs = ([("engage", groups[k]) for k in gkeys] + [("recommend", cells[k]) for k in ckeys]
-            + [("engage", [r]) for r in diag])
+            + [("engage", [r]) for r in diag] + [("engage", groups[k], SUMMARY_TIR) for k in gkeys])
     out = _pool_map(jobs)
+    s_out = dict(zip(gkeys, out[len(gkeys) + len(ckeys) + len(diag):]))
     g_out = dict(zip(gkeys, out[:len(gkeys)]))
     c_out = dict(zip(ckeys, out[len(gkeys):len(gkeys) + len(ckeys)]))
     r_out = {r["id"]: o for r, o in zip(diag, out[len(gkeys) + len(ckeys):])}
@@ -251,7 +255,7 @@ def conformance():
                        "cells": {"|".join(k): v for k, v in c_out.items()}, "rows": r_out}, fh)
     info = {"rows_total": len(load_rows()), "rows_in_scope": len(rows), "groups": len(groups), "cells": len(cells),
             "diag_rows": len(diag), "mode": "full" if FULL else "median-geometry groups", "seconds": time.time() - t0}
-    return {"groups": groups, "g_out": g_out, "cells": cells, "c_out": c_out, "rows": {r["id"]: r for r in diag},
+    return {"s_out": s_out, "groups": groups, "g_out": g_out, "cells": cells, "c_out": c_out, "rows": {r["id"]: r for r in diag},
             "r_out": r_out, "info": info}
 
 
@@ -338,6 +342,16 @@ def cell_table(report):
     return "\n".join(lines)
 
 
+def holder_cost(c):
+    """Per diameter band: median over groups of (feed at 0.0002") / (feed at 0.0001") and how many groups, not gated."""
+    by = collections.defaultdict(list)
+    for key, rows in c["groups"].items():
+        a, b = c["g_out"].get(key), c["s_out"].get(key)
+        if a and b and "error" not in a and "error" not in b and a.get("feasible") and b.get("feasible") and a["feed"] > 0:
+            by[key[2]].append(b["feed"] / a["feed"])
+    return {band: (statistics.median(v), len(v)) for band, v in by.items()}
+
+
 def row_diagnostic(c):
     res = []
     for rid, row in c["rows"].items():
@@ -364,6 +378,17 @@ def test_conformance_summary(conformance, capsys):
         print(f"  geometry incomplete (reach beyond the flutes, no published neck diameter), excluded: {len(inc)} groups")
         for k in inc:
             print("    " + " | ".join(k))
+        res2 = []
+        for key, rows in sorted(conformance["groups"].items()):
+            if median_tool(rows)["incomplete"]:
+                continue
+            ok2, _, _ = verdict(rows, conformance["s_out"][key])
+            res2.append({"ok": ok2, "op": key[1], "micro": median_tool(rows)["D"] <= MICRO_MAX_D})
+        print(f"  at 0.0002\" (not gated): groups overall {_rate([r['ok'] for r in res2]):.1%}; "
+              + ", ".join(f"{op} {_rate([r['ok'] for r in res2 if r['op'] == op]):.1%}" for op in OPERATIONS)
+              + f"; micro {_rate([r['ok'] for r in res2 if r['micro']]):.1%}")
+        print("  feed at 0.0002\" relative to 0.0001\" (median over groups, not gated): "
+              + ", ".join(f"{b} {v:.0%} (n{n})" for b, (v, n) in sorted(holder_cost(conformance).items(), key=lambda kv: [x[0] for x in BANDS].index(kv[0]))))
         print(group_table(res))
         print(cell_table(cells))
 

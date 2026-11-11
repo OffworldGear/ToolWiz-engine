@@ -26,6 +26,9 @@ ENVELOPE_PATH = o.ENVELOPE_DEFAULT_PATH
 # worst-flute chip ≤ the vendor p90, C2o) keeps the feed from collapsing at the first microns of runout on micro
 # tools; "worst" (worst-flute chip ≤ the median) is optimize.py's own default. See docs/V3_IMPLEMENTATION_PLAN.md M1.
 C2_BASIS = "nominal"
+# Roughing objective (owner, 2026-11-11): the highest-MRR cut that meets every hard limit and the vendor envelope; the cut closest
+# to the vendor medians is chosen only among candidates within this fraction of the best MRR.
+MRR_TIE_BAND = 0.03
 _CACHE = {}
 
 
@@ -137,6 +140,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     kw.setdefault("envelope", ENVELOPE_PATH)
     kw.setdefault("chip_floor", "vendor")
     kw.setdefault("c2_basis", C2_BASIS)
+    kw.setdefault("depth_trade", MRR_TIE_BAND)
     kw.setdefault("select_tir_in", o.REFERENCE_TIR_IN)
     return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)
 

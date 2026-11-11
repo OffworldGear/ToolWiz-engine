@@ -31,15 +31,10 @@ CONTINUITY_MAX, PERTURB_MAX, AE_ADAPTIVE_MAX = 0.15, 0.25, 0.40
 MICRO_PERTURB_MAX = 0.35
 
 
-# Documented physical behaviour (planner decision, round 4): accepted by strict xfail, not by loosening a threshold. If a
+# Strict-xfail registry (planner, round 4). Empty since round 6: the three documented cases passed after the hardness recalibration.
 # model change makes one pass, strict xfail fails the run and the mark must be removed.
-XFAIL_FEED_CONTINUITY = ("0.0312in-2fl-Steel-Adaptive",)
-XFAIL_PERTURB = {
-    ("stickout+10%", "0.0625in-2fl-Aluminum-Slotting"):
-        "1/16 in 6061 slot: +10% stickout changes the stiffness by about 25%, so the deflection-limited depth moves 28%",
-    ("aggressiveness+10%", "0.0100in-2fl-Aluminum-Slotting"):
-        "0.010 in 6061 slot: flat landscape; depth changes by 0.00101 in against the 0.1 x D = 0.0010 in allowance",
-}
+XFAIL_FEED_CONTINUITY = ()   # round 6: the three round-4 cases pass after the hardness recalibration; marks removed
+XFAIL_PERTURB = {}
 
 
 def _xfail(reason):

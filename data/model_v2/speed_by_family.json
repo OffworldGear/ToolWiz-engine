@@ -3,246 +3,246 @@
  "generated_by": "tools/fit_speed_by_family.py",
  "global": {
   "k": 0.15642,
-  "m": 0.0,
-  "knee_in": 1.0,
+  "m": -0.029419,
+  "knee_in": 0.125,
   "ae_min": 0.05
  },
  "ridge_rows": 12.0,
  "families": {
   "Stainless - PH Series (17-4)": {
-   "vc_ref_sfm": 219.09824717006558,
-   "engagement_k": 0.15708848054287664,
-   "diameter_m": 0.1453076392818242,
+   "vc_ref_sfm": 217.0163154931271,
+   "engagement_k": 0.15620826247082487,
+   "diameter_m": 0.14277908366524586,
    "diameter_knee_in": 0.125,
    "hb_ref": 325.0,
-   "q": 1.8201,
+   "q": 1.8352,
    "residuals": {
     "train_before": {
      "n": 329,
-     "median_abs_log": 0.2926219744541685,
-     "within_25pct": 0.40425531914893614
+     "median_abs_log": 0.2923497333821747,
+     "within_25pct": 0.4194528875379939
     },
     "train_after": {
      "n": 329,
-     "median_abs_log": 0.23186788419930535,
+     "median_abs_log": 0.23471908518801607,
      "within_25pct": 0.547112462006079
     },
     "holdout_before": {
      "n": 114,
-     "median_abs_log": 0.32991511100736026,
-     "within_25pct": 0.37719298245614036
+     "median_abs_log": 0.34146307173425944,
+     "within_25pct": 0.40350877192982454
     },
     "holdout_after": {
      "n": 114,
-     "median_abs_log": 0.3316486194188292,
-     "within_25pct": 0.40350877192982454
+     "median_abs_log": 0.31232017117385,
+     "within_25pct": 0.42105263157894735
     }
    },
-   "applied": false
+   "applied": true
   },
   "Stainless - 400 Series (420)": {
-   "vc_ref_sfm": 416.6465907725786,
-   "engagement_k": 0.1167799588863993,
-   "diameter_m": 5.586225969600098e-05,
-   "diameter_knee_in": 0.5,
+   "vc_ref_sfm": 400.3804805662168,
+   "engagement_k": 0.12653449473167033,
+   "diameter_m": -0.029095793068491867,
+   "diameter_knee_in": 1.0,
    "hb_ref": 200.0,
-   "q": 0.84022,
+   "q": 0.42054,
    "residuals": {
     "train_before": {
      "n": 21,
-     "median_abs_log": 0.1375258448577881,
-     "within_25pct": 1.0
+     "median_abs_log": 0.13710422019118407,
+     "within_25pct": 0.9523809523809523
     },
     "train_after": {
      "n": 21,
-     "median_abs_log": 0.10245220294197692,
+     "median_abs_log": 0.09204423433248171,
      "within_25pct": 0.8095238095238095
     },
     "holdout_before": {
      "n": 8,
-     "median_abs_log": 0.34777340703548165,
+     "median_abs_log": 0.347351782368878,
      "within_25pct": 0.5
     },
     "holdout_after": {
      "n": 8,
-     "median_abs_log": 0.26446266479875513,
+     "median_abs_log": 0.27051667434099136,
      "within_25pct": 0.5
     }
    },
    "applied": true
   },
   "Stainless - 300 Series (316)": {
-   "vc_ref_sfm": 260.4517374353869,
-   "engagement_k": 0.14501789393804762,
-   "diameter_m": 0.07718910332853153,
-   "diameter_knee_in": 0.5,
-   "hb_ref": 262.5,
-   "q": 0.84022,
+   "vc_ref_sfm": 286.6532808832789,
+   "engagement_k": 0.15567595914658872,
+   "diameter_m": -0.028693565455040728,
+   "diameter_knee_in": 0.25,
+   "hb_ref": 165.0,
+   "q": 0.32347,
    "residuals": {
     "train_before": {
      "n": 159,
-     "median_abs_log": 0.17732814161284516,
-     "within_25pct": 0.6981132075471698
+     "median_abs_log": 0.1668277876314161,
+     "within_25pct": 0.7484276729559748
     },
     "train_after": {
      "n": 159,
-     "median_abs_log": 0.15323048391846286,
-     "within_25pct": 0.6792452830188679
+     "median_abs_log": 0.12656568122958076,
+     "within_25pct": 0.7358490566037735
     },
     "holdout_before": {
      "n": 141,
-     "median_abs_log": 0.19213110343360906,
-     "within_25pct": 0.6666666666666666
+     "median_abs_log": 0.1366420362474689,
+     "within_25pct": 0.7730496453900709
     },
     "holdout_after": {
      "n": 141,
-     "median_abs_log": 0.20477862948635947,
-     "within_25pct": 0.6524822695035462
+     "median_abs_log": 0.17316530615605655,
+     "within_25pct": 0.624113475177305
     }
    },
    "applied": false
   },
   "Steel - Low Carbon (1020)": {
-   "vc_ref_sfm": 189.88279543317083,
-   "engagement_k": 0.15571899913118226,
-   "diameter_m": 0.00022864730770533737,
-   "diameter_knee_in": 0.125,
-   "hb_ref": 271.0,
-   "q": 0.84022,
+   "vc_ref_sfm": 170.27552430509945,
+   "engagement_k": 0.15571899913116138,
+   "diameter_m": -0.02924811495763582,
+   "diameter_knee_in": 1.0,
+   "hb_ref": 116.0,
+   "q": 0.42054,
    "residuals": {
     "train_before": {
      "n": 9,
-     "median_abs_log": 0.33232446072170413,
-     "within_25pct": 0.4444444444444444
+     "median_abs_log": 0.7177402158126889,
+     "within_25pct": 0.2222222222222222
     },
     "train_after": {
      "n": 9,
-     "median_abs_log": 0.30074450109163364,
-     "within_25pct": 0.4444444444444444
+     "median_abs_log": 0.9220598174029346,
+     "within_25pct": 0.2222222222222222
     },
     "holdout_before": {
      "n": 15,
-     "median_abs_log": 1.1584044755422194,
+     "median_abs_log": 0.5181309565041723,
      "within_25pct": 0.0
     },
     "holdout_after": {
      "n": 15,
-     "median_abs_log": 1.1284386300628648,
+     "median_abs_log": 1.2171545410331355,
      "within_25pct": 0.0
     }
    },
-   "applied": true
+   "applied": false
   },
   "Steel - Medium Carbon (1045)": {
-   "vc_ref_sfm": 531.1945493216258,
-   "engagement_k": 0.12128041327378486,
-   "diameter_m": 0.008404558446184205,
-   "diameter_knee_in": 0.25,
-   "hb_ref": 237.25,
-   "q": 0.84022,
+   "vc_ref_sfm": 546.860634947842,
+   "engagement_k": 0.12638992749494493,
+   "diameter_m": 0.03594403907016268,
+   "diameter_knee_in": 1.0,
+   "hb_ref": 197.0,
+   "q": 0.42054,
    "residuals": {
     "train_before": {
      "n": 62,
-     "median_abs_log": 0.20932177584994607,
-     "within_25pct": 0.5967741935483871
+     "median_abs_log": 0.2270632603835226,
+     "within_25pct": 0.532258064516129
     },
     "train_after": {
      "n": 62,
-     "median_abs_log": 0.09844464115020296,
-     "within_25pct": 0.6129032258064516
+     "median_abs_log": 0.18501640676770734,
+     "within_25pct": 0.6290322580645161
     },
     "holdout_before": {
      "n": 24,
-     "median_abs_log": 0.20932177584994607,
-     "within_25pct": 0.5833333333333334
+     "median_abs_log": 0.20640532487953947,
+     "within_25pct": 0.75
     },
     "holdout_after": {
      "n": 24,
-     "median_abs_log": 0.07366077331465348,
-     "within_25pct": 0.5833333333333334
+     "median_abs_log": 0.06871792028656831,
+     "within_25pct": 0.6666666666666666
     }
    },
-   "applied": true
+   "applied": false
   },
   "Steel - Medium Carbon Alloy (4130)": {
-   "vc_ref_sfm": 432.46284395997276,
-   "engagement_k": 0.14520037598180582,
-   "diameter_m": 3.756209640807427e-05,
-   "diameter_knee_in": 1.0,
-   "hb_ref": 293.5,
-   "q": 0.84022,
+   "vc_ref_sfm": 434.9000628452922,
+   "engagement_k": 0.12394409696941978,
+   "diameter_m": -0.02154303952960553,
+   "diameter_knee_in": 0.5,
+   "hb_ref": 217.0,
+   "q": 0.42054,
    "residuals": {
     "train_before": {
      "n": 93,
-     "median_abs_log": 0.29873406003813713,
+     "median_abs_log": 0.2521046482682549,
      "within_25pct": 0.4731182795698925
     },
     "train_after": {
      "n": 93,
-     "median_abs_log": 0.19133420722984068,
-     "within_25pct": 0.5268817204301075
+     "median_abs_log": 0.26816121522477343,
+     "within_25pct": 0.5161290322580645
     },
     "holdout_before": {
      "n": 64,
-     "median_abs_log": 0.25033397033667343,
-     "within_25pct": 0.5625
+     "median_abs_log": 0.10157371986665914,
+     "within_25pct": 0.734375
     },
     "holdout_after": {
      "n": 64,
-     "median_abs_log": 0.1901304128044102,
-     "within_25pct": 0.78125
+     "median_abs_log": 0.09716264729743175,
+     "within_25pct": 0.765625
     }
    },
    "applied": true
   },
   "Steel - Tool (H13)": {
-   "vc_ref_sfm": 250.82521244268855,
-   "engagement_k": 0.11985482135506183,
-   "diameter_m": 0.0003255829436533931,
-   "diameter_knee_in": 1.0,
+   "vc_ref_sfm": 279.8486981812152,
+   "engagement_k": 0.0837911650412139,
+   "diameter_m": -0.029007715751379986,
+   "diameter_knee_in": 0.125,
    "hb_ref": 432.0,
-   "q": 1.1389,
+   "q": 0.24073,
    "residuals": {
     "train_before": {
      "n": 288,
-     "median_abs_log": 0.4733514954071348,
-     "within_25pct": 0.2465277777777778
+     "median_abs_log": 0.3804246350640287,
+     "within_25pct": 0.2673611111111111
     },
     "train_after": {
      "n": 288,
-     "median_abs_log": 0.3617330472002439,
-     "within_25pct": 0.3263888888888889
+     "median_abs_log": 0.2985576040206364,
+     "within_25pct": 0.4479166666666667
     },
     "holdout_before": {
      "n": 99,
-     "median_abs_log": 0.8574959229299806,
-     "within_25pct": 0.2828282828282828
+     "median_abs_log": 0.8914405085401778,
+     "within_25pct": 0.2222222222222222
     },
     "holdout_after": {
      "n": 99,
-     "median_abs_log": 0.9737327155976969,
-     "within_25pct": 0.16161616161616163
+     "median_abs_log": 1.0631420971197423,
+     "within_25pct": 0.20202020202020202
     }
    },
    "applied": false
   },
   "Aluminum - Wrought (6061)": {
-   "vc_ref_sfm": 1355.1544558342268,
-   "engagement_k": 0.15569559135971003,
-   "diameter_m": 0.00023104906015367375,
-   "diameter_knee_in": 0.125,
+   "vc_ref_sfm": 663.4923551317728,
+   "engagement_k": 0.15546566768769818,
+   "diameter_m": -0.02890885273494174,
+   "diameter_knee_in": 0.25,
    "hb_ref": 100.0,
-   "q": 0.84022,
+   "q": 0.42054,
    "residuals": {
     "train_before": {
      "n": 40,
-     "median_abs_log": 0.6593593826564408,
-     "within_25pct": 0.175
+     "median_abs_log": 0.6818199577937296,
+     "within_25pct": 0.025
     },
     "train_after": {
      "n": 40,
-     "median_abs_log": 0.5035530223224607,
-     "within_25pct": 0.125
+     "median_abs_log": 0.165096076237732,
+     "within_25pct": 0.6
     },
     "holdout_before": {
      "n": 0,
@@ -258,63 +258,63 @@
    "applied": false
   },
   "High Temp Nickel Alloy": {
-   "vc_ref_sfm": 80.9933807329521,
-   "engagement_k": 0.15562086051104035,
-   "diameter_m": 0.15269564041247616,
+   "vc_ref_sfm": 74.47134494480228,
+   "engagement_k": 0.14712093887324768,
+   "diameter_m": 0.09534599845124173,
    "diameter_knee_in": 0.5,
-   "hb_ref": 375.0,
-   "q": 0.1843,
+   "hb_ref": 310.0,
+   "q": 0.34944,
    "residuals": {
     "train_before": {
      "n": 198,
-     "median_abs_log": 0.35887186551379746,
-     "within_25pct": 0.3838383838383838
+     "median_abs_log": 0.3468566193581416,
+     "within_25pct": 0.29797979797979796
     },
     "train_after": {
      "n": 198,
-     "median_abs_log": 0.21290586602519268,
-     "within_25pct": 0.5303030303030303
+     "median_abs_log": 0.180933704741861,
+     "within_25pct": 0.6111111111111112
     },
     "holdout_before": {
      "n": 132,
-     "median_abs_log": 0.30945171449661457,
-     "within_25pct": 0.45454545454545453
+     "median_abs_log": 0.3012795108369313,
+     "within_25pct": 0.4166666666666667
     },
     "holdout_after": {
      "n": 132,
-     "median_abs_log": 0.30071075455995594,
-     "within_25pct": 0.3787878787878788
+     "median_abs_log": 0.27457905397428894,
+     "within_25pct": 0.4696969696969697
     }
    },
-   "applied": false
+   "applied": true
   },
   "Titanium Alloy": {
-   "vc_ref_sfm": 168.33392834043255,
-   "engagement_k": 0.15560164588800093,
-   "diameter_m": 0.05144987389341143,
-   "diameter_knee_in": 1.0,
+   "vc_ref_sfm": 160.70247081231784,
+   "engagement_k": 0.15571677360034125,
+   "diameter_m": 0.05415412032721737,
+   "diameter_knee_in": 0.25,
    "hb_ref": 325.0,
    "q": 0.31463,
    "residuals": {
     "train_before": {
      "n": 191,
-     "median_abs_log": 0.22547154984291345,
-     "within_25pct": 0.5235602094240838
+     "median_abs_log": 0.22823883978701187,
+     "within_25pct": 0.5130890052356021
     },
     "train_after": {
      "n": 191,
-     "median_abs_log": 0.19064893290619223,
+     "median_abs_log": 0.182829960455249,
      "within_25pct": 0.6387434554973822
     },
     "holdout_before": {
      "n": 117,
-     "median_abs_log": 0.25622765471532133,
-     "within_25pct": 0.5811965811965812
+     "median_abs_log": 0.23042350475660187,
+     "within_25pct": 0.5641025641025641
     },
     "holdout_after": {
      "n": 117,
-     "median_abs_log": 0.21162552843485047,
-     "within_25pct": 0.5982905982905983
+     "median_abs_log": 0.2137041348124573,
+     "within_25pct": 0.6068376068376068
     }
    },
    "applied": true

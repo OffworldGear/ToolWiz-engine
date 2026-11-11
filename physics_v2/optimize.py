@@ -2192,7 +2192,7 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
     else:
         tol = flat_tol if overhead else depth_trade
         band = [c for c in cands if c["score"] >= (1.0 - tol) * best["score"]]
-        selector = _Selector(ctx_s, band_floor=(1.0 - tol) * best["score"], best_score=best["score"])
+        selector = _Selector(ctx_s, band_floor=(1.0 - tol) * best["score"], best_score=best["score"], tol=tol)
         pool = band
         rule = f"among {len(band)} candidates within {tol:.0%} of the best score"
         if selector.has_targets:
@@ -2260,8 +2260,8 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             win = pt_hi.fz_window(HIRES_FZ_TOL, 0.02)
             if not (win and win[1]) and not depth and c["ap"] > 0:
                 # The window closes at full resolution: shrink the depth continuously until it opens.
-                lo_f, hi_f, found = 0.3, 1.0, None
-                for _ in range(7):
+                lo_f, hi_f, found = 0.03, 1.0, None
+                for _ in range(9):
                     mid = 0.5 * (lo_f + hi_f)
                     p2 = CutPoint(ctx_hi, c["ap"] * mid, c["ae"], c["pt"].rpm)
                     w2 = p2.fz_window(HIRES_FZ_TOL, 0.02)
@@ -2443,8 +2443,10 @@ class _Selector:
     when its target is missing. Without any target the distance is 0 for all and the score decides.
     """
 
-    def __init__(self, ctx, band_floor, best_score):
+    def __init__(self, ctx, band_floor, best_score, tol=0.10):
         self.ctx, self.band_floor, self.best_score = ctx, band_floor, best_score
+        # losing a fraction `tol` of the best MRR is worth a 10 % move toward the vendor medians (smooth, no cliff at the band)
+        self.trade = 0.1 / -math.log(1.0 - tol)
         b = ctx.env_bucket
         D = ctx.tool.D
         self.ap_t = b["ap_over_D"]["median"] * D if b else None
@@ -2493,7 +2495,7 @@ class _Selector:
         With no vendor targets: the negative score."""
         if not self.has_targets:
             return -c["score"]
-        pen = self.distance(c) + math.log(self.best_score / c["score"])
+        pen = self.distance(c) + self.trade * math.log(self.best_score / c["score"])
         if not self.all_cut(c):
             pen += ALL_FLUTES_PENALTY
         if c["score"] < self.band_floor:

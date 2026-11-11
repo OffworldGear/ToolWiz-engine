@@ -23,13 +23,17 @@ KW_TO_HP = 1.341
 
 # Operation names (web page / Fusion strategy) -> v2 operation. Others stay on v1 for now.
 OPERATION_MAP = {
-    "adaptive roughing": "adaptive",
-    "standard roughing": "rough",
-    "roughing": "rough",
-    "slotting / tab milling": "slot",
-    "slotting": "slot",
-    "wall finishing (deep doc)": "finish",
-    "finishing": "finish",
+    # clearing: constant-engagement toolpaths
+    "adaptive roughing": "adaptive", "adaptive clearing": "adaptive", "2d adaptive clearing": "adaptive",
+    "3d adaptive clearing": "adaptive", "adaptive": "adaptive", "trochoidal": "adaptive",
+    "pocket clearing": "adaptive", "pocket": "adaptive", "2d pocket": "adaptive", "3d pocket": "adaptive",
+    # roughing contours
+    "standard roughing": "rough", "roughing": "rough", "contour (roughing)": "rough", "2d contour (roughing)": "rough",
+    "roughing contour": "rough", "contour roughing": "rough", "3d roughing": "rough", "rest roughing": "rough",
+    # slots
+    "slotting / tab milling": "slot", "slotting": "slot", "slot": "slot", "slot milling": "slot",
+    # finishing
+    "wall finishing (deep doc)": "finish", "wall finishing": "finish", "finishing": "finish",
 }
 NOT_SQUARE = ("ball", "bull", "radius", "chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
               "t-slot", "keyseat", "woodruff", "thread", "drill", "ream", "tap", "saw", "face", "form")
@@ -174,6 +178,8 @@ def _setup(physics, r, op, machine_profile):
     machine, notes = machine_for(r, machine_profile)
     kw = {}
     if op == "finish":
+        import finish_modes
+        kw["wall_tolerance_in"] = finish_modes.resolve(r)[2]
         kw["stock"] = float(r.cut_width) if r.cut_width else o.STOCK_TO_LEAVE_IN
         if r.cut_depth:
             kw["wall_height"] = min(float(r.cut_depth), tool.lcf)

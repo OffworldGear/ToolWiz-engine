@@ -115,11 +115,16 @@ def load_rows():
     return rows
 
 
-def row_hb(hardness):
+def row_hb(hardness, family=None):
     """Brinell for a row's hardness: the middle of a range, else the one bound; Rm converted (SRC rm_hb).
 
     tools/v2_provisional_limits.py reads a Rm band (N/mm²) as HB; this corrects that for calibration.
     """
+    if family and hardness and hardness.get("min") is None and hardness.get("max") is not None:
+        import family_hardness   # an upper bound alone is a class limit: the family's representative hardness, capped
+        rep = family_hardness.row_hb(hardness, family)
+        if rep:
+            return rep
     if not hardness:
         return None
     vals = [v for v in (hardness.get("min"), hardness.get("max")) if v is not None]
@@ -189,7 +194,7 @@ def row_material(row, speed=None, force=None):
     if spec is None:
         return None, {"skip": f"no Kienzle mapping for {fam}"}
     codes, p, _ = spec
-    hb = row_hb(row["material"].get("hardness"))
+    hb = row_hb(row["material"].get("hardness"), row["material"].get("toolwiz_family"))
     cands = [(c, kienzle(c)) for c in codes]
     cands = [(c, k, pl.group_hb(k)) for c, k in cands]
     code, k, ref = min(cands, key=lambda g: abs(g[2] - hb)) if hb else cands[0]
@@ -1349,7 +1354,7 @@ def outlier_class(row):
     """A coarse label for a vendor cut that stays over the fatigue limit (for the written explanation)."""
     t, c = row["tool"], row["cut"]
     D = float(t["DC"])
-    hb = row_hb(row["material"].get("hardness")) or 0.0
+    hb = row_hb(row["material"].get("hardness"), row["material"].get("toolwiz_family")) or 0.0
     if D < 0.05:
         return "micro (< 3/64\")"
     if float(c["ap"]) >= 2.9 * D and row["operation"] in ("hem", "rough", "side"):
