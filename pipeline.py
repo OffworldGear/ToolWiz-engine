@@ -572,8 +572,15 @@ def run_cut(physics, req: CutRequest) -> CutResult:
     actual_sfm = physics.calc_sfm(rpm, diameter)
     contact_sfm = physics.calc_sfm(rpm, effective_diameter)
 
+    # Ramping and plunging are full-width cuts: derive their feeds from the un-thinned chip load
+    # (never above the slotting feed for this tool), not from the chip-thinned cutting feed.
+    ramp_basis_feed = feedrate
+    if not (ctx.is_hole_tool or ctx.is_tapping or is_tap_tool_type(operation)):
+        ramp_basis_feed = physics.ramp_basis_feed(
+            rpm, flutes, base_ipt * chip_factor, cut_depth, diameter, effective_diameter, r.geometry,
+            r.corner_radius, r.tool, feedrate)
     ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(
-        r.family, diameter, feedrate, r.geometry, flutes, r.aggressiveness, tool_type=r.tool
+        r.family, diameter, ramp_basis_feed, r.geometry, flutes, r.aggressiveness, tool_type=r.tool
     )
 
     op_lower = str(operation).lower()

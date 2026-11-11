@@ -28,7 +28,6 @@ Key Physical Modules:
    - Area moment of inertia for circular shafts (pi * d^4 / 64).
    - Effective fluted section core web inertia accounting for flutes and helix angle.
    - Exact virtual work integral for multi-segment stepped and tapered cantilever beams.
-   - Bending stress analysis and transverse rupture strength safety margins.
 
 5. OptimizationEngine:
    - Multi-objective parameter optimization for 'Auto-Set Dials'.
@@ -777,10 +776,11 @@ class CuttingMechanics:
         else:
             # Traditional roughing / 3D roughing / facing:
             lim = diameter * 0.002 * (0.2 + aggressiveness)
-            if diameter <= 0.125:
-                # Micro-tool floor, scaled with diameter (0.3% of D, at most 0.00035"): a fixed 0.00035"
-                # allowed 1.1% of D on a 1/32" tool, ~3x what adaptive allows.
-                lim = max(min(0.00035, diameter * 0.003), lim)
+            # Floor scaled with diameter (0.3% of D, at most 0.00035"): a fixed 0.00035" allowed
+            # 1.1% of D on a 1/32" tool, ~3x what adaptive allows. It applies at every diameter
+            # (it used to stop at 1/8", which made the limit fall from 0.00035" to 0.00018" at
+            # 0.126"); both the floor and the linear term grow with D, so the limit never falls.
+            lim = max(min(0.00035, diameter * 0.003), lim)
             return min(0.0010, lim)
 
     @classmethod
@@ -2454,6 +2454,33 @@ class GWizardPhysics:
                 ramp_feed = feedrate * 0.50
 
         return angle, ramp_feed, plunge_feed
+
+    def ramp_basis_feed(
+        self,
+        rpm: float,
+        flutes: int,
+        unthinned_ipt: float,
+        cut_depth: float,
+        diameter: float,
+        effective_diameter: float,
+        geometry: str,
+        corner_radius: float,
+        tool_type: str,
+        cutting_feed: float,
+    ) -> float:
+        """Feed (IPM) that ramp and plunge feeds are taken as a fraction of: rpm x flutes x the
+        un-thinned chip load (ramping is a full-width cut, so radial chip thinning does not apply),
+        limited to the feed of a full slot with the same tool at the same rpm (the slotting chip
+        load from calc_adjusted_chipload). Falls back to the cutting feed when it is lower or when
+        rpm or chip load are zero."""
+        if rpm <= 0.0 or unthinned_ipt <= 0.0:
+            return cutting_feed
+        basis = self.calc_feedrate(rpm, flutes, unthinned_ipt)
+        slot_ipt = self.calc_adjusted_chipload(
+            unthinned_ipt, cut_depth, diameter, diameter, effective_diameter,
+            operation="Slotting", geometry=geometry, tool_type=tool_type, corner_radius=corner_radius)
+        slot_feed = self.calc_feedrate(rpm, flutes, slot_ipt)
+        return min(basis, slot_feed) if slot_feed > 0.0 else basis
 
     def match_alloy(self, material_family: str, alloy_name: str) -> Optional[Dict[str, Any]]:
         """
