@@ -29,7 +29,7 @@ class TestModelSelection(unittest.TestCase):
 
     def test_precedence(self):
         with mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": ""}):
-            self.assertEqual(v2_bridge.resolve_model(None, path=self.path), ("v1", "default"))
+            self.assertEqual(v2_bridge.resolve_model(None, path=self.path), ("v2", "default"))
         with mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": "v2"}):
             self.assertEqual(v2_bridge.resolve_model(None, path=self.path), ("v2", "TOOLWIZ_MODEL"))
             v2_bridge.save_model("v1", self.path)
@@ -41,7 +41,7 @@ class TestModelSelection(unittest.TestCase):
         with self.assertRaises(ValueError):
             v2_bridge.save_model("v3", self.path)
         with mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": "nonsense"}):
-            self.assertEqual(v2_bridge.resolve_model("also bad", path=self.path)[0], "v1")
+            self.assertEqual(v2_bridge.resolve_model("also bad", path=self.path)[0], "v2")
 
 
 class TestPipeline(unittest.TestCase):
@@ -269,3 +269,10 @@ class TestAddinMessage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestProductionDefault(unittest.TestCase):
+    def test_production_default_is_v2(self):
+        """With no request model, saved setting or TOOLWIZ_MODEL, both clients get the v2 physics model."""
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": ""}):
+            self.assertEqual(v2_bridge.resolve_model(None, path=os.path.join(d, "none.json")), ("v2", "default"))

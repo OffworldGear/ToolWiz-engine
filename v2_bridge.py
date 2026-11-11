@@ -70,7 +70,7 @@ def save_model(model, path=None):
 
 
 def resolve_model(requested=None, use_saved=True, path=None):
-    """(model, source): the request, then the saved setting, then TOOLWIZ_MODEL, then v1."""
+    """(model, source): the request, then the saved setting, then TOOLWIZ_MODEL, then v2 (the physics model)."""
     m = _norm(requested)
     if m:
         return m, "request"
@@ -81,7 +81,7 @@ def resolve_model(requested=None, use_saved=True, path=None):
     m = _norm(os.environ.get("TOOLWIZ_MODEL"))
     if m:
         return m, "TOOLWIZ_MODEL"
-    return "v1", "default"
+    return "v2", "default"
 
 
 # ---------------------------------------------------------------------------

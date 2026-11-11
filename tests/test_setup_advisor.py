@@ -102,7 +102,10 @@ def test_adaptive_micro_tool_in_titanium(result):
     o = op(result, "Adaptive pocket")
     assert o["kind"] == "adaptive"
     assert "chip_load_high" in codes(o, "STOP")                                     # 0.000625 in/tooth vs ToolWiz's
-    assert {"stock_radial_low", "stock_axial_low", "stepover_high", "reduced_flutes"} <= codes(o, "CAUTION")
+    assert {"stock_radial_low", "stock_axial_low", "stepover_high", "holder_type"} <= codes(o, "CAUTION")
+    # Reduced flutes is judged at the op's own engagement: at 0.02" stepover all flutes cut, so it must agree.
+    at_op = o["toolwiz"]["at_current_engagement"]
+    assert ("reduced_flutes" in codes(o)) == (at_op["runout_regime"] == "reduced_flutes")
     assert "holder_type" in codes(o, "CAUTION")                                     # ER16 collet vs an ultra-class requirement
     rec, usr = o["toolwiz"]["recommended"], o["toolwiz"]["at_current_engagement"]
     assert rec["engagement_source"] == "recommended" and usr["engagement_source"] == "user"
@@ -124,7 +127,12 @@ def test_adaptive_micro_tool_in_titanium(result):
 def test_slot_contour_findings_and_strategy_suggestion(result):
     o = op(result, "Slot contour")
     assert o["kind"] == "slot"
-    assert "chip_load_high" in codes(o, "STOP")
+    # 0.000625 in/tooth vs ToolWiz at the same engagement: STOP above 2x, CAUTION between 1.4x and 2x.
+    at_op = o["toolwiz"]["at_current_engagement"]
+    ratio = 0.000625 / at_op["chip_load_ipt"]
+    assert ("chip_load_high" in codes(o, "STOP")) == (ratio > 2.0)
+    assert ratio <= 2.0 or "chip_load_high" in codes(o, "STOP")
+    assert ratio > 2.0 or "chip_load_off" in codes(o, "CAUTION")
     assert "stepdown_high" in codes(o, "CAUTION")
     sug = next(s for s in result["strategy_suggestions"] if s["name"] == "Slot contour")
     assert sug["feature"]["type"] == "slot" and sug["feature"]["width"] == pytest.approx(0.25)

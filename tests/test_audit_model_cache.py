@@ -145,5 +145,5 @@ def test_twin_audit_honours_model_in_the_body(client, run_cut_calls):
     assert {r.model for r in run_cut_calls} == {"v2"}
 
     run_cut_calls.clear()
-    _post_audit(client, {"tools": tools})           # no model in the body: the app's default (v1)
-    assert {r.model for r in run_cut_calls} == {"v1"}
+    _post_audit(client, {"tools": tools})           # no model in the body: the app's default (v2)
+    assert {r.model for r in run_cut_calls} == {"v2"}
