@@ -38,14 +38,14 @@ are one vendor group (Harvey) against a cross-vendor cap.
 * Rough (8 of 47; gate needs <= 7): High Temp Nickel 0.30-0.60 x3 (SFM 66 against 38-62; C14v, bucket median of Harvey 50 and Sandvik 94),
   17-4 1/4-1/2 and > 1/2 at 0.10-0.30 (302 and 273 against 109-250 and 150-250; C14v), 1045 <= 1/32 (361 against 150-250; C7),
   H13 1/32-1/16 and <= 1/32 (SFM 133 and 191 against 45-75; C14v).
-* Micro (D <= 1/16", 13 of 59): HTN slot and side <= 1/32, hem and rough 1/32-1/16 (SFM 77-115 against 21-94; C7, C14v), 316 side <= 1/32 (no cut,
+* Micro (D <= 1/16", 13 of 59): HTN slot and side <= 1/32, hem 1/32-1/16, rough 1/32-1/16 and <= 1/32 (SFM 66-115 against 21-94; C7, C14v), 316 side <= 1/32 (no cut,
   C14m), 1020 side 1/32-1/16 (SFM 551 against 34-286; C7), 4130 side 1/32-1/16 (fz 0.00057 against <= 0.00050; C2), H13 side <= 1/32
-  (fz 0.00017 against <= 0.00010; C1/C2 floor), Ti hem 1/32-1/16 (SFM 245 against 120-225, fz; C4), H13 rough x2 (above).
+  (fz 0.00017 against <= 0.00010; C1/C2 floor), Ti hem 1/32-1/16 (SFM 245 against 120-225, fz; C4), H13 rough x2, 1045 rough <= 1/32 (above).
 * Others: 6061 fz below the vendor floor x4 (C2), 420 hem 1/4-1/2 fz above the span x2 (C14f), 4130 side 1/32-1/16 (above).
 
 ## Stability
 
-114 passed, 7 xfailed (six from V3, plus 0.020" 4130 adaptive aggressiveness +10 %: feed +31 % along a flat MRR ridge; reason in the test).
+113 passed, 7 xfailed (six from V3, plus 0.020" 4130 adaptive aggressiveness +10 %: feed +31 % along a flat MRR ridge; reason in the test).
 
 ## Runout defaults (API `runout_in`, `runout_source`)
 

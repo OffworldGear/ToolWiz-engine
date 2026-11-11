@@ -33,7 +33,7 @@ HEM chip load: the groups' fz ratio is 0.89-0.90, and C14f (0.92 x the vendor me
 
 ## 4. Micro gate (D <= 1/16")
 
-78.0 % (gate 85 %), unchanged. Remaining failures and binding checks: High Temp Nickel (slot <= 1/32, side <= 1/32, hem 1/32-1/16, rough x3: SFM 77-115 against 21-94, C7 and C14v: the family level is fitted across all diameters and the diameter term has the wrong sign for HEM-poor micro nickel), 1020 side 1/32-1/16 (SFM 551 against 34-286, C7), 316 side <= 1/32 (no cut, C14m), 4130 side 1/32-1/16 (fz, C2), H13 side <= 1/32 (fz, C1/C2 floor at 13 rows) and rough x2 (C14v), Ti hem 1/32-1/16 (SFM 245 against 120-225 and fz, C4). No physics fix has a clear diagnosis; the earlier note's conclusion (force model consistent with Kienzle at tiny chips) stands.
+78.0 % (gate 85 %), unchanged. Remaining failures and binding checks: High Temp Nickel (slot <= 1/32, side <= 1/32, hem 1/32-1/16, rough x2: SFM 66-115 against 21-94, C7 and C14v: the family level is fitted across all diameters and the diameter term has the wrong sign for HEM-poor micro nickel), 1020 side 1/32-1/16 (SFM 551 against 34-286, C7), 316 side <= 1/32 (no cut, C14m), 4130 side 1/32-1/16 (fz, C2), H13 side <= 1/32 (fz, C1/C2 floor at 13 rows) and rough x2 (C14v), Ti hem 1/32-1/16 (SFM 245 against 120-225 and fz, C4). No physics fix has a clear diagnosis; the earlier note's conclusion (force model consistent with Kienzle at tiny chips) stands.
 
 ## 5. Ball and bull-nose end mills
 
