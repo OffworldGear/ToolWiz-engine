@@ -1,0 +1,4845 @@
+{
+ "vendor": "Titan USA",
+ "vendor_group": "Harvey Performance",
+ "documents": [
+  {
+   "doc_id": "TITAN_SF_MICRO",
+   "title": "Titan USA Micro End Mills Technical Information: General Purpose Carbide Micro End Mills (Feed Per Tooth)",
+   "url": "https://harveyperformance.widen.net/content/dlqistnske/pdf/Titan_SF_MicroEndMills.pdf",
+   "date_accessed": "2026-11-11",
+   "revision": null
+  }
+ ],
+ "rows": [
+  {
+   "id": "titan_micro_inconel_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Slotting at \u22647% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u22647% of D; SFM 40; Feed per tooth 0.0002",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0035,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 40
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0002
+    },
+    "published": {
+     "ap": "<=7% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Profiling at 5% of D Axial/\u226420% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 5% of D Axial/\u226420% of D Radial; SFM 60; Feed per tooth 0.0002",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.0025,
+    "ae": 0.01,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 60
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0002
+    },
+    "published": {
+     "ap": "5% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u226415% of D; SFM 125; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0075,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 125
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.003,
+    "ae": 0.01,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Slotting at \u226410% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u226410% of D; SFM 90; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.005,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "<=10% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.003,
+    "ae": 0.01,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0075,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 250; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.003,
+    "ae": 0.015,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0075,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 180; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.003,
+    "ae": 0.015,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 180
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u226415% of D; SFM 150; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0075,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Profiling at 6% of D Axial/\u226435% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 6% of D Axial/\u226435% of D Radial; SFM 300; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.003,
+    "ae": 0.0175,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 300
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_slot_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".045\"-.060\"",
+    "cells": "Slotting at \u226415% of D; SFM 650; Feed per tooth 0.0006",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0075,
+    "ae": 0.05,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 650
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0006
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_side_TC50942",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Profiling at 10% of D Axial/\u226435% of D Radial",
+    "column_label": ".045\"-.060\"",
+    "cells": "Profiling at 10% of D Axial/\u226435% of D Radial; SFM 775; Feed per tooth 0.0006",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50942",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.05,
+    "LCF": 0.15,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50942",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.005,
+    "ae": 0.0175,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 775
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0006
+    },
+    "published": {
+     "ap": "10% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .045\"-.060\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Slotting at \u22647% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u22647% of D; SFM 40; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.00434,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 40
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "<=7% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Profiling at 5% of D Axial/\u226420% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 5% of D Axial/\u226420% of D Radial; SFM 60; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.0031,
+    "ae": 0.0124,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 60
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "5% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u226415% of D; SFM 125; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 125
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00372,
+    "ae": 0.0124,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Slotting at \u226410% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u226410% of D; SFM 90; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0062,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=10% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00372,
+    "ae": 0.0124,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 250; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00372,
+    "ae": 0.0186,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 180; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00372,
+    "ae": 0.0186,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 180
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u226415% of D; SFM 150; Feed per tooth 0.0006",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0006
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Profiling at 6% of D Axial/\u226435% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 6% of D Axial/\u226435% of D Radial; SFM 300; Feed per tooth 0.0006",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00372,
+    "ae": 0.0217,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 300
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0006
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_slot_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".060\"-.075\"",
+    "cells": "Slotting at \u226415% of D; SFM 650; Feed per tooth 0.0008",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.062,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 650
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0008
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_side_TC50948",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Profiling at 10% of D Axial/\u226435% of D Radial",
+    "column_label": ".060\"-.075\"",
+    "cells": "Profiling at 10% of D Axial/\u226435% of D Radial; SFM 775; Feed per tooth 0.0008",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50948",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.062,
+    "LCF": 0.186,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50948",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.0062,
+    "ae": 0.0217,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 775
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0008
+    },
+    "published": {
+     "ap": "10% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .060\"-.075\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Slotting at \u22647% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u22647% of D; SFM 40; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.00546,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 40
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "<=7% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Profiling at 5% of D Axial/\u226420% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 5% of D Axial/\u226420% of D Radial; SFM 60; Feed per tooth 0.0003",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.0039,
+    "ae": 0.0156,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 60
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0003
+    },
+    "published": {
+     "ap": "5% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u226415% of D; SFM 125; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0117,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 125
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00468,
+    "ae": 0.0156,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Slotting at \u226410% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u226410% of D; SFM 90; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0078,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=10% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00468,
+    "ae": 0.0156,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0117,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 250; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00468,
+    "ae": 0.0234,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0117,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 180; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00468,
+    "ae": 0.0234,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 180
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u226415% of D; SFM 150; Feed per tooth 0.0006",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0117,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0006
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Profiling at 6% of D Axial/\u226435% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 6% of D Axial/\u226435% of D Radial; SFM 300; Feed per tooth 0.0006",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00468,
+    "ae": 0.0273,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 300
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0006
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_slot_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".075\"-.090\"",
+    "cells": "Slotting at \u226415% of D; SFM 650; Feed per tooth 0.0008",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0117,
+    "ae": 0.078,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 650
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0008
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_side_TC50954",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Profiling at 10% of D Axial/\u226435% of D Radial",
+    "column_label": ".075\"-.090\"",
+    "cells": "Profiling at 10% of D Axial/\u226435% of D Radial; SFM 775; Feed per tooth 0.0008",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50954",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.078,
+    "LCF": 0.234,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50954",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.0078,
+    "ae": 0.0273,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 775
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0008
+    },
+    "published": {
+     "ap": "10% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .075\"-.090\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Slotting at \u22647% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u22647% of D; SFM 40; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.00651,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 40
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=7% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Profiling at 5% of D Axial/\u226420% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 5% of D Axial/\u226420% of D Radial; SFM 60; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00465,
+    "ae": 0.0186,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 60
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "5% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 125; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.01395,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 125
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00558,
+    "ae": 0.0186,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Slotting at \u226410% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226410% of D; SFM 90; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=10% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00558,
+    "ae": 0.0186,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.01395,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 250; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00558,
+    "ae": 0.0279,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.01395,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 180; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00558,
+    "ae": 0.0279,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 180
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 150; Feed per tooth 0.0007",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.01395,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0007
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Profiling at 6% of D Axial/\u226435% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226435% of D Radial; SFM 300; Feed per tooth 0.0007",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.00558,
+    "ae": 0.03255,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 300
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0007
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_slot_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 650; Feed per tooth 0.0010",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.01395,
+    "ae": 0.093,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 650
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.001
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_side_TC50960",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Profiling at 10% of D Axial/\u226435% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 10% of D Axial/\u226435% of D Radial; SFM 775; Feed per tooth 0.0010",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50960",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.005,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.093,
+    "LCF": 0.279,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50960",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.0093,
+    "ae": 0.03255,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 775
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.001
+    },
+    "published": {
+     "ap": "10% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Slotting at \u22647% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u22647% of D; SFM 40; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.007,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 40
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "<=7% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_inconel_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "row_label": "Profiling at 5% of D Axial/\u226420% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 5% of D Axial/\u226420% of D Radial; SFM 60; Feed per tooth 0.0004",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Nickel Base Alloys: Inconel-625/718, Waspalloy, Rene, Hastelloy",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "High Temp Nickel Alloy",
+    "representative_alloy": "Inconel 718"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.005,
+    "ae": 0.02,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 60
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0004
+    },
+    "published": {
+     "ap": "5% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 125; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.015,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 125
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ti_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Alloys: Commercially Pure, 6AL-4V, Astm 1/2/3, 6Al-25N-4Zr-2Mo-Si",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.006,
+    "ae": 0.02,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Slotting at \u226410% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226410% of D; SFM 90; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.01,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 90
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=10% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss_ph_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "row_label": "Profiling at 6% of D Axial/\u226420% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226420% of D Radial; SFM 250; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Precipitation): 13/8, 15/5, 17-4, AM-350/355",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - PH Series (17-4)",
+    "representative_alloy": "17-4"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.006,
+    "ae": 0.02,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=20% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.015,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_ss304_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 250; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Stainless Steel (Austenitic): 200 Series, 302, 303, 304, 316, 304L, 316L",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Stainless - 300 Series (316)",
+    "representative_alloy": "304"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.006,
+    "ae": 0.03,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 100; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.015,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 100
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_tool_h_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "row_label": "Profiling at 6% of D Axial/\u226430% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226430% of D Radial; SFM 180; Feed per tooth 0.0005",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "High Strength Tool Steels: 4140, 4340, 6150, 5210, A2, D2 P20, H11, H13, S2, 01",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Tool (H13)",
+    "representative_alloy": "H13"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.006,
+    "ae": 0.03,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 180
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0005
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=30% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 150; Feed per tooth 0.0007",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.015,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 150
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0007
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_steel_low_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "row_label": "Profiling at 6% of D Axial/\u226435% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 6% of D Axial/\u226435% of D Radial; SFM 300; Feed per tooth 0.0007",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Carbon Steels: A36, 12L14, 12L15, 1005, 1018, 1020, 1108-1119, 1213-1215, 1513-1518, 4012, 5015, 9310",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Steel - Low Carbon (1020)",
+    "representative_alloy": "1018"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.006,
+    "ae": 0.035,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 300
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0007
+    },
+    "published": {
+     "ap": "6% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_slot_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Slotting at \u226415% of D",
+    "column_label": ".090\"-.105\"",
+    "cells": "Slotting at \u226415% of D; SFM 650; Feed per tooth 0.0010",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.015,
+    "ae": 0.1,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 650
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.001
+    },
+    "published": {
+     "ap": "<=15% of D",
+     "ae": "full width (slot)"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  },
+  {
+   "id": "titan_micro_al_wrought_side_TC50964",
+   "source": {
+    "doc_id": "TITAN_SF_MICRO",
+    "page": 1,
+    "table": "General Purpose Carbide Micro End Mills, Feed Per Tooth; Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "row_label": "Profiling at 10% of D Axial/\u226435% of D Radial",
+    "column_label": ".090\"-.105\"",
+    "cells": "Profiling at 10% of D Axial/\u226435% of D Radial; SFM 775; Feed per tooth 0.0010",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "TC50964",
+    "series": "Titan USA 2 Flute - Corner Radius - 30 deg Helix - Stub & Regular Flute, Micro Milling",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 2,
+    "end": "corner_radius",
+    "corner_radius": 0.01,
+    "helix_deg": 30,
+    "variable_pitch": null,
+    "DC": 0.1,
+    "LCF": 0.3,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": "https://www.titancuttingtools.com/products/tool-details-TC50964",
+    "missing": [
+     "variable_pitch",
+     "neck_diameter",
+     "LB"
+    ]
+   },
+   "material": {
+    "vendor_label": "Aluminum: 2014, 2024, 6061-(T1-T6), 7075, Die Cast, Extruded",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": null
+    },
+    "toolwiz_family": "Aluminum - Wrought (6061)",
+    "representative_alloy": "6061"
+   },
+   "operation": "side",
+   "cut": {
+    "ap": 0.01,
+    "ae": 0.035,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 775
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.001
+    },
+    "published": {
+     "ap": "10% of D axial",
+     "ae": "<=35% of D radial"
+    }
+   },
+   "vendor_notes": [
+    "These values are a starting point based on an uncoated tool.",
+    "For AlTiN coated tools increase SFM values by up to +40%"
+   ],
+   "notes": "Titan USA is a Harvey Performance brand (counts with Harvey Tool and Helical as one source). The sheet gives one chip load per diameter range; this tool falls in the .090\"-.105\" column. The sheet has no series line; the TC-series product page links to this sheet. Slotting depth is printed as an upper bound (<=k% of D), so ap is that bound; for profiling the radial value is printed as <= k% of D and ae is that bound. Tool is AlTiN coated per the catalog but sheet SFM is for an uncoated tool."
+  }
+ ]
+}
