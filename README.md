@@ -1,81 +1,108 @@
-# ToolWiz Engine (OG-MOE)
+# ToolWiz Engine
 
-ToolWiz Engine is a high-performance, web-based CNC Speeds and Feeds Optimization Engine designed for the Brother Speedio S500X2. It reverse-engineers the core physics and materials logic of industry-standard calculators (like GWizard) and combines them with a beautiful, responsive, and dynamic UI for real-time machining parameter optimization.
+ToolWiz is a speeds-and-feeds engine, CAM advisor and tool-library manager for a Brother Speedio S500X2
+(BT30, 16,000 rpm). It runs as a local web app and a Fusion 360 add-in, and both use the same server and
+the same numbers.
 
-## 🚀 Features
+## What it does
 
-- **Advanced Physics Engine**: Implements exact multipliers for 14+ tool types (Roughers, Parabolic Drills, T-Slots, Dovetails, Keyseats, etc.) to accurately determine baseline SFM (Surface Feet per Minute) and IPT (Inch per Tooth).
-- **Dynamic Deflection & Power Limits**: Iteratively solves for the safest maximum Depth of Cut (DOC) and Width of Cut (WOC) based on a 10 HP spindle limit and strict tool deflection thresholds.
-- **Smart Tool Geometries**: Automatically constraints specific tool types (like T-Slot cutters) to their physical dimensions, locking DOC to the precise Cutter Thickness to prevent breakages.
-- **Micro-Tool Guards**: Prevents rubbing and ploughing in tough materials by ensuring feed per tooth never drops below the cutting edge radius.
-- **Chip Thinning Adjustments**: Integrates Radial Chip Thinning Factor (RCTF) for light stepovers, optimizing feed rates to maintain chip thickness and heat dissipation.
-- **Aggressiveness Scaling**: Features a "Tortoise to Hare" slider that directly scales the aggressiveness of the cut while safely padding Deflection limits.
-- **Auto-Set Recommendations**: A one-click `Auto-Set Slider Dials` button injects the calculated optimal safe max cut parameters straight into your manual tuning inputs.
-- **Premium Glassmorphism UI**: Wide, desktop-first UI with responsive numeric bindings inside the sliders, entirely avoiding the need to scroll.
+- **Speeds and feeds from physics, checked against vendors.** The default cutting model (v2) computes
+  per-flute chip loads with runout, cutting forces, tool deflection and bending stress on the real tool
+  profile, spindle power, and tool life. It picks the cut with the highest material removal that passes
+  every limit and stays inside the vendors' published depth and width envelope. At 50% aggressiveness the
+  chip load is about 0.92 x the vendor median; 75% is the median; 100% is about 1.10 x with faster wear.
+  3,423 cited vendor rows (Harvey, Helical, OSG, Sandvik, Seco, Kennametal, Emuge, Garr, Kyocera SGS,
+  YG-1) validate it; see `docs/V3_EVALUATION.md`. Titan USA micro-tool rows are staged in
+  `tests/benchmarks/v2_staged/` and not yet used.
+- **Micro tools.** Runout is modelled per flute: results say how many flutes actually cut and what runout
+  would bring all of them in, and recommend the holder class (ER, ER-UP, SK, hydraulic, shrink fit,
+  powRgrip, micro chuck) and, when the 16k spindle is too slow, a spindle speeder.
+- **T-slot and keyseat cutters**, including staggered-tooth cutters that cut up and down in Z, validated
+  against 437 Harvey and Ingersoll rows.
+- **Roughing and finishing objectives.** Roughing defaults to maximum removal. Finishing has three modes:
+  clean-up, surface finish (target Ra) and accuracy (wall tolerance). Every roughing result recommends the
+  radial and axial stock to leave for a true-to-size finish pass.
+- **Strategy planner.** Compares contour slotting with tabs, a smaller tool, and adaptive clearing, or
+  T-slot cutters, on cycle time and tool wear per part, and gives the Fusion settings.
+- **Setup advisor.** Checks every operation of a Fusion setup against ToolWiz and suggests better
+  strategies. An optional LLM explains the findings; any number it writes that ToolWiz did not compute is
+  rejected.
+- **Tool libraries.** Merge libraries from documents, hub, cloud and local; build preset libraries per
+  material set (for example non-ferrous, and steels and exotics); audit libraries for unsafe presets.
+- **Tool recommendations** for specific vendor series when the vendor data shows a large gain.
 
-## 🛠️ Installation & Setup
+## Install and run
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/OffworldGear/ToolWiz-engine.git
-   cd ToolWiz-engine
-   ```
-
-2. **Install Dependencies**:
-   Ensure you have Python installed, then install the backend requirements (`flask` for the server, `httpx` for the optional Gemini AI Machinist):
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(The core physics engine itself only uses the Python standard library.)*
-
-3. **Run the Engine**:
-   Start the local Flask development server:
-   ```bash
-   python app.py
-   ```
-
-4. **Access the Interface**:
-   Open your browser and navigate to:
-   ```
-   http://127.0.0.1:5000/
-   ```
-
-5. **Install the Fusion 360 Add-in** (optional, for Digital Twin sync):
-   ```bash
-   python install_addin.py
-   ```
-   This copies `ToolWizFusionAddin/` and the shared `toolwiz_common/` package into Fusion's AddIns folder (`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns`). Restart Fusion 360 and enable the add-in.
-
-## 🧪 Running the Tests
-
-From the repository root:
 ```bash
-PYTHONPATH=. python -m unittest discover -s tests
-```
-(`tests/test_stock_manager_mock.py` talks to a live server and may error if none is running.)
-
-## 🔒 API Security (`X-ToolWiz-Client` header)
-
-The server binds to `127.0.0.1` only. To stop drive-by requests from other web pages, every state-changing request (`POST`/`PUT`/`PATCH`/`DELETE` under `/api/`) **must** send a non-empty `X-ToolWiz-Client` header (the web UI sends `web`, the Fusion add-in sends `fusion-addin`). If an `Origin` header is present it must be `http://127.0.0.1:5000` or `http://localhost:5000`. Anything else gets `403` JSON. Request bodies are capped at 50 MB. Example:
-```bash
-curl -X POST http://127.0.0.1:5000/api/calculate -H "Content-Type: application/json" -H "X-ToolWiz-Client: curl" -d '{"family":"Steel - Tool (H13)","diameter":0.5}'
+pip install -r requirements.txt
 ```
 
-## ⚙️ Machine Profile
+```bash
+python app.py
+```
 
-`machines/speedio_s500x2.json` describes the machine. The active spindle supplies the default Max RPM and Max HP (continuous kW x 1.341), which the UI pre-fills unless you have typed your own values. Calculation responses also include `feasible` and `limited_by`; infeasible setups get a critical tip and are skipped by the batch preset generator.
+Open http://127.0.0.1:5000/. To install the Fusion 360 add-in:
 
-## 🧠 How to Use
+```bash
+python install_addin.py
+```
 
-1. **Select Tool Geometry**: Choose your cutter type (Square, Ball, T-Slot, Dovetail, etc.) from the dropdown. The UI will dynamically expand to request necessary measurements (e.g., Neck Diameter, Flute Length, Cutter Thickness).
-2. **Set Parameters**: Slide or explicitly type your tool measurements (Diameter, Flutes, Cut Depth, Cut Width, Stickout) into the fields.
-3. **Tune Aggressiveness**: Slide the Aggressiveness meter to dial in the speed.
-4. **Read Output**: The engine instantly updates the RPM, Feedrate (IPM), Material Removal Rate (MRR), and Deflection.
-5. **Apply Recommendations**: If your inputs are inefficient or unsafe, click the **Auto-Set Slider Dials** button under the `Recommended Max Cut` box to automatically pull in the absolute best physics-based cut depth and width.
+Then restart Fusion and enable ToolWizFusionAddin (Utilities > Add-Ins). The add-in needs the server running.
 
-## ⚙️ Architecture
+## Documentation
 
-*   **`gwizard_physics.py`**: The core algorithmic backbone. Evaluates deflection cantilevers, chip thinning curves, micro-tool boundaries, and dynamic ramping angles.
-*   **`app.py`**: A lightweight Flask API that bridges frontend parameter inputs to the backend physics engine.
-*   **`templates/index.html` & `static/style.css`**: The dark-mode, glassmorphism UI offering fluid DOM updates via JavaScript.
-*   **`test_benchmarks.py`**: An automated testing suite that validates the physics engine's output against strict standard recommendations from the Harvey Tool and Valor catalogs.
+| Topic | File |
+|---|---|
+| Fusion add-in commands and workflow | `docs/ADDIN_USER_GUIDE.md` |
+| Strategy planner (tab milling vs adaptive, T-slot cutters) | `docs/STRATEGY_PLANNER.md` |
+| Setup advisor, LLM guard and bridge contract | `docs/SETUP_ADVISOR.md` |
+| Tool libraries, master library builder, API | `docs/TOOL_LIBRARY_NOTES.md` |
+| Audit of the owner's titanium library | `docs/SHOP_LIBRARY_AUDIT.md` |
+| Evaluation: vendor conformance, stability, timings | `docs/V3_EVALUATION.md` |
+| Design decisions and work packages | `docs/V3_IMPLEMENTATION_PLAN.md`, `docs/REVIEW_AND_FIX_PLAN.md` |
+| v2 physics model | `docs/PHYSICS_MODEL_DESIGN.md`, `docs/research/` |
+
+## Tests
+
+```bash
+python -m pytest -q
+```
+
+The suite pins the legacy v1 model for older tests (`tests/conftest.py`); v2 tests select it explicitly.
+The vendor conformance test (`tests/test_vendor_conformance.py`) takes a few minutes; set
+`TOOLWIZ_FULL_CONFORMANCE=1` to run every row instead of the stratified sample.
+
+## API security
+
+The server binds to 127.0.0.1. Every state-changing request under `/api/` must send a non-empty
+`X-ToolWiz-Client` header (the web page sends `web`, the add-in `fusion-addin`); an `Origin` header, if
+present, must be the local server.
+
+```bash
+curl -X POST http://127.0.0.1:5000/api/calculate -H "Content-Type: application/json" -H "X-ToolWiz-Client: curl" -d '{"family":"Steel - Tool (H13)","diameter":0.25}'
+```
+
+## Machine profile
+
+`machines/speedio_s500x2.json` describes the spindle, power curve and holder stiffness. The holder
+stiffness is provisional until measured; replace it with measured values for better deflection results.
+Enter your measured runout (TIR at the tool tip) per tool: results for tools under 1/8" depend on it.
+
+## Main modules
+
+| Module | Role |
+|---|---|
+| `pipeline.py` | One calculation pipeline used by every endpoint |
+| `physics_v2/` | v2 physics model and optimizer |
+| `v2_bridge.py` | Connects the pipeline to v2; model selection (default v2) |
+| `gwizard_physics.py` | Legacy v1 tables and rules; used for tool types v2 does not cover |
+| `tslot_model.py` | T-slot / keyseat cutter model |
+| `finish_modes.py` | Finishing objectives (clean-up, surface, accuracy) |
+| `strategy_planner.py`, `strategy_tslot.py` | Strategy comparison |
+| `setup_advisor.py`, `toolwiz_common/numeric_guard.py` | Setup advisor and LLM number guard |
+| `toolwiz_common/tooling_advisor.py` | Holder and tool-series advice |
+| `master_library.py`, `library_audit.py`, `tool_merger.py` | Tool libraries |
+| `mcp_server.py`, `fusion_bridge.py` | MCP server and Fusion bridge |
+| `app.py`, `routes_*.py` | Flask endpoints |
+| `templates/`, `static/` | Web app |
+| `ToolWizFusionAddin/` | Fusion 360 add-in |
