@@ -437,8 +437,8 @@
    ]
   },
   "stainless|hem|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.15029,
-   "bucket_rows": 27,
+   "bucket_median_mrr_in3_min": 0.1412,
+   "bucket_rows": 18,
    "recommended": [
     {
      "coatings": [
@@ -451,33 +451,12 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.471,
+     "gain_vs_bucket_median": 1.566,
      "median_mrr_in3_min": 0.22109,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
      "vendor": "YG-1",
      "vendor_group": "YG-1"
-    },
-    {
-     "coatings": [
-      "Tplus"
-     ],
-     "evidence": [
-      "helical2_HVSS6_ss_300_75-98HRB_hem_1-8",
-      "helical2_HVSS6_ss_300_21-36HRC_hem_1-8",
-      "helical2_HVSS6_ss_ph_21-36HRC_hem_1-8",
-      "helical2_HVSS6_ss_300_36-50HRC_hem_1-8",
-      "helical2_HVSS6_ss_ph_36-50HRC_hem_1-8"
-     ],
-     "flutes": [
-      6
-     ],
-     "gain_vs_bucket_median": 1.458,
-     "median_mrr_in3_min": 0.21916,
-     "rows": 5,
-     "series": "HVSS-6 Tplus",
-     "vendor": "Helical Solutions",
-     "vendor_group": "Harvey Performance"
     },
     {
      "coatings": [
@@ -490,17 +469,32 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.322,
+     "gain_vs_bucket_median": 1.407,
      "median_mrr_in3_min": 0.19868,
      "rows": 2,
      "series": "CoroMill Dura 1K365",
      "vendor": "Sandvik Coromant",
      "vendor_group": "Sandvik"
+    },
+    {
+     "coatings": [],
+     "evidence": [
+      "kmt2_HARVII-TE5_M1_hem_0.125_7155689",
+      "kmt2_HARVII-TE5_P5_hem_0.125_7155689"
+     ],
+     "flutes": [
+      5
+     ],
+     "gain_vs_bucket_median": 1.356,
+     "median_mrr_in3_min": 0.19152,
+     "rows": 2,
+     "series": "HARVI II TE 5-flute square end",
+     "vendor": "Kennametal",
+     "vendor_group": "Kennametal"
     }
    ],
    "vendor_groups": [
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -509,8 +503,8 @@
    ]
   },
   "stainless|hem|1/4-1/2": {
-   "bucket_median_mrr_in3_min": 2.90306,
-   "bucket_rows": 78,
+   "bucket_median_mrr_in3_min": 2.89339,
+   "bucket_rows": 69,
    "recommended": [
     {
      "coatings": [
@@ -527,7 +521,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.811,
+     "gain_vs_bucket_median": 1.817,
      "median_mrr_in3_min": 5.25663,
      "rows": 6,
      "series": "H-Carb 77",
@@ -549,7 +543,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.609,
+     "gain_vs_bucket_median": 1.614,
      "median_mrr_in3_min": 4.66961,
      "rows": 6,
      "series": "TiNox-Cut Trochoidal NF",
@@ -567,7 +561,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.523,
+     "gain_vs_bucket_median": 1.528,
      "median_mrr_in3_min": 4.4218,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
@@ -586,7 +580,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.439,
+     "gain_vs_bucket_median": 1.444,
      "median_mrr_in3_min": 4.1782,
      "rows": 3,
      "series": "JS554-3C Jabro-Solid2 advanced roughing, square, 4 flutes, chip splitters, chamfer",
@@ -606,8 +600,8 @@
    ]
   },
   "stainless|hem|1/8-1/4": {
-   "bucket_median_mrr_in3_min": 0.72652,
-   "bucket_rows": 60,
+   "bucket_median_mrr_in3_min": 0.71205,
+   "bucket_rows": 54,
    "recommended": [
     {
      "coatings": [
@@ -621,7 +615,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.558,
+     "gain_vs_bucket_median": 1.589,
      "median_mrr_in3_min": 1.13159,
      "rows": 3,
      "series": "JS554-3C Jabro-Solid2 advanced roughing, square, 4 flutes, chip splitters, chamfer",
@@ -643,7 +637,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.341,
+     "gain_vs_bucket_median": 1.368,
      "median_mrr_in3_min": 0.97443,
      "rows": 6,
      "series": "H-Carb 77",
@@ -664,18 +658,39 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.306,
+     "gain_vs_bucket_median": 1.332,
      "median_mrr_in3_min": 0.94851,
      "rows": 4,
      "series": "X5/G5 5-flute high performance end mill",
      "vendor": "Garr Tool",
      "vendor_group": "Garr Tool"
+    },
+    {
+     "coatings": [
+      "TiN/TiAlN"
+     ],
+     "evidence": [
+      "emuge_TiNoxTroch_M1.1_hem_2xD_1-4",
+      "emuge_TiNoxTroch_M1.1_hem_3xD_1-4",
+      "emuge_TiNoxTroch_M2.1_hem_2xD_1-4",
+      "emuge_TiNoxTroch_M2.1_hem_3xD_1-4",
+      "emuge_TiNoxTroch_M1.1_hem_4xD_1-4",
+      "emuge_TiNoxTroch_M2.1_hem_4xD_1-4"
+     ],
+     "flutes": [
+      4
+     ],
+     "gain_vs_bucket_median": 1.312,
+     "median_mrr_in3_min": 0.93392,
+     "rows": 6,
+     "series": "TiNox-Cut Trochoidal NF",
+     "vendor": "Emuge-Franken",
+     "vendor_group": "Emuge-Franken"
     }
    ],
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -684,8 +699,8 @@
    ]
   },
   "stainless|hem|>1/2": {
-   "bucket_median_mrr_in3_min": 8.5471,
-   "bucket_rows": 47,
+   "bucket_median_mrr_in3_min": 8.47432,
+   "bucket_rows": 44,
    "recommended": [
     {
      "coatings": [
@@ -702,7 +717,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.954,
+     "gain_vs_bucket_median": 1.971,
      "median_mrr_in3_min": 16.70458,
      "rows": 6,
      "series": "H-Carb 77",
@@ -720,7 +735,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.426,
+     "gain_vs_bucket_median": 1.438,
      "median_mrr_in3_min": 12.18452,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
@@ -741,7 +756,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.348,
+     "gain_vs_bucket_median": 1.36,
      "median_mrr_in3_min": 11.52182,
      "rows": 4,
      "series": "X5/G5 5-flute high performance end mill",
@@ -751,7 +766,6 @@
    ],
    "vendor_groups": [
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -2258,8 +2272,8 @@
    ]
   },
   "steel|hem|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.17079,
-   "bucket_rows": 12,
+   "bucket_median_mrr_in3_min": 0.14994,
+   "bucket_rows": 8,
    "recommended": [
     {
      "coatings": [
@@ -2272,7 +2286,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.818,
+     "gain_vs_bucket_median": 2.07,
      "median_mrr_in3_min": 0.31044,
      "rows": 2,
      "series": "CoroMill Dura 1K365",
@@ -3614,8 +3628,8 @@
    ]
   },
   "ti_ni_co|hem|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.0564,
-   "bucket_rows": 30,
+   "bucket_median_mrr_in3_min": 0.06565,
+   "bucket_rows": 26,
    "recommended": [
     {
      "coatings": [
@@ -3632,7 +3646,7 @@
      "flutes": [
       6
      ],
-     "gain_vs_bucket_median": 2.174,
+     "gain_vs_bucket_median": 1.868,
      "median_mrr_in3_min": 0.12261,
      "rows": 6,
      "series": "Variable Pitch End Mills for Titanium Alloys - Square, 6 flute",
@@ -3650,7 +3664,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 2.069,
+     "gain_vs_bucket_median": 1.777,
      "median_mrr_in3_min": 0.11669,
      "rows": 2,
      "series": "HY-PRO CARB VGM5 (list VGM5)",
@@ -3668,7 +3682,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.717,
+     "gain_vs_bucket_median": 1.475,
      "median_mrr_in3_min": 0.09683,
      "rows": 2,
      "series": "HY-PRO CARB VGM5-LN (list VGM5-LN)",
@@ -3686,32 +3700,12 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.649,
+     "gain_vs_bucket_median": 1.417,
      "median_mrr_in3_min": 0.093,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
      "vendor": "YG-1",
      "vendor_group": "YG-1"
-    },
-    {
-     "coatings": [
-      "Aplus"
-     ],
-     "evidence": [
-      "helical2_HVTI6_ti_21-36HRC_hem_1-8",
-      "helical2_HVTI6_ti_36-50HRC_hem_1-8",
-      "helical2_HVTI6_ni_21-36HRC_hem_1-8",
-      "helical2_HVTI6_ni_36-50HRC_hem_1-8"
-     ],
-     "flutes": [
-      6
-     ],
-     "gain_vs_bucket_median": 1.356,
-     "median_mrr_in3_min": 0.07649,
-     "rows": 4,
-     "series": "HVTI-6 Aplus",
-     "vendor": "Helical Solutions",
-     "vendor_group": "Harvey Performance"
     }
    ],
    "vendor_groups": [
@@ -3756,8 +3750,8 @@
    ]
   },
   "ti_ni_co|hem|1/4-1/2": {
-   "bucket_median_mrr_in3_min": 1.13004,
-   "bucket_rows": 74,
+   "bucket_median_mrr_in3_min": 0.99618,
+   "bucket_rows": 68,
    "recommended": [
     {
      "coatings": [
@@ -3770,7 +3764,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.315,
+     "gain_vs_bucket_median": 2.627,
      "median_mrr_in3_min": 2.61657,
      "rows": 2,
      "series": "JS554-3C Jabro-Solid2 advanced roughing, square, 4 flutes, chip splitters, chamfer",
@@ -3789,7 +3783,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.901,
+     "gain_vs_bucket_median": 2.157,
      "median_mrr_in3_min": 2.14859,
      "rows": 3,
      "series": "X5/G5 5-flute high performance end mill",
@@ -3811,7 +3805,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.873,
+     "gain_vs_bucket_median": 2.125,
      "median_mrr_in3_min": 2.11685,
      "rows": 6,
      "series": "H-Carb 77",
@@ -3830,7 +3824,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.757,
+     "gain_vs_bucket_median": 1.993,
      "median_mrr_in3_min": 1.9853,
      "rows": 3,
      "series": "X7/G7 7-flute high performance end mill",
@@ -3848,7 +3842,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.682,
+     "gain_vs_bucket_median": 1.908,
      "median_mrr_in3_min": 1.90107,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
@@ -3870,7 +3864,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.394,
+     "gain_vs_bucket_median": 1.582,
      "median_mrr_in3_min": 1.57563,
      "rows": 6,
      "series": "TiNox-Cut Trochoidal NF",
@@ -3891,7 +3885,7 @@
   },
   "ti_ni_co|hem|1/8-1/4": {
    "bucket_median_mrr_in3_min": 0.26442,
-   "bucket_rows": 65,
+   "bucket_rows": 59,
    "recommended": [
     {
      "coatings": [

@@ -333,7 +333,6 @@
   "target_sfm": 938.5,
   "tips_titles": [
    "Check Shank Diameter",
-   "Runout vs Chip Load",
    "Tool Holder Collision",
    "Micro HEM Risk",
    "Micro-Tool Dynamics",
@@ -369,7 +368,6 @@
   "target_sfm": 278.5,
   "tips_titles": [
    "Check Shank Diameter",
-   "Runout vs Chip Load",
    "Tool Holder Collision",
    "Micro-Tool Dynamics",
    "Collet Gripping on Flutes Warning"

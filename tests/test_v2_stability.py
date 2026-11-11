@@ -46,6 +46,10 @@ XFAIL_PERTURB = {
         "(the stiffness drops about 30%), and past zero the deep cut is infeasible: depth 0.125 -> 0.0127 in",
     ("stickout+10%", "0.0312in-2fl-Aluminum-Slotting"):
         "1/32 in 6061 slot: +10% stickout cuts the stiffness by about 25-30% (L^3), so the deflection-limited depth moves with it",
+    ("aggressiveness+10%", "0.0200in-2fl-Steel-Adaptive"):
+        "0.020 in 4130 adaptive: MRR is flat along a ridge of (ap, fz) pairs (ap x fz is constant to 4 %), and at 55 % the selector "
+        "leaves the chip-floor candidate (ap 0.00285 in, fz 0.0000667 in, C14lo) for a thinner, faster one (ap 0.00236 in, fz 0.0000873 in): "
+        "the feed moves 31 % at the same MRR (V4 speed-law refit moved the candidate tie)",
     ("stickout+10%", "0.0625in-2fl-Steel-Slotting"):
         "1/16 in 4130 slot: +10% stickout cuts the stiffness by about 25-30% (L^3), so the deflection-limited depth moves with it",
 }

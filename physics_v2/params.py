@@ -101,7 +101,11 @@ def material(family, hb=None, coating=None, path=None, **overrides):
         kw.update(vc_ref_sfm=float(sp["vc_ref_sfm"]["value"]) * float(cf), vc_hb_ref=float(sp["hb_ref"]["value"]),
                   vc_hardness_exp=float(sp["vc_hardness_exp"]["value"]), taylor_n=float(sp["taylor_n"]["value"]),
                   vc_engagement_exp=float(eng["k"]["value"]), vc_engagement_ae_min=float(eng["ae_min"]["value"]),
-                  vc_engagement_basis=eng["basis"])
+                  vc_engagement_basis=eng["basis"],
+                  vc_engagement_ae_ref=float((eng.get("ae_ref") or {"value": 1.0})["value"]))
+        so = p.get("speed_operation")
+        if so:
+            kw.update(vc_op_factor=tuple((k, float(v["value"])) for k, v in so["factors"].items()))
         dia = p.get("speed_diameter")
         if dia:
             kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))
@@ -137,6 +141,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     scheme, C14 from data/model_v2/consensus.json, the machine profile's holder stiffness, and (V3) the vendor
     engagement envelope and the chip-load floor."""
     kw.setdefault("consensus", CONSENSUS_PATH)
+    kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
     kw.setdefault("envelope", ENVELOPE_PATH)
     kw.setdefault("chip_floor", "vendor")
     kw.setdefault("c2_basis", C2_BASIS)
@@ -148,6 +153,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
 def evaluate_user_engagement(tool, material_, operation, ap_in, ae_in, aggressiveness=0.5, machine_=None, **kw):
     """optimize.evaluate_user_engagement with the same calibrated defaults: rpm and fz for the user's own ap and ae."""
     kw.setdefault("consensus", CONSENSUS_PATH)
+    kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
     kw.setdefault("c2_basis", C2_BASIS)
     return o.evaluate_user_engagement(tool, material_, machine_ or machine(), operation, ap_in, ae_in,
                                       margins=margins(aggressiveness), **kw)

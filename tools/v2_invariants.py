@@ -169,7 +169,7 @@ def load_rows(operations=pl.OPERATIONS):
     rows = []
     for path in sorted(glob.glob(os.path.join(ROOT, "tests", "benchmarks", "v2", "*.json"))):
         with open(path, encoding="utf-8") as fh:
-            rows += [r for r in json.load(fh)["rows"] if r["operation"] in operations]
+            rows += [r for r in json.load(fh)["rows"] if r["operation"] in operations and pl.end_of(r) == "square"]
     return rows
 
 

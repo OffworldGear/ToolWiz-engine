@@ -24,11 +24,11 @@
  },
  "consensus_offsets": {
   "speed": {
-   "value": 1.025,
+   "value": 1.05,
    "source": "folded into each family's vc_ref_sfm (vc_ref_sfm_median is the level before it): smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
   },
   "c2": {
-   "value": 1.3,
+   "value": 1.35,
    "source": "Material.c2_scale on the chip_limits.json band median: smallest grid value (1.000\u20132.000 by 0.025) bringing every band's median realized bias on the training rows to \u2265 the target, with C14 capping at 1.00 \u00d7 the training-bucket vendor median"
   },
   "why": "at 75 % C14 caps at 1.00 \u00d7 the vendor median, so the output is min(physics, median); the physics side sits a little above the median so that the 75 % output lands on it (user 2026-10-17)"
@@ -36,7 +36,7 @@
  "speed_diameter": {
   "form": "v \u221d (min(D, D_knee)/D_knee)^m (EMPIRICAL)",
   "m": {
-   "value": -0.029419,
+   "value": -0.036191,
    "source": "EMPIRICAL; least absolute deviations over training rows against their bucket vendor medians; D_knee by grid (smallest worst per-band bias)"
   },
   "knee_in": {
@@ -45,12 +45,33 @@
   },
   "why_empirical": "within a chart vendors print one SFM for all diameters; the trend is between tool series. No cited physical law was found (lookup: no vc \u221d D^m in the literature; micro tools are 'starved for spindle rpm', MSC/Iscar, second-hand)"
  },
+ "speed_operation": {
+  "form": "C7 level \u00d7 factor by toolpath type (slot = 1)",
+  "factors": {
+   "slot": {
+    "value": 1.0,
+    "source": "level factor fitted jointly with the family levels (least absolute deviations against the bucket vendor medians, training rows); within-chart contrasts show no HEM credit beyond the engagement law, so it carries which vendors publish HEM sheets"
+   },
+   "rough": {
+    "value": 0.94761,
+    "source": "level factor fitted jointly with the family levels (least absolute deviations against the bucket vendor medians, training rows); within-chart contrasts show no HEM credit beyond the engagement law, so it carries which vendors publish HEM sheets"
+   },
+   "adaptive": {
+    "value": 1.1707,
+    "source": "level factor fitted jointly with the family levels (least absolute deviations against the bucket vendor medians, training rows); within-chart contrasts show no HEM credit beyond the engagement law, so it carries which vendors publish HEM sheets"
+   }
+  }
+ },
  "speed_engagement": {
   "basis": "ae",
-  "form": "v \u221d max(ae/D, ae_min)^(\u2212k)",
+  "form": "v \u221d (max(ae/D, ae_min)/ae_ref)^(\u2212k) below ae_ref, 1 above",
+  "ae_ref": {
+   "value": 0.5,
+   "source": "chip-thinning onset ae = D/2 (h_max = fz*2*sqrt(ae/D*(1-ae/D)) below it); within-chart residual compared in docs/research/v4_engine_findings.md"
+  },
   "k": {
-   "value": 0.15642,
-   "source": "within-chart contrasts, 1271 rows in 528 charts, equal vendor weights"
+   "value": 0.21633,
+   "source": "within-chart contrasts, 1139 rows in 462 charts, equal vendor weights"
   },
   "ae_min": {
    "value": 0.05,
@@ -73,7 +94,7 @@
   },
   "AlCrN": {
    "value": 1.0,
-   "fitted": 1.2497,
+   "fitted": 1.2584,
    "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts))",
    "vendor_groups": [
     "Emuge-Franken",
@@ -83,7 +104,7 @@
   },
   "Si-doped": {
    "value": 1.0,
-   "fitted": 1.3002,
+   "fitted": 1.3452,
    "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (applied: \u2265 2 vendor groups, \u2265 2 families and |t| \u2265 2; confounded with tool series (within-vendor contrasts))",
    "vendor_groups": [
     "Garr Tool",
@@ -92,7 +113,7 @@
   },
   "uncoated": {
    "value": 1.0,
-   "fitted": 1.2194,
+   "fitted": 1.2129,
    "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry)",
    "vendor_groups": [
     "Harvey Performance"
@@ -100,7 +121,7 @@
   },
   "DLC": {
    "value": 1.0,
-   "fitted": 4.1016,
+   "fitted": 4.1537,
    "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry)",
    "vendor_groups": [
     "OSG",
@@ -109,7 +130,7 @@
   },
   "unspecified": {
    "value": 1.0,
-   "fitted": 1.0527,
+   "fitted": 1.0381,
    "source": "not applied: the speed level is fitted to bucket vendor medians, which mix coatings; fitted within-vendor factor reported (not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry)",
    "vendor_groups": [
     "Harvey Performance",
@@ -138,11 +159,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 182.97,
+     "value": 198.77,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 187.54,
+     "value": 208.71,
      "at": "slot (ae = D), 325 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 462 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, YG-1); calibration_report.json speed"
     },
@@ -187,7 +208,7 @@
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 426.83,
+     "value": 437.24,
      "at": "slot (ae = D), 200 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 21 training rows against their bucket vendor medians (each vendor group counted once; groups Sandvik); calibration_report.json speed"
     },
@@ -221,11 +242,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 251.89,
+     "value": 260.57,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 258.19,
+     "value": 273.6,
      "at": "slot (ae = D), 165 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 222 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, OSG, Sandvik); calibration_report.json speed"
     },
@@ -266,11 +287,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 340.5,
+     "value": 354.65,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 349.01,
+     "value": 372.39,
      "at": "slot (ae = D), 116 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 21 training rows against their bucket vendor medians (each vendor group counted once; groups Harvey Performance, OSG); calibration_report.json speed"
     },
@@ -311,11 +332,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 419.82,
+     "value": 458.48,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 430.31,
+     "value": 481.4,
      "at": "slot (ae = D), 197 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 72 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Harvey Performance, Kennametal, Sandvik); calibration_report.json speed"
     },
@@ -356,11 +377,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 419.48,
+     "value": 417.7,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 429.97,
+     "value": 438.59,
      "at": "slot (ae = D), 217 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 97 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik); calibration_report.json speed"
     },
@@ -415,11 +436,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 215.41,
+     "value": 222.07,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 220.8,
+     "value": 233.18,
      "at": "slot (ae = D), 432 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 304 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik); calibration_report.json speed"
     },
@@ -453,11 +474,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 1271.7,
+     "value": 1469.9,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 1303.5,
+     "value": 1543.4,
      "at": "slot (ae = D), 100 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 71 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Harvey Performance, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
@@ -498,11 +519,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 78.353,
+     "value": 80.477,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 80.311,
+     "value": 84.501,
      "at": "slot (ae = D), 310 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 314 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1); calibration_report.json speed"
     },
@@ -536,11 +557,11 @@
    },
    "speed": {
     "vc_ref_sfm_median": {
-     "value": 182.48,
+     "value": 188.15,
      "source": "the level fitted to the bucket vendor medians, before the consensus offset"
     },
     "vc_ref_sfm": {
-     "value": 187.04,
+     "value": 197.56,
      "at": "slot (ae = D), 325 HB, D \u2265 0.125\", the the vendor median \u00d7 the consensus speed offset (75 % aggressiveness)",
      "source": "least absolute deviations over 328 training rows against their bucket vendor medians (each vendor group counted once; groups Emuge-Franken, Garr Tool, Harvey Performance, Kennametal, Kyocera, OSG, Sandvik, YG-1); calibration_report.json speed"
     },

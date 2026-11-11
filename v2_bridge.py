@@ -34,8 +34,11 @@ OPERATION_MAP = {
     "slotting / tab milling": "slot", "slotting": "slot", "slot": "slot", "slot milling": "slot",
     # finishing
     "wall finishing (deep doc)": "finish", "wall finishing": "finish", "finishing": "finish",
+    "3d finishing": "finish", "finishing (3d)": "finish", "scallop": "finish", "3d scallop": "finish", "parallel": "finish",
+    "contour finishing": "finish", "3d contour": "finish", "3d contouring": "finish", "pencil": "finish",
+    "3d adaptive": "adaptive", "3d pocket": "adaptive",
 }
-NOT_SQUARE = ("ball", "bull", "radius", "chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
+NOT_SQUARE = ("chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
               "t-slot", "keyseat", "woodruff", "thread", "drill", "ream", "tap", "saw", "face", "form")
 
 
@@ -98,8 +101,8 @@ def scope(r, res):
     if res.is_hole_tool or res.is_tapping:
         return None, "v2.0 covers end mills only (hole tool or tap)"
     geo = f"{r.geometry} {r.tool}".lower()
-    if any(k in geo for k in NOT_SQUARE) or (r.corner_radius or 0.0) > 1e-6:
-        return None, "v2.0 covers square end mills only (ball, bull nose, chamfer and form tools come in v2.1)"
+    if any(k in geo for k in NOT_SQUARE):
+        return None, "v2 covers square, bull-nose and ball end mills (chamfer, form, taper and other tools stay on v1)"
     if not r.is_carbide:
         return None, "v2.0 models solid carbide tools only"
     op = OPERATION_MAP.get(str(r.operation).strip().lower())
@@ -150,11 +153,27 @@ def machine_for(r, machine_profile=None):
     return m, notes
 
 
+EDGE_BREAK_OVER_D = 0.01   # a corner radius below 1 % of D is an edge break: the tool is modelled as square
+
+
+def corner_radius_in(r, diameter):
+    """The corner radius (in) the v2 model uses: D/2 for a ball nose, the request's radius for a bull nose, 0 for a square
+    end (and for an edge-break radius under 1 % of D)."""
+    geo = f"{r.geometry} {r.tool}".lower()
+    if "ball" in geo:
+        return diameter / 2.0
+    rc = float(r.corner_radius or 0.0)
+    if rc < EDGE_BREAK_OVER_D * diameter:
+        return 0.0
+    return min(rc, diameter / 2.0)
+
+
 def tool_for(r):
     from physics_v2 import optimize as o
     g = r.profile.geometry
     return o.Tool(r.profile, float(g.diameter), int(g.flutes), float(g.flute_length),
-                  helix_deg=float(r.helix_angle or 35.0), label=f"{g.diameter:.4f}\" {int(g.flutes)}FL")
+                  helix_deg=float(r.helix_angle or 35.0), corner_radius_in=corner_radius_in(r, float(g.diameter)),
+                  label=f"{g.diameter:.4f}\" {int(g.flutes)}FL")
 
 
 # ---------------------------------------------------------------------------
@@ -408,7 +427,10 @@ def apply(physics, r, res, machine_profile=None):
     rpm, fz, feed = float(cut["rpm"]), float(cut["fz_in"]), float(cut["feed_ipm"])
     ratio = (feed / res.feed_ipm) if res.feed_ipm else 1.0
     res.rpm = rpm
-    res.sfm = res.contact_sfm = float(cut["sfm"])
+    res.sfm = float(cut["sfm"])                       # on the nominal diameter, as vendors print it
+    res.contact_sfm = float(cut.get("contact_sfm") or cut["sfm"])   # at the effective cutting diameter (ball and bull nose)
+    if cut.get("effective_diameter_in"):
+        res.effective_diameter = float(cut["effective_diameter_in"])
     res.ideal_rpm = rpm
     res.target_sfm = float(cut["sfm"])
     c7 = (out.get("checks") or {}).get("C7") or {}

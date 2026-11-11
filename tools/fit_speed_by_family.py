@@ -53,13 +53,17 @@ def rows_with_features():
             c9 = reach_sfm_factor(BeamDeflectionEngine.equivalent_stickout(tool.segments, tool.D, tool.z, tool.helix_deg), D)
         except Exception:
             c9 = 1.0
-        out.append({"id": r["id"], "family": fam, "hb": hb, "sfm": sfm, "D": D, "aeD": min(float(c["ae"]) / D, 1.0),
+        out.append({"id": r["id"], "op": cal.OPERATION[r["operation"]], "family": fam, "hb": hb, "sfm": sfm, "D": D, "aeD": min(float(c["ae"]) / D, 1.0),
                     "c9": c9, "hold": cal.holdout(r), "vg": r["_vendor_group"]})
+    for e in out:   # the C7 toolpath factor (materials.json speed_operation; 1 for slot and finishing)
+        f = ((mat.get("speed_operation") or {}).get("factors", {}).get(e["op"]) or {"value": 1.0})["value"]
+        e["opf"] = float(f)
     return mat, out
 
 
 def predict(f, e, k, m, knee, a0):
-    return (f["lvl"] * (f["hb_ref"] / e["hb"]) ** f["q"] * max(e["aeD"], a0) ** (-k) * (min(e["D"], knee) / knee) ** m * e["c9"])
+    return (f["lvl"] * (f["hb_ref"] / e["hb"]) ** f["q"] * math.exp(-k * cal.eng_log(e["aeD"], a0)) * (min(e["D"], knee) / knee) ** m * e["c9"]
+            * e["opf"])
 
 
 def irls(X, y, w0, iters=30):
@@ -110,8 +114,8 @@ def main():
             # y = log(sfm / (c9 (hb_ref/hb)^q)) = a - k log(max(ae/D,a0)) + m log(min(D,knee)/knee)
             X, y, w = [], [], []
             for e in tr:
-                X.append([1.0, -math.log(max(e["aeD"], a0)), math.log(min(e["D"], knee) / knee)])
-                y.append(math.log(e["sfm"] / (e["c9"] * (base["hb_ref"] / e["hb"]) ** base["q"])))
+                X.append([1.0, -cal.eng_log(e["aeD"], a0), math.log(min(e["D"], knee) / knee)])
+                y.append(math.log(e["sfm"] / (e["c9"] * e["opf"] * (base["hb_ref"] / e["hb"]) ** base["q"])))
                 w.append(1.0)
             for col, prior in ((1, glob_k), (2, glob_m)):   # ridge pseudo-rows
                 for _ in range(1):

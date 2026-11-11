@@ -42,6 +42,7 @@ from toolwiz_common import (
     is_wall_only_operation,
 )
 from toolwiz_common.tool_profile import SHANK_WARNING
+from toolwiz_common.runout import default_runout, holder_description_of
 from gwizard_physics import (
     ASTMHardnessConverter,
     BeamDeflectionEngine,
@@ -79,7 +80,11 @@ class CutRequest:
     aggressiveness: float = 0.5             # 0.0 - 1.0
     max_rpm: float = 16000.0
     max_hp: float = 10.0
-    runout: float = 0.0002
+    # TIR at the tool tip (in). None: not given, so _normalize defaults it (toolwiz_common.runout): the Fusion tool's holder
+    # class when `holder` or fusion_tool["holder"] names one, else 0.0001" for tools <= 1/8" and 0.0002" above.
+    runout: Optional[float] = None
+    runout_source: Optional[str] = None     # set by _normalize
+    holder: Optional[str] = None            # holder description ("Lyndex SK10"); fusion_tool["holder"] is used when absent
     cut_depth: Optional[float] = None       # None -> use the recommended DOC
     cut_width: Optional[float] = None       # None -> use the recommended WOC
     tap_type: str = ""
@@ -182,6 +187,8 @@ class CutResult:
     feature_geometry: Optional[Dict[str, Any]] = None
     corner_feed_ipm: Optional[float] = None
     tslot: Optional[Dict[str, Any]] = None  # tslot_model output for T-slot / keyseat / woodruff cutters
+    runout_in: Optional[float] = None         # the runout (TIR, in) the result was computed with
+    runout_source: Optional[str] = None       # "request" | "holder: <class>" | "default by diameter"
     holder_advice: Optional[Dict[str, Any]] = None   # toolwiz_common.tooling_advisor.holder_advice (advice_wiring)
     tool_advice: List[Dict[str, Any]] = field(default_factory=list)   # tooling_advisor.tool_advice (advice_wiring)
 
@@ -320,6 +327,11 @@ def _normalize(req: CutRequest) -> CutRequest:
             neck_diameter=r.neck_diameter, neck_length=r.neck_length,
             taper_angle=r.taper_angle, corner_radius=r.corner_radius, assume_shaft_taper=True)
     r.profile = prof
+    if r.runout is None:
+        holder = r.holder or holder_description_of(r.fusion_tool)
+        r.runout, r.runout_source = default_runout(r.diameter, holder)
+    else:
+        r.runout, r.runout_source = float(r.runout), "request"
     return r
 
 
@@ -717,6 +729,7 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         tap_type=r.tap_type, tap_drill=tap_drill_info, flute_length=r.flute_length,
         shank_diameter=r.shank_diameter, neck_diameter=r.neck_diameter,
         profile=r.profile.to_dict() if r.profile is not None else None,
+        runout_in=r.runout, runout_source=r.runout_source,
         engagement_source=("user" if (r.engagement_explicit if r.engagement_explicit is not None
                                       else (r.cut_depth is not None or r.cut_width is not None)) else "recommended"),
     )

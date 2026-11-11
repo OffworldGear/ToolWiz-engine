@@ -100,6 +100,8 @@ def load_rows() -> list[dict]:
         for r in d["rows"]:
             if r.get("operation") not in OPERATIONS:
                 continue
+            if str(r["tool"].get("end") or "").strip().lower() != "square":
+                continue   # ball and bull-nose series are not compared with square-end buckets (the advisor has no end-form key yet)
             mrr = row_mrr(r)
             grp = material_group(r["material"].get("toolwiz_family"), r["material"].get("hardness"))
             if mrr is None or grp is None:

@@ -64,6 +64,7 @@ FATIGUE_MPA = 0.375 * 3800.0
 TRS_MPA = 3800.0
 BANDS = pl.BANDS
 OPERATION = {"slot": "slot", "side": "rough", "rough": "rough", "hem": "adaptive", "finish": "finish"}
+FITTED_OPERATIONS = ("rough", "adaptive", "finish")   # level factors fitted against slot (= 1.0); finish is not applied
 
 # ---------------------------------------------------------------------------
 # Citations (docs/research/v2_calibration_findings.md lists them in full)
@@ -213,8 +214,9 @@ def speed_kwargs(speed, fam, coat):
     d = speed["diameter"]
     return dict(vc_ref_sfm=f["vc_ref_sfm"], vc_hb_ref=f["hb_ref"], vc_hardness_exp=f["q"],
                 vc_engagement_exp=speed["engagement"]["k"], vc_engagement_ae_min=speed["engagement"]["ae_min"],
-                vc_engagement_basis="ae", taylor_n=speed["taylor_n"], vc_diameter_exp=d["m"],
-                vc_d_knee_in=d["knee_in"])
+                vc_engagement_basis="ae", vc_engagement_ae_ref=speed["engagement"].get("ae_ref", 1.0), taylor_n=speed["taylor_n"], vc_diameter_exp=d["m"],
+                vc_d_knee_in=d["knee_in"],
+                vc_op_factor=tuple((k, v) for k, v in (speed.get("operation") or {}).items() if k != "finish"))
 
 
 # ---------------------------------------------------------------------------
@@ -514,6 +516,16 @@ class _LinearCoefficients:
 # 4. C7: the speed law
 # ---------------------------------------------------------------------------
 
+AE_REF = 0.5   # no engagement credit at or above ae = D/2: the radial chip thinning (h_max = fz*2*sqrt(ae/D*(1-ae/D))) and the
+               # sub-90 degree arc both start there (V4; within-chart rmse 0.1150 vs 0.1193 without, hold-out 0.1043 vs 0.1039)
+
+
+def eng_log(ae_over_d, a0, ref=None):
+    """log(min(max(ae/D, a0), ref)/ref) <= 0: the engagement term of C7, v ∝ exp(-k * this), 1 at and above ae = ref."""
+    ref = AE_REF if ref is None else ref
+    return min(math.log(max(ae_over_d, a0)), math.log(ref)) - math.log(ref)
+
+
 AE_MIN_GRID = (0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.1)
 CHART_KEY_ENGAGEMENT = ("doc", "family", "hb", "D", "z", "coating", "reach")
 CHART_KEY_HARDNESS = ("doc", "operation", "D", "z", "coating", "ae_over_D", "ap_over_D", "reach", "family")
@@ -538,7 +550,7 @@ def fit_engagement(train):
     best = None
     for a0 in AE_MIN_GRID:
         def x(e, a0=a0):
-            return math.log(max(e["ae_over_D"], a0))
+            return eng_log(e["ae_over_D"], a0)
         r = within_fit(data, _key(CHART_KEY_ENGAGEMENT), [x], log_sfm_base, w)
         k = -r["coef"][0]
         # within-chart weighted residual
@@ -562,7 +574,7 @@ def fit_engagement(train):
     per_vendor = {}
     for vg in sorted({e["vendor_group"] for e in data}):
         sub = [e for e in data if e["vendor_group"] == vg]
-        r = within_fit(sub, _key(CHART_KEY_ENGAGEMENT), [lambda e: math.log(max(e["ae_over_D"], a0))],
+        r = within_fit(sub, _key(CHART_KEY_ENGAGEMENT), [lambda e: eng_log(e["ae_over_D"], a0)],
                        log_sfm_base)
         if r:
             per_vendor[vg] = {"k": -r["coef"][0], "se": r["se"][0], "n": r["n"], "groups": r["groups"]}
@@ -630,7 +642,7 @@ def fit_speed(evals, train_mask):
     coats = ["AlTiN/TiAlN", "AlCrN", "Si-doped", "uncoated", "DLC", "unspecified"]
 
     def y(e):
-        return (log_sfm_base(e) + k * math.log(max(e["ae_over_D"], a0))
+        return (log_sfm_base(e) + k * eng_log(e["ae_over_D"], a0)
                 + hard[e["family"]]["q"] * math.log(e["hb"] / hb_ref[e["family"]]))
 
     def x(e):
@@ -659,7 +671,7 @@ def fit_speed(evals, train_mask):
                                  "series (within-vendor contrasts)" if supported else
                                  "not applied (1.0): one vendor group, one family, |t| < 2, or no chemistry")}
     vendor_fe = {f: math.exp(coef[i] + anchor) for i, f in enumerate(families)}
-    base = {"engagement": {"k": k, "ae_min": a0, "basis": "ae", **{kk: v for kk, v in eng.items()
+    base = {"engagement": {"k": k, "ae_min": a0, "ae_ref": AE_REF, "basis": "ae", **{kk: v for kk, v in eng.items()
                                                                    if kk not in ("k", "ae_min")}},
             "hardness": hard, "coating": coat_out,
             "vendor_effect_log": {v: e - anchor for v, e in vendor_eff.items()},
@@ -674,7 +686,7 @@ def fit_speed(evals, train_mask):
 def _level_target(b, base, hb_ref):
     """A bucket's vendor-median SFM with the engagement, hardness and C9 terms taken out (log)."""
     eng, hard = base["engagement"], base["hardness"]
-    return (math.log(b["sfm"] / b["c9"]) + eng["k"] * math.log(max(b["ae_over_D"], eng["ae_min"]))
+    return (math.log(b["sfm"] / b["c9"]) + eng["k"] * eng_log(b["ae_over_D"], eng["ae_min"])
             + hard[b["family"]]["q"] * math.log(b["hb"] / hb_ref[b["family"]]))
 
 
@@ -716,7 +728,7 @@ def fit_level_consensus(train, base, hb_ref, families, knees=(0.125, 0.25, 0.5, 
             if not b:
                 continue
             single[e["family"]] += 1
-        y = (math.log(b["sfm"] / e["c9"]) + eng["k"] * math.log(max(e["ae_over_D"], eng["ae_min"]))
+        y = (math.log(b["sfm"] / e["c9"]) + eng["k"] * eng_log(e["ae_over_D"], eng["ae_min"])
              + hard[e["family"]]["q"] * math.log(e["hb"] / hb_ref[e["family"]]))
         obs.append((e, y))
     results = []
@@ -725,10 +737,15 @@ def fit_level_consensus(train, base, hb_ref, families, knees=(0.125, 0.25, 0.5, 
             row = [1.0 if e["family"] == f else 0.0 for f in families]
             if knee:
                 row.append(math.log(min(e["D"], knee) / knee))
+            # V4: a level factor per toolpath type (slot is the reference); finishing rows get their own column so they
+            # do not pull the others, but its factor is not applied (finishing keeps the engagement law as it was).
+            row += [1.0 if OPERATION[e["operation"]] == op else 0.0 for op in FITTED_OPERATIONS]
             return row
         coef, se = irls_l1([x(e) for e, _ in obs], [y for _, y in obs])
         m = coef[len(families)] if knee else 0.0
-        speed = dict(base, families={f: {"vc_ref_sfm": math.exp(coef[i]), "hb_ref": hb_ref[f],
+        off = len(families) + (1 if knee else 0)
+        op_fac = {"slot": 1.0, **{op: math.exp(coef[off + i]) for i, op in enumerate(FITTED_OPERATIONS)}}
+        speed = dict(base, operation=op_fac, families={f: {"vc_ref_sfm": math.exp(coef[i]), "hb_ref": hb_ref[f],
                                          "q": hard[f]["q"], "q_basis": hard[f]["basis"],
                                          "n_rows": sum(1 for e, _ in obs if e["family"] == f),
                                          "n_rows_single_vendor_target": single.get(f, 0),
@@ -755,9 +772,11 @@ def predict_sfm(speed, e):
     f = speed["families"][e["family"]]
     eng = speed["engagement"]
     d = speed.get("diameter", {"m": 0.0, "knee_in": 1.0})
+    op = speed.get("operation") or {}
     return (f["vc_ref_sfm"] * (f["hb_ref"] / e["hb"]) ** f["q"]
-            * max(e["ae_over_D"], eng["ae_min"]) ** (-eng["k"]) * e["c9"]
-            * (min(e["D"], d["knee_in"]) / d["knee_in"]) ** d["m"])
+            * math.exp(-eng["k"] * eng_log(e["ae_over_D"], eng["ae_min"])) * e["c9"]
+            * (min(e["D"], d["knee_in"]) / d["knee_in"]) ** d["m"]
+            * (1.0 if OPERATION[e["operation"]] == "finish" else op.get(OPERATION[e["operation"]], 1.0)))
 
 
 def band_bias_vs_median(speed, items, table):
@@ -1433,8 +1452,18 @@ def materials_file(force, speed):
                              "series. No cited physical law was found (lookup: no vc ∝ D^m in the literature; micro "
                              "tools are 'starved for spindle rpm', MSC/Iscar, second-hand)",
         },
+        "speed_operation": {
+            "form": "C7 level × factor by toolpath type (slot = 1)",
+            "factors": {k: {"value": v, "source": "level factor fitted jointly with the family levels (least absolute "
+                                                  "deviations against the bucket vendor medians, training rows); "
+                                                  "within-chart contrasts show no HEM credit beyond the engagement "
+                                                  "law, so it carries which vendors publish HEM sheets"}
+                        for k, v in (speed.get("operation") or {}).items() if k != "finish"},
+        },
         "speed_engagement": {
-            "basis": "ae", "form": "v ∝ max(ae/D, ae_min)^(−k)",
+            "basis": "ae", "form": "v ∝ (max(ae/D, ae_min)/ae_ref)^(−k) below ae_ref, 1 above",
+            "ae_ref": {"value": speed["engagement"].get("ae_ref", 1.0),
+                       "source": "chip-thinning onset ae = D/2 (h_max = fz*2*sqrt(ae/D*(1-ae/D)) below it); within-chart residual compared in docs/research/v4_engine_findings.md"},
             "k": {"value": speed["engagement"]["k"],
                   "source": f"within-chart contrasts, {speed['engagement']['n']} rows in "
                             f"{speed['engagement']['groups']} charts, equal vendor weights"},

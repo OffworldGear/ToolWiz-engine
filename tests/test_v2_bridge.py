@@ -75,7 +75,7 @@ class TestPipeline(unittest.TestCase):
     def test_out_of_scope_falls_back_to_v1_with_reason(self):
         cases = {
             "operation": dict(operation="Semi-Finishing"),
-            "ball": dict(geometry="Ball"),
+            "chamfer": dict(geometry="Chamfer"),
             "family": dict(family="Wood: MDF", alloy=""),
         }
         for name, kw in cases.items():
