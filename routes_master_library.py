@@ -102,6 +102,8 @@ def _parse(A, body: dict) -> Dict[str, Any]:
     max_rpm = float(body.get("maxRpm") or limits["max_rpm"])
     max_hp = float(body.get("maxHp") or limits["max_hp"])
     runout = A._runout_arg(body)
+    if runout is None:   # the library builder records one runout for every preset; per-tool defaults are not used here
+        runout = float(A.machine_limits()["runout"])
     if runout < 0 or max_rpm <= 0 or max_hp <= 0:
         raise ValueError("runout must be >= 0 and maxRpm / maxHp positive")
     filt = body.get("filter", {})

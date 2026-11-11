@@ -101,7 +101,11 @@ def material(family, hb=None, coating=None, path=None, **overrides):
         kw.update(vc_ref_sfm=float(sp["vc_ref_sfm"]["value"]) * float(cf), vc_hb_ref=float(sp["hb_ref"]["value"]),
                   vc_hardness_exp=float(sp["vc_hardness_exp"]["value"]), taylor_n=float(sp["taylor_n"]["value"]),
                   vc_engagement_exp=float(eng["k"]["value"]), vc_engagement_ae_min=float(eng["ae_min"]["value"]),
-                  vc_engagement_basis=eng["basis"])
+                  vc_engagement_basis=eng["basis"],
+                  vc_engagement_ae_ref=float((eng.get("ae_ref") or {"value": 1.0})["value"]))
+        so = p.get("speed_operation")
+        if so:
+            kw.update(vc_op_factor=tuple((k, float(v["value"])) for k, v in so["factors"].items()))
         dia = p.get("speed_diameter")
         if dia:
             kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))

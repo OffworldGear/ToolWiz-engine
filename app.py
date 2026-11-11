@@ -162,6 +162,7 @@ def machine_limits():
         "max_rpm": ov.get("max_rpm", machine["max_rpm"]),
         "max_hp": ov.get("max_hp", machine["max_hp"]),
         "runout": ov.get("runout", machine.get("runout", DEFAULT_RUNOUT_IN)),
+        "runout_set": "runout" in ov or machine.get("runout") is not None,   # False: the per-tool default applies
         "profile_max_rpm": machine["max_rpm"],
         "profile_max_hp": machine["max_hp"],
         "overridden": sorted(ov.keys()),
@@ -229,11 +230,22 @@ def _stickout_arg(data, fusion_tool, default=1.5):
 
 
 def _runout_arg(data):
-    """Explicit runout in inches, preserving 0.0 when sent (falsy 'or' would overwrite 0.0 with default)."""
+    """Explicit runout in inches (preserving 0.0 when sent), else the user's machine override, else None: the pipeline then
+    defaults it from the Fusion tool's holder class or the tool diameter (toolwiz_common.runout) and reports
+    ``runout_source``."""
     v = data.get("runout")
     if v not in (None, ""):
         return float(v)
-    return float(machine_limits()["runout"])
+    limits = machine_limits()
+    return float(limits["runout"]) if limits.get("runout_set") else None
+
+
+def _holder_arg(data):
+    """The holder description sent with a request ("holder": "Lyndex SK10" or {"description": ...}), or None."""
+    h = data.get("holder")
+    if isinstance(h, dict):
+        h = h.get("description")
+    return str(h) if h else None
 
 
 def _api_error(exc):
@@ -533,6 +545,7 @@ def _runout_fields(res):
     return {"flutes_cutting": res.flutes_cutting, "runout_regime": res.runout_regime,
             "tir_all_flutes_in": r(res.tir_all_flutes_in, 6), "runout_ratio": r(res.runout_ratio, 4),
             "engagement_source": res.engagement_source, "finish": res.finish,
+            "runout_in": r(res.runout_in, 6), "runout_source": res.runout_source,
             "recommended_radial_stock_in": r(res.recommended_radial_stock_in, 5),
             "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5)}
 
@@ -590,6 +603,7 @@ def calculate():
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
             runout=_runout_arg(data),
+            holder=_holder_arg(data),
             cut_depth=cut_depth,
             cut_width=cut_width,
             engagement_explicit=(explicit_depth is not None or explicit_width is not None),
@@ -703,6 +717,7 @@ def calculate_for_fusion():
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
             runout=_runout_arg(data),
+            holder=_holder_arg(data),
             cut_depth=user_depth,
             cut_width=user_width,
             **_finish_args(data),
@@ -1329,6 +1344,8 @@ def twin_batch_generate():
         max_rpm = float(req_data.get("maxRpm") or machine_limits()["max_rpm"])
         max_hp = float(req_data.get("maxHp") or machine_limits()["max_hp"])
         runout = _runout_arg(req_data)
+        if runout is None:   # bulk library presets record one runout
+            runout = float(machine_limits()["runout"])
         
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:

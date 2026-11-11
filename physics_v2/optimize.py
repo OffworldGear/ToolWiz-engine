@@ -88,7 +88,7 @@ from typing import Optional
 
 import machine_profiles
 from gwizard_physics import DEPTH_TRADE_MRR, BeamDeflectionEngine, CuttingMechanics, reach_sfm_factor
-from physics_v2 import forces
+from physics_v2 import endforms, forces
 from toolwiz_common.tool_profile import ToolProfile
 
 LOG = logging.getLogger(__name__)
@@ -316,10 +316,12 @@ class Material:
     vc_hardness_exp: float = 1.0        # PLACEHOLDER
     vc_engagement_exp: float = 0.4      # PLACEHOLDER
     vc_engagement_ae_min: float = 0.1   # no speed credit below the lightest sourced engagement (ae/D)
+    vc_engagement_ae_ref: float = 1.0   # basis "ae": no credit at or above ae/D = this (V4: 0.5, chip-thinning onset)
     vc_engagement_basis: str = "phi"    # "phi": (φe/π)^−k; "ae": (ae/D)^−k (calibration, step 4)
     vc_hb_ref: Optional[float] = None   # hardness the speed anchor is quoted at (None: hb_ref)
     vc_diameter_exp: float = 0.0        # C7 level ×(min(D, vc_d_knee_in)/vc_d_knee_in)^m (calibration, step 4)
     vc_d_knee_in: float = 1.0
+    vc_op_factor: tuple = ()            # C7 level × factor by operation, ((op, factor), ...); V4 (see `operation_speed_factor`)
     family: Optional[str] = None        # GWizard family, for the C14 vendor-consensus lookup
     taylor_n: float = 0.25              # PLACEHOLDER
     k_r: float = 0.4                    # PLACEHOLDER
@@ -381,6 +383,7 @@ class Tool:
     trs_mpa: float = 3800.0             # CERATIZIT CT-GS20Y; Hyperion K10F 3700
     fatigue_fraction: float = 0.375     # 0.35–0.4 × TRS, fully reversed bending
     climb: bool = True
+    corner_radius_in: float = 0.0       # corner radius (in): 0 square, D/2 ball, between bull nose (physics_v2/endforms.py)
     label: str = ""
 
     @classmethod
@@ -406,6 +409,16 @@ class Tool:
     @property
     def D_mm(self):
         return self.D * MM_PER_IN
+
+    @property
+    def corner_mm(self):
+        """The corner radius (mm), limited to D/2."""
+        return endforms.clamp_corner(self.D_mm / 2.0, self.corner_radius_in * MM_PER_IN)
+
+    @property
+    def end_form(self):
+        """'square', 'bull' or 'ball'."""
+        return endforms.end_form(self.D_mm, self.corner_mm)
 
     @property
     def E_psi(self):
@@ -667,7 +680,8 @@ def engagement_speed_factor(material, phi_e):
     """
     if material.vc_engagement_basis == "ae":
         ae_over_d = (1.0 - math.cos(phi_e)) / 2.0
-        return max(ae_over_d, material.vc_engagement_ae_min) ** (-material.vc_engagement_exp)
+        ref = material.vc_engagement_ae_ref
+        return (min(max(ae_over_d, material.vc_engagement_ae_min), ref) / ref) ** (-material.vc_engagement_exp)
     if material.vc_engagement_basis != "phi":
         raise ValueError("vc_engagement_basis must be 'phi' or 'ae'")
     floor = forces.engagement_angle(material.vc_engagement_ae_min, 1.0)
@@ -682,7 +696,20 @@ def diameter_speed_factor(material, D_mm):
     return (min(D_mm, knee) / knee) ** material.vc_diameter_exp
 
 
-def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1.0):
+def operation_speed_factor(material, operation):
+    """C7 level factor for the toolpath type (1.0 when the material carries none for it).
+
+    Vendors publish faster speeds for dynamic (constant-engagement) toolpaths than the engagement alone explains, and
+    slower ones for conventional roughing contours, whose corners and entries momentarily exceed the programmed ae
+    (tools/calibrate_v2.py, `fit_level_consensus`: level factors by operation, L1, hold-out checked).
+    """
+    for op, f in material.vc_op_factor:
+        if op == operation:
+            return float(f)
+    return 1.0
+
+
+def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1.0, operation=None):
     """C7 speed: v_ref·(HB_ref/HB)^q·g(engagement)·f(D)·(T/T_ref)^(−n)·s, m/min.
 
     g is `engagement_speed_factor`. By default (basis "phi") φe is held at or above the engagement of
@@ -695,20 +722,23 @@ def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1
     v *= ((material.vc_hb_ref or material.hb_ref) / material.hb) ** material.vc_hardness_exp
     v *= engagement_speed_factor(material, phi_e)
     v *= diameter_speed_factor(material, D_mm)
+    v *= operation_speed_factor(material, operation)
     v *= life_ratio ** (-material.taylor_n)
     return v * speed_scale
 
 
-def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0, speed_scale=1.0):
+def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0, speed_scale=1.0, operation=None,
+             D_eff_mm=None):
     """C7: v_c from tool life (and the C9 factor); rpm = v_c/(π·D), capped at the machine's max.
 
     Returns (rpm_used, v_c_m_min_used, Check, rpm_tool_life). The check's value is the rpm used, so it binds
     (margin 0) when the spindle's max rpm caps the tool-life speed.
     """
-    vc_life = taylor_speed_m_min(material, phi_e, life_ratio, D_mm, speed_scale) * reach_factor
-    rpm_want = 1000.0 * vc_life / (math.pi * D_mm)
+    vc_life = taylor_speed_m_min(material, phi_e, life_ratio, D_mm, speed_scale, operation) * reach_factor
+    D_cut = D_eff_mm or D_mm   # ball and bull nose at a shallow depth: v_c is set at the effective cutting diameter
+    rpm_want = 1000.0 * vc_life / (math.pi * D_cut)
     rpm = min(rpm_want, max_rpm)
-    vc = math.pi * D_mm * rpm / 1000.0
+    vc = math.pi * D_cut * rpm / 1000.0
     chk = Check("C7", "speed (tool life, rpm cap)", "max", rpm, max_rpm, "rpm", SRC["C7"],
                 detail=f"v_c = {material.vc_ref_sfm:g} SFM·({material.vc_hb_ref or material.hb_ref:g}/{material.hb:g})^"
                        f"{material.vc_hardness_exp:g}·" + (
@@ -716,11 +746,15 @@ def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0, s
                            if material.vc_engagement_basis == "ae" else f"(φe/π = {phi_e / math.pi:.3f})")
                        + f"^−{material.vc_engagement_exp:g}"
                        + (f"·D-term {diameter_speed_factor(material, D_mm):.3f}" if material.vc_diameter_exp else "")
+                       + (f"·{operation} toolpath {operation_speed_factor(material, operation):.3f}"
+                          if operation_speed_factor(material, operation) != 1.0 else "")
                        + f"·(T/T_ref = {life_ratio:.2f})^−{material.taylor_n:g}"
                        + (f"·consensus scale {speed_scale:.3f} (T/T_ref = {speed_scale ** (-1.0 / material.taylor_n):.2f})"
                           if speed_scale != 1.0 else "")
                        + f"·C9 {reach_factor:.2f} = "
-                       f"{vc_life * FT_PER_M:.0f} SFM → {rpm_want:.0f} rpm; used {rpm:.0f} rpm "
+                       f"{vc_life * FT_PER_M:.0f} SFM"
+                       + (f" at the effective diameter {D_cut / MM_PER_IN:.4f}\" (D {D_mm / MM_PER_IN:.4f}\")" if D_eff_mm else "")
+                       + f" → {rpm_want:.0f} rpm; used {rpm:.0f} rpm "
                        f"({vc * FT_PER_M:.0f} SFM)")
     return rpm, vc, chk, rpm_want
 
@@ -924,7 +958,7 @@ def c14_speed(pt, rpm_given=False):
     s = ctx.mg.consensus_cap_scale
     med = cons["sfm"]
     cap_sfm = s * med
-    D_in = ctx.tool.D
+    D_in = pt.D_eff_in   # ball and bull nose: SFM at the effective cutting diameter
     sfm = math.pi * D_in * pt.rpm / 12.0
     if sfm > cap_sfm * (1 + 1e-9) and not rpm_given:
         pt.rpm = 12.0 * cap_sfm / (math.pi * D_in)
@@ -1172,6 +1206,7 @@ class Engagement:
         self.D, self.z, self.ap, self.ae, self.climb = D_mm, int(z), ap_mm, ae_mm, climb
         self.lag = 2.0 * math.tan(math.radians(helix_deg)) / D_mm
         self.R = D_mm / 2.0
+        self.h_unit = forces.max_chip_thickness(1.0, ae_mm, D_mm)   # runout-free largest chip per unit fz
 
     def arcs(self, offsets):
         """Per flute (φ_start, φ_end, max sin φ on the arc), or None when the flute misses the stock."""
@@ -1287,6 +1322,143 @@ class Engagement:
             mag2 = fx * fx + fy * fy
             cen = min(max((mx * fx + my * fy) / mag2, 0.0), ap) if mag2 > 0 else 0.5 * ap
             cen_y = min(max(my / fy, 0.0), ap) if abs(fy) > 1e-12 else cen
+            samples.append((math.sqrt(mag2), cen, t / 1000.0, fy, cen_y))
+            if mag2 > best[0]:
+                best = (mag2, fx, fy, cen, t)
+        mag2, fx, fy, cen, t = best
+        return {"peak_n": math.sqrt(max(mag2, 0.0)), "peak_feed_n": fx, "peak_normal_n": fy,
+                "centroid_mm": cen, "torque_peak_nm": t / 1000.0,
+                "mean_feed_n": sx / n_theta, "mean_normal_n": sy / n_theta,
+                "mean_n": math.hypot(sx / n_theta, sy / n_theta), "torque_mean_nm": st / n_theta / 1000.0,
+                "flute_kc_n_mm2": kcs, "samples": samples}
+
+
+class ShapedEngagement(Engagement):
+    """Engagement of a ball or bull-nose end mill: the edge is discretised along z with the local radius r(z).
+
+    Geometry and notation: `physics_v2.endforms`. For each axial slice j (height z_j, thickness dz_j):
+
+    * local radius r_j and sin kappa_j (lead angle of the edge);
+    * local radial engagement ae_j = clamp(ae − (r(ap) − r_j), 0, 2 r_j): the wall sits ae inside the cutting radius at the
+      depth of cut, so the slice at ap sees the full ae and the slices below it, on the smaller radii, see less (for a
+      square tool every slice sees ae);
+    * local engagement arc φe_j = arccos(1 − 2 ae_j/(2 r_j)); the flute's chip is h_n = sin κ_j · max(0, min_m (m fz sin φ +
+      Δr_k − Δr_(k−m))) (axial chip thinning; the runout offset is radial, so its component normal to the edge is
+      scaled by sin κ as well);
+    * per slice dF_t = (K_tc(h_n)·h + K_te/sin κ) dz and in-plane dF_r = (K_r K_tc h sin κ + K_re) dz, with h the cylindrical chip
+      (the edge element is dz/sin κ, so the chip area per slice is fz sin φ dz, as on a cylinder); the axial force is not part
+      of the lateral load that C3 and C4 use;
+    * helix: lag per unit height tan β / r(z), accumulated from the tip.
+
+    The forces are summed directly over rotation samples, flutes and slices (a few thousand terms), not through the
+    cylinder's cumulative tables. `loads` returns the same dict as `Engagement.loads`.
+    """
+    N_THETA_MAX = 72
+    SK_FLOOR = 0.05   # sin κ used for the chip-size effect on kc and the edge terms (the very tip)
+
+    def __init__(self, D_mm, z, ap_mm, ae_mm, helix_deg=0.0, climb=True, corner_mm=0.0):
+        super().__init__(D_mm, z, ap_mm, ae_mm, helix_deg, climb)
+        R = self.R
+        self.rc = endforms.clamp_corner(R, corner_mm)
+        self.r_ap = endforms.radius(ap_mm, R, self.rc)
+        self.D_eff = 2.0 * self.r_ap
+        tan_b = math.tan(math.radians(helix_deg))
+        self.slices = []   # (z, dz, r, sin κ, ψ, ae_local)
+        psi = 0.0
+        for zc, dz in endforms.slice_heights(ap_mm, self.rc, helix_lag_per_mm=tan_b / R):
+            r = endforms.radius(zc, R, self.rc)
+            psi_mid = psi + 0.5 * dz * tan_b / max(r, endforms.MIN_R_OVER_R * R)
+            psi += dz * tan_b / max(r, endforms.MIN_R_OVER_R * R)
+            ae_l = min(2.0 * r, max(ae_mm - (self.r_ap - r), 0.0))
+            self.slices.append((zc, dz, r, endforms.sin_kappa(zc, R, self.rc), psi_mid, ae_l))
+        self.h_unit = 0.0
+        for zc, dz, r, sk, ps, ae_l in self.slices:
+            if ae_l > 1e-12:
+                pe = forces.engagement_angle(ae_l, 2.0 * r)
+                self.h_unit = max(self.h_unit, sk * (math.sin(pe) if pe < math.pi / 2.0 else 1.0))
+
+    def _arcs(self, offsets):
+        """Per flute, per slice: (φ_start, φ_end, max sin φ) or None when that flute misses the slice's stock."""
+        r_max = max(offsets)
+        out = []
+        for off in offsets:
+            row = []
+            for zc, dz, r, sk, ps, ae_l in self.slices:
+                aek = ae_l - (r_max - off)
+                if aek <= 1e-12:
+                    row.append(None)
+                    continue
+                pe = forces.engagement_angle(min(aek, 2.0 * r), 2.0 * r)
+                arc = (math.pi - pe, math.pi) if self.climb else (0.0, pe)
+                row.append(arc + (math.sin(pe) if pe < math.pi / 2.0 else 1.0,))
+            out.append(row)
+        return out
+
+    def max_chips(self, fz, offsets):
+        """Each flute's largest chip normal to the edge over its slices (mm)."""
+        arcs, terms = self._arcs(offsets), self.chip_terms(fz, offsets)
+        out = []
+        for k in range(self.z):
+            best = 0.0
+            for j, sl in enumerate(self.slices):
+                a = arcs[k][j]
+                if a:
+                    best = max(best, sl[3] * self.chip(terms[k], a[2]))
+            out.append(best)
+        return out
+
+    def loads(self, fz, offsets, coeffs, n_theta=144, n_quad=48):
+        z, two_pi = self.z, 2.0 * math.pi
+        pitch = two_pi / z
+        n_theta = min(n_theta, self.N_THETA_MAX)
+        arcs, terms = self._arcs(offsets), self.chip_terms(fz, offsets)
+        items = []
+        kcs = [None] * z
+        for k in range(z):
+            g = ((-k) % z) * pitch
+            for j, (zc, dz, r, sk, psi, ae_l) in enumerate(self.slices):
+                a = arcs[k][j]
+                if not a:
+                    continue
+                a0, a1, _ = a
+                m = 6
+                h_mean = sum(self.chip(terms[k], math.sin(a0 + (a1 - a0) * (i + 0.5) / m)) for i in range(m)) / m
+                if h_mean <= 0:
+                    continue
+                skf = max(sk, self.SK_FLOOR)
+                ktc = coeffs.kc(max(h_mean * skf, 1e-6))
+                kcs[k] = max(kcs[k] or 0.0, ktc)
+                items.append((terms[k], g - psi, a0, a1, ktc, skf, dz, r, zc))
+        k_r, k_te, k_re = coeffs.k_r, coeffs.k_te, coeffs.k_re
+        chip = self.chip
+        sx = sy = st = 0.0
+        best = (-1.0, 0.0, 0.0, 0.0, 0.0)
+        samples = []
+        for i in range(n_theta):
+            theta = (i + 0.5) * two_pi / n_theta
+            fx = fy = mx = my = t = 0.0
+            for tk, off, a0, a1, ktc, skf, dz, r, zc in items:
+                phi = (theta + off) % two_pi
+                if phi < a0 or phi > a1:
+                    continue
+                sn, cs = math.sin(phi), math.cos(phi)
+                h = chip(tk, sn)
+                if h <= 0.0:
+                    continue
+                ft = (ktc * h + k_te / skf) * dz
+                fr = (k_r * ktc * h * skf + k_re) * dz
+                dfx, dfy = -ft * cs - fr * sn, ft * sn - fr * cs
+                fx += dfx
+                fy += dfy
+                mx += zc * dfx
+                my += zc * dfy
+                t += ft * r
+            sx += fx
+            sy += fy
+            st += t
+            mag2 = fx * fx + fy * fy
+            cen = min(max((mx * fx + my * fy) / mag2, 0.0), self.ap) if mag2 > 0 else 0.5 * self.ap
+            cen_y = min(max(my / fy, 0.0), self.ap) if abs(fy) > 1e-12 else cen
             samples.append((math.sqrt(mag2), cen, t / 1000.0, fy, cen_y))
             if mag2 > best[0]:
                 best = (mag2, fx, fy, cen, t)
@@ -1513,12 +1685,17 @@ class _Context:
                 return dict(band, source="slot rows" if k.startswith("slot") else "side/rough/HEM rows")
         raise ValueError(f"no chip-limit band for D {self.tool.D:g}\" in {CHIP_LIMITS_PATH}")
 
-    def speed(self, ae_in):
-        key = round(ae_in, 9)
+    def speed(self, ae_in, ap_in=None):
+        """C7 at this width (and, for a ball or bull-nose tool, depth: the effective cutting diameter at ap)."""
+        shaped = self.tool.end_form != "square" and ap_in
+        key = (round(ae_in, 9), round(ap_in, 9) if shaped else None)
         if key not in self._speed:
-            phi_e = forces.engagement_angle(ae_in * MM_PER_IN, self.tool.D_mm)
+            D_eff = endforms.effective_diameter(ap_in * MM_PER_IN, self.tool.D_mm, self.tool.corner_mm) if shaped else None
+            D_ref = D_eff or self.tool.D_mm
+            phi_e = forces.engagement_angle(min(ae_in * MM_PER_IN, D_ref), D_ref)
             self._speed[key] = c7_speed(self.mat, phi_e, self.tool.D_mm, self.mach.max_rpm,
-                                        self.mg.life_ratio, self.reach_factor, self.mg.speed_scale)
+                                        self.mg.life_ratio, self.reach_factor, self.mg.speed_scale, self.op,
+                                        D_eff_mm=D_eff)
         return self._speed[key]
 
 
@@ -1529,17 +1706,22 @@ class CutPoint:
         self.ctx, self.ap, self.ae = ctx, float(ap_in), float(ae_in)
         t = ctx.tool
         self.D_mm, self.ap_mm, self.ae_mm = t.D_mm, ap_in * MM_PER_IN, ae_in * MM_PER_IN
-        rpm_used, _, c7, rpm_life = ctx.speed(ae_in)
+        rpm_used, _, c7, rpm_life = ctx.speed(ae_in, ap_in)
         if rpm:
             # A caller-supplied speed is checked as it is: against the machine and the tool-life speed.
             self.rpm = float(rpm)
             self.c7 = c7_check(self.rpm, rpm_life, ctx.mach.max_rpm, c7.detail)
         else:
             self.rpm, self.c7 = rpm_used, c7
+        if t.end_form == "square":
+            self.eng = Engagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb)
+            self.D_eff_in = t.D
+        else:
+            self.eng = ShapedEngagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb, t.corner_mm)
+            self.D_eff_in = self.eng.D_eff / MM_PER_IN
         # C14 (vendor consensus): the speed is capped at scale × the bucket's vendor-median SFM.
         self.cons = ctx.consensus_for(ae_in)
         self.c14v = c14_speed(self, rpm_given=bool(rpm))
-        self.eng = Engagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb)
         self.c6 = c6_geometry(self.ap, self.ae, t.D, t.lcf, ctx.depth, ctx.op == "slot", ctx.flute_exposed)
         self.c8 = (c8_slot_depth(self.ap, t.D, ctx.op, k_slot=ctx.depth_cap_ratio) if not ctx.user_engagement else
                    Check("C8", "depth cap (vendor engagement envelope)", "max", self.ap, None, "in", SRC["C8"],
@@ -1646,7 +1828,7 @@ class CutPoint:
         ctx = self.ctx
         worst = max(self.chips_c2(fz_in)[0])
         if ctx.c2_basis == "nominal":
-            h_nom = forces.max_chip_thickness(fz_in * MM_PER_IN, self.ae_mm, self.D_mm)
+            h_nom = fz_in * MM_PER_IN * self.eng.h_unit
             return {"C2": c2_tooth_strength(h_nom, ctx.h_nominal, ctx.mg.limit_scale, ctx.h_nominal_basis,
                                             "nominal chip fz·sin φe"),
                     "C2o": c2_tooth_strength(worst, ctx.h_overload, 1.0, ctx.h_overload_basis,
@@ -1687,7 +1869,7 @@ class CutPoint:
         """The runout-free feed per tooth (in) at which the nominal chip fz·sin φe equals h_min = λ·r_β: below it
         the cut rubs."""
         if not hasattr(self, "_rub_fz"):
-            h1 = forces.max_chip_thickness(1.0, self.ae_mm, self.D_mm)
+            h1 = self.eng.h_unit
             self._rub_fz = self.ctx.h_min_mm / max(h1, 1e-12) / MM_PER_IN
         return self._rub_fz
 
@@ -1727,8 +1909,7 @@ class CutPoint:
                          f"{self.cons['fz_over_D'] * ctx.tool.D:.6f}\" ({self.cons['key']})")
         ceilings = []
         if ctx.c2_basis == "nominal":
-            ceilings.append(ctx.h_nominal * ctx.mg.limit_scale / forces.max_chip_thickness(1.0, self.ae_mm, self.D_mm)
-                            / MM_PER_IN)
+            ceilings.append(ctx.h_nominal * ctx.mg.limit_scale / self.eng.h_unit / MM_PER_IN)
         if self.cons:
             ceilings.append(ctx.mg.consensus_cap_scale * self.cons["fz_over_D"] * ctx.tool.D)
         if ceilings and pref > CHIP_FLOOR_CEILING_FRACTION * min(ceilings):
@@ -1917,9 +2098,10 @@ def _report(pt, fz_in, checks, f, beam, chips):
     t = pt.ctx.tool
     vf = fz_in * t.z * pt.rpm
     cut = {"ap_in": pt.ap, "ae_in": pt.ae, "fz_in": fz_in, "rpm": pt.rpm,
-           "sfm": math.pi * t.D * pt.rpm / 12.0, "feed_ipm": vf, "mrr_in3_min": pt.mrr_in3_min(fz_in),
+           "sfm": math.pi * pt.D_eff_in * pt.rpm / 12.0, "feed_ipm": vf, "mrr_in3_min": pt.mrr_in3_min(fz_in),
            "ap_over_D": pt.ap / t.D, "ae_over_D": pt.ae / t.D,
-           "h_max_nominal_in": forces.max_chip_thickness(fz_in, pt.ae, t.D),
+           "end_form": t.end_form, "effective_diameter_in": pt.D_eff_in,
+           "h_max_nominal_in": fz_in * pt.eng.h_unit,
            "h_m_nominal_in": forces.mean_chip_thickness(fz_in, pt.ae, t.D),
            "h_max_worst_in": max(chips["c2"]) / MM_PER_IN, "h_max_thinnest_in": min(chips["c1"]) / MM_PER_IN}
     n_cut, n_flutes = pt.flute_stats(fz_in)

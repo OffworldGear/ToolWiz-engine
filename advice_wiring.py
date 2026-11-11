@@ -35,7 +35,7 @@ def holder_advice_for(result: Any, req: Any) -> Optional[Dict[str, Any]]:
     if result.is_hole_tool or result.is_tapping or not result.adj_ipt or result.adj_ipt <= 0 or result.diameter <= 0:
         return None
     try:
-        out = _holder(_r(result.diameter, 5), _r(req.runout or 0.0, 6), _r(result.adj_ipt, 6),
+        out = _holder(_r(result.diameter, 5), _r((result.runout_in if getattr(result, 'runout_in', None) is not None else req.runout) or 0.0, 6), _r(result.adj_ipt, 6),
                       int(req.flutes or 2), _r(result.rpm, 0), str(result.operation or req.operation or "side"),
                       _r(req.stickout, 4) if req.stickout else None, _r(req.max_rpm or 16000.0, 0),
                       _r(result.target_sfm, 1) if result.target_sfm else None)
