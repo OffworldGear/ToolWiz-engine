@@ -128,6 +128,26 @@ class TestTslotBenchmarkDataset(unittest.TestCase):
                 if tool["included_angle_deg"] is not None:
                     self.assertTrue(0 < tool["included_angle_deg"] <= 180)
 
+    def test_staggered_tooth_cutters_cut_on_both_sides(self):
+        """Staggered-tooth cutters are the up-and-down class: periphery, top and bottom, teeth_per_face stated."""
+        n = 0
+        for name, _, row in self.rows():
+            tool = row["tool"]
+            if tool["tooth_form"] != "staggered":
+                self.assertNotIn("teeth_per_face", tool)
+                continue
+            n += 1
+            with self.subTest(row=row.get("id")):
+                self.assertEqual(set(tool["cutting_faces"]), {"periphery", "top", "bottom"})
+                tpf = tool["teeth_per_face"]
+                self.assertIsInstance(tpf, int)
+                self.assertTrue(0 < tpf <= tool["teeth"])
+                self.assertTrue(str(tool.get("teeth_per_face_basis", "")).strip())
+                if "teeth_per_face" in tool["missing"]:
+                    self.assertIn("stagger rule", tool["teeth_per_face_basis"])
+                    self.assertEqual(tpf, tool["teeth"] // 2)
+        self.assertGreater(n, 0)
+
     def test_material_maps_to_a_toolwiz_family(self):
         for name, _, row in self.rows():
             with self.subTest(row=row.get("id")):

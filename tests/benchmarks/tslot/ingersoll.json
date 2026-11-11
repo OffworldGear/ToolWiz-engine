@@ -51,8 +51,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -158,8 +161,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -265,8 +271,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -372,8 +381,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -479,8 +491,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -586,8 +601,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -693,8 +711,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -800,8 +821,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -907,8 +931,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -1014,8 +1041,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -1121,8 +1151,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -1228,8 +1261,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -1335,8 +1371,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -1442,8 +1481,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -1549,8 +1591,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -1656,8 +1701,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -1763,8 +1811,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -1870,8 +1921,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -1977,8 +2031,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -2084,8 +2141,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -2191,8 +2251,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -2298,8 +2361,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -2405,8 +2471,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -2512,8 +2581,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -2619,8 +2691,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -2726,8 +2801,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -2833,8 +2911,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -2940,8 +3021,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -3047,8 +3131,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -3154,8 +3241,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -3261,8 +3351,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -3368,8 +3461,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -3475,8 +3571,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -3582,8 +3681,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -3689,8 +3791,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -3796,8 +3901,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -3903,8 +4011,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -4010,8 +4121,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -4117,8 +4231,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -4224,8 +4341,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -4331,8 +4451,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -4438,8 +4561,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -4545,8 +4671,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -4652,8 +4781,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -4759,8 +4891,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -4866,8 +5001,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -4973,8 +5111,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -5080,8 +5221,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -5187,8 +5331,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -5294,8 +5441,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -6481,8 +6631,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -6588,8 +6741,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 1 thru 5 Non-alloy Steel: 1018, A36, 1045, A572, 1070",
@@ -6695,8 +6851,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -6802,8 +6961,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "P 10, 11 High-alloy Steel: H13, A2, D2, M2, T1",
@@ -6909,8 +7071,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -7016,8 +7181,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "M 14 Stainless Steel (Austenitic): 303, 304, 316, 15-5, 17-4",
@@ -7123,8 +7291,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -7230,8 +7401,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "N 21-30 Aluminum: 7075, 6061",
@@ -7337,8 +7511,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
@@ -7444,8 +7621,11 @@
     "missing": [
      "neck_length",
      "shank_diameter",
-     "OAL"
-    ]
+     "OAL",
+     "teeth_per_face"
+    ],
+    "teeth_per_face": 3,
+    "teeth_per_face_basis": "derived by the stagger rule: half the tooth count cuts on each side face; the vendor does not publish teeth per face"
    },
    "material": {
     "vendor_label": "S 36 thru 37 Titanium Alloys: 6Al-4V, 5Al-5Mo-5V-3Cr",
