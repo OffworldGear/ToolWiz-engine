@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "description": "Material sets for the master library builder. Each material is a family from materials_database_clean.json plus an alloy/condition string that GWizardPhysics.match_alloy resolves to one specific_alloys row. label is the short name used in preset names.",
+  "sets": [
+    {
+      "id": "non_ferrous",
+      "name": "ToolWiz - Non-ferrous",
+      "materials": [
+        {
+          "id": "al6061",
+          "label": "6061-T6",
+          "family": "Aluminum - Wrought (6061)",
+          "alloy": "6061-T6",
+          "note": ""
+        },
+        {
+          "id": "al7075",
+          "label": "7075-T6",
+          "family": "Aluminum - Wrought (6061)",
+          "alloy": "7075-T6",
+          "note": ""
+        },
+        {
+          "id": "brass_c36000",
+          "label": "Brass C36000",
+          "family": "Brass",
+          "alloy": "C36000 - Free-Cutting Brass H02 Temper",
+          "note": ""
+        },
+        {
+          "id": "bronze_c54400",
+          "label": "Phosphor Bronze C54400",
+          "family": "Copper Alloy - Wrought",
+          "alloy": "C54400 - Phosphor Bronze Hard",
+          "note": ""
+        },
+        {
+          "id": "bronze_c63000",
+          "label": "Ni-Al Bronze C63000",
+          "family": "Copper Alloy - Wrought",
+          "alloy": "C63000, AMS 4640 - Nickel-Aluminum Bronze HR50",
+          "note": ""
+        },
+        {
+          "id": "copper_c11000",
+          "label": "Copper C11000",
+          "family": "Copper Alloy - Wrought",
+          "alloy": "C11000 - Electrolytic tough pitch Copper Hard",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "steels_exotics",
+      "name": "ToolWiz - Steels & exotics",
+      "materials": [
+        {
+          "id": "s4140_prehard",
+          "label": "4140 Pre-Hard 30HRC",
+          "family": "Steel - Medium Carbon Alloy (4130)",
+          "alloy": "4140 normalized",
+          "note": "302 HB, about 32 HRC"
+        },
+        {
+          "id": "ss304",
+          "label": "304 Stainless",
+          "family": "Stainless - 300 Series (316)",
+          "alloy": "304 (Austenitic) Annealed",
+          "note": ""
+        },
+        {
+          "id": "ss316",
+          "label": "316 Stainless",
+          "family": "Stainless - 300 Series (316)",
+          "alloy": "316 (Austenitic) Annealed",
+          "note": ""
+        },
+        {
+          "id": "ph174",
+          "label": "17-4 PH",
+          "family": "Stainless - PH Series (17-4)",
+          "alloy": "17-4 PH H 1150",
+          "note": "condition H1150, 330 HB"
+        },
+        {
+          "id": "ti64",
+          "label": "Ti-6Al-4V",
+          "family": "Titanium Alloy",
+          "alloy": "Ti-6Al-4V (Grade 5) Annealed",
+          "note": ""
+        },
+        {
+          "id": "zr702",
+          "label": "Zirconium 702",
+          "family": "Zirconium 702 (Commercially Pure)",
+          "alloy": "",
+          "note": "no specific_alloys row; resolved at family level (150-180 BHN, machinability_factors)"
+        },
+        {
+          "id": "tool_steel_hard",
+          "label": "Tool Steel 54HRC",
+          "family": "Steel - Tool (H13)",
+          "alloy": "D-2 Hardened + Tempered 1000",
+          "note": "577 HB, about 54 HRC"
+        },
+        {
+          "id": "magnacut_ann",
+          "label": "MagnaCut Annealed",
+          "family": "Steel - Tool (H13)",
+          "alloy": "CPM MagnaCut (Annealed ~22 HRC)",
+          "note": ""
+        },
+        {
+          "id": "magnacut_hard",
+          "label": "MagnaCut 62HRC",
+          "family": "Steel - Tool (H13)",
+          "alloy": "CPM MagnaCut (Hardened ~62 HRC)",
+          "note": ""
+        },
+        {
+          "id": "black_ti_5545",
+          "label": "Black Ti 5545",
+          "family": "Black Titanium 5545",
+          "alloy": "Black Titanium 5545",
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

@@ -93,9 +93,9 @@ def curate_tool_dict(
     try:
         unit = tool_unit(t)
     except Exception:
-        unit = "inches"
-        t["unit"] = unit
-        changes.append(ToolFieldChange("unit", None, "inches", "Defaulted missing tool unit to inches."))
+        # Never guess a unit: every length below would be scaled wrongly by 25.4 if the guess were off.
+        warnings.append("Tool has no recognisable unit (inches or millimeters); not curated.")
+        return CuratedToolResult(tool_number=t_num, description=desc, curated_tool=t, warnings=warnings)
 
     geo = t["geometry"]
     dc_raw = geo.get("DC")
