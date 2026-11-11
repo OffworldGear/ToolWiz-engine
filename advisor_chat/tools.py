@@ -463,11 +463,51 @@ _RUNNERS: Dict[str, Callable[[ToolContext, Dict[str, Any]], Dict[str, Any]]] = {
 }
 
 
+_JSON_TYPES = {"string": str, "number": (int, float), "integer": int, "boolean": bool, "object": dict, "array": list}
+
+
+def _check_args(schema: Dict[str, Any], value: Any, where: str = "") -> Optional[str]:
+    """First problem of ``value`` against a tool schema (types, required and unknown keys, enums), or None. Not every tool can
+    be a strict tool (the API limits optional parameters), so arguments are validated here as well."""
+    t = schema.get("type")
+    types = t if isinstance(t, list) else [t] if t else []
+    if value is None:
+        return None if (not types or "null" in types) else f"{where or 'value'} must not be null"
+    py = tuple(x for n in types if n in _JSON_TYPES for x in (_JSON_TYPES[n] if isinstance(_JSON_TYPES[n], tuple) else (_JSON_TYPES[n],)))
+    if py and (not isinstance(value, py) or (isinstance(value, bool) and "boolean" not in types)):
+        return f"{where or 'value'} must be {' or '.join(n for n in types if n != 'null')}"
+    if "enum" in schema and value not in schema["enum"]:
+        return f"{where or 'value'} must be one of {schema['enum']}"
+    if isinstance(value, dict) and "object" in types:
+        props = schema.get("properties") or {}
+        missing = [k for k in schema.get("required") or [] if k not in value]
+        if missing:
+            return f"missing {where + '.' if where else ''}{missing[0]}"
+        unknown = [k for k in value if k not in props]
+        if unknown and schema.get("additionalProperties") is False:
+            return f"unknown argument {where + '.' if where else ''}{unknown[0]}"
+        for k, v in value.items():
+            if k in props:
+                p = _check_args(props[k], v, f"{where}.{k}" if where else k)
+                if p:
+                    return p
+    if isinstance(value, list) and isinstance(schema.get("items"), dict):
+        for i, v in enumerate(value):
+            p = _check_args(schema["items"], v, f"{where}[{i}]")
+            if p:
+                return p
+    return None
+
+
 def run_tool(ctx: ToolContext, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
     """Execute one tool call. Never raises. Returns ``{"content": str (JSON), "is_error": bool, "image": {...}?, "data": dict}``."""
     fn = _RUNNERS.get(name)
+    spec = next((t for t in TOOLS if t.name == name), None)
+    problem = _check_args(spec.input_schema, arguments or {}) if spec else None
     if fn is None:
         data: Dict[str, Any] = {"success": False, "error": f"Unknown tool {name!r}"}
+    elif problem:
+        data = {"success": False, "error": f"Invalid arguments for {name}: {problem}. Call it again with corrected arguments."}
     else:
         try:
             data = fn(ctx, dict(arguments or {}))

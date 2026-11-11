@@ -3,7 +3,7 @@
 Rules this module follows (they are API requirements for the Claude 5.5 / Fable 5.2 models):
   * thinking is always on for Opus 5.5 / Sonnet 5.5 / Fable 5.2: the ``thinking`` parameter is never sent (``{"type": "disabled"}``
     or ``budget_tokens`` return 400); depth is set with ``output_config={"effort": low|medium|high}``;
-  * tools are strict JSON-schema tools (``"strict": True``, ``additionalProperties: false``); ``tool_choice`` is left at its default
+  * tools are JSON-schema tools (``additionalProperties: false``; ``"strict": True`` on as many as the API's optional-parameter limit allows); ``tool_choice`` is left at its default
     ``auto`` (forcing ``any`` / ``tool`` returns 400);
   * the assistant turn is echoed back EXACTLY as received (thinking blocks included): history is append-only, nothing earlier is edited;
   * Opus 5.5 / Sonnet 5.5 / Fable 5.2 requests use the server-side refusal fallback (``client.beta.messages.create(...,
@@ -30,6 +30,22 @@ MODEL_NOTES = {
     "claude-fable-5-2": "fable 5.2",
 }
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+STRICT_OPTIONAL_LIMIT = 24      # API limit on optional parameters across all strict tool schemas
+STRICT_OPTIONAL_BUDGET = 20     # what we spend of it
+
+
+def _optional_count(schema: Dict[str, Any]) -> int:
+    """Optional parameters in a JSON schema, nested objects and array items included."""
+    n = 0
+    if schema.get("type") == "object":
+        props = schema.get("properties") or {}
+        n += len(set(props) - set(schema.get("required") or []))
+        n += sum(_optional_count(v) for v in props.values() if isinstance(v, dict))
+    if schema.get("type") == "array" and isinstance(schema.get("items"), dict):
+        n += _optional_count(schema["items"])
+    return n
+
+
 FALLBACK_MODEL_IDS = {"claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-2"}
 MAX_TOKENS = 16000
 REQUEST_TIMEOUT = 600.0
@@ -121,6 +137,14 @@ class AnthropicProvider(Provider):
 
     @staticmethod
     def tools_native(tools: List[ToolSpec]) -> List[Dict[str, Any]]:
+        # The API allows at most STRICT_OPTIONAL_LIMIT optional parameters over all strict tools together (HTTP 400 otherwise).
+        # Strict goes to the tools with the fewest optional parameters until the budget is spent; the rest are ordinary tools,
+        # whose arguments tools.run_tool validates against the same schema.
+        budget, strict_names = STRICT_OPTIONAL_BUDGET, set()
+        for n, name in sorted((_optional_count(t.input_schema), t.name) for t in tools):
+            if n <= budget:
+                budget -= n
+                strict_names.add(name)
         out = []
         for t in sorted(tools, key=lambda t: t.name):          # deterministic order keeps the prompt cache valid
             schema = copy.deepcopy(t.input_schema)
@@ -128,7 +152,10 @@ class AnthropicProvider(Provider):
             schema.setdefault("properties", {})
             schema.setdefault("required", [])
             schema["additionalProperties"] = False
-            out.append({"name": t.name, "description": t.description, "input_schema": schema, "strict": True})
+            spec = {"name": t.name, "description": t.description, "input_schema": schema}
+            if t.name in strict_names:
+                spec["strict"] = True
+            out.append(spec)
         return out
 
     # ---- the call ---------------------------------------------------------------------------------------------

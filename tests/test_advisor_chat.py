@@ -216,7 +216,7 @@ def test_anthropic_request_follows_the_api_rules(fake_sdk):
     assert k["output_config"] == {"effort": "medium"} and k["cache_control"] == {"type": "ephemeral"} and k["max_tokens"] == 16000
     assert k["model"] == "claude-opus-5-5" and k["system"] == "SYS"
     names = [x["name"] for x in k["tools"]]
-    assert names == sorted(names) and all(x["strict"] is True and x["input_schema"]["additionalProperties"] is False and "required" in x["input_schema"] for x in k["tools"])
+    assert names == sorted(names) and all(x.get("strict", True) is True and x["input_schema"]["additionalProperties"] is False and "required" in x["input_schema"] for x in k["tools"])
     assert t.text == "ok" and t.thinking and t.raw["content"][0] == {"type": "thinking", "thinking": "t", "signature": "s"}
     assert fake_sdk.instances[0].kw["api_key"] == KEY
 
@@ -631,3 +631,21 @@ def test_runout_sensitivity_tool_sends_calculate_field_names(monkeypatch):
     assert sent["body"]["fluteLength"] == 0.1875 and sent["body"]["shankDiameter"] == 0.125
     assert "flute_length" not in sent["body"] and "runout" not in sent["body"]
     assert any("stickout not given" in n for n in out["inputs_assumed"])
+
+
+def test_strict_tools_stay_inside_the_api_optional_parameter_limit():
+    """Regression: Anthropic rejects a request whose strict tools have more than 24 optional parameters in total."""
+    from advisor_chat.providers import anthropic_provider as AP
+    native = AP.AnthropicProvider.tools_native(tools.specs(True))
+    strict = [t for t in native if t.get("strict")]
+    assert sum(AP._optional_count(t["input_schema"]) for t in strict) <= AP.STRICT_OPTIONAL_LIMIT
+    assert {"set_assumption", "clear_assumption"} <= {t["name"] for t in strict}
+    assert len(native) == len(tools.specs(True)) and all(t["input_schema"]["additionalProperties"] is False for t in native)
+
+
+def test_run_tool_validates_arguments_of_non_strict_tools():
+    ctx = tools.ToolContext()
+    r = tools.run_tool(ctx, "toolwiz_calculate", {"family": "Titanium Alloy", "diameter": "a quarter inch"})
+    assert r["is_error"] and "diameter" in r["data"]["error"]
+    r = tools.run_tool(ctx, "toolwiz_calculate", {"family": "Titanium Alloy", "diameter": 0.25, "feedrate_guess": 12})
+    assert r["is_error"] and "unknown argument" in r["data"]["error"]
