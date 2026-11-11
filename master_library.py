@@ -711,7 +711,8 @@ def build_libraries(tools: List[dict], holders: List[dict], sets: List[dict], *,
 
 
 def audit_and_prune(lib: dict, physics: Any, *, aggressiveness: Any, max_rpm: float, max_hp: float, runout: float,
-                    model: Optional[str] = None, machine_profile: Optional[dict] = None) -> Dict[str, Any]:
+                    model: Optional[str] = None, machine_profile: Optional[dict] = None,
+                    include_owner_presets: bool = False) -> Dict[str, Any]:
     """Audit a built library with ``library_audit`` and drop every ToolWiz-generated preset that has a STOP finding
     (the library dict is edited in place). Returns {"summary": {STOP, CAUTION, INFO, tools, presets} after the
     drops, "dropped": [{"tool","preset","code","message"}], "owner_stop": [...STOP findings on the owner's own

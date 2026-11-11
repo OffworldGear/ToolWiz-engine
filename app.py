@@ -1341,15 +1341,25 @@ def twin_batch_generate():
                                                target_material_to_replace=target_mat)
             presets_list = t_dict.setdefault("start-values", {}).setdefault("presets", [])
             for preset_dict in new_presets:
-                # Replace a same-named preset only when ToolWiz wrote it (tagged, or an older ToolWiz-shaped
-                # one with an operation_type); the owner's own preset of that name is kept and ours renamed.
-                same = next((i for i, p in enumerate(presets_list) if p.get("name") == preset_dict["name"]), None)
-                if same is not None and (is_toolwiz_preset(presets_list[same]) or presets_list[same].get("operation_type")):
+                tag = preset_dict.get("toolwiz") or {}
+
+                def owned_by_toolwiz(p):
+                    return is_toolwiz_preset(p) or bool(p.get("operation_type"))
+                # Replace what ToolWiz wrote earlier for this material and strategy (tagged), or a same-named
+                # older ToolWiz-shaped preset; the owner's own preset of that name is kept and ours renamed.
+                same = next((i for i, p in enumerate(presets_list)
+                             if is_toolwiz_preset(p) and p["toolwiz"].get("material") == tag.get("material")
+                             and p["toolwiz"].get("strategy") == tag.get("strategy")), None)
+                if same is None:
+                    same = next((i for i, p in enumerate(presets_list)
+                                 if p.get("name") == preset_dict["name"] and owned_by_toolwiz(p)), None)
+                if same is not None:
                     preset_dict["guid"] = presets_list[same].get("guid", preset_dict["guid"])
+                    preset_dict["name"] = presets_list[same].get("name", preset_dict["name"])   # keeps a " (ToolWiz)" rename
                     presets_list[same] = preset_dict       # whole preset: stale "expressions" would override the numbers
                 else:
-                    if same is not None:
-                        taken = {str(p.get("name", "")).lower() for p in presets_list}
+                    taken = {str(p.get("name", "")).lower() for p in presets_list}
+                    if preset_dict["name"].lower() in taken:
                         n = 1
                         while True:
                             cand = f"{preset_dict['name']} (ToolWiz{'' if n == 1 else ' ' + str(n)})"

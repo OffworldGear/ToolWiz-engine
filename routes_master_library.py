@@ -104,7 +104,8 @@ def _parse(A, body: dict) -> Dict[str, Any]:
     runout = A._runout_arg(body)
     if runout < 0 or max_rpm <= 0 or max_hp <= 0:
         raise ValueError("runout must be >= 0 and maxRpm / maxHp positive")
-    filt = body.get("filter") or {}
+    filt = body.get("filter", {})
+    filt = {} if filt is None else filt
     if not isinstance(filt, dict):
         raise ValueError("filter must be an object")
     for k in ("types", "libraries", "sources", "tool_ids"):
@@ -120,7 +121,8 @@ def _parse(A, body: dict) -> Dict[str, Any]:
         raise ValueError(f"No tools match the filter ({len(merged['tools'])} tools merged; tool types present: {types}).")
     return {"tools": selected, "holders": merged["holders"] if body.get("include_holders", True) else [],
             "merge": merge_report, "sets": sets, "strategies": strategies, "aggressiveness": aggr,
-            "use_tool_overrides": bool(body.get("use_tool_overrides", True)), "max_rpm": max_rpm, "max_hp": max_hp,
+            "use_tool_overrides": bool(body.get("use_tool_overrides", True)),
+            "audit_owner_presets": bool(body.get("audit_owner_presets", False)), "max_rpm": max_rpm, "max_hp": max_hp,
             "runout": runout, "model": A._request_model(body), "machine": A.active_machine(),
             "filter": filt}
 
@@ -169,7 +171,7 @@ def build_sets():
     library), ``use_working_library``, ``filter`` {types, diameter_min, diameter_max, diameter_unit, libraries,
     sources, tool_ids}, ``sets`` [ids], ``materials`` [ids], ``strategies`` [names], ``aggressiveness`` (percent,
     default 50), ``runout`` (in), ``maxRpm``, ``maxHp``, ``model``, ``use_tool_overrides``, ``repair``,
-    ``deduplicate``, ``include_holders``."""
+    ``deduplicate``, ``include_holders``, ``audit_owner_presets`` (default false: only ToolWiz presets are audited)."""
     A = _A()
     try:
         params = _parse(A, A._json_body())
@@ -214,7 +216,8 @@ def _run_job(job: dict, p: dict, bm: Any, physics: Any) -> None:
         out = []
         for lib in libs:
             job["phase"] = f"auditing {lib['name']}"
-            audit = ml.audit_and_prune(lib, physics, aggressiveness=p["aggressiveness"], **common)
+            audit = ml.audit_and_prune(lib, physics, aggressiveness=p["aggressiveness"],
+                                       include_owner_presets=p["audit_owner_presets"], **common)
             job["phase"] = f"saving {lib['name']}"
             tools_only = [t for t in lib["tools"] if str(t.get("type", "")).lower() != "holder"]
             n_presets = sum(len((t.get("start-values") or {}).get("presets") or []) for t in tools_only)
