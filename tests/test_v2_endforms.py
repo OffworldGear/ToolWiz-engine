@@ -77,13 +77,21 @@ class TestEngagement(unittest.TestCase):
 
 class TestPipeline(unittest.TestCase):
     def test_speed_at_depth_ball(self):
-        """Below the radius a ball tool turns faster: v_c is set at the effective diameter 2·sqrt(R² − (R − ap)²)."""
-        shallow = run_cut(app.physics, _request("Ball", cut_depth=0.01, cut_width=0.01, family=H13, alloy="H13"))
-        deep = run_cut(app.physics, _request("Ball", cut_depth=0.0625, cut_width=0.01, family=H13, alloy="H13"))
-        self.assertEqual(shallow.model, "v2")
-        self.assertAlmostEqual(shallow.effective_diameter, 2 * math.sqrt(0.0625 ** 2 - (0.0625 - 0.01) ** 2), places=5)
-        self.assertAlmostEqual(deep.effective_diameter, 0.125, places=5)
-        self.assertGreater(shallow.rpm, deep.rpm * 1.2)
+        """C7 turns a ball tool faster below its radius: v_c is set at the effective diameter 2·sqrt(R² − (R − ap)²)."""
+        m = params.material(H13, hb=300)
+        tool = o.Tool.build(0.125, 2, 0.1875, 0.5, corner_radius_in=0.0625)
+        from dataclasses import replace
+        mach = replace(o.speedio_16k(), max_rpm=1e6)
+        ctx = o._Context(tool, m, mach, "adaptive", params.margins(0.5))
+        shallow, deep = ctx.speed(0.2, 0.01), ctx.speed(0.2, 0.125)   # a slot: the same engagement angle
+        d_eff = 2 * math.sqrt(0.0625 ** 2 - (0.0625 - 0.01) ** 2)
+        self.assertAlmostEqual(deep[1] / shallow[1], 1.0, delta=0.02)          # same cutting speed (m/min) ...
+        self.assertAlmostEqual(shallow[0] / deep[0], 0.125 / d_eff, delta=0.02)  # ... so the rpm scales with 1/D_eff
+        # the pipeline reports the effective diameter and SFM on both diameters
+        r = run_cut(app.physics, _request("Ball", cut_depth=0.01, cut_width=0.01, family=H13, alloy="H13"))
+        self.assertEqual(r.model, "v2")
+        self.assertAlmostEqual(r.effective_diameter, d_eff, places=5)
+        self.assertLess(r.contact_sfm, r.sfm)
 
     def test_bull_is_v2_and_close_to_square_at_tiny_radius(self):
         sq = run_cut(app.physics, _request("Square", D=0.25, flutes=4, cut_depth=0.25, cut_width=0.025))

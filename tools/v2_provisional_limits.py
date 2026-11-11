@@ -170,12 +170,17 @@ def spread(vals):
     return {"median": statistics.median(vals), "p25": q[0], "p75": q[2], "min": vals[0], "max": vals[-1]}
 
 
+def end_of(row):
+    """The row's end form: 'square', 'ball' or 'corner_radius' (the legacy spelling 'corner radius' is normalized)."""
+    return str((row.get("tool") or {}).get("end") or "").strip().lower().replace(" ", "_")
+
+
 def build(rows_glob=None):
     machine = o.speedio_16k(TIR_IN)
     rows = []
     for path in sorted(glob.glob(rows_glob or os.path.join(ROOT, "tests", "benchmarks", "v2", "*.json"))):
         with open(path, encoding="utf-8") as fh:
-            rows += [r for r in json.load(fh)["rows"] if r["operation"] in OPERATIONS]
+            rows += [r for r in json.load(fh)["rows"] if r["operation"] in OPERATIONS and end_of(r) == "square"]
     evaluated = [evaluate_row(r, machine) for r in rows]
     done = [e for e in evaluated if "skipped" not in e]
     bands = []

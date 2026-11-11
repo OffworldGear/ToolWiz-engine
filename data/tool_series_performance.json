@@ -269,63 +269,13 @@
    ]
   },
   "non_ferrous|side|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.21093,
-   "bucket_rows": 9,
-   "recommended": [
-    {
-     "coatings": [
-      "ALCR"
-     ],
-     "evidence": [
-      "emuge_VAR_std_N1.2_side_ae0.4_1-8",
-      "emuge_VAR_std_N1.2_side_ae0.2_1-8",
-      "emuge_VAR_std_N1.2_side_ae0.02_1-8"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 2.286,
-     "median_mrr_in3_min": 0.48224,
-     "rows": 3,
-     "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
-     "vendor": "Emuge-Franken",
-     "vendor_group": "Emuge-Franken"
-    }
-   ],
+   "bucket_median_mrr_in3_min": 0.44871,
+   "bucket_rows": 6,
+   "recommended": [],
    "vendor_groups": [
     "Emuge-Franken",
-    "Harvey Performance",
     "OSG",
     "YG-1"
-   ]
-  },
-  "non_ferrous|side|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.01424,
-   "bucket_rows": 5,
-   "recommended": [
-    {
-     "coatings": [
-      "ALCR"
-     ],
-     "evidence": [
-      "emuge_VAR_std_N1.2_side_ae0.4_1-16",
-      "emuge_VAR_std_N1.2_side_ae0.2_1-16",
-      "emuge_VAR_std_N1.2_side_ae0.02_1-16"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 8.469,
-     "median_mrr_in3_min": 0.12056,
-     "rows": 3,
-     "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
-     "vendor": "Emuge-Franken",
-     "vendor_group": "Emuge-Franken"
-    }
-   ],
-   "vendor_groups": [
-    "Emuge-Franken",
-    "Harvey Performance"
    ]
   },
   "non_ferrous|side|1/4-1/2": {
@@ -361,8 +311,8 @@
    ]
   },
   "non_ferrous|slot|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.69935,
-   "bucket_rows": 8,
+   "bucket_median_mrr_in3_min": 1.38395,
+   "bucket_rows": 5,
    "recommended": [],
    "vendor_groups": [
     "Emuge-Franken",
@@ -487,8 +437,8 @@
    ]
   },
   "stainless|hem|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.15029,
-   "bucket_rows": 27,
+   "bucket_median_mrr_in3_min": 0.1412,
+   "bucket_rows": 18,
    "recommended": [
     {
      "coatings": [
@@ -501,33 +451,12 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.471,
+     "gain_vs_bucket_median": 1.566,
      "median_mrr_in3_min": 0.22109,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
      "vendor": "YG-1",
      "vendor_group": "YG-1"
-    },
-    {
-     "coatings": [
-      "Tplus"
-     ],
-     "evidence": [
-      "helical2_HVSS6_ss_300_75-98HRB_hem_1-8",
-      "helical2_HVSS6_ss_300_21-36HRC_hem_1-8",
-      "helical2_HVSS6_ss_ph_21-36HRC_hem_1-8",
-      "helical2_HVSS6_ss_300_36-50HRC_hem_1-8",
-      "helical2_HVSS6_ss_ph_36-50HRC_hem_1-8"
-     ],
-     "flutes": [
-      6
-     ],
-     "gain_vs_bucket_median": 1.458,
-     "median_mrr_in3_min": 0.21916,
-     "rows": 5,
-     "series": "HVSS-6 Tplus",
-     "vendor": "Helical Solutions",
-     "vendor_group": "Harvey Performance"
     },
     {
      "coatings": [
@@ -540,17 +469,32 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.322,
+     "gain_vs_bucket_median": 1.407,
      "median_mrr_in3_min": 0.19868,
      "rows": 2,
      "series": "CoroMill Dura 1K365",
      "vendor": "Sandvik Coromant",
      "vendor_group": "Sandvik"
+    },
+    {
+     "coatings": [],
+     "evidence": [
+      "kmt2_HARVII-TE5_M1_hem_0.125_7155689",
+      "kmt2_HARVII-TE5_P5_hem_0.125_7155689"
+     ],
+     "flutes": [
+      5
+     ],
+     "gain_vs_bucket_median": 1.356,
+     "median_mrr_in3_min": 0.19152,
+     "rows": 2,
+     "series": "HARVI II TE 5-flute square end",
+     "vendor": "Kennametal",
+     "vendor_group": "Kennametal"
     }
    ],
    "vendor_groups": [
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -559,8 +503,8 @@
    ]
   },
   "stainless|hem|1/4-1/2": {
-   "bucket_median_mrr_in3_min": 2.90306,
-   "bucket_rows": 78,
+   "bucket_median_mrr_in3_min": 2.89339,
+   "bucket_rows": 69,
    "recommended": [
     {
      "coatings": [
@@ -577,7 +521,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.811,
+     "gain_vs_bucket_median": 1.817,
      "median_mrr_in3_min": 5.25663,
      "rows": 6,
      "series": "H-Carb 77",
@@ -599,7 +543,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.609,
+     "gain_vs_bucket_median": 1.614,
      "median_mrr_in3_min": 4.66961,
      "rows": 6,
      "series": "TiNox-Cut Trochoidal NF",
@@ -617,7 +561,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.523,
+     "gain_vs_bucket_median": 1.528,
      "median_mrr_in3_min": 4.4218,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
@@ -636,7 +580,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.439,
+     "gain_vs_bucket_median": 1.444,
      "median_mrr_in3_min": 4.1782,
      "rows": 3,
      "series": "JS554-3C Jabro-Solid2 advanced roughing, square, 4 flutes, chip splitters, chamfer",
@@ -656,8 +600,8 @@
    ]
   },
   "stainless|hem|1/8-1/4": {
-   "bucket_median_mrr_in3_min": 0.72652,
-   "bucket_rows": 60,
+   "bucket_median_mrr_in3_min": 0.71205,
+   "bucket_rows": 54,
    "recommended": [
     {
      "coatings": [
@@ -671,7 +615,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.558,
+     "gain_vs_bucket_median": 1.589,
      "median_mrr_in3_min": 1.13159,
      "rows": 3,
      "series": "JS554-3C Jabro-Solid2 advanced roughing, square, 4 flutes, chip splitters, chamfer",
@@ -693,7 +637,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.341,
+     "gain_vs_bucket_median": 1.368,
      "median_mrr_in3_min": 0.97443,
      "rows": 6,
      "series": "H-Carb 77",
@@ -714,18 +658,39 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.306,
+     "gain_vs_bucket_median": 1.332,
      "median_mrr_in3_min": 0.94851,
      "rows": 4,
      "series": "X5/G5 5-flute high performance end mill",
      "vendor": "Garr Tool",
      "vendor_group": "Garr Tool"
+    },
+    {
+     "coatings": [
+      "TiN/TiAlN"
+     ],
+     "evidence": [
+      "emuge_TiNoxTroch_M1.1_hem_2xD_1-4",
+      "emuge_TiNoxTroch_M1.1_hem_3xD_1-4",
+      "emuge_TiNoxTroch_M2.1_hem_2xD_1-4",
+      "emuge_TiNoxTroch_M2.1_hem_3xD_1-4",
+      "emuge_TiNoxTroch_M1.1_hem_4xD_1-4",
+      "emuge_TiNoxTroch_M2.1_hem_4xD_1-4"
+     ],
+     "flutes": [
+      4
+     ],
+     "gain_vs_bucket_median": 1.312,
+     "median_mrr_in3_min": 0.93392,
+     "rows": 6,
+     "series": "TiNox-Cut Trochoidal NF",
+     "vendor": "Emuge-Franken",
+     "vendor_group": "Emuge-Franken"
     }
    ],
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -734,8 +699,8 @@
    ]
   },
   "stainless|hem|>1/2": {
-   "bucket_median_mrr_in3_min": 8.5471,
-   "bucket_rows": 47,
+   "bucket_median_mrr_in3_min": 8.47432,
+   "bucket_rows": 44,
    "recommended": [
     {
      "coatings": [
@@ -752,7 +717,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.954,
+     "gain_vs_bucket_median": 1.971,
      "median_mrr_in3_min": 16.70458,
      "rows": 6,
      "series": "H-Carb 77",
@@ -770,7 +735,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.426,
+     "gain_vs_bucket_median": 1.438,
      "median_mrr_in3_min": 12.18452,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
@@ -791,7 +756,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.348,
+     "gain_vs_bucket_median": 1.36,
      "median_mrr_in3_min": 11.52182,
      "rows": 4,
      "series": "X5/G5 5-flute high performance end mill",
@@ -801,7 +766,6 @@
    ],
    "vendor_groups": [
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -863,8 +827,8 @@
    ]
   },
   "stainless|side|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.08823,
-   "bucket_rows": 58,
+   "bucket_median_mrr_in3_min": 0.1075,
+   "bucket_rows": 52,
    "recommended": [
     {
      "coatings": [
@@ -877,7 +841,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 5.538,
+     "gain_vs_bucket_median": 4.545,
      "median_mrr_in3_min": 0.48857,
      "rows": 2,
      "series": "CoroMill Plura HD 2P342",
@@ -893,7 +857,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 4.642,
+     "gain_vs_bucket_median": 3.81,
      "median_mrr_in3_min": 0.40958,
      "rows": 2,
      "series": "HARVI II TE 5-flute square end",
@@ -909,7 +873,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 3.714,
+     "gain_vs_bucket_median": 3.048,
      "median_mrr_in3_min": 0.32766,
      "rows": 2,
      "series": "HARVI I TE 4-flute square end",
@@ -929,7 +893,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.578,
+     "gain_vs_bucket_median": 2.116,
      "median_mrr_in3_min": 0.22743,
      "rows": 6,
      "series": "GOmill PRO 4-flute square end",
@@ -947,7 +911,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 2.537,
+     "gain_vs_bucket_median": 2.082,
      "median_mrr_in3_min": 0.22381,
      "rows": 2,
      "series": "TitaNox-Power HPC 5-flute double core standard length square end EMI42",
@@ -965,7 +929,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.246,
+     "gain_vs_bucket_median": 1.844,
      "median_mrr_in3_min": 0.19819,
      "rows": 2,
      "series": "HY-PRO CARB VGX (list VG441)",
@@ -985,34 +949,17 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.59,
+     "gain_vs_bucket_median": 1.305,
      "median_mrr_in3_min": 0.14028,
      "rows": 4,
      "series": "CoroMill Dura 1K324/1K334",
      "vendor": "Sandvik Coromant",
      "vendor_group": "Sandvik"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt2_HARVITE4M_P5_side_0.1181_6769545_necked",
-      "kmt2_HARVITE4M_P5_side_0.1181_6769545_necked_reach-30pct"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.482,
-     "median_mrr_in3_min": 0.13073,
-     "rows": 2,
-     "series": "HARVI I TE 4-flute square end, Necked",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
     }
    ],
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -1021,8 +968,8 @@
    ]
   },
   "stainless|side|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.00335,
-   "bucket_rows": 33,
+   "bucket_median_mrr_in3_min": 0.00651,
+   "bucket_rows": 29,
    "recommended": [
     {
      "coatings": [
@@ -1037,7 +984,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 8.203,
+     "gain_vs_bucket_median": 4.217,
      "median_mrr_in3_min": 0.02747,
      "rows": 4,
      "series": "VRX 4-flute end mill",
@@ -1055,7 +1002,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 5.159,
+     "gain_vs_bucket_median": 2.652,
      "median_mrr_in3_min": 0.01728,
      "rows": 2,
      "series": "M4 4-flute micro end mill 1.5xD",
@@ -1077,7 +1024,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.634,
+     "gain_vs_bucket_median": 2.382,
      "median_mrr_in3_min": 0.01552,
      "rows": 6,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
@@ -1093,60 +1040,10 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.606,
+     "gain_vs_bucket_median": 2.368,
      "median_mrr_in3_min": 0.01542,
      "rows": 2,
      "series": "GOmill GP 4-flute square end",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt2_KCMM-F2AH_P5_side_0.0591_6433282",
-      "kmt2_KCMM-F2AH_P5_side_0.0315_6433264"
-     ],
-     "flutes": [
-      2
-     ],
-     "gain_vs_bucket_median": 1.989,
-     "median_mrr_in3_min": 0.00666,
-     "rows": 2,
-     "series": "KenCut MM F2AH-WSM 2-flute square end, Extended Neck micro",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
-    },
-    {
-     "coatings": [
-      "WXL"
-     ],
-     "evidence": [
-      "osg_WXL3604_ph_side_1-16",
-      "osg_WXL3604_ss316_side_1-16"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.945,
-     "median_mrr_in3_min": 0.00651,
-     "rows": 2,
-     "series": "EXOCARB WXL (list 3604)",
-     "vendor": "OSG",
-     "vendor_group": "OSG"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt2_KCMM-F3AH_M1_side_0.0591_6415926",
-      "kmt2_KCMM-F3AH_M1_side_0.0315_6415929"
-     ],
-     "flutes": [
-      3
-     ],
-     "gain_vs_bucket_median": 1.561,
-     "median_mrr_in3_min": 0.00523,
-     "rows": 2,
-     "series": "KenCut MM F3AH-WS 3-flute square end, Short micro",
      "vendor": "Kennametal",
      "vendor_group": "Kennametal"
     }
@@ -1154,7 +1051,6 @@
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -1625,8 +1521,8 @@
    ]
   },
   "stainless|slot|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.07406,
-   "bucket_rows": 59,
+   "bucket_median_mrr_in3_min": 0.0868,
+   "bucket_rows": 53,
    "recommended": [
     {
      "coatings": [],
@@ -1637,7 +1533,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 7.373,
+     "gain_vs_bucket_median": 6.291,
      "median_mrr_in3_min": 0.5461,
      "rows": 2,
      "series": "HARVI II TE 5-flute square end",
@@ -1653,7 +1549,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 5.899,
+     "gain_vs_bucket_median": 5.033,
      "median_mrr_in3_min": 0.43688,
      "rows": 2,
      "series": "HARVI I TE 4-flute square end",
@@ -1671,7 +1567,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.635,
+     "gain_vs_bucket_median": 2.248,
      "median_mrr_in3_min": 0.19516,
      "rows": 2,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
@@ -1689,7 +1585,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.47,
+     "gain_vs_bucket_median": 2.108,
      "median_mrr_in3_min": 0.18297,
      "rows": 2,
      "series": "HY-PRO CARB VGX (list VG441)",
@@ -1707,7 +1603,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 2.263,
+     "gain_vs_bucket_median": 1.931,
      "median_mrr_in3_min": 0.16759,
      "rows": 2,
      "series": "Z-Carb-HPR Z5",
@@ -1725,7 +1621,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.225,
+     "gain_vs_bucket_median": 1.899,
      "median_mrr_in3_min": 0.1648,
      "rows": 2,
      "series": "JS754 Jabro-Solid2 ISO M/S, square, 4 flutes, cylindrical, chamfer",
@@ -1743,7 +1639,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.934,
+     "gain_vs_bucket_median": 1.65,
      "median_mrr_in3_min": 0.14324,
      "rows": 2,
      "series": "HSV-4 Tplus",
@@ -1761,7 +1657,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.81,
+     "gain_vs_bucket_median": 1.545,
      "median_mrr_in3_min": 0.13407,
      "rows": 2,
      "series": "Z-Carb-AP Z1P/Z1PCR",
@@ -1780,8 +1676,8 @@
    ]
   },
   "stainless|slot|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.00617,
-   "bucket_rows": 52,
+   "bucket_median_mrr_in3_min": 0.0075,
+   "bucket_rows": 48,
    "recommended": [
     {
      "coatings": [
@@ -1796,7 +1692,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 22.26,
+     "gain_vs_bucket_median": 18.317,
      "median_mrr_in3_min": 0.13742,
      "rows": 4,
      "series": "VRX 4-flute end mill",
@@ -1817,7 +1713,7 @@
      "flutes": [
       3
      ],
-     "gain_vs_bucket_median": 15.27,
+     "gain_vs_bucket_median": 12.565,
      "median_mrr_in3_min": 0.09427,
      "rows": 4,
      "series": "X3/G3 3-flute high performance end mill",
@@ -1835,7 +1731,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 7.924,
+     "gain_vs_bucket_median": 6.521,
      "median_mrr_in3_min": 0.04892,
      "rows": 2,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
@@ -1851,7 +1747,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 5.261,
+     "gain_vs_bucket_median": 4.329,
      "median_mrr_in3_min": 0.03248,
      "rows": 2,
      "series": "GOmill GP 4-flute square end",
@@ -1869,7 +1765,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.207,
+     "gain_vs_bucket_median": 1.816,
      "median_mrr_in3_min": 0.01363,
      "rows": 2,
      "series": "M4 4-flute micro end mill 1.5xD",
@@ -1885,44 +1781,10 @@
      "flutes": [
       3
      ],
-     "gain_vs_bucket_median": 1.691,
+     "gain_vs_bucket_median": 1.391,
      "median_mrr_in3_min": 0.01044,
      "rows": 2,
      "series": "KenCut MM F3AH-WS 3-flute square end, Short micro",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
-    },
-    {
-     "coatings": [
-      "AlTiN Nano (C6)"
-     ],
-     "evidence": [
-      "harvey_SF875400_ss_ph_300-350HBn_slot_0.062",
-      "harvey_SF875400_ss_ph_350-400HBn_slot_0.062"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.473,
-     "median_mrr_in3_min": 0.00909,
-     "rows": 2,
-     "series": "Variable Helix End Mills for High Temp Alloys - Square, 3x LOC, 4 flutes, 4 flute",
-     "vendor": "Harvey Tool",
-     "vendor_group": "Harvey Performance"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt2_KCMM-F2AH_P5_slot_0.0591_6433282",
-      "kmt2_KCMM-F2AH_P5_slot_0.0315_6433264"
-     ],
-     "flutes": [
-      2
-     ],
-     "gain_vs_bucket_median": 1.378,
-     "median_mrr_in3_min": 0.00851,
-     "rows": 2,
-     "series": "KenCut MM F2AH-WSM 2-flute square end, Extended Neck micro",
      "vendor": "Kennametal",
      "vendor_group": "Kennametal"
     }
@@ -2410,8 +2272,8 @@
    ]
   },
   "steel|hem|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.17079,
-   "bucket_rows": 12,
+   "bucket_median_mrr_in3_min": 0.14994,
+   "bucket_rows": 8,
    "recommended": [
     {
      "coatings": [
@@ -2424,7 +2286,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.818,
+     "gain_vs_bucket_median": 2.07,
      "median_mrr_in3_min": 0.31044,
      "rows": 2,
      "series": "CoroMill Dura 1K365",
@@ -2680,8 +2542,8 @@
    ]
   },
   "steel|side|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.12915,
-   "bucket_rows": 50,
+   "bucket_median_mrr_in3_min": 0.17042,
+   "bucket_rows": 44,
    "recommended": [
     {
      "coatings": [
@@ -2698,7 +2560,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.612,
+     "gain_vs_bucket_median": 3.495,
      "median_mrr_in3_min": 0.59569,
      "rows": 6,
      "series": "CoroMill Plura HD 2P342",
@@ -2715,7 +2577,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.037,
+     "gain_vs_bucket_median": 3.059,
      "median_mrr_in3_min": 0.52139,
      "rows": 3,
      "series": "HARVI I TE 4-flute square end",
@@ -2731,7 +2593,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.489,
+     "gain_vs_bucket_median": 1.886,
      "median_mrr_in3_min": 0.32149,
      "rows": 2,
      "series": "GOmill PRO 4-flute square end",
@@ -2747,7 +2609,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.379,
+     "gain_vs_bucket_median": 1.803,
      "median_mrr_in3_min": 0.3073,
      "rows": 2,
      "series": "GOmill GP 4-flute square end",
@@ -2768,34 +2630,17 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.269,
+     "gain_vs_bucket_median": 1.72,
      "median_mrr_in3_min": 0.29307,
      "rows": 5,
      "series": "CoroMill Dura 1K324/1K334",
      "vendor": "Sandvik Coromant",
      "vendor_group": "Sandvik"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt2_HARVITE4M_H1_side_0.1181_6769545_necked",
-      "kmt2_HARVITE4M_H1_side_0.1181_6769545_necked_reach-30pct"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.516,
-     "median_mrr_in3_min": 0.19585,
-     "rows": 2,
-     "series": "HARVI I TE 4-flute square end, Necked",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
     }
    ],
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -2803,8 +2648,8 @@
    ]
   },
   "steel|side|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.0097,
-   "bucket_rows": 32,
+   "bucket_median_mrr_in3_min": 0.01453,
+   "bucket_rows": 28,
    "recommended": [
     {
      "coatings": [
@@ -2818,7 +2663,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 3.855,
+     "gain_vs_bucket_median": 2.574,
      "median_mrr_in3_min": 0.0374,
      "rows": 3,
      "series": "VRX 4-flute end mill",
@@ -2835,7 +2680,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 3.136,
+     "gain_vs_bucket_median": 2.094,
      "median_mrr_in3_min": 0.03042,
      "rows": 3,
      "series": "GOmill GP 4-flute square end",
@@ -2857,7 +2702,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.533,
+     "gain_vs_bucket_median": 1.691,
      "median_mrr_in3_min": 0.02457,
      "rows": 12,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
@@ -2868,7 +2713,6 @@
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -3215,8 +3059,8 @@
    ]
   },
   "steel|slot|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.17186,
-   "bucket_rows": 37,
+   "bucket_median_mrr_in3_min": 0.24751,
+   "bucket_rows": 31,
    "recommended": [
     {
      "coatings": [
@@ -3230,7 +3074,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.89,
+     "gain_vs_bucket_median": 3.396,
      "median_mrr_in3_min": 0.84047,
      "rows": 3,
      "series": "CoroMill Plura HD 2P342",
@@ -3247,7 +3091,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.045,
+     "gain_vs_bucket_median": 2.809,
      "median_mrr_in3_min": 0.69519,
      "rows": 3,
      "series": "HARVI I TE 4-flute square end",
@@ -3266,7 +3110,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 2.272,
+     "gain_vs_bucket_median": 1.578,
      "median_mrr_in3_min": 0.39045,
      "rows": 3,
      "series": "HEV-5 Aplus",
@@ -3286,28 +3130,12 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.056,
+     "gain_vs_bucket_median": 1.428,
      "median_mrr_in3_min": 0.35332,
      "rows": 4,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
      "vendor": "Emuge-Franken",
      "vendor_group": "Emuge-Franken"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt_GOMILLGP4_P2_slot_0.125_6086562",
-      "kmt_GOMILLGP4_P3_slot_0.125_6086562"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.788,
-     "median_mrr_in3_min": 0.3073,
-     "rows": 2,
-     "series": "GOmill GP 4-flute square end",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
     }
    ],
    "vendor_groups": [
@@ -3320,8 +3148,8 @@
    ]
   },
   "steel|slot|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.0378,
-   "bucket_rows": 27,
+   "bucket_median_mrr_in3_min": 0.06463,
+   "bucket_rows": 23,
    "recommended": [
     {
      "coatings": [
@@ -3335,7 +3163,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.95,
+     "gain_vs_bucket_median": 2.895,
      "median_mrr_in3_min": 0.18711,
      "rows": 3,
      "series": "VRX 4-flute end mill",
@@ -3354,7 +3182,7 @@
      "flutes": [
       3
      ],
-     "gain_vs_bucket_median": 3.453,
+     "gain_vs_bucket_median": 2.02,
      "median_mrr_in3_min": 0.13053,
      "rows": 3,
      "series": "X3/G3 3-flute high performance end mill",
@@ -3374,29 +3202,12 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.339,
+     "gain_vs_bucket_median": 1.368,
      "median_mrr_in3_min": 0.08842,
      "rows": 4,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
      "vendor": "Emuge-Franken",
      "vendor_group": "Emuge-Franken"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt_GOMILLGP4_P2_slot_0.0625_6086555",
-      "kmt_GOMILLGP4_P3_slot_0.0625_6086555",
-      "kmt_GOMILLGP4_P2_slot_0.0313_6086554"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.839,
-     "median_mrr_in3_min": 0.06952,
-     "rows": 3,
-     "series": "GOmill GP 4-flute square end",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
     }
    ],
    "vendor_groups": [
@@ -3817,8 +3628,8 @@
    ]
   },
   "ti_ni_co|hem|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.0564,
-   "bucket_rows": 30,
+   "bucket_median_mrr_in3_min": 0.06565,
+   "bucket_rows": 26,
    "recommended": [
     {
      "coatings": [
@@ -3835,7 +3646,7 @@
      "flutes": [
       6
      ],
-     "gain_vs_bucket_median": 2.174,
+     "gain_vs_bucket_median": 1.868,
      "median_mrr_in3_min": 0.12261,
      "rows": 6,
      "series": "Variable Pitch End Mills for Titanium Alloys - Square, 6 flute",
@@ -3853,7 +3664,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 2.069,
+     "gain_vs_bucket_median": 1.777,
      "median_mrr_in3_min": 0.11669,
      "rows": 2,
      "series": "HY-PRO CARB VGM5 (list VGM5)",
@@ -3871,7 +3682,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.717,
+     "gain_vs_bucket_median": 1.475,
      "median_mrr_in3_min": 0.09683,
      "rows": 2,
      "series": "HY-PRO CARB VGM5-LN (list VGM5-LN)",
@@ -3889,32 +3700,12 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.649,
+     "gain_vs_bucket_median": 1.417,
      "median_mrr_in3_min": 0.093,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
      "vendor": "YG-1",
      "vendor_group": "YG-1"
-    },
-    {
-     "coatings": [
-      "Aplus"
-     ],
-     "evidence": [
-      "helical2_HVTI6_ti_21-36HRC_hem_1-8",
-      "helical2_HVTI6_ti_36-50HRC_hem_1-8",
-      "helical2_HVTI6_ni_21-36HRC_hem_1-8",
-      "helical2_HVTI6_ni_36-50HRC_hem_1-8"
-     ],
-     "flutes": [
-      6
-     ],
-     "gain_vs_bucket_median": 1.356,
-     "median_mrr_in3_min": 0.07649,
-     "rows": 4,
-     "series": "HVTI-6 Aplus",
-     "vendor": "Helical Solutions",
-     "vendor_group": "Harvey Performance"
     }
    ],
    "vendor_groups": [
@@ -3959,8 +3750,8 @@
    ]
   },
   "ti_ni_co|hem|1/4-1/2": {
-   "bucket_median_mrr_in3_min": 1.13004,
-   "bucket_rows": 74,
+   "bucket_median_mrr_in3_min": 0.99618,
+   "bucket_rows": 68,
    "recommended": [
     {
      "coatings": [
@@ -3973,7 +3764,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.315,
+     "gain_vs_bucket_median": 2.627,
      "median_mrr_in3_min": 2.61657,
      "rows": 2,
      "series": "JS554-3C Jabro-Solid2 advanced roughing, square, 4 flutes, chip splitters, chamfer",
@@ -3992,7 +3783,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.901,
+     "gain_vs_bucket_median": 2.157,
      "median_mrr_in3_min": 2.14859,
      "rows": 3,
      "series": "X5/G5 5-flute high performance end mill",
@@ -4014,7 +3805,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.873,
+     "gain_vs_bucket_median": 2.125,
      "median_mrr_in3_min": 2.11685,
      "rows": 6,
      "series": "H-Carb 77",
@@ -4033,7 +3824,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.757,
+     "gain_vs_bucket_median": 1.993,
      "median_mrr_in3_min": 1.9853,
      "rows": 3,
      "series": "X7/G7 7-flute high performance end mill",
@@ -4051,7 +3842,7 @@
      "flutes": [
       7
      ],
-     "gain_vs_bucket_median": 1.682,
+     "gain_vs_bucket_median": 1.908,
      "median_mrr_in3_min": 1.90107,
      "rows": 2,
      "series": "TitaNox-Power HPC 7-flute standard length square end HHK82",
@@ -4073,7 +3864,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.394,
+     "gain_vs_bucket_median": 1.582,
      "median_mrr_in3_min": 1.57563,
      "rows": 6,
      "series": "TiNox-Cut Trochoidal NF",
@@ -4094,7 +3885,7 @@
   },
   "ti_ni_co|hem|1/8-1/4": {
    "bucket_median_mrr_in3_min": 0.26442,
-   "bucket_rows": 65,
+   "bucket_rows": 59,
    "recommended": [
     {
      "coatings": [
@@ -4362,8 +4153,8 @@
    ]
   },
   "ti_ni_co|side|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.03765,
-   "bucket_rows": 38,
+   "bucket_median_mrr_in3_min": 0.05552,
+   "bucket_rows": 32,
    "recommended": [
     {
      "coatings": [],
@@ -4374,7 +4165,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 3.139,
+     "gain_vs_bucket_median": 2.129,
      "median_mrr_in3_min": 0.11817,
      "rows": 2,
      "series": "HARVI II TE 5-flute square end",
@@ -4392,7 +4183,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.747,
+     "gain_vs_bucket_median": 1.863,
      "median_mrr_in3_min": 0.10342,
      "rows": 2,
      "series": "HY-PRO CARB VGX (list VG441)",
@@ -4408,7 +4199,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.511,
+     "gain_vs_bucket_median": 1.703,
      "median_mrr_in3_min": 0.09454,
      "rows": 2,
      "series": "HARVI I TE 4-flute square end",
@@ -4426,82 +4217,10 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 1.935,
+     "gain_vs_bucket_median": 1.312,
      "median_mrr_in3_min": 0.07284,
      "rows": 4,
      "series": "GOmill PRO 4-flute square end",
-     "vendor": "Kennametal",
-     "vendor_group": "Kennametal"
-    },
-    {
-     "coatings": [
-      "AlTiN"
-     ],
-     "evidence": [
-      "yg1_emi42h_36_37_side_1-8",
-      "yg1_emi42h_31_35_side_1-8"
-     ],
-     "flutes": [
-      5
-     ],
-     "gain_vs_bucket_median": 1.864,
-     "median_mrr_in3_min": 0.07019,
-     "rows": 2,
-     "series": "TitaNox-Power HPC 5-flute double core standard length square end EMI42",
-     "vendor": "YG-1",
-     "vendor_group": "YG-1"
-    },
-    {
-     "coatings": [
-      "HXT"
-     ],
-     "evidence": [
-      "seco_JS754_S12_side_3mm",
-      "seco_JS754_S3_side_3mm"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.52,
-     "median_mrr_in3_min": 0.05723,
-     "rows": 2,
-     "series": "JS754 Jabro-Solid2 ISO M/S, square, 4 flutes, cylindrical, chamfer",
-     "vendor": "Seco Tools",
-     "vendor_group": "Sandvik"
-    },
-    {
-     "coatings": [
-      "Ti-NAMITE-X (TX)"
-     ],
-     "evidence": [
-      "sgs_z1p_ti_profile_1-8",
-      "sgs_z1p_ht400_profile_1-8"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.439,
-     "median_mrr_in3_min": 0.05419,
-     "rows": 2,
-     "series": "Z-Carb-AP Z1P/Z1PCR",
-     "vendor": "Kyocera SGS Precision Tools",
-     "vendor_group": "Kyocera"
-    },
-    {
-     "coatings": [],
-     "evidence": [
-      "kmt2_HARVITE4M_S4_side_0.1181_6769545_necked",
-      "kmt2_HARVITE4M_S4_side_0.1181_6769545_necked_reach-30pct",
-      "kmt2_HARVITE4M_S3_side_0.1181_6769545_necked",
-      "kmt2_HARVITE4M_S3_side_0.1181_6769545_necked_reach-30pct"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 1.333,
-     "median_mrr_in3_min": 0.05019,
-     "rows": 4,
-     "series": "HARVI I TE 4-flute square end, Necked",
      "vendor": "Kennametal",
      "vendor_group": "Kennametal"
     }
@@ -4509,7 +4228,6 @@
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kennametal",
     "Kyocera",
     "OSG",
@@ -4518,8 +4236,8 @@
    ]
   },
   "ti_ni_co|side|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.0017,
-   "bucket_rows": 23,
+   "bucket_median_mrr_in3_min": 0.00323,
+   "bucket_rows": 19,
    "recommended": [
     {
      "coatings": [
@@ -4533,7 +4251,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 8.512,
+     "gain_vs_bucket_median": 4.486,
      "median_mrr_in3_min": 0.0145,
      "rows": 3,
      "series": "VRX 4-flute end mill",
@@ -4551,40 +4269,17 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 3.456,
+     "gain_vs_bucket_median": 1.821,
      "median_mrr_in3_min": 0.00589,
      "rows": 2,
      "series": "M4 4-flute micro end mill 1.5xD",
      "vendor": "Kyocera SGS Precision Tools",
      "vendor_group": "Kyocera"
-    },
-    {
-     "coatings": [
-      "ALCR"
-     ],
-     "evidence": [
-      "emuge_VAR_std_S1.2_side_ae0.4_1-16",
-      "emuge_VAR_std_S1.2_side_ae0.2_1-16",
-      "emuge_VAR_std_S2.3_side_ae0.4_1-16",
-      "emuge_VAR_std_S2.3_side_ae0.2_1-16",
-      "emuge_VAR_std_S1.2_side_ae0.02_1-16",
-      "emuge_VAR_std_S2.3_side_ae0.02_1-16"
-     ],
-     "flutes": [
-      4
-     ],
-     "gain_vs_bucket_median": 2.211,
-     "median_mrr_in3_min": 0.00376,
-     "rows": 6,
-     "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
-     "vendor": "Emuge-Franken",
-     "vendor_group": "Emuge-Franken"
     }
    ],
    "vendor_groups": [
     "Emuge-Franken",
     "Garr Tool",
-    "Harvey Performance",
     "Kyocera",
     "OSG",
     "Sandvik"
@@ -4913,8 +4608,8 @@
    ]
   },
   "ti_ni_co|slot|1/16-1/8": {
-   "bucket_median_mrr_in3_min": 0.02149,
-   "bucket_rows": 45,
+   "bucket_median_mrr_in3_min": 0.02853,
+   "bucket_rows": 39,
    "recommended": [
     {
      "coatings": [],
@@ -4925,7 +4620,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 6.4,
+     "gain_vs_bucket_median": 4.819,
      "median_mrr_in3_min": 0.13751,
      "rows": 2,
      "series": "HARVI II TE 5-flute square end",
@@ -4943,7 +4638,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 5.028,
+     "gain_vs_bucket_median": 3.786,
      "median_mrr_in3_min": 0.10803,
      "rows": 2,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
@@ -4959,7 +4654,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 4.747,
+     "gain_vs_bucket_median": 3.574,
      "median_mrr_in3_min": 0.10199,
      "rows": 2,
      "series": "HARVI I TE 4-flute square end",
@@ -4977,7 +4672,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 3.557,
+     "gain_vs_bucket_median": 2.678,
      "median_mrr_in3_min": 0.07642,
      "rows": 2,
      "series": "HY-PRO CARB VGX (list VG441)",
@@ -4995,7 +4690,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 3.333,
+     "gain_vs_bucket_median": 2.51,
      "median_mrr_in3_min": 0.07162,
      "rows": 2,
      "series": "Z-Carb-HPR Z5",
@@ -5013,7 +4708,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.749,
+     "gain_vs_bucket_median": 2.07,
      "median_mrr_in3_min": 0.05907,
      "rows": 2,
      "series": "JS754 Jabro-Solid2 ISO M/S, square, 4 flutes, cylindrical, chamfer",
@@ -5031,7 +4726,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 2.667,
+     "gain_vs_bucket_median": 2.008,
      "median_mrr_in3_min": 0.0573,
      "rows": 2,
      "series": "Z-Carb-AP Z1P/Z1PCR",
@@ -5049,7 +4744,7 @@
      "flutes": [
       5
      ],
-     "gain_vs_bucket_median": 1.76,
+     "gain_vs_bucket_median": 1.325,
      "median_mrr_in3_min": 0.03782,
      "rows": 2,
      "series": "TitaNox-Power HPC 5-flute double core standard length square end EMI42",
@@ -5068,8 +4763,8 @@
    ]
   },
   "ti_ni_co|slot|1/32-1/16": {
-   "bucket_median_mrr_in3_min": 0.0042,
-   "bucket_rows": 48,
+   "bucket_median_mrr_in3_min": 0.00476,
+   "bucket_rows": 44,
    "recommended": [
     {
      "coatings": [
@@ -5083,7 +4778,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 17.275,
+     "gain_vs_bucket_median": 15.234,
      "median_mrr_in3_min": 0.07251,
      "rows": 3,
      "series": "VRX 4-flute end mill",
@@ -5102,7 +4797,7 @@
      "flutes": [
       3
      ],
-     "gain_vs_bucket_median": 13.82,
+     "gain_vs_bucket_median": 12.187,
      "median_mrr_in3_min": 0.05801,
      "rows": 3,
      "series": "X3/G3 3-flute high performance end mill",
@@ -5120,7 +4815,7 @@
      "flutes": [
       4
      ],
-     "gain_vs_bucket_median": 6.448,
+     "gain_vs_bucket_median": 5.686,
      "median_mrr_in3_min": 0.02707,
      "rows": 2,
      "series": "TOP-Cut VAR 4 flutes, square end, variable helix, chamfer",
@@ -5138,7 +4833,7 @@
      "flutes": [
       2
      ],
-     "gain_vs_bucket_median": 2.373,
+     "gain_vs_bucket_median": 2.092,
      "median_mrr_in3_min": 0.00996,
      "rows": 2,
      "series": "JME542 Jabro-Mini universal miniature, square",

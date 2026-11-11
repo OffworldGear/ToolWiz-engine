@@ -648,4 +648,4 @@ and after each package.
 | D7 | Micro deflection allowance `k`. | 0.5–1.5% of diameter across the slider. |
 | D8 | Whether a reduced-flute cut is offered automatically or only after a prompt. | Offer it automatically with a warning and the runout needed for all flutes to cut. |
 | D9 | Chip-load floor as a fraction of vendor consensus. | 50%. |
-| D10 | Default runout. 0.0002" puts every tool under about 3/64" in the reduced-flute regime. | Keep 0.0002" as the default and make the field prominent for tools under 1/8". |
+| D10 | Default runout. 0.0002" puts every tool under about 3/64" in the reduced-flute regime. | Keep 0.0002" as the default and make the field prominent for tools under 1/8". (V4, owner: 0.0001" for tools of 1/8" and below and 0.0002" above when no runout is given, or the holder class from the Fusion tool's holder description; `toolwiz_common/runout.py`, `runout_source` in the API.) |

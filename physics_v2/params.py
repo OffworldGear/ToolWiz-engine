@@ -141,6 +141,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     scheme, C14 from data/model_v2/consensus.json, the machine profile's holder stiffness, and (V3) the vendor
     engagement envelope and the chip-load floor."""
     kw.setdefault("consensus", CONSENSUS_PATH)
+    kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
     kw.setdefault("envelope", ENVELOPE_PATH)
     kw.setdefault("chip_floor", "vendor")
     kw.setdefault("c2_basis", C2_BASIS)
@@ -152,6 +153,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
 def evaluate_user_engagement(tool, material_, operation, ap_in, ae_in, aggressiveness=0.5, machine_=None, **kw):
     """optimize.evaluate_user_engagement with the same calibrated defaults: rpm and fz for the user's own ap and ae."""
     kw.setdefault("consensus", CONSENSUS_PATH)
+    kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
     kw.setdefault("c2_basis", C2_BASIS)
     return o.evaluate_user_engagement(tool, material_, machine_ or machine(), operation, ap_in, ae_in,
                                       margins=margins(aggressiveness), **kw)

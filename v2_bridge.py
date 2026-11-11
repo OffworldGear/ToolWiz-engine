@@ -427,7 +427,8 @@ def apply(physics, r, res, machine_profile=None):
     rpm, fz, feed = float(cut["rpm"]), float(cut["fz_in"]), float(cut["feed_ipm"])
     ratio = (feed / res.feed_ipm) if res.feed_ipm else 1.0
     res.rpm = rpm
-    res.sfm = res.contact_sfm = float(cut["sfm"])
+    res.sfm = float(cut["sfm"])                       # on the nominal diameter, as vendors print it
+    res.contact_sfm = float(cut.get("contact_sfm") or cut["sfm"])   # at the effective cutting diameter (ball and bull nose)
     if cut.get("effective_diameter_in"):
         res.effective_diameter = float(cut["effective_diameter_in"])
     res.ideal_rpm = rpm

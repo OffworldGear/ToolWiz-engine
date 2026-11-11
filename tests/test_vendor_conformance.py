@@ -20,6 +20,12 @@ the material the family at the group's median hardness.
 3. Diagnostic, not gated: per-row fixed-engagement pass rates on a stratified sample of rows (TOOLWIZ_CONFORMANCE_ROWS = rows
    per cell, default 1; 0 skips; TOOLWIZ_FULL_CONFORMANCE=1 runs every row).
 
+4. Ball and bull-nose groups (V4), reported and not gated. Rows of end "ball" or "corner_radius" (R >= 1 % of D) are grouped like the
+   square rows plus the end form (slot, side, rough, hem and finish operations; finish runs the engine's finishing operation at the
+   row's own ap and ae). The engine runs on the group's median tool with geometry "Ball" (R = D/2) or "Radiused" (the median
+   R/D x median D). Verdict rules as in 1; SFM is the vendor's nominal-diameter value. The rates are printed per end form and
+   operation with the failing groups listed (`pytest -k summary -s`); a gate is added once a form meets the square targets.
+
 Scope: square-end carbide rows of the families the v2 model is calibrated for; other rows run on v1 and are not counted.
 These tolerances and thresholds are fixed by the planner; do not change them to make the test pass.
 
@@ -54,7 +60,9 @@ PROFILE_PATH = os.path.join(ROOT, "machines", "test_generic_60k.json")
 FULL = os.environ.get("TOOLWIZ_FULL_CONFORMANCE") == "1"
 
 OPERATIONS = ("slot", "side", "hem", "rough")
-OP_NAME = {"slot": "Slotting", "side": "Roughing", "rough": "Roughing", "hem": "Adaptive Roughing"}
+OP_NAME = {"slot": "Slotting", "side": "Roughing", "rough": "Roughing", "hem": "Adaptive Roughing", "finish": "3D Finishing"}
+SHAPED_OPERATIONS = OPERATIONS + ("finish",)
+EDGE_BREAK_OVER_D = 0.01
 BANDS = (("<=1/32", 0.0, 1 / 32), ("1/32-1/16", 1 / 32, 1 / 16), ("1/16-1/8", 1 / 16, 1 / 8),
          ("1/8-1/4", 1 / 8, 1 / 4), ("1/4-1/2", 1 / 4, 1 / 2), (">1/2", 1 / 2, 1e9))
 MICRO_MAX_D = 1 / 16 + 1e-9
@@ -85,6 +93,23 @@ def in_scope(row, families):
             and str(t.get("end", "")).lower() == "square" and not (t.get("corner_radius") or 0.0)
             and row["material"].get("toolwiz_family") in families
             and not pl.missing_geometry(row) and c.get("ap") and c.get("ae"))
+
+
+def end_form_of(row):
+    """'square', 'ball' or 'bull' for a row (legacy spelling "corner radius" normalized; a radius under 1 % of D is an edge break)."""
+    t = row["tool"]
+    end = pl.end_of(row)
+    if end == "ball":
+        return "ball"
+    if end == "corner_radius" and float(t.get("corner_radius") or 0.0) >= EDGE_BREAK_OVER_D * float(t.get("DC") or 1.0):
+        return "bull"
+    return "square"
+
+
+def in_scope_shaped(row, families):
+    t, c = row["tool"], row["cut"]
+    return (row["operation"] in SHAPED_OPERATIONS and t.get("tool_material") == "carbide" and end_form_of(row) in ("ball", "bull")
+            and row["material"].get("toolwiz_family") in families and not pl.missing_geometry(row) and c.get("ap") and c.get("ae"))
 
 
 def cell_of(row):
@@ -138,6 +163,10 @@ def group_of(row):
             engagement_class(float(row["cut"]["ae"]) / d))
 
 
+def shaped_group_of(row):
+    return (end_form_of(row),) + group_of(row)
+
+
 def med(vals):
     vals = [v for v in vals if v is not None]
     return statistics.median(vals) if vals else None
@@ -171,16 +200,18 @@ def median_tool(rows):
     helix = med([float(r["tool"].get("helix_deg") or 35.0) for r in rows])
     hb = med([pl.row_hb(r["material"].get("hardness"), r["material"].get("toolwiz_family")) for r in rows])
     coat = collections.Counter(r["tool"].get("coating") or "Uncoated" for r in rows).most_common(1)[0][0]
-    return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, neck_d=neck_d, incomplete=incomplete, flutes=flutes, helix=helix, hb=hb, coating=coat)
+    cr_over_d = med([float(r["tool"].get("corner_radius") or 0.0) / float(r["tool"]["DC"]) for r in rows])
+    return dict(corner=cr_over_d * D, D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, neck_d=neck_d, incomplete=incomplete, flutes=flutes, helix=helix, hb=hb, coating=coat)
 
 
-def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None, runout=None):
+def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None, runout=None, form="square"):
     """A v2 request on the rows' median tool; ap_over_d / ae_over_d None: the engine recommends the engagement."""
     g = median_tool(rows)
     D = g["D"]
     return CutRequest(
         family=rows[0]["material"]["toolwiz_family"], alloy="vendor group", tool="HP Carbide Endmill",
-        coating=g["coating"], geometry="Square", operation=OP_NAME[op], diameter=D, flutes=g["flutes"],
+        corner_radius=(D / 2.0 if form == "ball" else g["corner"] if form == "bull" else 0.0),
+        coating=g["coating"], geometry={"square": "Square", "ball": "Ball", "bull": "Radiused"}[form], operation=OP_NAME[op], diameter=D, flutes=g["flutes"],
         flute_length=g["lcf"], shank_diameter=g["shank"], has_relieved_neck=g["neck"],
         neck_diameter=g["neck_d"] if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
         stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=GATED_TIR if runout is None else runout,
@@ -192,6 +223,7 @@ def run_job(args):
     """Worker: ("engage"|"recommend", rows) -> a small result dict (picklable)."""
     kind, rows = args[0], args[1]
     tir = args[2] if len(args) > 2 else None
+    form = args[3] if len(args) > 3 else "square"
     with open(PROFILE_PATH, encoding="utf-8") as fh:
         profile = json.load(fh)
     g = median_tool(rows)
@@ -202,9 +234,9 @@ def run_job(args):
         if kind == "engage":
             ap = med([float(r["cut"]["ap"]) / float(r["tool"]["DC"]) for r in rows])
             ae = med([min(float(r["cut"]["ae"]) / float(r["tool"]["DC"]), 1.0) for r in rows])
-            req, _ = request_for(rows, op, profile, ap, ae, tir)
+            req, _ = request_for(rows, op, profile, ap, ae, tir, form)
         else:
-            req, _ = request_for(rows, op, profile, runout=tir)
+            req, _ = request_for(rows, op, profile, runout=tir, form=form)
         res = run_cut(app.physics, req)
     except Exception as ex:   # a crash is a failed job, not a crashed run
         return {"error": f"{type(ex).__name__}: {ex}"}
@@ -240,10 +272,18 @@ def conformance():
         by_cell[cell_of(r)].append(r)
     diag = rows if FULL else (stratified(by_cell, per_cell) if per_cell > 0 else [])
 
+    shaped = collections.defaultdict(list)
+    for r in load_rows():
+        if in_scope_shaped(r, families):
+            shaped[shaped_group_of(r)].append(r)
+    shaped = {k: v for k, v in shaped.items() if len(v) >= MIN_GROUP_ROWS}
+    skeys = sorted(shaped)
     gkeys, ckeys = sorted(groups), sorted(cells)
     jobs = ([("engage", groups[k]) for k in gkeys] + [("recommend", cells[k]) for k in ckeys]
-            + [("engage", [r]) for r in diag] + [("engage", groups[k], SUMMARY_TIR) for k in gkeys])
+            + [("engage", [r]) for r in diag] + [("engage", groups[k], SUMMARY_TIR) for k in gkeys]
+            + [("engage", shaped[k], None, k[0]) for k in skeys])
     out = _pool_map(jobs)
+    sh_out = dict(zip(skeys, out[len(gkeys) + len(ckeys) + len(diag) + len(gkeys):]))
     s_out = dict(zip(gkeys, out[len(gkeys) + len(ckeys) + len(diag):]))
     g_out = dict(zip(gkeys, out[:len(gkeys)]))
     c_out = dict(zip(ckeys, out[len(gkeys):len(gkeys) + len(ckeys)]))
@@ -254,9 +294,9 @@ def conformance():
             json.dump({"groups": {"|".join(map(str, k)): v for k, v in g_out.items()},
                        "cells": {"|".join(k): v for k, v in c_out.items()}, "rows": r_out}, fh)
     info = {"rows_total": len(load_rows()), "rows_in_scope": len(rows), "groups": len(groups), "cells": len(cells),
-            "diag_rows": len(diag), "mode": "full" if FULL else "median-geometry groups", "seconds": time.time() - t0}
+            "shaped_groups": len(shaped), "diag_rows": len(diag), "mode": "full" if FULL else "median-geometry groups", "seconds": time.time() - t0}
     return {"s_out": s_out, "groups": groups, "g_out": g_out, "cells": cells, "c_out": c_out, "rows": {r["id"]: r for r in diag},
-            "r_out": r_out, "info": info}
+            "r_out": r_out, "info": info, "shaped": shaped, "sh_out": sh_out}
 
 
 def verdict(rows, out, d_override=None):
@@ -360,6 +400,35 @@ def row_diagnostic(c):
     return res
 
 
+def shaped_report(c):
+    """Per (end form, operation) pass rates of the ball and bull-nose groups and the failing groups (not gated)."""
+    res = []
+    for key, rows in sorted(c["shaped"].items()):
+        if median_tool(rows)["incomplete"]:
+            continue
+        ok, why, limited = verdict(rows, c["sh_out"][key])
+        res.append({"key": key, "n": len(rows), "ok": ok, "why": why, "form": key[0], "op": key[2],
+                    "micro": median_tool(rows)["D"] <= MICRO_MAX_D})
+    return res
+
+
+def shaped_lines(res, limit=60):
+    lines = []
+    for form in ("ball", "bull"):
+        sub = [r for r in res if r["form"] == form]
+        if not sub:
+            continue
+        lines.append(f"  {form}-nose groups (not gated): {_rate([r['ok'] for r in sub]):.1%} of {len(sub)}; "
+                     + ", ".join(f"{op} {_rate([r['ok'] for r in sub if r['op'] == op]):.1%} (n{sum(1 for r in sub if r['op'] == op)})"
+                                 for op in SHAPED_OPERATIONS if any(r["op"] == op for r in sub)))
+    bad = [r for r in res if not r["ok"]]
+    lines.append(f"  {len(bad)} failing ball/bull groups of {len(res)} (first {min(limit, len(bad))}):")
+    for r in bad[:limit]:
+        form, fam, op, band, cls = r["key"]
+        lines.append(f"    {form:<4} {fam[:28]:<28} {op:<6} {band:<9} {cls:<9} n {r['n']:>3}  {r['why']}")
+    return "\n".join(lines)
+
+
 def test_conformance_summary(conformance, capsys):
     res, cells = group_report(conformance), cell_report(conformance)
     by_op = {op: _rate([r["ok"] for r in res if r["op"] == op]) for op in OPERATIONS}
@@ -391,6 +460,7 @@ def test_conformance_summary(conformance, capsys):
               + ", ".join(f"{b} {v:.0%} (n{n})" for b, (v, n) in sorted(holder_cost(conformance).items(), key=lambda kv: [x[0] for x in BANDS].index(kv[0]))))
         print(group_table(res))
         print(cell_table(cells))
+        print(shaped_lines(shaped_report(conformance)))
 
 
 def test_fixed_engagement_overall(conformance):
@@ -399,7 +469,7 @@ def test_fixed_engagement_overall(conformance):
     assert rate >= OVERALL_MIN, f"overall {rate:.1%} of groups < {OVERALL_MIN:.0%}\n{group_table(res)}"
 
 
-KNOWN_GAP = ("Known gap, tracked in docs/V3_EVALUATION.md: below the 85% gate (v3 engine, 2026-11-11); the "
+KNOWN_GAP = ("Known gap, tracked in docs/V4_ENGINE_NOTES.md: below the 85% gate (V4 engine: rough 83.0%, micro 78.0%); the "
              "failing groups are listed there with their binding check. Strict: remove this mark when it passes.")
 
 
@@ -422,3 +492,11 @@ def test_recommended_engagement_cells(conformance):
     report = cell_report(conformance)
     rate = _rate([e["ok"] for e in report])
     assert rate >= CELL_MIN, f"{rate:.1%} of cells < {CELL_MIN:.0%}\n{cell_table(report)}"
+
+
+def test_ball_and_bull_groups_run(conformance):
+    """Every ball and bull-nose group gets a v2 result or a stated reason (no crash); the pass rates are reported, not gated."""
+    res = shaped_report(conformance)
+    assert conformance["info"]["shaped_groups"] == 0 or res
+    errors = [r for r in res if r["why"].startswith("error")]
+    assert not errors, "\n".join(f"{r['key']}: {r['why']}" for r in errors)

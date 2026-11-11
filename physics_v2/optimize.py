@@ -139,6 +139,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIMITS_PATH = os.path.join(ROOT, "data", "model_v2", "provisional_limits.json")
 CHIP_LIMITS_PATH = os.path.join(ROOT, "data", "model_v2", "chip_limits.json")
 CONSENSUS_DEFAULT_PATH = os.path.join(ROOT, "data", "model_v2", "consensus.json")
+CONSENSUS_SHAPED_DEFAULT_PATH = os.path.join(ROOT, "data", "model_v2", "consensus_shaped.json")
 V1_OPERATION_NAME = {"rough": "Roughing", "adaptive": "Adaptive Roughing", "slot": "Slotting",
                      "finish": "Finishing"}
 
@@ -958,7 +959,7 @@ def c14_speed(pt, rpm_given=False):
     s = ctx.mg.consensus_cap_scale
     med = cons["sfm"]
     cap_sfm = s * med
-    D_in = pt.D_eff_in   # ball and bull nose: SFM at the effective cutting diameter
+    D_in = ctx.tool.D   # vendors print SFM on the nominal diameter (ball nose too), so C14 compares that
     sfm = math.pi * D_in * pt.rpm / 12.0
     if sfm > cap_sfm * (1 + 1e-9) and not rpm_given:
         pt.rpm = 12.0 * cap_sfm / (math.pi * D_in)
@@ -1485,7 +1486,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "program_limit_bytes": PROGRAM_LIMIT_BYTES, "removal_volume_in3": None,
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
-                   "wall_metric": "ripple", "consensus": None, "envelope": None, "chip_floor": None,
+                   "wall_metric": "ripple", "consensus": None, "consensus_shaped": None, "envelope": None, "chip_floor": None,
                    "user_engagement": False, "n_phases": None, "ae_env_min": True}
 
 
@@ -1657,6 +1658,13 @@ class _Context:
             self.consensus = src if isinstance(src, dict) else load_consensus(src)
             if not material.family:
                 self.notes.append("C14 inactive: the material names no family for the vendor-consensus lookup")
+        # Ball and bull-nose tools: C14 from rows of their own end form (tools/build_shaped_consensus.py); a bucket with too few
+        # vendor groups in that table falls back to the square-end table (same family, band, operation and engagement).
+        self.consensus_shaped = None
+        if o["consensus_shaped"] is not None and tool.end_form != "square":
+            src = CONSENSUS_SHAPED_DEFAULT_PATH if o["consensus_shaped"] == "default" else o["consensus_shaped"]
+            tables = src if isinstance(src, dict) else _limits(src)
+            self.consensus_shaped = tables.get(tool.end_form)
         if machine.holder_k_n_um or machine.holder_ktheta_nm_urad:
             self.notes.append(f"C3 includes the spindle/holder compliance in series with the tool: "
                               f"k {machine.holder_k_n_um or 0:g} N/µm, k_θ {machine.holder_ktheta_nm_urad or 0:g} N·m/µrad"
@@ -1669,8 +1677,16 @@ class _Context:
         aeD = ae_in / self.tool.D
         key = engagement_class(aeD, self.consensus["engagement_classes"])
         if key not in self._cons_cache:
-            self._cons_cache[key] = consensus_lookup(self.consensus, self.mat.family, self.mat.hb, self.tool.D,
-                                                     self.op, aeD)
+            found = None
+            if self.tool.end_form != "square":
+                if self.consensus_shaped:
+                    # one vendor group is accepted here (the ball and bull-nose data is mostly one vendor group); with none the
+                    # square-end table decides
+                    found = consensus_lookup(self.consensus_shaped, self.mat.family, self.mat.hb, self.tool.D, self.op, aeD,
+                                             min_groups=1)
+            if found is None:
+                found = consensus_lookup(self.consensus, self.mat.family, self.mat.hb, self.tool.D, self.op, aeD)
+            self._cons_cache[key] = found
         return self._cons_cache[key]
 
     def _chip_band(self, data, kind, basis):
@@ -2098,7 +2114,7 @@ def _report(pt, fz_in, checks, f, beam, chips):
     t = pt.ctx.tool
     vf = fz_in * t.z * pt.rpm
     cut = {"ap_in": pt.ap, "ae_in": pt.ae, "fz_in": fz_in, "rpm": pt.rpm,
-           "sfm": math.pi * pt.D_eff_in * pt.rpm / 12.0, "feed_ipm": vf, "mrr_in3_min": pt.mrr_in3_min(fz_in),
+           "sfm": math.pi * t.D * pt.rpm / 12.0, "contact_sfm": math.pi * pt.D_eff_in * pt.rpm / 12.0, "feed_ipm": vf, "mrr_in3_min": pt.mrr_in3_min(fz_in),
            "ap_over_D": pt.ap / t.D, "ae_over_D": pt.ae / t.D,
            "end_form": t.end_form, "effective_diameter_in": pt.D_eff_in,
            "h_max_nominal_in": fz_in * pt.eng.h_unit,

@@ -121,7 +121,7 @@ library of the same name in place (falls back to a file in the local library fol
 - A critical warning, "no safe cut", or an advisor change always asks first. Declining writes nothing.
 - The bridge action only writes these parameters: spindle speed, cutting/plunge/ramp feed, ramp angle, helical ramp diameter, stepdown,
   stepover, optimal load, stock to leave (radial, axial), tab width/height. Anything else is refused. Switching on "Stock to leave" is done automatically when you apply a stock value and is stated in the confirmation.
-- Runout matters: with the default 0.0002 in a micro tool may cut with fewer flutes and ToolWiz will say so; enter the measured TIR.
+- Runout matters: with no runout given the server assumes 0.0001 in for tools of 1/8 in and below and 0.0002 in above (or the class of the tool's holder description: SK/SX chucks, hydraulic, shrink fit 0.0001 in; ER-UP 0.0002; ER 0.0004; Weldon 0.0012), reports it as `runout_source`, and a micro tool may still cut with fewer flutes and ToolWiz will say so; enter the measured TIR. A runout the dialog sends always wins.
 - Provisional T-slot geometry (neck, reach, tooth form) is flagged: measure it before trusting the passes.
 - Fusion API calls that need a recent Fusion (hub library location, `ToolLibraries.updateToolLibrary`, `Documents.open(file, False)`) are guarded; when unavailable the
   command says so or falls back to a file.
