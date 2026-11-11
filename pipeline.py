@@ -176,6 +176,8 @@ class CutResult:
     feature_geometry: Optional[Dict[str, Any]] = None
     corner_feed_ipm: Optional[float] = None
     tslot: Optional[Dict[str, Any]] = None  # tslot_model output for T-slot / keyseat / woodruff cutters
+    holder_advice: Optional[Dict[str, Any]] = None   # toolwiz_common.tooling_advisor.holder_advice (advice_wiring)
+    tool_advice: List[Dict[str, Any]] = field(default_factory=list)   # tooling_advisor.tool_advice (advice_wiring)
 
 
 def _ratio(after: float, before: float) -> float:
@@ -720,6 +722,8 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         result = v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
     if r.feature_geometry:
         _apply_feature_geometry(r, result)
+    import advice_wiring
+    advice_wiring.fill_advice(result, r)
     return result
 
 
