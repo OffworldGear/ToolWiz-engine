@@ -31,6 +31,7 @@ fusion_bridge.register(app)
 from routes_advice import bp as advice_bp; app.register_blueprint(advice_bp)
 from routes_library import bp as library_bp; app.register_blueprint(library_bp)
 from routes_master_library import bp as master_library_bp; app.register_blueprint(master_library_bp)
+from routes_strategy import bp as strategy_bp; app.register_blueprint(strategy_bp)
 import machine_profiles
 
 # Initialize physics engine
@@ -639,6 +640,8 @@ def calculate():
             **({"tslot": res.tslot} if res.tslot else {}),
             **_model_fields(res),
             **_runout_fields(res),
+            "holder_advice": res.holder_advice,
+            "tool_advice": res.tool_advice,
         }
         if res.tap_drill:
             resp["tap_drill"] = res.tap_drill
@@ -744,6 +747,8 @@ def calculate_for_fusion():
                 feature_geometry=res.feature_geometry
             ).to_dict(),
             **_model_fields(res),
+            "holder_advice": res.holder_advice,
+            "tool_advice": res.tool_advice,
         })
 
     except Exception as e:
