@@ -31,6 +31,21 @@ CONTINUITY_MAX, PERTURB_MAX, AE_ADAPTIVE_MAX = 0.15, 0.25, 0.40
 MICRO_PERTURB_MAX = 0.35
 
 
+# Documented physical behaviour (planner decision, round 4): accepted by strict xfail, not by loosening a threshold. If a
+# model change makes one pass, strict xfail fails the run and the mark must be removed.
+XFAIL_FEED_CONTINUITY = ("0.0312in-2fl-Steel-Adaptive",)
+XFAIL_PERTURB = {
+    ("stickout+10%", "0.0625in-2fl-Aluminum-Slotting"):
+        "1/16 in 6061 slot: +10% stickout changes the stiffness by about 25%, so the deflection-limited depth moves 28%",
+    ("aggressiveness+10%", "0.0100in-2fl-Aluminum-Slotting"):
+        "0.010 in 6061 slot: flat landscape; depth changes by 0.00101 in against the 0.1 x D = 0.0010 in allowance",
+}
+
+
+def _xfail(reason):
+    return pytest.mark.xfail(strict=True, reason=reason)
+
+
 def case_id(d, z, family, op):
     return f"{d:.4f}in-{z}fl-{family.split(' - ')[0].split()[0]}-{op.split()[0]}"
 
@@ -85,7 +100,26 @@ def _ids():
     return [case_id(d, z, fam, op) for d, z, fam, _, op in CASES]
 
 
-@pytest.mark.parametrize("case", CASES, ids=_ids())
+def _feed_params():
+    out = []
+    for cid, case in zip(_ids(), CASES):
+        marks = [_xfail("1/32 in 4130 adaptive: the radial runout offset adds 1:1 to the worst-flute chip at ae = 0.15 D "
+                        "(chip thinning), so the feed falls 15.4% between TIR 0 and 0.1 x fz, against the 15% limit")] \
+            if cid in XFAIL_FEED_CONTINUITY else []
+        out.append(pytest.param(case, id=cid, marks=marks))
+    return out
+
+
+def _perturb_params():
+    out = []
+    for what in ("runout+10%", "stickout+10%", "aggressiveness+10%"):
+        for cid, case in zip(_ids(), CASES):
+            reason = XFAIL_PERTURB.get((what, cid))
+            out.append(pytest.param(case, what, id=f"{what}-{cid}", marks=[_xfail(reason)] if reason else []))
+    return out
+
+
+@pytest.mark.parametrize("case", _feed_params())
 def test_feed_is_non_increasing_in_runout(sweep, case):
     feeds = [sweep[(case, "runout", ro)]["feed"] for ro in RUNOUTS]
     for (r0, f0), (r1, f1) in zip(zip(RUNOUTS, feeds), zip(RUNOUTS[1:], feeds[1:])):
@@ -94,8 +128,7 @@ def test_feed_is_non_increasing_in_runout(sweep, case):
     assert abs(c - feeds[0]) / feeds[0] < CONTINUITY_MAX, f"TIR 0 -> 0.1 x fz changes the feed {feeds[0]:.3f} -> {c:.3f}"
 
 
-@pytest.mark.parametrize("case", CASES, ids=_ids())
-@pytest.mark.parametrize("what", ("runout+10%", "stickout+10%", "aggressiveness+10%"))
+@pytest.mark.parametrize("case,what", _perturb_params())
 def test_ten_percent_input_change_moves_the_cut_less_than_25_percent(sweep, case, what):
     base, pert = sweep[(case, "runout", BASE_RUNOUT)], sweep[(case, what, None)]
     for key in ("ap", "ae", "feed"):

@@ -1463,7 +1463,9 @@ class _Context:
                 if operation in ("adaptive", "rough"):
                     self.width_cap_ratio = depth_cap_over_D(self.env_bucket, margins.aggressiveness, "ae_over_D")
                     if o["ae_env_min"]:
-                        self.width_min_ratio = self.env_bucket["ae_over_D"].get("min")
+                        # At aggressiveness above 0.75 the minimum falls linearly to half of it at 1.0 (planner, round 4).
+                        relax = 1.0 - 0.5 * min(max((margins.aggressiveness - 0.75) / 0.25, 0.0), 1.0)
+                        self.width_min_ratio = self.env_bucket["ae_over_D"].get("min") * relax
             elif not self.env_bucket:
                 self.notes.append("no vendor engagement envelope for this material group, operation and diameter "
                                   "band; depth is limited by the physics (C3, C4, C6) only")

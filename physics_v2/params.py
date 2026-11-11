@@ -37,6 +37,20 @@ def load(path=None):
     return _CACHE[path]
 
 
+SPEED_BY_FAMILY_PATH = os.path.join(ROOT, "data", "model_v2", "speed_by_family.json")
+
+
+def speed_by_family():
+    """The per-family refit of the C7 law (families -> parameters), {} when the file is absent."""
+    if SPEED_BY_FAMILY_PATH not in _CACHE:
+        try:
+            with open(SPEED_BY_FAMILY_PATH, encoding="utf-8") as fh:
+                _CACHE[SPEED_BY_FAMILY_PATH] = json.load(fh).get("families", {})
+        except OSError:
+            _CACHE[SPEED_BY_FAMILY_PATH] = {}
+    return _CACHE[SPEED_BY_FAMILY_PATH]
+
+
 def coating_class(label):
     """Coating chemistry from a catalog label; proprietary names without a chemistry are 'unspecified'."""
     if not label:
@@ -88,6 +102,12 @@ def material(family, hb=None, coating=None, path=None, **overrides):
         dia = p.get("speed_diameter")
         if dia:
             kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))
+    ov = speed_by_family().get(family)
+    if ov and ov.get("applied") and sp:
+        # V3 round 4: per-family level, engagement exponent and diameter term (tools/fit_speed_by_family.py), applied
+        # only where the refit did not do worse on the hold-out groups.
+        kw.update(vc_ref_sfm=float(ov["vc_ref_sfm"]) * float(cf), vc_engagement_exp=float(ov["engagement_k"]),
+                  vc_diameter_exp=float(ov["diameter_m"]), vc_d_knee_in=float(ov["diameter_knee_in"]))
     off = p.get("consensus_offsets")
     if off:
         kw["c2_scale"] = float(off["c2"]["value"])

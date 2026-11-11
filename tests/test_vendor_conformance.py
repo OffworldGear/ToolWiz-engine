@@ -150,14 +150,20 @@ def span(rows, key):
 
 def median_tool(rows):
     """Median geometry of the rows (DC, LCF, flutes, helix, SFDM, stickout = median LB or LCF + 0.5 x SFDM, median published
-    neck diameter, hardness HB, coating). `incomplete`: the reach is beyond the flutes but no row publishes a neck diameter."""
+    neck/D ratio times the median D, hardness HB, coating). `incomplete`: the reach is beyond the flutes but no row publishes a neck diameter."""
     D = med([float(r["tool"]["DC"]) for r in rows])
     lcf = med([float(r["tool"]["LCF"]) for r in rows])
     shank = med([float(r["tool"].get("SFDM") or r["tool"]["DC"]) for r in rows])
-    lb = med([float(r["tool"]["LB"]) for r in rows if r["tool"].get("LB")])
-    stick = max(lb if lb else lcf + 0.5 * shank, lcf)
-    neck = bool(lb) and lb > lcf * 1.01
-    neck_d = med([float(r["tool"]["neck_diameter"]) for r in rows if r["tool"].get("neck_diameter")])
+    def stickout(r):
+        t_ = r["tool"]
+        sh = float(t_.get("SFDM") or t_["DC"])
+        return max(float(t_["LB"]) if t_.get("LB") else float(t_["LCF"]) + 0.5 * sh, float(t_["LCF"]))
+    stick = med([stickout(r) for r in rows])   # each row's own reach (LB, else LCF + 0.5 x SFDM), then the median
+    reach_rows = [r for r in rows if r["tool"].get("LB") and float(r["tool"]["LB"]) > 1.01 * float(r["tool"]["LCF"])]
+    neck = len(reach_rows) * 2 > len(rows)     # necked only when most rows reach beyond the flutes
+    neck_ratio = med([float(r["tool"]["neck_diameter"]) / float(r["tool"]["DC"]) for r in reach_rows
+                      if r["tool"].get("neck_diameter")])
+    neck_d = neck_ratio * D if neck_ratio else None   # median neck/D of the rows, on the median diameter
     incomplete = neck and neck_d is None   # reach beyond the flutes but no published neck diameter
     flutes = int(round(med([int(r["tool"]["flutes"]) for r in rows])))
     helix = med([float(r["tool"].get("helix_deg") or 35.0) for r in rows])

@@ -239,6 +239,16 @@ class TestRound2(unittest.TestCase):
         rec = run_cut(app.physics, req(0.125, 3, ST, "Slotting", coating="AlTiN"))
         self.assertLessEqual(rec.deflection, kd * 1.01)
 
+    def test_vendor_ae_minimum_relaxes_above_75_percent(self):
+        tool, mat = tool_material(0.25, 4, ST)
+        lo = {}
+        for a in (0.5, 0.75, 0.875, 1.0):
+            ctx = o._Context(tool, mat, params.machine(), "adaptive", params.margins(a), envelope="default")
+            lo[a] = ctx.width_min_ratio
+        self.assertAlmostEqual(lo[0.5], lo[0.75])
+        self.assertAlmostEqual(lo[0.875], 0.75 * lo[0.75])
+        self.assertAlmostEqual(lo[1.0], 0.5 * lo[0.75])
+
     def test_adaptive_call_is_fast_when_warm(self):
         import time
         import v2_bridge
