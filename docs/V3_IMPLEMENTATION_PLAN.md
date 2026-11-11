@@ -153,7 +153,19 @@ any slotting data useful for tab milling. Same schema and citation rules.
 comparison; stock-to-leave advice for true-to-size parts tied to the deflection model.
 
 **WP-B2 T-slot and v1 clean-up (owner: `gwizard_physics.py`, T-slot parts of `pipeline.py`,
-`tests/test_tslot_*.py`).** Up/down (face) cutting for T-slot and keyseat cutters; conformance
+`tests/test_tslot_*.py`).** Up/down (face) cutting for T-slot and keyseat cutters. Owner decision
+2026-11-11: staggered-tooth keyseat cutters (Harvey: "relieved to allow cutting on both sides of
+head") are the up/down cutter class. Teeth alternate faces, so each face (and each periphery side
+under a staggered layout) has about half the teeth: axial face cutting uses `teeth_per_face = z/2`
+for feed per tooth, and peripheral slotting chip load follows the vendor's staggered-tooth data.
+Owner's shop T-slot cutter (used for up and down cutting; must be a named test case and a preset in
+`data/shop_tools.json`): "6mm x 2mm Titanium Coated Carbide T Slot End Mill Cutter"
+(https://www.harfington.com/products/p-1341326): D 6 mm, cutting depth (kerf) 2 mm, shank 6 mm,
+shank length 31 mm, OAL 50 mm, 4 flutes, solid carbide, "titanium" coating. Neck diameter, reach
+and tooth form are not published (owner to measure; until then take neck = 3.5 mm and reach = 10 mm
+as provisional, flagged in the output). No vendor cutting data exists for it: its numbers come from
+the physics, checked for plausibility against Harvey keyseat data of similar diameter.
+If its teeth are not staggered (every tooth has both face edges), `teeth_per_face = z`; conformance
 against `tests/benchmarks/tslot/`; M6 of REVIEW Part 5.4 (roughing limit step, ramp from the
 un-thinned chip load, docstring).
 
@@ -162,6 +174,49 @@ un-thinned chip load, docstring).
 narrative is optional, grounded on tool results, and checked by a numeric guard that rejects any
 number not present in the tool results. MCP tools for strategy compare, holder and tool advice and
 the setup advisor, with MCP instructions that forbid inventing numbers.
+
+### Owner's T-slot cutters (2026-11-11)
+
+| Tool | Status | Jobs |
+|---|---|---|
+| Klot/Harfington 6 mm x 2 mm, 4 flute, carbide, up/down cutting | in use | T-slots |
+| Klot/Harfington 4 mm x 0.5 mm, carbide | in use | T-slots in 17-4 PH and titanium |
+| Klot/Harfington 8 mm x 0.5 mm, carbide | in use | one-depth T-slot in titanium |
+| Harvey Tool 3/8" x 0.0625" keyseat | planned replacement for the 8 x 0.5 | same titanium job |
+| Klot/Harfington 8 mm x 1.6 mm | fallback if the Harvey is not worth it | same titanium job |
+
+WP-B2 adds them to `data/shop_tools.json`. WP-B1's strategy planner must be able to compare
+these cutters on the same job (cycle time, chip load, deflection, relative tool life) so the owner
+can judge whether the Harvey cutter is worth it, and the advisor should flag when a premium
+cutter's benefit comes from published vendor data versus physics alone.
+
+### Master library builder (owner request 2026-11-11)
+
+The owner wants one master library of every tool across open documents, hub/team libraries, cloud
+and local libraries, populated with ToolWiz presets for selected materials and strategies, written
+as separate libraries per **material set** (same tools, different presets). Default sets
+(`data/material_sets.json`, editable):
+- **Non-ferrous:** 6061-T6, 7075-T6, brass C36000, bronze (C54400 phosphor, C63000 Ni-Al),
+  copper C11000.
+- **Steels & exotics:** 4140 pre-hard ~30 HRC, 304/316, 17-4 PH, Ti-6Al-4V, zirconium 702,
+  hardened tool steel (~50-60 HRC), CPM MagnaCut annealed and hardened, Black Titanium 5545.
+
+**WP-B5 (server; owner: `master_library.py`, `routes_master_library.py`, `data/material_sets.json`,
+tests).** Merge harvested libraries (dedupe by cutter geometry, but keep separate entries when the
+holder/stickout differs by > 10%, since presets depend on stickout); per tool, plan strategies with
+`toolwiz_common.tool_strategy`; generate presets for each selected material x strategy with the
+pipeline; tag ToolWiz-owned presets so a rebuild replaces only those and keeps the owner's own;
+run `library_audit` on the result (zero STOP required); write one Fusion-importable library per
+set. Selective by tools (type, diameter range, source library, ids), sets, materials, strategies
+and aggressiveness. Runs as a background job with progress and a result cache.
+
+**WP-C1 additions (add-in).** Harvest from every source: the open documents' tool libraries,
+hub/team libraries, cloud and local libraries, and an opt-in scan of a chosen hub project's
+documents. Send them to WP-B5, then import the generated libraries into Fusion as named libraries
+(e.g. `ToolWiz - Non-ferrous`, `ToolWiz - Steels & exotics`), updating in place on rebuild.
+
+**WP-C2 additions (web).** A Master Library page: sources, tool filter, set and material pickers,
+strategy picker, aggressiveness, progress, results with the audit, and download.
 
 ### Phase 3 (after Phase 2 merges)
 

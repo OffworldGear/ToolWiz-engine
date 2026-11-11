@@ -122,3 +122,7 @@ Ramp rows calibrate and validate the v2 entry model (`physics_v2/ramp.py`). They
 - Readings from a calculator (for example Sandvik CoroPlus ToolGuide) are allowed with `read_method: "image"` when they come from screenshots; the document's `url` points to the tool and `revision` gives the date read.
 
 `toolwiz_family` is one of the 31 GWizard family names in `gwizard_materials.db` (`material_families.name`), for example `Stainless - PH Series (17-4)`.
+
+## Staged vendor files (`tests/benchmarks/v2_staged/`)
+
+New vendor files that follow this schema but are not yet read by the calibration and limit tools live in `tests/benchmarks/v2_staged/`. `tests/test_v2_benchmark_dataset.py` validates them with the same checks. The stored limit files (`tools/v2_provisional_limits.py`, `tools/v2_invariants.py` outputs) are generated from `tests/benchmarks/v2/*.json`, so moving a file into `v2/` changes those generated numbers; regenerate them in the same change. Staged so far: `titan.json` (Titan USA, a Harvey Performance brand, so it counts with Harvey Tool and Helical as one source).

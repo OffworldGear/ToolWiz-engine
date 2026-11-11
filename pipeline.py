@@ -95,6 +95,13 @@ class CutRequest:
     model: Optional[str] = None
     machine_profile: Optional[Dict[str, Any]] = None   # active machine profile (v2 spindle/holder data)
     feature_geometry: Optional[Dict[str, Any]] = None  # live B-Rep geometry from cam_geometry_inspector
+    # T-slot / keyseat / woodruff cutters (tslot_model); all optional
+    tooth_form: Optional[str] = None                 # "straight" | "staggered" | None (unknown -> staggered)
+    cutting_faces: Optional[List[str]] = None        # subset of periphery / top / bottom
+    teeth_per_face: Optional[int] = None
+    tslot_operation: str = "full_slot"               # full_slot | side_cut | both_sides | axial_step
+    slot_height: Optional[float] = None              # finished slot height along Z (in)
+    radial_depth_total: Optional[float] = None       # total radial depth wanted (in)
 
 
 @dataclass
@@ -162,6 +169,7 @@ class CutResult:
     v2: Optional[Dict[str, Any]] = None   # v2 details: binding limits, checks, warnings, provenance
     feature_geometry: Optional[Dict[str, Any]] = None
     corner_feed_ipm: Optional[float] = None
+    tslot: Optional[Dict[str, Any]] = None  # tslot_model output for T-slot / keyseat / woodruff cutters
 
 
 def _ratio(after: float, before: float) -> float:
@@ -281,6 +289,14 @@ def _normalize(req: CutRequest) -> CutRequest:
         else:
             r.has_relieved_neck = False
             r.neck_diameter, r.neck_length = r.diameter, r.flute_length
+        if prof.slot:
+            # Slot / keyseat / T-slot cutter: kerf = LCF, neck and reach from the shaft segments.
+            r.cutter_thickness = prof.slot["kerf"]
+            r.has_relieved_neck = True
+            r.neck_diameter, r.neck_length = prof.slot["neck_diameter"], prof.slot["reach"]
+            if "t-slot" not in r.geometry.lower() and "keyseat" not in r.geometry.lower() \
+                    and "woodruff" not in r.geometry.lower():
+                r.geometry = "T-Slot"
     else:
         if r.stickout is None or r.stickout <= 0:
             r.stickout = default_stickout(r.diameter, r.flute_length)
@@ -298,7 +314,8 @@ class _Ctx:
 
     def __init__(self, r: CutRequest, geo_lower_original: str):
         self.is_saw = (any(s in geo_lower_original for s in ["t-slot", "woodruff", "keyseat"])
-                       or any(s in r.tool.lower() for s in ["woodruff", "saw"]))
+                       or any(s in r.tool.lower() for s in ["woodruff", "saw"])
+                       or (r.profile is not None and r.profile.slot is not None))
         self.is_hole_tool = is_drilling_tool_type(r.tool, r.geometry)
         self.is_tapping = (
             is_tap_tool_type(r.tool) or is_tap_tool_type(r.operation)
@@ -579,8 +596,15 @@ def run_cut(physics, req: CutRequest) -> CutResult:
     actual_sfm = physics.calc_sfm(rpm, diameter)
     contact_sfm = physics.calc_sfm(rpm, effective_diameter)
 
+    # Ramping and plunging are full-width cuts: derive their feeds from the un-thinned chip load
+    # (never above the slotting feed for this tool), not from the chip-thinned cutting feed.
+    ramp_basis_feed = feedrate
+    if not (ctx.is_hole_tool or ctx.is_tapping or is_tap_tool_type(operation)):
+        ramp_basis_feed = physics.ramp_basis_feed(
+            rpm, flutes, base_ipt * chip_factor, cut_depth, diameter, effective_diameter, r.geometry,
+            r.corner_radius, r.tool, feedrate)
     ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(
-        r.family, diameter, feedrate, r.geometry, flutes, r.aggressiveness, tool_type=r.tool
+        r.family, diameter, ramp_basis_feed, r.geometry, flutes, r.aggressiveness, tool_type=r.tool
     )
 
     op_lower = str(operation).lower()
@@ -681,6 +705,9 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         profile=r.profile.to_dict() if r.profile is not None else None,
         engagement_source="user" if (r.cut_depth is not None or r.cut_width is not None) else "recommended",
     )
+    if ctx.is_saw:
+        import tslot_model
+        tslot_model.apply_to_result(result, tslot_model.run_for_request(physics, r), r)
     if req.model == "v2":
         import v2_bridge
         result = v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)

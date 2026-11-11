@@ -4,11 +4,13 @@ import json
 import math
 import uuid
 import re
+import copy
 import logging
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.exceptions import HTTPException
 from gwizard_physics import GWizardPhysics, is_tap_tool_type, is_drilling_tool_type
 from pipeline import CutRequest, run_cut
+from toolwiz_common.tool_strategy import plan_strategies, slot_faces
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 from toolwiz_common import (
     ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
@@ -26,6 +28,9 @@ import cutlog
 cutlog.register(app)
 import fusion_bridge
 fusion_bridge.register(app)
+from routes_advice import bp as advice_bp; app.register_blueprint(advice_bp)
+from routes_library import bp as library_bp; app.register_blueprint(library_bp)
+from routes_master_library import bp as master_library_bp; app.register_blueprint(master_library_bp)
 import machine_profiles
 
 # Initialize physics engine
@@ -202,8 +207,14 @@ def _fusion_tool_arg(obj):
 
 def _fusion_payload(tool_dict):
     """The canonical {"type","unit","geometry"} slice of a raw Fusion tool dict."""
-    return {"type": tool_dict.get("type"), "unit": tool_dict.get("unit"),
-            "geometry": tool_dict.get("geometry") or {}}
+    out = {"type": tool_dict.get("type"), "unit": tool_dict.get("unit"),
+           "geometry": tool_dict.get("geometry") or {}}
+    if tool_dict.get("description"):
+        out["description"] = tool_dict["description"]
+    shaft = tool_dict.get("shaft")
+    if isinstance(shaft, dict) and shaft.get("segments"):
+        out["shaft"] = shaft   # slot / keyseat necks are read from the shaft segments
+    return out
 
 
 def _stickout_arg(data, fusion_tool, default=1.5):
@@ -467,6 +478,23 @@ def _request_model(data):
     return v2_bridge.resolve_model(data.get("model"), use_saved=not is_test_client)[0]
 
 
+def _tslot_args(data):
+    """Optional T-slot / keyseat request fields (see tslot_model) as CutRequest keyword arguments."""
+    def num(key):
+        v = data.get(key)
+        return float(v) if v not in (None, "") else None
+    faces = data.get("cuttingFaces")
+    tpf = data.get("teethPerFace")
+    return dict(
+        tooth_form=(str(data["toothForm"]).lower() if data.get("toothForm") else None),
+        cutting_faces=([str(f).lower() for f in faces] if isinstance(faces, (list, tuple)) and faces else None),
+        teeth_per_face=(int(tpf) if tpf not in (None, "") else None),
+        tslot_operation=str(data.get("tslotOperation") or "full_slot").lower(),
+        slot_height=num("slotHeight"),
+        radial_depth_total=num("radialDepthTotal"),
+    )
+
+
 def _model_fields(res):
     return {"model": res.model, "model_note": res.model_note, "v1": res.v1, "v2": res.v2}
 
@@ -558,6 +586,7 @@ def calculate():
             model=model,
             machine_profile=active_machine(),
             feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
+            **_tslot_args(data),
         )
         res = run_cut(physics, req)
 
@@ -604,6 +633,7 @@ def calculate():
             "profile": res.profile,
             **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            **({"tslot": res.tslot} if res.tslot else {}),
             **_model_fields(res),
             **_runout_fields(res),
         }
@@ -665,6 +695,7 @@ def calculate_for_fusion():
             model=_request_model(data),
             machine_profile=active_machine(),
             feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
+            **_tslot_args(data),
         )
         res = run_cut(physics, req)
 
@@ -700,6 +731,7 @@ def calculate_for_fusion():
             **_runout_fields(res),
             **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            **({"tslot": res.tslot} if res.tslot else {}),
             "oversight": __import__("oversight_engine").evaluate_holistic_oversight(
                 data,
                 {"diameter": res.diameter, "flute_length": res.flute_length, "shank_diameter": res.shank_diameter,
@@ -834,6 +866,10 @@ import io
 import uuid
 from backup_manager import BackupManager
 from ToolWizFusionAddin.json_mutator import format_unit
+from master_library import (
+    generate_presets, effective_aggressiveness, is_toolwiz_preset,
+    tool_is_carbide, db_tool_type as _batch_db_tool_type,
+)
 from tool_merger import (
     parse_dimension_in,
     compute_tool_signature,
@@ -844,56 +880,48 @@ from tool_merger import (
 
 bm = BackupManager()
 
-_HSS_RE = re.compile(r"\b(hss|hss-e|hsse|hss-co|cobalt|high[\s-]?speed(?:\s+steel)?|powder\s+metal|pm)\b", re.I)
-
-def tool_is_carbide(t_dict):
-    """Carbide unless the tool's material/grade/description clearly says HSS/cobalt/HSS-E/PM."""
-    geo = t_dict.get("geometry") or {}
-    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("BMC"), geo.get("BMC"),
-             t_dict.get("grade"), geo.get("grade"),
-             (t_dict.get("postProcess") or {}).get("material"), t_dict.get("description")]
-    text = " ".join(json.dumps(p) if isinstance(p, (dict, list)) else str(p) for p in parts if p)
-    if "carbide" in text.lower():
-        return True
-    return not _HSS_RE.search(text)
-
-
-_COBALT_RE = re.compile(r"\b(cobalt|hss-e|hsse|hss-co|m35|m42)\b", re.I)
-
-
-def _batch_db_tool_type(kind, t_dict, is_carbide):
-    """Resolve the G-Wizard DB tool category for batch preset generation (WP-1d / C4)."""
-    geo = t_dict.get("geometry") or {}
-    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("BMC"), geo.get("BMC"),
-             t_dict.get("grade"), geo.get("grade"),
-             (t_dict.get("postProcess") or {}).get("material"), t_dict.get("description")]
-    text = " ".join(json.dumps(p) if isinstance(p, (dict, list)) else str(p) for p in parts if p)
-    text_low = text.lower()
-    is_cobalt = bool(_COBALT_RE.search(text))
-
-    if kind is ToolKind.TAP:
-        return "Tapping"
-    if kind is ToolKind.REAMER:
-        return "Carbide Reamer" if is_carbide else "HSS Reamer"
-    if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL):
-        return "HP Carbide Twist Drill" if is_carbide else "HSS Spot Drill"
-    if is_hole_kind(kind):
-        if is_carbide:
-            return "HP Carbide Twist Drill"
-        if is_cobalt:
-            return "Cobalt Twist Drill"
-        return "HSS Twist Drill"
-    if kind is ToolKind.SLOT and any(k in text_low for k in ("saw", "slitting", "woodruff", "keyseat")):
-        return "Carbide Saws & Woodruff Cutters" if is_carbide else "HSS Saws & Woodruff Cutters"
-    if kind is ToolKind.THREAD_MILL:
-        return "Carbide Thread Mill"
-    if kind is ToolKind.FACE and "indexable" in text_low:
-        return "Indexable End Or Face Mill"
-    return "Carbide Endmill" if is_carbide else "HSS Endmill"
-
 def parse_dim(val, tool_unit=""):
     """Helper to parse tool dimensions from JSON to inches"""
     return parse_dimension_in(val, tool_unit)
+
+def _tool_dict(raw):
+    """A tool of the working library as a dict (libraries may hold tools as JSON strings)."""
+    return json.loads(raw) if isinstance(raw, str) else raw
+
+
+def _resolve_tool_index(tools, payload):
+    """Index of the tool a request addresses, or (None, error response).
+
+    ``tool_guid`` is the stable address: it survives deletes and re-sorts, which shift every later index.
+    ``tool_index`` is the legacy address; when both are sent the guid wins (a stale index is tolerated)."""
+    guid = payload.get("tool_guid")
+    if guid not in (None, ""):
+        for i, t in enumerate(tools):
+            if str(_tool_dict(t).get("guid", "")) == str(guid):
+                return i, None
+        return None, (jsonify({"success": False, "error": f"No tool with guid {guid!r} in the working library."}), 404)
+    idx = payload.get("tool_index")
+    if idx is None:
+        return None, (jsonify({"success": False, "error": "tool_guid or tool_index is required."}), 400)
+    if isinstance(idx, bool) or not isinstance(idx, int):
+        return None, (jsonify({"success": False, "error": "tool_index must be an integer."}), 400)
+    if idx < 0 or idx >= len(tools):
+        return None, (jsonify({"success": False, "error": "Invalid tool index."}), 400)
+    return idx, None
+
+
+def _ensure_unique_guids(tools):
+    """Give every tool a non-empty, unique guid (the stable address of a tool); returns the tools as dicts."""
+    seen, out = set(), []
+    for raw in tools:
+        t = _tool_dict(raw)
+        g = str(t.get("guid") or "")
+        if not g or g in seen:
+            t["guid"] = str(uuid.uuid4())
+        seen.add(t["guid"])
+        out.append(t)
+    return out
+
 
 @app.route("/api/twin/export_receive", methods=["POST"])
 def twin_export_receive():
@@ -909,6 +937,9 @@ def twin_export_receive():
         if libraries_list and isinstance(libraries_list, list):
             lib_name = data.get("master_library_name", "Master_Shop_Tool_Crib")
             merged_data, summary = merge_multiple_libraries(libraries_list, master_library_name=lib_name, deduplicate=auto_dedup)
+            if not merged_data.get("tools"):
+                return jsonify({"success": False, "error": "The harvested libraries contain no tools; the working library was not replaced."}), 400
+            merged_data["tools"] = _ensure_unique_guids(merged_data["tools"])
             backup_info = bm.save_working_library(merged_data, lib_name)
             return jsonify({
                 "success": True,
@@ -922,10 +953,12 @@ def twin_export_receive():
             lib_name = data.get("library_name", "Fusion_Hub_Library")
             raw_tools = data.get("tools", [])
             report = {"duplicates_removed": 0}
+            if not isinstance(raw_tools, list) or not raw_tools:
+                return jsonify({"success": False, "error": "No tools in the payload; the working library was not replaced."}), 400
             if auto_dedup and raw_tools:
                 cleaned_tools, report = deduplicate_tools(raw_tools, preserve_presets=True)
                 data["tools"] = cleaned_tools
-                
+            data["tools"] = _ensure_unique_guids(data["tools"])
             backup_info = bm.save_working_library(data, lib_name)
             return jsonify({
                 "success": True,
@@ -949,7 +982,7 @@ def twin_deduplicate():
         initial_count = len(tools)
         deduped_tools, report = deduplicate_tools(tools, preserve_presets=True)
 
-        data["tools"] = deduped_tools
+        data["tools"] = _ensure_unique_guids(deduped_tools)
         lib_name = data.get("library_name", "Master_Shop_Tool_Crib")
         backup_info = bm.save_working_library(data, f"{lib_name}_deduped")
 
@@ -1005,12 +1038,13 @@ def twin_load():
                 dia_in = flutes = flute_len = shank_dia = corner_rad = stickout = 0
                 stickout_source = "unavailable"
 
-            t_num = t_dict.get("postProcess", {}).get("number", t_dict.get("post-process", {}).get("number", 0))
+            post = t_dict.get("post-process") or t_dict.get("postProcess") or {}
+            t_num = post.get("number", 0) if isinstance(post, dict) else 0
             desc = t_dict.get("description", f"{dia_in:.3f}in Tool")
             t_type = t_dict.get("type") or geo.get("type") or "end mill"
             custom_aggr = t_dict.get("custom_aggressiveness", None)
             
-            presets = t_dict.get("start-values", {}).get("presets", [])
+            presets = (t_dict.get("start-values") or {}).get("presets") or []
             preset_list = []
             materials_seen = set()
 
@@ -1024,21 +1058,28 @@ def twin_load():
                     materials_seen.add(p_mat)
                 elif " - " in p_name:
                     materials_seen.add(p_name.split(" - ")[0].strip())
+                rpm_v = p.get("n", p.get("rpm", 0))
+                vc_v, fz_v, vf_v = p.get("v_c", p.get("sfm", 0)), p.get("f_z", p.get("ipt", 0)), p.get("v_f", p.get("feed", 0))
 
                 preset_list.append({
                     "name": p_name,
                     "guid": p_guid,
                     "operation_type": p.get("operation_type", ""),
-                    "is_toolwiz": bool(p.get("operation_type")) or " - " in p_name,
+                    "is_toolwiz": is_toolwiz_preset(p) or bool(p.get("operation_type")) or " - " in p_name,
+                    "toolwiz": p.get("toolwiz") if isinstance(p.get("toolwiz"), dict) else None,
                     "material_query": p_mat,
-                    "rpm": p.get("n", p.get("rpm", 0)),
-                    "n": p.get("n", p.get("rpm", 0)),
-                    "feed": p.get("v_f", p.get("feed", 0)),
-                    "v_f": p.get("v_f", p.get("feed", 0)),
-                    "sfm": p.get("v_c", p.get("sfm", 0)),
-                    "v_c": p.get("v_c", p.get("sfm", 0)),
-                    "ipt": p.get("f_z", p.get("ipt", 0)),
-                    "f_z": p.get("f_z", p.get("ipt", 0)),
+                    "unit": unit_label,
+                    "rpm": rpm_v,
+                    "n": rpm_v,
+                    # All numbers are the stored values in the tool's own unit (`unit`): for a millimeter tool
+                    # sfm / v_c is m/min and ipt / f_z, feed / v_f, stepdown, stepover are mm. The names kept
+                    # from the inch era (sfm, ipt, feed) do not mean SFM / in / IPM on a metric tool.
+                    "feed": vf_v,
+                    "v_f": vf_v,
+                    "sfm": vc_v,
+                    "v_c": vc_v,
+                    "ipt": fz_v,
+                    "f_z": fz_v,
                     "stepdown": p.get("stepdown", 0),
                     "stepover": p.get("stepover", 0),
                     "ramp_feed": p.get("v_f_ramp", 0),
@@ -1052,6 +1093,7 @@ def twin_load():
             
             tool_manifest.append({
                 "index": idx,
+                "guid": t_dict.get("guid", ""),
                 "number": t_num,
                 "description": desc,
                 "type": t_type,
@@ -1101,6 +1143,21 @@ def twin_tool(index):
         return _api_error(e)
 
 
+@app.route("/api/twin/tool", methods=["GET"])
+def twin_tool_by_guid():
+    """Raw Fusion tool dict with ``?guid=`` (the stable address; indices shift after deletes). 404 when absent."""
+    try:
+        data = bm.load_working_library()
+        tools = (data or {}).get("tools", [])
+        idx, err = _resolve_tool_index(tools, {"tool_guid": request.args.get("guid", "")} if request.args.get("guid")
+                                       else {})
+        if err:
+            return err
+        return jsonify({"success": True, "index": idx, "tool": _tool_dict(tools[idx])})
+    except Exception as e:
+        return _api_error(e)
+
+
 @app.route("/api/twin/backups", methods=["GET", "POST"])
 def twin_backups():
     """List or restore backups"""
@@ -1118,32 +1175,28 @@ def twin_backups():
 
 @app.route("/api/twin/update_tool", methods=["POST"])
 def twin_update_tool():
-    """Updates a single tool's metadata, custom aggressiveness override, or dimensions"""
+    """Updates a single tool's number, description, custom aggressiveness override or stickout.
+
+    Address the tool with ``tool_guid`` (stable) or the legacy ``tool_index``."""
     try:
         payload = _json_body()
-        tool_idx = payload.get("tool_index")
-        if tool_idx is None:
-            return jsonify({"success": False, "error": "tool_index is required."}), 400
-
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:
             return jsonify({"success": False, "error": "No working library loaded."}), 400
-
         tools = library_data["tools"]
-        if tool_idx < 0 or tool_idx >= len(tools):
-            return jsonify({"success": False, "error": "Invalid tool index."}), 400
-
-        t_dict = tools[tool_idx]
-        if isinstance(t_dict, str):
-            t_dict = json.loads(t_dict)
+        tool_idx, err = _resolve_tool_index(tools, payload)
+        if err:
+            return err
+        t_dict = _tool_dict(tools[tool_idx])
 
         if "number" in payload:
             num = int(payload["number"])
-            if "postProcess" not in t_dict:
-                t_dict["postProcess"] = {}
-            t_dict["postProcess"]["number"] = num
-            if "post-process" in t_dict:
-                t_dict["post-process"]["number"] = num
+            # Fusion's own key is "post-process"; keep a legacy "postProcess" in step only if the tool has one.
+            for key in ("post-process", "postProcess"):
+                if isinstance(t_dict.get(key), dict):
+                    t_dict[key]["number"] = num
+            if not isinstance(t_dict.get("post-process"), dict) and not isinstance(t_dict.get("postProcess"), dict):
+                t_dict["post-process"] = {"number": num}
 
         if "description" in payload:
             t_dict["description"] = str(payload["description"]).strip()
@@ -1156,39 +1209,41 @@ def twin_update_tool():
                 t_dict["custom_aggressiveness"] = float(val)
 
         if "stickout" in payload and payload["stickout"] is not None:
-            t_dict["stickout"] = float(payload["stickout"])
+            so = float(payload["stickout"])
+            if so <= 0:
+                return jsonify({"success": False, "error": "stickout must be positive (inches)."}), 400
+            t_dict["stickout"] = so
 
         tools[tool_idx] = t_dict
         library_data["tools"] = tools
         bm.save_working_library(library_data, library_data.get("library_name", "Modified_Library"))
 
-        return jsonify({"success": True, "tool_index": tool_idx})
+        return jsonify({"success": True, "tool_index": tool_idx, "tool_guid": t_dict.get("guid", "")})
     except Exception as e:
         return _api_error(e)
 
 @app.route("/api/twin/delete_tool", methods=["POST"])
 def twin_delete_tool():
-    """Safely deletes a tool from the working library and creates a backup snapshot"""
+    """Safely deletes a tool from the working library and creates a backup snapshot.
+
+    Address the tool with ``tool_guid`` (stable) or the legacy ``tool_index``."""
     try:
         payload = _json_body()
-        tool_idx = payload.get("tool_index")
-        if tool_idx is None:
-            return jsonify({"success": False, "error": "tool_index is required."}), 400
-
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:
             return jsonify({"success": False, "error": "No working library loaded."}), 400
-
         tools = library_data["tools"]
-        if tool_idx < 0 or tool_idx >= len(tools):
-            return jsonify({"success": False, "error": "Invalid tool index."}), 400
+        tool_idx, err = _resolve_tool_index(tools, payload)
+        if err:
+            return err
 
-        deleted_tool = tools.pop(tool_idx)
+        deleted_tool = _tool_dict(tools.pop(tool_idx))
         library_data["tools"] = tools
         backup_info = bm.save_working_library(library_data, library_data.get("library_name", "Modified_Library"))
 
         return jsonify({
             "success": True,
+            "deleted_guid": deleted_tool.get("guid", ""),
             "remaining_tools": len(tools),
             "backup": backup_info
         })
@@ -1197,41 +1252,35 @@ def twin_delete_tool():
 
 @app.route("/api/twin/delete_preset", methods=["POST"])
 def twin_delete_preset():
+    """Deletes one preset of a tool. Address the tool with ``tool_guid`` or ``tool_index`` and the preset with
+    ``preset_guid`` (non-empty). 404 when the tool or preset is not there."""
     try:
         payload = _json_body()
-        tool_idx = payload.get("tool_index")
         preset_guid = payload.get("preset_guid")
-        
+        if not preset_guid:
+            return jsonify({"success": False, "error": "preset_guid is required."}), 400
+
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:
-            return jsonify({"success": False, "error": "No working library found."})
-            
+            return jsonify({"success": False, "error": "No working library found."}), 404
         tools = library_data["tools"]
-        if tool_idx < 0 or tool_idx >= len(tools):
-            return jsonify({"success": False, "error": "Invalid tool index."})
-            
-        t_dict = tools[tool_idx]
-        if isinstance(t_dict, str):
-            t_dict = json.loads(t_dict)
-            
-        presets = t_dict.get("start-values", {}).get("presets", [])
-        original_count = len(presets)
-        
-        presets = [p for p in presets if p.get("guid") != preset_guid]
-        
-        if len(presets) == original_count:
-            return jsonify({"success": False, "error": "Preset not found."})
-            
-        if "start-values" not in t_dict:
-            t_dict["start-values"] = {}
-        t_dict["start-values"]["presets"] = presets
+        tool_idx, err = _resolve_tool_index(tools, payload)
+        if err:
+            return err
+        t_dict = _tool_dict(tools[tool_idx])
+
+        presets = (t_dict.get("start-values") or {}).get("presets") or []
+        kept = [p for p in presets if p.get("guid") != preset_guid]
+        if len(kept) == len(presets):
+            return jsonify({"success": False, "error": "Preset not found."}), 404
+        t_dict["start-values"]["presets"] = kept
         tools[tool_idx] = t_dict
-        
+
         library_data["tools"] = tools
         bm.save_working_library(library_data, library_data.get("library_name", "Modified_Library"))
-        
-        return jsonify({"success": True})
-        
+
+        return jsonify({"success": True, "removed": len(presets) - len(kept)})
+
     except Exception as e:
         return _api_error(e)
 
@@ -1266,277 +1315,102 @@ def twin_batch_generate():
             return jsonify({"success": False, "error": "No working library found to modify."}), 400
             
         tools = library_data["tools"]
-        indices_to_update = list(range(len(tools))) if tool_indices == "all" else [int(i) for i in tool_indices]
-        
+        guid_list = req_data.get("tool_guids")
+        if guid_list is not None:
+            if not isinstance(guid_list, list):
+                return jsonify({"success": False, "error": "tool_guids must be a list"}), 400
+            wanted = {str(g) for g in guid_list}
+            indices_to_update = [i for i, t in enumerate(tools) if str(_tool_dict(t).get("guid", "")) in wanted]
+        elif tool_indices == "all":
+            indices_to_update = list(range(len(tools)))
+        else:
+            indices_to_update = [int(i) for i in tool_indices]
+
         custom_preset_name = req_data.get("custom_preset_name", "").strip()
         material_label = alloy if alloy else family
-        
+        material = {"label": material_label, "family": family, "alloy": alloy}
+        model = _request_model(req_data)
+        profile = active_machine()
+
         updated_tools_count = 0
         total_presets_injected = 0
         skipped = []
-        
+
         for idx in indices_to_update:
             if idx < 0 or idx >= len(tools):
                 continue
-                
-            raw_t = tools[idx]
-            t_dict = json.loads(raw_t) if isinstance(raw_t, str) else dict(raw_t)
-            
-            tool_type = str(t_dict.get("type") or "").lower()
-            geo = t_dict.get("geometry", {}) or {}
-            kind = classify(t_dict.get("type"))
-            tool_number = t_dict.get("postProcess", {}).get("number", t_dict.get("post-process", {}).get("number"))
+            t_dict = copy.deepcopy(_tool_dict(tools[idx]))
+            tool_number = (t_dict.get("postProcess") or t_dict.get("post-process") or {}).get("number")
 
-            def _skip(reason, idx=idx, t_dict=t_dict, tool_number=tool_number):
-                skipped.append({
-                    "tool_index": idx,
-                    "number": tool_number,
-                    "description": t_dict.get("description", ""),
-                    "type": t_dict.get("type", ""),
-                    "reason": reason,
-                })
+            def _skip(reason, strategy=None, idx=idx, t_dict=t_dict, tool_number=tool_number):
+                row = {"tool_index": idx, "number": tool_number, "description": t_dict.get("description", ""),
+                       "type": t_dict.get("type", ""), "reason": reason}
+                if strategy:
+                    row["strategy"] = strategy
+                skipped.append(row)
 
-            if kind in (ToolKind.HOLDER, ToolKind.PROBE):
-                _skip(f"{kind.value} is not a cutting tool")
-                continue
-            if kind is ToolKind.UNKNOWN:
-                _skip(f"unrecognized tool type {t_dict.get('type')!r}")
-                continue
-            try:
-                g = ToolGeometry.from_fusion(t_dict, stickout_override=t_dict.get("stickout"))
-                t_unit = tool_unit_of(t_dict)
-            except (UnitError, ValueError, TypeError) as ge:
-                _skip(f"invalid geometry: {ge}")
-                continue
-            if is_tap_kind(kind) and g.thread_pitch is None:
-                _skip("tap has no thread pitch (TP); refusing to assume one")
-                continue
+            # Per-tool aggressiveness: an explicit override in tool_aggressiveness_map (keyed by tool guid or
+            # index) is stored on the tool; then the tool's own override wins over the request's value.
+            for key in (str(t_dict.get("guid", "")), str(idx)):
+                if key and key in tool_aggr_map:
+                    override_val = tool_aggr_map[key]
+                    if override_val is not None and str(override_val).lower() != "default":
+                        t_dict["custom_aggressiveness"] = float(override_val)
+                    else:
+                        t_dict.pop("custom_aggressiveness", None)
+                    break
+            aggressiveness = effective_aggressiveness(
+                t_dict, req_data.get("aggressiveness", req_data.get("base_aggressiveness", 50.0)),
+                use_tool_overrides)
 
-            is_drilling = is_hole_kind(kind)
-            is_tap = is_tap_kind(kind)
-            is_milling = is_milling_kind(kind)
-            diameter, flutes, flute_len = g.diameter, g.flutes, g.flute_length
-            shank_dia, corner_rad, stickout = g.shank_diameter, g.corner_radius, g.stickout
-            is_carbide = tool_is_carbide(t_dict)
+            new_presets, gen_skipped = generate_presets(
+                t_dict, [material], list(strategies), aggressiveness, physics=physics, max_rpm=max_rpm,
+                max_hp=max_hp, runout=runout, model=model, machine_profile=profile, coating=coating,
+                name_prefix=custom_preset_name or None)
+            for sk in gen_skipped:
+                _skip(sk["reason"], sk.get("strategy"))
+            if any(sk.get("fatal") for sk in gen_skipped):
+                continue    # not a cutting tool / unreadable geometry: leave the tool untouched
 
-            # Determine tool aggressiveness:
-            # 1. Check if an explicit override was passed in tool_aggr_map
-            str_idx = str(idx)
-            if str_idx in tool_aggr_map:
-                override_val = tool_aggr_map[str_idx]
-                if override_val is not None and str(override_val).lower() != "default":
-                    t_dict["custom_aggressiveness"] = float(override_val)
-                else:
-                    t_dict.pop("custom_aggressiveness", None)
-
-            # 2. Resolve effective aggressiveness (0..100 percent or 0..1 float; integer 1 is 1%, float 1.0 is 100%)
-            if use_tool_overrides and t_dict.get("custom_aggressiveness") is not None:
-                raw_aggr = t_dict["custom_aggressiveness"]
-            else:
-                raw_aggr = req_data.get("aggressiveness", req_data.get("base_aggressiveness", 50.0))
-            effective_aggr_val = float(raw_aggr)
-            aggressiveness = effective_aggr_val / 100.0 if (effective_aggr_val > 1.0 or raw_aggr == 1) else effective_aggr_val
-
-            # Geometry classification
-            if kind is ToolKind.SLOT:
-                geometry = "T-Slot"
-            elif kind is ToolKind.DOVETAIL:
-                geometry = "Dovetail"
-            elif kind is ToolKind.LOLLIPOP:
-                geometry = "Lollipop"
-            elif kind is ToolKind.THREAD_MILL:
-                geometry = "Thread Mill"
-            elif kind is ToolKind.CHAMFER:
-                geometry = "Chamfer"
-            elif kind in (ToolKind.BALL, ToolKind.RADIUS):
-                geometry = "Ball Nose"
-            elif kind is ToolKind.BULL:
-                geometry = "Bull Nose"
-            else:
-                geometry = "Square" if corner_rad == 0 else "Radiused"
-
-            # Clean stale or prior presets if requested
             if clean_existing_for_material or clean_all_non_toolwiz:
                 target_mat = material_label if clean_existing_for_material else None
-                t_dict, _ = clean_tool_presets(t_dict, clean_all_non_toolwiz=clean_all_non_toolwiz, target_material_to_replace=target_mat)
+                t_dict, _ = clean_tool_presets(t_dict, clean_all_non_toolwiz=clean_all_non_toolwiz,
+                                               target_material_to_replace=target_mat)
+            presets_list = t_dict.setdefault("start-values", {}).setdefault("presets", [])
+            for preset_dict in new_presets:
+                tag = preset_dict.get("toolwiz") or {}
 
-            if "start-values" not in t_dict:
-                t_dict["start-values"] = {}
-            if "presets" not in t_dict["start-values"]:
-                t_dict["start-values"]["presets"] = []
-                
-            presets_list = t_dict["start-values"]["presets"]
-
-            if is_drilling:
-                db_tool_type = _batch_db_tool_type(kind, t_dict, is_carbide)
-                hole_op = ("Tapping" if is_tap else ("Precision Reaming" if kind is ToolKind.REAMER else "Drilling"))
-                hole_geo = ("Reamer" if kind is ToolKind.REAMER
-                            else ("Spot Drill" if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL) else "Square"))
-                
-                res = run_cut(physics, CutRequest(
-                    family=family, alloy=alloy, tool=db_tool_type, geometry=hole_geo,
-                    operation=hole_op, coating=coating,
-                    diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
-                    corner_radius=corner_rad, stickout=stickout,
-                    is_carbide=is_carbide,
-                    aggressiveness=aggressiveness, max_rpm=max_rpm, max_hp=max_hp, runout=runout,
-                    # Form-tap speed multipliers only when the tool says it's a form/roll tap.
-                    tap_type=("form" if any(k in str(t_dict.get("description", "")).lower() for k in ("form", "roll"))
-                              else "spiral_flute"),
-                    pitch=g.thread_pitch if is_tap else None,
-                    apply_coating=False,  # the batch-wide coating choice isn't known to match hole tools
-                    fusion_tool=_fusion_payload(t_dict),
-                    model=_request_model(req_data),
-                    machine_profile=active_machine(),
-                ))
-                rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
-                op_suffix = "Tapping" if is_tap else "Drilling"
-                final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - {op_suffix}"
-                
-                if t_unit == "inches":
-                    p_n = float(rpm)
-                    p_vc = float(actual_sfm)
-                    p_fz = float(adj_ipt)
-                    p_vf = float(feedrate)
+                def owned_by_toolwiz(p):
+                    return is_toolwiz_preset(p) or bool(p.get("operation_type"))
+                # Replace what ToolWiz wrote earlier for this material and strategy (tagged), or a same-named
+                # older ToolWiz-shaped preset; the owner's own preset of that name is kept and ours renamed.
+                same = next((i for i, p in enumerate(presets_list)
+                             if is_toolwiz_preset(p) and p["toolwiz"].get("material") == tag.get("material")
+                             and p["toolwiz"].get("strategy") == tag.get("strategy")), None)
+                if same is None:
+                    same = next((i for i, p in enumerate(presets_list)
+                                 if p.get("name") == preset_dict["name"] and owned_by_toolwiz(p)), None)
+                if same is not None:
+                    preset_dict["guid"] = presets_list[same].get("guid", preset_dict["guid"])
+                    preset_dict["name"] = presets_list[same].get("name", preset_dict["name"])   # keeps a " (ToolWiz)" rename
+                    presets_list[same] = preset_dict       # whole preset: stale "expressions" would override the numbers
                 else:
-                    p_n = float(rpm)
-                    p_vc = float(actual_sfm * 0.3048)
-                    p_fz = float(adj_ipt * 25.4)
-                    p_vf = float(feedrate * 25.4)
-                    
-                preset_dict = {
-                    "guid": str(uuid.uuid4()),
-                    "name": final_preset_name,
-                    "description": final_preset_name,
-                    "material": {
-                        "category": "all",
-                        "query": material_label,
-                        "use-hardness": False
-                    },
-                    "n": int(p_n),
-                    "v_c": p_vc,
-                    "f_z": p_fz,
-                    "f_n": float(p_fz * flutes),
-                    "v_f": p_vf,
-                    "v_f_leadIn": p_vf,
-                    "v_f_leadOut": p_vf,
-                    "v_f_transition": p_vf,
-                    "v_f_ramp": p_vf,
-                    "v_f_plunge": p_vf,
-                    "v_f_retract": p_vf * 2.0,
-                    "use-feed-per-revolution": False,
-                    "tool-coolant": "flood"
-                }
-                
-                existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == final_preset_name), None)
-                if existing_idx is not None:
-                    preset_dict["guid"] = presets_list[existing_idx].get("guid", preset_dict["guid"])
-                    presets_list[existing_idx].update(preset_dict)
-                else:
+                    taken = {str(p.get("name", "")).lower() for p in presets_list}
+                    if preset_dict["name"].lower() in taken:
+                        n = 1
+                        while True:
+                            cand = f"{preset_dict['name']} (ToolWiz{'' if n == 1 else ' ' + str(n)})"
+                            if cand.lower() not in taken:
+                                break
+                            n += 1
+                        preset_dict["name"] = cand
                     presets_list.append(preset_dict)
                 total_presets_injected += 1
-                
-            elif is_milling:
-                mill_db_tool = _batch_db_tool_type(kind, t_dict, is_carbide)
-                for strat in strategies:
-                    res = run_cut(physics, CutRequest(
-                        family=family, alloy=alloy, tool=mill_db_tool, geometry=geometry, operation=strat,
-                        coating=coating, diameter=diameter, flutes=flutes, flute_length=flute_len,
-                        shank_diameter=shank_dia, corner_radius=corner_rad, stickout=stickout,
-                        cutter_thickness=flute_len, is_carbide=is_carbide, aggressiveness=aggressiveness,
-                        max_rpm=max_rpm, max_hp=max_hp, runout=runout,
-                        fusion_tool=_fusion_payload(t_dict),
-                        model=_request_model(req_data),
-                        machine_profile=active_machine(),
-                    ))
-                    if not res.feasible:
-                        skipped.append({
-                            "tool_index": idx,
-                            "number": tool_number,
-                            "description": t_dict.get("description", ""),
-                            "type": t_dict.get("type", ""),
-                            "strategy": strat,
-                            "reason": f"infeasible strategy {strat!r}: no safe cut (limited by {res.limited_by or 'unknown'}); preset not written",
-                        })
-                        continue
 
-                    rec_doc, rec_woc = res.doc, res.woc
-                    rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
-                    ramp_angle, ramp_feed, plunge_feed = res.ramp_angle, res.ramp_feed, res.plunge_feed
-
-                    wear_comp_note = ""
-                    if "finish" in strat.lower():
-                        wear_comp = res.wear_comp
-                        if abs(wear_comp) > 0.0002:
-                            wear_comp_note = f" | Wear Comp: {wear_comp:+.4f}\""
-
-                    if custom_preset_name:
-                        preset_name = f"{custom_preset_name} - {strat}"
-                    else:
-                        preset_name = f"{material_label} - {strat}"
-                    
-                    if t_unit == "inches":
-                        p_n = float(rpm)
-                        p_vc = float(actual_sfm)
-                        p_fz = float(adj_ipt)
-                        p_vf = float(feedrate)
-                        p_vf_ramp = float(ramp_feed)
-                        p_vf_plunge = float(max(plunge_feed, 0.0001)) if feedrate > 0.0 else 0.0
-                        p_stepdown = float(rec_doc)
-                        p_stepover = float(rec_woc)
-                    else:
-                        p_n = float(rpm)
-                        p_vc = float(actual_sfm * 0.3048)
-                        p_fz = float(adj_ipt * 25.4)
-                        p_vf = float(feedrate * 25.4)
-                        p_vf_ramp = float(ramp_feed * 25.4)
-                        p_vf_plunge = float(max(plunge_feed * 25.4, 0.0025)) if feedrate > 0.0 else 0.0
-                        p_stepdown = float(rec_doc * 25.4)
-                        p_stepover = float(rec_woc * 25.4)
-                    
-                    preset_desc = f"{preset_name}{wear_comp_note} (Aggressiveness: {int(aggressiveness*100)}%)"
-
-                    preset_dict = {
-                        "guid": str(uuid.uuid4()),
-                        "name": preset_name,
-                        "description": preset_desc,
-                        "operation_type": strat,
-                        "material": {
-                            "category": "all",
-                            "query": material_label,
-                            "use-hardness": False
-                        },
-                        "n": int(p_n),
-                        "n_ramp": int(p_n),
-                        "v_c": p_vc,
-                        "f_z": p_fz,
-                        "f_n": float(p_fz * flutes),
-                        "v_f": p_vf,
-                        "v_f_leadIn": p_vf,
-                        "v_f_leadOut": p_vf,
-                        "v_f_transition": p_vf,
-                        "v_f_ramp": p_vf_ramp,
-                        "v_f_plunge": p_vf_plunge,
-                        "stepdown": p_stepdown,
-                        "stepover": p_stepover,
-                        "use-stepdown": True,
-                        "use-stepover": True,
-                        "ramp-angle": float(ramp_angle),
-                        "tool-coolant": "flood"
-                    }
-                    
-                    existing_idx = next((i for i, p in enumerate(presets_list) if p.get("name") == preset_name), None)
-                    if existing_idx is not None:
-                        preset_dict["guid"] = presets_list[existing_idx].get("guid", preset_dict["guid"])
-                        presets_list[existing_idx].update(preset_dict)
-                    else:
-                        presets_list.append(preset_dict)
-                        
-                    total_presets_injected += 1
-                
             tools[idx] = t_dict
-            updated_tools_count += 1
-            
+            if new_presets:
+                updated_tools_count += 1
+
         seen_guids = set()
         for i, t in enumerate(tools):
             if isinstance(t, str):
@@ -1635,6 +1509,7 @@ def twin_upload():
         auto_dedup = merge_mode == "merge_deduplicate"
         merged_library, summary = merge_multiple_libraries(parsed_libraries, master_library_name=master_lib_name, deduplicate=auto_dedup)
 
+        merged_library["tools"] = _ensure_unique_guids(merged_library.get("tools", []))
         backup_info = bm.save_working_library(merged_library, master_lib_name)
 
         return jsonify({

@@ -76,7 +76,8 @@ class BackupManager:
         # Determine existing backup count for versioning using strict regex matching
         pattern = re.compile(rf"^{re.escape(clean_name)}_\d{{8}}_\d{{6}}(?:_\d+)?_v\d+\.json$")
         existing = [f for f in os.listdir(self.backups_dir) if pattern.match(f)]
-        version = len(existing) + 1
+        # Next version after the highest one on disk: counting files repeats numbers once old backups are pruned.
+        version = max([int(re.search(r"_v(\d+)\.json$", f).group(1)) for f in existing] or [0]) + 1
         
         filename = f"{clean_name}_{timestamp}_v{version}.json"
         filepath = os.path.join(self.backups_dir, filename)

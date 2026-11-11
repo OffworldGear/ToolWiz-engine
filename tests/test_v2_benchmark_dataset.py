@@ -10,6 +10,9 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 V2_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2")
+# Rows awaiting registration into v2: the derived limit files (tools/v2_provisional_limits.py,
+# tools/v2_invariants.py) must be regenerated before a file moves from v2_staged to v2.
+V2_STAGED_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2_staged")
 OPERATIONS = {"slot", "side", "rough", "hem", "finish", "ramp"}
 RAMP_KINDS = {"helical", "linear", "plunge", "any"}
 RAMP_RANGES = ("angle_deg", "hole_diameter_over_D", "pitch_over_D", "ramp_feed_factor", "plunge_feed_factor")
@@ -25,7 +28,7 @@ def load_families():
 
 def load_files():
     out = {}
-    for path in sorted(glob.glob(os.path.join(V2_DIR, "*.json"))):
+    for path in sorted(glob.glob(os.path.join(V2_DIR, "*.json")) + glob.glob(os.path.join(V2_STAGED_DIR, "*.json"))):
         with open(path, encoding="utf-8") as fh:
             out[os.path.basename(path)] = json.load(fh)
     return out

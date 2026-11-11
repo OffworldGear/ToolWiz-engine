@@ -6,12 +6,13 @@ Supports multi-library consolidation, canonical geometric signatures,
 preset preservation, per-tool aggressiveness overrides, and stale preset cleanup.
 """
 
+import copy
 import json
 import re
 import uuid
 from typing import Dict, List, Tuple, Any, Optional
 
-from toolwiz_common import to_inches, tool_unit as _tool_unit, UnitError
+from toolwiz_common import to_inches, tool_unit as _tool_unit, UnitError, ToolKind, classify
 
 def parse_dimension_in(val: Any, unit: str = "") -> float:
     """Normalizes a dimension (number, or string with optional unit suffix) into inches.
@@ -48,8 +49,18 @@ def compute_tool_signature(tool: Any) -> str:
         geo = {}
     tool_type = str(geo.get("type", t_dict.get("type", "end mill"))).strip().lower()
 
-    # Normalize tool type synonyms
-    if "flat" in tool_type or tool_type == "end mill":
+    # Normalize tool type. Exact Fusion types are classified first (a substring test would read "tapered mill"
+    # as a tap and "spot drill" as a twist drill); free text falls back to keyword matching.
+    kind = classify(geo.get("type", t_dict.get("type")))
+    _KIND_NAMES = {ToolKind.FLAT: "flat_endmill", ToolKind.BALL: "ball_endmill", ToolKind.BULL: "bullnose_endmill",
+                   ToolKind.RADIUS: "bullnose_endmill", ToolKind.DRILL: "drill", ToolKind.TAP: "tap",
+                   ToolKind.THREAD_MILL: "thread_mill", ToolKind.CHAMFER: "chamfer_mill",
+                   ToolKind.SLOT: "slot_mill"}
+    if kind in _KIND_NAMES:
+        norm_type = _KIND_NAMES[kind]
+    elif kind is not ToolKind.UNKNOWN:
+        norm_type = kind.value
+    elif "flat" in tool_type or tool_type == "end mill":
         norm_type = "flat_endmill"
     elif "ball" in tool_type:
         norm_type = "ball_endmill"
@@ -57,10 +68,10 @@ def compute_tool_signature(tool: Any) -> str:
         norm_type = "bullnose_endmill"
     elif "drill" in tool_type:
         norm_type = "drill"
-    elif "tap" in tool_type:
-        norm_type = "tap"
     elif "thread" in tool_type:
         norm_type = "thread_mill"
+    elif re.search(r"\btap\b", tool_type):
+        norm_type = "tap"
     elif "chamfer" in tool_type or "engrav" in tool_type:
         norm_type = "chamfer_mill"
     elif "slot" in tool_type or "t-slot" in tool_type or "woodruff" in tool_type:
@@ -70,7 +81,9 @@ def compute_tool_signature(tool: Any) -> str:
 
     try:
         unit = _tool_unit(t_dict)
-        dc_in = round(to_inches(geo.get("DC", 0.25), unit), 4)
+        if geo.get("DC") in (None, ""):
+            raise ValueError("tool has no DC")     # never guess a diameter: such a tool is never merged
+        dc_in = round(to_inches(geo["DC"], unit), 4)
         nof = int(geo.get("NOF", 4))
         lcf_in = round(to_inches(geo.get("LCF", 0.75), unit), 3)
         re_in = round(to_inches(geo.get("RE", 0.0), unit), 4)
@@ -82,10 +95,38 @@ def compute_tool_signature(tool: Any) -> str:
         # Unit or dimensions unknown: never guess; make the signature unique so it is never merged.
         return "nosig:" + str(uuid.uuid4())
 
-    if prod_id and len(prod_id) > 2:
-        return f"id:{vendor}:{prod_id}|{norm_type}|dia:{dc_in:.4f}|fl:{nof}|lcf:{lcf_in:.3f}|re:{re_in:.4f}"
+    # Form-defining fields: two chamfer mills of one diameter and different angles, two drills with different
+    # point angles or two taps of different pitch are different tools. Added only when present, so a plain
+    # end mill keeps its short signature.
+    extra = ""
+    for key, tag in (("TA", "ta"), ("SIG", "sig"), ("tip-diameter", "tip")):
+        try:
+            v = float(geo.get(key) or 0.0) if key != "tip-diameter" else to_inches(geo[key], unit)
+        except (UnitError, ValueError, TypeError, KeyError):
+            v = 0.0
+        if v:
+            extra += f"|{tag}:{v:.4f}"
+    try:
+        tp = to_inches(geo["TP"], unit) if geo.get("TP") not in (None, "", 0) else 0.0
+    except (UnitError, ValueError, TypeError):
+        tp = 0.0
+    if tp:
+        extra += f"|tp:{tp:.5f}"
+    if geo.get("HAND") is False:
+        extra += "|lh"
 
-    return f"geo:{norm_type}|dia:{dc_in:.4f}|fl:{nof}|lcf:{lcf_in:.3f}|re:{re_in:.4f}|sf:{sf_in:.3f}"
+    if prod_id and len(prod_id) > 2:
+        return f"id:{vendor}:{prod_id}|{norm_type}|dia:{dc_in:.4f}|fl:{nof}|lcf:{lcf_in:.3f}|re:{re_in:.4f}{extra}"
+
+    return f"geo:{norm_type}|dia:{dc_in:.4f}|fl:{nof}|lcf:{lcf_in:.3f}|re:{re_in:.4f}|sf:{sf_in:.3f}{extra}"
+
+
+def _feed_number(v: Any) -> float:
+    """Numeric value of a preset feed ("60", 60, "60 in/min", "60 ipm"); 0.0 when it cannot be read."""
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v)
+    m = re.match(r"\s*([-+]?(?:\d+\.?\d*|\.\d+))", str(v or ""))
+    return float(m.group(1)) if m else 0.0
 
 
 def normalize_preset_key(preset: Dict[str, Any]) -> str:
@@ -95,30 +136,43 @@ def normalize_preset_key(preset: Dict[str, Any]) -> str:
     return f"{name}|{mat_query}"
 
 
+def _preset_values(p: Dict[str, Any]) -> Tuple[float, ...]:
+    """Cutting numbers of a preset, used to tell a true duplicate from a same-named preset with other values."""
+    return tuple(round(_feed_number(p.get(k)), 4) for k in ("n", "v_f", "f_z", "stepdown", "stepover"))
+
+
 def merge_presets_lists(primary_presets: List[Dict[str, Any]], secondary_presets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Merges presets from two tools without duplicating identical operations/materials.
-    Preserves all unique presets, preferring presets with rich feeds/speeds.
+    Merges presets from two tools. Every primary preset is kept (including same-named ones within the
+    primary list). A secondary preset is dropped only when it duplicates a kept preset (same name, material
+    and cutting numbers); one with the same name but different numbers is kept under a numbered name
+    ("Roughing (2)") with a fresh guid, so neither copy's data is lost. A secondary preset with real
+    feeds replaces a primary one that has a zero feed.
     """
-    merged_map: Dict[str, Dict[str, Any]] = {}
-
-    for p in primary_presets:
-        key = normalize_preset_key(p)
-        merged_map[key] = dict(p)
+    merged: List[Dict[str, Any]] = [copy.deepcopy(p) for p in primary_presets]
+    by_key: Dict[str, List[int]] = {}
+    for i, p in enumerate(merged):
+        by_key.setdefault(normalize_preset_key(p), []).append(i)
 
     for p in secondary_presets:
         key = normalize_preset_key(p)
-        if key not in merged_map:
-            merged_map[key] = dict(p)
-        else:
-            # If the secondary preset has non-zero feeds/speeds and primary had zeros/defaults, update
-            existing = merged_map[key]
-            existing_vf = float(str(existing.get("v_f", "0")).replace("in/min", "").replace("mm/min", "") or 0)
-            incoming_vf = float(str(p.get("v_f", "0")).replace("in/min", "").replace("mm/min", "") or 0)
-            if incoming_vf > 0 and existing_vf == 0:
-                merged_map[key] = dict(p)
-
-    return list(merged_map.values())
+        idxs = by_key.get(key)
+        if not idxs:
+            merged.append(copy.deepcopy(p))
+            by_key[key] = [len(merged) - 1]
+            continue
+        vals = _preset_values(p)
+        if any(_preset_values(merged[i]) == vals for i in idxs):
+            continue                                              # true duplicate
+        if all(_feed_number(merged[i].get("v_f")) == 0 for i in idxs) and _feed_number(p.get("v_f")) > 0:
+            merged[idxs[0]] = copy.deepcopy(p)
+            continue
+        dup = copy.deepcopy(p)
+        dup["name"] = f"{str(p.get('name', 'Preset')).strip()} ({len(idxs) + 1})"
+        dup["guid"] = str(uuid.uuid4())
+        merged.append(dup)
+        idxs.append(len(merged) - 1)
+    return merged
 
 
 def select_best_tool_metadata(tools_group: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -131,9 +185,12 @@ def select_best_tool_metadata(tools_group: List[Dict[str, Any]]) -> Dict[str, An
         desc = t.get("description", "")
         if desc and "unnamed" not in desc.lower() and "tool" not in desc.lower():
             score += 20
-        num = t.get("postProcess", {}).get("number", t.get("post-process", {}).get("number", 0))
-        if num and int(num) > 0:
-            score += 15
+        post = t.get("post-process") or t.get("postProcess") or {}
+        try:
+            if int((post.get("number") if isinstance(post, dict) else 0) or 0) > 0:
+                score += 15
+        except (TypeError, ValueError):
+            pass
         if t.get("holder"):
             score += 10
         if t.get("vendor"):
@@ -144,8 +201,7 @@ def select_best_tool_metadata(tools_group: List[Dict[str, Any]]) -> Dict[str, An
         score += len(presets)
         return score
 
-    best_tool = dict(max(tools_group, key=score_tool))
-    return best_tool
+    return copy.deepcopy(max(tools_group, key=score_tool))
 
 
 def deduplicate_tools(tools_list: List[Any], preserve_presets: bool = True) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -355,10 +411,15 @@ def clean_tool_presets(
         if isinstance(p.get("material"), dict):
             mat_query = str(p["material"].get("query", "")).strip().lower()
 
-        # If matching target material to replace:
+        # If matching target material to replace: the preset's material must BE the target (query or the
+        # "<material> - " name prefix, or the material recorded in its toolwiz tag). A substring test would
+        # also delete the owner's own presets whose names merely mention the material ("304" in "6304").
         if target_material_to_replace:
             target_norm = target_material_to_replace.strip().lower()
-            if target_norm in p_name or target_norm in mat_query:
+            tag = p.get("toolwiz") if isinstance(p.get("toolwiz"), dict) else {}
+            tag_mat = str(tag.get("material", "")).strip().lower()
+            if (mat_query == target_norm or p_name == target_norm or p_name.startswith(target_norm + " - ")
+                    or (tag_mat and tag_mat == target_norm)):
                 continue
 
         # If removing non-ToolWiz presets:
