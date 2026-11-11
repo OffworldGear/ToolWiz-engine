@@ -79,6 +79,9 @@ fields are tolerated: an op without a tool or engagement is listed and gets fewe
 | `tool` | Fusion tool JSON (`type`, `description`, `unit`, `geometry{DC,NOF,LCF,SFDM,LB,RE,...}`, `post-process.number`), or a flat dict (`diameter_in`/`diameter_mm`, `flutes`, `flute_length_in`, `shank_diameter_in`, `stickout_in`, `corner_radius_in`, `coating`, `kerf_in` for slot mills, `neck_diameter_in`, `reach_in`), or just a description string. Optional `holder` (string or `{description, runout_in}`) and `coating`. |
 | `params` (or `cut_params`, or the same keys at the top level) | `tool_spindleSpeed`, `tool_feedCutting`, `maximumStepdown`, `optimalLoad` / `stepover`, `stockToLeave`, `verticalStockToLeave`; each an expression string with units (`"0.25 in"`, `"6 mm"`, `"108 in/min"`, `"12000 rpm"`), a `{expr, value}` dict, or a plain number read as inches / IPM / rpm. Flat aliases `rpm`, `feed_ipm`, `stepdown_in`, `stepover_in`, `stock_to_leave_in`, `axial_stock_in` (and `*_mm`) work too. |
 | `geometry` | Measured feature geometry (inches or `*_mm`): `slot_width_in`, `channel_width_in`, `depth_in` (or `top_height_in` and `bottom_height_in`), `toolpath_length_in`, `tabs {count, width_in, height_in, style}`, and for T-slots `slot_height_in` and `radial_depth_in`. Needed for the strategy comparison; without them the op is analysed but no strategy is suggested (`strategy_notes` says what is missing). |
+| `geometry.multi_stepover`, `effective_cut_width_in` | 2D Contour with roughing passes: `{enabled, count, stepover_in}` and `D + (count - 1) x stepover`. The advisor treats `enabled` with `count >= 2` as a multi-stepover op (see below). |
+| `geometry.channel_width_in`, `channel_length_in`, `radial_depth_in`, `pocket_area_in2`, `pocket_perimeter_in`, `pocket_island_perimeter_in`, `pocket_min_corner_radius_in` | Measured from the op's selected geometry / B-Rep (add-in `toolwiz_common.cam_geometry_inspector.measure_op_widths`). With pocket area + perimeter an adaptive / pocket op gets a pocket strategy comparison. |
+| `geometry.sources` | `{field: "measured"}` provenance written by the add-in; `stepover_params_seen` lists the op's step / pass / rough parameter ids (diagnostic). |
 | `rest_machining` | `true`/`false` when the op uses rest machining (setup-level check). |
 | `family`, `alloy` | Per-op material override. |
 
@@ -183,3 +186,18 @@ context, the ToolWiz numbers and the user's own question; on failure the reply i
 (`mode: "guard_fallback"`, `numeric_check` in the response). The offline expert (no API key) is deterministic code and is not guarded.
 `ai_machinist.generate_text`, `is_available` and `ask_machinist` (guarded) are the shared helpers; the oversight engine's optional second opinion
 now works (it called two functions that did not exist).
+
+
+## Multiple stepovers (2D Contour) and measured widths
+
+An op with the roughing-passes toggle on and `count >= 2` stepovers cuts a full-width slot first (ae = D) and then side passes (ae = stepover): one feed cannot suit both.
+For such an op (`operations[].multi_stepover`) the advisor runs ToolWiz twice at the op's stepdown (`pipeline.run_cut` *Slotting* at ae = D, *Roughing* at ae = stepover) and reports:
+`effective_cut_width_in` (+ `effective_cut_width_source`), `slot_pass` and `side_passes` (rpm, feed, chip load, ap, ae), `safe_numbers` (the slot pass's rpm, feed and stepdown: what the op
+should run), `chip_load_vs_slot_x` / `chip_load_vs_side_x`, `side_over_slot_feed_x`, `explanation`, and, with a depth and a slot length (measured wall length, else toolpath length / (passes x levels)),
+`times` (as programmed, one op at the slot feed: path / feed) and `alternatives` (`strategy_planner.compare` for a slot of the effective width: split into a slot op + side-pass op, adaptive; each with
+`cycle_time_min` and `cycle_time_excl_wall_finish_min`, the like-for-like figure). Findings: `multi_stepover_overload` (STOP above 2x the slot chip load, CAUTION above 1.4x), `multi_stepover_underfed`
+(feed right for the slot, side passes could run faster), `multi_stepover_split` / `multi_stepover_alternatives` (INFO with the times), `multi_stepover_infeasible`. The apply plan changes only
+spindle speed, feed and stepdown to the slot-pass numbers (the op's stepovers are kept). The ordinary chip-load / feed findings are replaced by these for such an op.
+
+`operations[].geometry_sources` marks each width the advisor used `measured` or `assumed` (effective cut width, slot / channel width, T-slot radial depth and height, pocket area / perimeter /
+corner radius, depth, toolpath length). Measured pocket metrics on an adaptive / pocket / rough op give `strategy_suggestions` with feature `pocket`.

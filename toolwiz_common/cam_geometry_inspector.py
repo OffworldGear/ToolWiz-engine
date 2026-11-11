@@ -775,3 +775,363 @@ def inspect_operation_geometry(
         })
 
     return report
+
+
+# ---------------------------------------------------------------------------
+# Cut widths measured from the operation's selection and B-Rep (setup advisor, docs/SETUP_ADVISOR.md)
+# ---------------------------------------------------------------------------
+#
+# Fusion API objects used (all reads, each guarded with try / hasattr; Autodesk's Fusion API reference):
+#   * op.parameters.itemByName('contours' | 'pockets' | 'stockContours').value -> CadContours2dParameterValue,
+#     .getCurveSelections() -> CurveSelections (a collection of ChainSelection / PocketSelection / FaceContourSelection /
+#     SilhouetteSelection), each with .inputGeometry (the selected BRepEdge / SketchCurve / BRepFace objects)
+#     https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/CAMParameters_UM.htm
+#   * BRepFace.geometry (Plane / Cylinder), .area (cm^2), .loops, .edges, .boundingBox, .evaluator
+#   * BRepLoop.isOuter, .edges;  BRepEdge.length (cm), .geometry (Line3D / Arc3D / Circle3D: .radius), .faces
+# Whether getCurveSelections() can be read back on an existing operation and what inputGeometry holds for each selection type
+# has to be confirmed on the owner's Fusion (docs/ADDIN_USER_GUIDE.md, "Measured widths"); every failure yields no field.
+
+CM2_TO_IN2 = CM_TO_IN * CM_TO_IN
+SELECTION_PARAMS = ("pockets", "contours", "stockContours")
+MIN_GAP_IN = 0.01
+MAX_GAP_IN = 24.0
+
+
+def contour_effective_width_in(tool_diameter_in: Optional[float], count: Optional[int], stepover_in: Optional[float]) -> Optional[float]:
+    """Effective cut width of a 2D Contour with multiple stepovers: D + (N - 1) x stepover (N >= 1)."""
+    if not tool_diameter_in or tool_diameter_in <= 0:
+        return None
+    n = int(count or 1)
+    if n <= 1 or not stepover_in or stepover_in <= 0:
+        return float(tool_diameter_in)
+    return float(tool_diameter_in) + (n - 1) * float(stepover_in)
+
+
+def _key(obj) -> Any:
+    tok = getattr(obj, "entityToken", None)
+    return tok if isinstance(tok, str) and tok else id(obj)
+
+
+def selection_entities(op) -> Dict[str, List[Any]]:
+    """``{"faces": [...], "edges": [...], "other": n}``: the geometry selected by the op's contours / pockets parameter
+    (see the section comment above). Empty lists when the parameter or the selections cannot be read."""
+    out: Dict[str, List[Any]] = {"faces": [], "edges": [], "other": 0}
+    params = getattr(op, "parameters", None)
+    if params is None or not hasattr(params, "itemByName"):
+        return out
+    seen = set()
+    for pname in SELECTION_PARAMS:
+        try:
+            p = params.itemByName(pname)
+            val = getattr(p, "value", None) if p is not None else None
+            if val is None or not hasattr(val, "getCurveSelections"):
+                continue
+            sels = val.getCurveSelections()
+        except Exception:
+            continue
+        for sel in _iter_collection(sels):
+            try:
+                geo = getattr(sel, "inputGeometry", None)
+            except Exception:
+                geo = None
+            for ent in _iter_collection(geo):
+                k = _key(ent)
+                if k in seen:
+                    continue
+                seen.add(k)
+                if hasattr(ent, "loops") and hasattr(ent, "area"):
+                    out["faces"].append(ent)
+                elif hasattr(ent, "length") and (hasattr(ent, "faces") or hasattr(ent, "geometry")):
+                    out["edges"].append(ent)
+                else:
+                    out["other"] += 1
+    return out
+
+
+def _is_planar_horizontal(face) -> Optional[int]:
+    """+1 for an upward-facing planar face (a pocket floor), -1 downward, None otherwise."""
+    geom = getattr(face, "geometry", None)
+    if geom is not None and getattr(geom, "radius", None) is not None:
+        return None
+    norm, _ = _face_normal_and_point_cm(face)
+    if norm is None or abs(norm[2]) < 0.98:
+        return None
+    return 1 if norm[2] > 0 else -1
+
+
+def _face_loops(face) -> List[Any]:
+    return _iter_collection(getattr(face, "loops", None))
+
+
+def _loop_edges(loop) -> List[Any]:
+    return _iter_collection(getattr(loop, "edges", None))
+
+
+def _adjacent_faces(entities: Dict[str, List[Any]]) -> List[Any]:
+    """Selected faces, the faces next to selected edges, and (for a selected floor face) the faces next to its loop edges."""
+    faces: Dict[Any, Any] = {}
+
+    def add(f):
+        if f is not None:
+            faces.setdefault(_key(f), f)
+    for f in entities["faces"]:
+        add(f)
+    for e in entities["edges"]:
+        for f in _iter_collection(getattr(e, "faces", None)):
+            add(f)
+    for f in list(faces.values()):
+        if _is_planar_horizontal(f):
+            for lp in _face_loops(f):
+                for e in _loop_edges(lp):
+                    for g in _iter_collection(getattr(e, "faces", None)):
+                        add(g)
+    return list(faces.values())
+
+
+def _expand_ring(faces: List[Any]) -> List[Any]:
+    """``faces`` plus every face sharing an edge with one of them (a groove is reached from its opening wall)."""
+    out: Dict[Any, Any] = {_key(f): f for f in faces}
+    for f in faces:
+        for e in _iter_collection(getattr(f, "edges", None)):
+            for g in _iter_collection(getattr(e, "faces", None)):
+                out.setdefault(_key(g), g)
+    return list(out.values())
+
+
+def _vertical_cylinder(face) -> Optional[Tuple[float, Optional[Tuple[float, float]], Optional[bool]]]:
+    """(radius_in, axis point xy cm, concave | None) of a vertical cylindrical face, else None."""
+    geom = getattr(face, "geometry", None)
+    r_cm = getattr(geom, "radius", None) if geom is not None else None
+    if r_cm is None:
+        return None
+    try:
+        r_in = float(r_cm) * CM_TO_IN
+    except (TypeError, ValueError):
+        return None
+    axis = _vec_coords(getattr(geom, "axis", None))
+    if axis is not None and abs(axis[2]) < 0.70:
+        return None
+    org = _point_coords_cm(getattr(geom, "origin", None))
+    conc = getattr(face, "is_concave", None)
+    if conc is None:
+        conc = getattr(geom, "is_concave", None)
+    if conc is None:
+        pt = _point_coords_cm(getattr(face, "pointOnFace", None))
+        norm, _ = _face_normal_and_point_cm(face)
+        if org is not None and pt is not None and norm is not None:
+            conc = ((org[0] - pt[0]) * norm[0] + (org[1] - pt[1]) * norm[1]) > 1e-6
+    return r_in, (None if org is None else (org[0], org[1])), conc
+
+
+def measure_wall_gaps(faces: Iterable[Any]) -> List[Dict[str, Any]]:
+    """Open gaps (channels) bounded by opposing walls among ``faces``, inches.
+
+    * pair of vertical planar faces whose outward normals face each other (n1 . n2 <= -0.98) and whose gap lies in the air
+      (the other face is in the +n1 direction; the solid-between case is the thin wall of ``_measure_thickness_from_faces``),
+      overlapping in height and along the wall: ``{"gap_in", "height_in", "length_in", "kind": "parallel_walls"}``;
+    * a concave vertical cylinder alone (a bore / round slot end): ``{"gap_in": 2 R, "kind": "bore"}``; with a convex cylinder
+      on the same axis inside it (an annular groove): ``{"gap_in": R_o - R_i, "kind": "concentric_cylinders"}``.
+    """
+    planes: List[Tuple[Tuple[float, float, float], Tuple[float, float, float], Any, float]] = []
+    cyls: List[Tuple[float, Optional[Tuple[float, float]], Optional[bool], Any]] = []
+    for f in faces:
+        cyl = _vertical_cylinder(f)
+        if cyl is not None:
+            cyls.append(cyl + (getattr(f, "boundingBox", None),))
+            continue
+        geom = getattr(f, "geometry", None)
+        if geom is not None and getattr(geom, "radius", None) is not None:
+            continue
+        norm, pt = _face_normal_and_point_cm(f)
+        if norm is None or pt is None or abs(norm[2]) > 0.20:
+            continue
+        bb = getattr(f, "boundingBox", None)
+        zb = _bbox_z_bounds_cm(bb)
+        planes.append((norm, pt, bb, ((zb[1] - zb[0]) * CM_TO_IN) if zb else 0.0))
+    out: List[Dict[str, Any]] = []
+    for i in range(len(planes)):
+        n1, p1, bb1, _h1 = planes[i]
+        for j in range(i + 1, len(planes)):
+            n2, p2, bb2, _h2 = planes[j]
+            if n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2] > -0.98:
+                continue
+            proj = (p2[0] - p1[0]) * n1[0] + (p2[1] - p1[1]) * n1[1] + (p2[2] - p1[2]) * n1[2]
+            if proj <= 1e-5:
+                continue                      # solid between the faces: a wall, not a channel
+            if not _bbox_overlap_2d(bb1, bb2, plane="z", tol_cm=0.02) or not _tangential_overlap_xy(bb1, bb2, n1):
+                continue
+            gap = proj * CM_TO_IN
+            z_ov = _z_overlap_in(bb1, bb2)
+            if not MIN_GAP_IN <= gap <= MAX_GAP_IN or (z_ov is not None and z_ov < 0.02):
+                continue
+            out.append({"gap_in": gap, "height_in": z_ov, "length_in": _tangential_extent_in(bb1, bb2, n1),
+                        "kind": "parallel_walls"})
+    used = set()
+    for a, (r_o, c_o, conc_o, bb_o) in enumerate(cyls):
+        if conc_o is not True or r_o < 0.005:
+            continue
+        inner = None
+        for b, (r_i, c_i, conc_i, _bb) in enumerate(cyls):
+            if b != a and conc_i is False and r_i < r_o and c_o and c_i and math.hypot(c_o[0] - c_i[0], c_o[1] - c_i[1]) < 0.02:
+                inner = (b, r_i)
+                break
+        if inner is not None:
+            used.add(inner[0])
+            out.append({"gap_in": r_o - inner[1], "height_in": None, "length_in": None, "kind": "concentric_cylinders"})
+        else:
+            out.append({"gap_in": 2.0 * r_o, "height_in": None, "length_in": None, "kind": "bore"})
+    return out
+
+
+def _tangential_extent_in(bb1, bb2, norm) -> Optional[float]:
+    """Length (in) over which two wall bounding boxes overlap along the wall tangent."""
+    try:
+        nx, ny = float(norm[0]), float(norm[1])
+        mag = math.hypot(nx, ny)
+        tx, ty = -ny / mag, nx / mag
+
+        def span(bb):
+            xs = (float(bb.minPoint.x), float(bb.maxPoint.x))
+            ys = (float(bb.minPoint.y), float(bb.maxPoint.y))
+            c = [tx * x + ty * y for x in xs for y in ys]
+            return min(c), max(c)
+        a, b = span(bb1), span(bb2)
+        ov = min(a[1], b[1]) - max(a[0], b[0])
+        return ov * CM_TO_IN if ov > 0 else None
+    except Exception:
+        return None
+
+
+def measure_tslot_radial_depth(faces: Iterable[Any], kerf_in: Optional[float], tol: float = 0.10) -> Optional[Dict[str, Any]]:
+    """Radial depth of a T-slot groove from B-Rep faces: a pair of opposing horizontal planar faces (groove roof and floor, air
+    between) whose gap equals the cutter kerf within ``tol`` and which overlap in plan, the vertical planar face spanning that
+    gap (the groove back wall) and the parallel vertical wall the groove opens in (same outward normal, nearer the cutter).
+    Returns ``{"radial_depth_in", "kerf_in", "grooves"}`` for the deepest unambiguous groove, or None. ``grooves`` > 1 means
+    the faces hold several candidate grooves (the caller marks the value ambiguous)."""
+    if not kerf_in or kerf_in <= 0:
+        return None
+    flats, walls = [], []
+    for f in faces:
+        geom = getattr(f, "geometry", None)
+        if geom is not None and getattr(geom, "radius", None) is not None:
+            continue
+        norm, pt = _face_normal_and_point_cm(f)
+        if norm is None or pt is None:
+            continue
+        bb = getattr(f, "boundingBox", None)
+        if abs(norm[2]) >= 0.98:
+            flats.append((norm, pt, bb))
+        elif abs(norm[2]) <= 0.2:
+            walls.append((norm, pt, bb))
+    grooves: List[float] = []
+    for i in range(len(flats)):
+        n1, p1, b1 = flats[i]
+        for j in range(i + 1, len(flats)):
+            n2, p2, b2 = flats[j]
+            if n1[2] * n2[2] > -0.9:
+                continue
+            proj = (p2[2] - p1[2]) * n1[2]
+            if proj <= 1e-5:
+                continue                       # solid between: not a groove
+            gap = proj * CM_TO_IN
+            if abs(gap - kerf_in) > tol * kerf_in or not _bbox_overlap_2d(b1, b2, plane="xy", tol_cm=0.0):
+                continue
+            zlo, zhi = (p1[2], p2[2]) if p1[2] < p2[2] else (p2[2], p1[2])
+            for nb, pb, bbb in walls:           # back wall: spans the groove height, normal toward the opening
+                zb = _bbox_z_bounds_cm(bbb)
+                if zb is None or abs(zb[0] - zlo) > 0.03 or abs(zb[1] - zhi) > 0.03:
+                    continue
+                if not _bbox_overlap_2d(bbb, b1, plane="xy", tol_cm=0.02):
+                    continue
+                for no, po, bbo in walls:       # opening wall: same normal, in front of the back wall, taller than the groove
+                    if no is nb or nb[0] * no[0] + nb[1] * no[1] < 0.98:
+                        continue
+                    zo = _bbox_z_bounds_cm(bbo)
+                    if zo is None or not (zo[1] > zhi + 0.03 or zo[0] < zlo - 0.03):
+                        continue
+                    d = ((po[0] - pb[0]) * nb[0] + (po[1] - pb[1]) * nb[1]) * CM_TO_IN
+                    if 0.005 <= d <= 12.0 and _tangential_overlap_xy(bbb, bbo, nb):
+                        grooves.append(d)
+    if not grooves:
+        return None
+    return {"radial_depth_in": max(grooves), "kerf_in": kerf_in, "grooves": len(set(round(g, 3) for g in grooves))}
+
+
+def measure_pocket(entities: Dict[str, List[Any]]) -> Dict[str, Any]:
+    """Pocket metrics from the selected floor face(s) (the selection itself or the upward planar face next to the selected
+    edges): ``pocket_area_in2`` (the face area, holes for islands already excluded), ``pocket_perimeter_in`` (outer loop),
+    ``pocket_island_perimeter_in`` (inner loops), ``pocket_min_corner_radius_in`` (smallest arc edge of the outer loop; none for a
+    single full circle). Empty dict when no floor face is found."""
+    floors = [f for f in _adjacent_faces(entities) if _is_planar_horizontal(f) == 1]
+    if not floors:
+        return {}
+    area = per = isl = 0.0
+    radii: List[float] = []
+    for f in floors:
+        try:
+            area += float(getattr(f, "area")) * CM2_TO_IN2
+        except Exception:
+            pass
+        for lp in _face_loops(f):
+            edges = _loop_edges(lp)
+            length = sum(float(getattr(e, "length", 0.0) or 0.0) for e in edges) * CM_TO_IN
+            outer = getattr(lp, "isOuter", True)
+            if outer:
+                per += length
+                if len(edges) > 1:
+                    for e in edges:
+                        r = getattr(getattr(e, "geometry", None), "radius", None)
+                        if r is not None and float(r) * CM_TO_IN >= 0.005:
+                            radii.append(float(r) * CM_TO_IN)
+            else:
+                isl += length
+    out: Dict[str, Any] = {}
+    if area > 0:
+        out["pocket_area_in2"] = area
+    if per > 0:
+        out["pocket_perimeter_in"] = per
+    if isl > 0:
+        out["pocket_island_perimeter_in"] = isl
+    if radii:
+        out["pocket_min_corner_radius_in"] = min(radii)
+    return out
+
+
+def measure_op_widths(op, tool_diameter_in: Optional[float] = None, kerf_in: Optional[float] = None,
+                      kind: Optional[str] = None) -> Dict[str, Any]:
+    """Widths and pocket metrics of an operation measured from its selected geometry (inches). Keys present only when measured:
+
+    ``channel_width_in`` (smallest gap between opposing walls bounding the selection, plus ``channel_kind``,
+    ``channel_height_in``, ``channel_length_in``, ``channel_gaps_in`` all gaps found), ``radial_depth_brep_in`` (T-slot groove,
+    only for slot cutters: ``kind == "tslot"``), and the ``pocket_*`` fields of ``measure_pocket``. Never raises; the faces are
+    those of the op's own selection only (an op without a readable selection measures nothing: the setup's bodies are not
+    searched because every wall pair in them would qualify)."""
+    out: Dict[str, Any] = {}
+    try:
+        ents = selection_entities(op)
+        if not (ents["faces"] or ents["edges"]):
+            return out
+        faces = _adjacent_faces(ents)
+        gaps = measure_wall_gaps(faces)
+        if tool_diameter_in:
+            fits = [g for g in gaps if g["gap_in"] >= 0.9 * tool_diameter_in]
+            gaps = fits or gaps
+        if gaps:
+            best = min(gaps, key=lambda g: g["gap_in"])
+            out["channel_width_in"] = best["gap_in"]
+            out["channel_kind"] = best["kind"]
+            if best.get("height_in"):
+                out["channel_height_in"] = best["height_in"]
+            if best.get("length_in"):
+                out["channel_length_in"] = best["length_in"]
+            if len(gaps) > 1:
+                out["channel_gaps_in"] = sorted(round(g["gap_in"], 5) for g in gaps)[:6]
+        if kind == "tslot" and kerf_in:
+            td = measure_tslot_radial_depth(_expand_ring(_expand_ring(faces)), kerf_in)
+            if td:
+                out["radial_depth_brep_in"] = td["radial_depth_in"]
+                out["radial_depth_grooves"] = td["grooves"]
+        out.update(measure_pocket(ents))
+    except Exception:
+        return {}
+    return out

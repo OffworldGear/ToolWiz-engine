@@ -2,7 +2,7 @@
 <div id="plannerView" style="display: none;">
     <div class="glass-panel v3-intro">
         <h2 class="v3-h2">Strategy Planner</h2>
-        <p class="v3-lead">Which strategy cuts this feature fastest without wearing the tool out much faster? ToolWiz compares a full-width contour slot, a smaller tool and adaptive clearing for a cutout or slot, or compares T-slot cutters, using its own speeds, feeds and depths for every option.</p>
+        <p class="v3-lead">Which strategy cuts this feature fastest without wearing the tool out much faster? ToolWiz compares a full-width contour slot, a smaller tool and adaptive clearing for a cutout or slot, or compares T-slot cutters, or for a closed pocket compares adaptive clearing against offset roughing (with the full-slot entry, helical entry, corner spikes, rest machining and the wall and floor finish), using its own speeds, feeds and depths for every option.</p>
         <details class="v3-more" id="wearRuleBox">
             <summary>How the recommendation is chosen (wear-ratio rule)</summary>
             <p>Every option gets a <strong>wear per part</strong> number: minutes the edge is in the cut divided by the tool life at the speed ToolWiz chose (Taylor law, relative to the 50&nbsp;% baseline speed). Wear is scaled so the option that wears the tool least is <strong>1.00</strong>; only the ratios mean anything.</p>
@@ -18,17 +18,26 @@
                 <select id="plFeature" onchange="plannerFeatureChanged()">
                     <option value="profile_cutout">Profile cut-out (contour around a part, with tabs)</option>
                     <option value="slot">Slot (fixed width)</option>
+                    <option value="pocket">Pocket (closed, adaptive vs offset roughing + finish)</option>
                     <option value="tslot">T-slot job (T-slot / keyseat cutters)</option>
                 </select>
             </div>
 
             <div class="grid-layout pl-grid" id="plDims">
-                <div class="input-group pl-f-profile pl-f-slot"><label for="plDepth">Depth / part thickness (<span class="unit-lbl">in</span>)</label><input type="number" id="plDepth" class="tool-dialog-input" step="any" min="0" value="0.25"></div>
+                <div class="input-group pl-f-profile pl-f-slot pl-f-pocket"><label for="plDepth">Depth / part thickness (<span class="unit-lbl">in</span>)</label><input type="number" id="plDepth" class="tool-dialog-input" step="any" min="0" value="0.25"></div>
                 <div class="input-group pl-f-profile pl-f-slot pl-f-tslot"><label for="plLength"><span id="plLengthLbl">Path length / perimeter</span> (<span class="unit-lbl">in</span>)</label><input type="number" id="plLength" class="tool-dialog-input" step="any" min="0" value="12"></div>
                 <div class="input-group pl-f-slot"><label for="plWidth">Slot width (<span class="unit-lbl">in</span>)</label><input type="number" id="plWidth" class="tool-dialog-input" step="any" min="0" value="0.25"></div>
                 <div class="input-group pl-f-profile"><label for="plChannel">Adaptive channel width, optional (<span class="unit-lbl">in</span>)</label><input type="number" id="plChannel" class="tool-dialog-input" step="any" min="0" placeholder="auto"></div>
                 <div class="input-group pl-f-tslot"><label for="plSlotHeight">Slot height, Z extent (<span class="unit-lbl">in</span>)</label><input type="number" id="plSlotHeight" class="tool-dialog-input" step="any" min="0" value="0.0787"></div>
                 <div class="input-group pl-f-tslot"><label for="plRadial">Total radial depth (<span class="unit-lbl">in</span>)</label><input type="number" id="plRadial" class="tool-dialog-input" step="any" min="0" value="0.03"></div>
+                <div class="input-group pl-f-pocket"><label for="plPocketBy">Describe the pocket by</label><select id="plPocketBy" onchange="plannerFeatureChanged()"><option value="rect">length &times; width</option><option value="area">area + perimeter</option></select></div>
+                <div class="input-group pl-f-pocket pl-pk-rect"><label for="plPocketL">Length (<span class="unit-lbl">in</span>)</label><input type="number" id="plPocketL" class="tool-dialog-input" step="any" min="0" value="3"></div>
+                <div class="input-group pl-f-pocket pl-pk-rect"><label for="plPocketW">Width (<span class="unit-lbl">in</span>)</label><input type="number" id="plPocketW" class="tool-dialog-input" step="any" min="0" value="2"></div>
+                <div class="input-group pl-f-pocket pl-pk-area"><label for="plPocketArea">Area (<span class="unit-lbl">in</span>&sup2;)</label><input type="number" id="plPocketArea" class="tool-dialog-input" step="any" min="0" value="5.7"></div>
+                <div class="input-group pl-f-pocket pl-pk-area"><label for="plPocketPerim">Outer perimeter (<span class="unit-lbl">in</span>)</label><input type="number" id="plPocketPerim" class="tool-dialog-input" step="any" min="0" value="9.8"></div>
+                <div class="input-group pl-f-pocket"><label for="plCorner">Smallest corner radius (<span class="unit-lbl">in</span>)</label><input type="number" id="plCorner" class="tool-dialog-input" step="any" min="0" value="0.125"></div>
+                <div class="input-group pl-f-pocket"><label for="plIsland">Island area, optional (<span class="unit-lbl">in</span>&sup2;)</label><input type="number" id="plIsland" class="tool-dialog-input" step="any" min="0" placeholder="none"></div>
+                <div class="input-group pl-f-pocket"><label for="plFinishMode">Finish mode (walls and floor)</label><select id="plFinishMode"><option value="">cleanup (default)</option><option value="surface">surface (best visible finish)</option><option value="accuracy">accuracy (size-critical)</option></select></div>
             </div>
 
             <fieldset class="pl-tabs pl-f-profile" id="plTabsBox">

@@ -2,7 +2,7 @@
 
 `POST /api/strategy/compare` (`strategy_planner.compare`) answers: for this feature and these tools, which strategy gives the
 shortest cycle time without a big difference in tool wear? Features: `profile_cutout` (contour around a part with tabs),
-`slot` (fixed width) and `tslot` (T-slot / keyseat cutters). Every speed, feed, depth, width, ramp and stock-to-leave value comes
+`slot` (fixed width), `tslot` (T-slot / keyseat cutters) and `pocket` (closed pocket, see "Pockets"). Every speed, feed, depth, width, ramp and stock-to-leave value comes
 from ToolWiz: `pipeline.run_cut` with the v2 model for end mills and `tslot_model` for slot mills, at the request's
 aggressiveness and runout. The planner only adds geometry (paths), a cycle-time model and a tool-wear estimate. Lengths are
 inches, feeds IPM, times minutes.
@@ -22,6 +22,7 @@ inches, feeds IPM, times minutes.
 * `slot`: `width`, `depth`, `length`.
 * `tslot`: `slot_height` (Z extent), `radial_depth`, `length`; candidates are `{"id": "klot_8x0.5"}` (any id in
   `data/shop_tools.json`) or `{"geometry": {"diameter_mm", "kerf_mm", "neck_diameter_mm", "reach_mm", "shank_diameter_mm", "teeth", ...}}`.
+* `pocket`: `depth` and either `length` + `width` or `area` + `perimeter`; optional `corner_radius` (smallest internal corner radius), `island_area` (and `island_perimeter`), `finish_mode` (`cleanup` | `surface` | `accuracy`), `target_ra`, `wall_tolerance`. Candidates are end mills as for `profile_cutout`.
 * Errors return 400 `{"success": false, "error": "..."}`; the `X-ToolWiz-Client` header is required.
 
 The response has `options` (each: `name`, `tool`, `strategy`, `levels`, `ap`, `ae`, `rpm`, `feed_ipm`, `path_length_in`,
@@ -224,3 +225,50 @@ minutes: the ranking is the cycle-time ranking. The Harvey is both fastest and l
 4. Tool-life model: Taylor law at ToolWiz's SFM vs C7's life speed for the engagement, taylor_n placeholder (confidence low), 10x cap; log tool lives to calibrate.
 5. T-slot cycle model and the T-slot job parameters (slot height, radial depth, length) are inputs: results depend on them.
 6. Provisional cutter geometry in `data/shop_tools.json` (neck, reach, tooth form) is flagged in every affected option.
+
+
+## Pockets (`feature.type: "pocket"`)
+
+`strategy_pocket.py`. A closed pocket of depth `d`, compared for every candidate end mill that fits (`D <= narrowest width`): **adaptive clearing**,
+**offset / zig-zag roughing**, each followed by a **wall finish and a floor finish**. All speeds, feeds, ap, ae, ramp, plunge, stock and finish numbers
+are ToolWiz's (`pipeline.run_cut`); the planner adds geometry, path lengths and times.
+
+Geometry (inches): rounded rectangle of length `L`, width `W`, corner radius `r`:
+`A_gross = L W - (4 - pi) r^2`, `P_outer = 2 (L + W) - (8 - 2 pi) r`. Island: `A_i`, `P_i` (default `P_i = 2 sqrt(pi A_i)`, a round island).
+`A_net = A_gross - A_i`, `P_walls = P_outer + P_i`. With `area` + `perimeter` given the equivalent rectangle comes from
+`L + W = P/2 + (4 - pi) r`, `L W = A + (4 - pi) r^2`. Stock: `s` = ToolWiz radial stock, `a` = axial stock, `A_clear = A_net - s P_walls`,
+`depth_rough = depth - a`, `levels = ceil(depth_rough / ap)`.
+
+| Piece | Formula |
+|---|---|
+| Adaptive (ToolWiz *Adaptive Roughing*: `ap`, `ae` = optimal load) | path per level `= A_clear / ae + P_walls` (area swept at `ae` per unit path, plus one perimeter pass); time `= path / feed` |
+| Offset roughing (ToolWiz *Roughing*: `ap`, `ae` = stepover) | the first pass is a **full slot**: `l_slot = D + max(L_c - W_c, 0)` at ToolWiz *Slotting* numbers for the same `ap` (`ae = D`), where `L_c, W_c = L - 2s, W - 2s`; the rest `(A_clear - l_slot D) / ae` at the roughing feed. Zig-zag has the same area / stepover path and differs only in turn geometry (alternating climb / conventional), so it is not timed separately |
+| Entry | once per level: ToolWiz helical ramp (*Slotting* ramp angle, ramp feed, helix diameter `D_h`) when the helix hole `D_h + D` fits `W - 2s`; otherwise ToolWiz plunge feed (centre-cutting tool or pre-drill) and a risk line. The adaptive result's own ramp is a 3 degree ramp along the pocket, too long for a pocket, so the helix is used |
+| Corner moves | `calc_corner_engagement(D, r - s, ae)` gives the corner ae spike and a feed scale; the 4 corner moves of length about `D` run at `scale x feed`. If `D/2 >= r - s` the tool cannot enter the corner (no spike, corner left for rest machining) |
+| Rest machining | `D/2 > r` (the smallest wall corner radius): the option is flagged `rest_machining_needed` with the largest rest-tool diameter `2 r`; reported, **not timed**, and shown in `fusion_hints.rest_machining` |
+| Wall finish | ToolWiz *Finishing* at cut width `s` (the finish mode applies), one pass round `P_walls` per `ceil(depth / flute length)` level |
+| Floor finish | ToolWiz *Finishing* at ap `= a`, ae `=` the ToolWiz roughing stepover, path `A_net / ae` |
+
+Time, wear (Taylor, per phase), the wear-ratio recommendation rule, risks and `fusion_hints` (`fusion_strategy`, stepdown / optimal load / stepover, ramp, stock to
+leave, finishing pass, rest machining, corner feed scale) are the same as for the other feature types. Links between passes and tool changes are not modelled.
+
+Worked example: 3.0 x 2.0 x 0.75 in pocket, corner radius 0.125 in, aggressiveness 50 %, 3-flute 0.5 in (flute 1.0) and 0.25 in (flute 0.75) carbide end mills, v2 model.
+`A_net = 5.947` in^2 (the clear area with 0.004 in stock is `A_clear = 5.947`), `P_walls = 9.785` in.
+
+6061-T6 (recommended: `pocket_offset 0.25in 3FL`)
+
+| Option | min | wear | levels | ap | ae | rpm | IPM | path in |
+|---|---|---|---|---|---|---|---|---|
+| pocket_adaptive 0.5in | 1.81 | 1.99 | 1 | 1.000 | 0.0489 | 13465 | 149.7 | 190 (rest machining) |
+| pocket_offset 0.5in | 1.73 | 1.89 | 2 | 0.500 | 0.1875 | 10913 | 74.3 | 117 (rest machining) |
+| pocket_adaptive 0.25in | 6.91 | 1.26 | 2 | 0.583 | 0.0250 | 16000 | 94.8 | 609 |
+| pocket_offset 0.25in | 4.91 | 1.00 | 2 | 0.375 | 0.0603 | 14197 | 59.0 | 303 |
+
+Adaptive 0.5 in: `A_clear / ae + P_walls = 5.947 / 0.0489 + 9.785 = 131.3` in per level. The 0.5 in tools are faster but wear 1.9-2.0x the least-wear option (above the 1.3x limit
+at 50 %) and leave the 0.125 in corners (radius 0.25 > 0.125), so the 0.25 in offset option is recommended.
+
+Ti-6Al-4V (recommended: `pocket_offset 0.5in 3FL`, 15.4 min; adaptive 0.5in 20.3 min; the 0.25 in options take 71-73 min)
+
+Offset 0.5 in: the full-slot entry pass is 1.50 in at the ToolWiz slotting feed 4.1 IPM (ap 0.748 in), then 51.9 in at the roughing stepover 0.100 in and 9.7 IPM.
+In titanium the full slot is the slowest part of the offset option, which is why its time is not far below adaptive's despite the 2x stepover.
+Corners again need a rest-machining pass with a tool of 0.25 in or less (not in the time).

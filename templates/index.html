@@ -916,8 +916,10 @@
                     <button onclick="restoreSelectedBackup()" class="tool-action-btn" style="padding: 0.4rem 0.8rem;" title="Restore to snapshot">🔄 Restore</button>
                     <button onclick="loadDigitalTwin()" class="tool-action-btn" style="padding: 0.4rem 0.8rem;" title="Refresh library">🔄 Refresh</button>
                     <a href="/api/twin/download" class="tool-action-btn" style="color: #34d399; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.12); font-weight:600; text-decoration:none; padding: 0.4rem 0.8rem;" title="Download consolidated library for Fusion 360">⬇️ Download Master Crib</a>
+                    <button type="button" id="twinShopBtn" onclick="refreshShopCutters()" class="tool-action-btn" style="padding: 0.4rem 0.8rem;" title="Rebuild the shop T-slot cutter list (Strategy Planner, T-slot calculator) from the slot mills in this library: kerf, neck, reach and teeth are read from the Fusion tool">🔧 Refresh shop T-slot cutters</button>
                 </div>
             </div>
+            <div id="twinShopStatus" class="v3-status" role="status" aria-live="polite" style="margin: 0 0 0.75rem 0;"></div>
 
             <!-- DEDUPLICATION SUMMARY BANNER -->
             <div id="twinDedupBanner" class="dedup-report-card" style="display: none;">
