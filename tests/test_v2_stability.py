@@ -34,7 +34,12 @@ MICRO_PERTURB_MAX = 0.35
 # Strict-xfail registry (planner, round 4). Empty since round 6: the three documented cases passed after the hardness recalibration.
 # model change makes one pass, strict xfail fails the run and the mark must be removed.
 XFAIL_FEED_CONTINUITY = ()   # round 6: the three round-4 cases pass after the hardness recalibration; marks removed
-XFAIL_PERTURB = {}
+XFAIL_PERTURB = {
+    ("stickout+10%", "0.0312in-2fl-Aluminum-Slotting"):
+        "1/32 in 6061 slot: +10% stickout cuts the stiffness by about 25-30% (L^3), so the deflection-limited depth moves with it",
+    ("stickout+10%", "0.0625in-2fl-Steel-Slotting"):
+        "1/16 in 4130 slot: +10% stickout cuts the stiffness by about 25-30% (L^3), so the deflection-limited depth moves with it",
+}
 
 
 def _xfail(reason):

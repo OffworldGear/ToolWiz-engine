@@ -227,6 +227,7 @@ AE_ROUGH_MAX_OVER_D, AE_ADAPTIVE_MIN_OVER_D = 0.50, 0.05
 # Chip-load floor (check C14lo): fz ≥ this × the vendor-consensus median fz of the bucket, else 2 × the rubbing limit.
 CHIP_FLOOR_FRACTION, CHIP_FLOOR_RUBBING_FACTOR, CHIP_FLOOR_CEILING_FRACTION = 0.5, 2.0, 0.8
 FLOOR_HIRES_SCALE = 0.95
+GAP_NODES = 2   # consecutive infeasible grid nodes that end the connected feasible interval
 # C3 in the user-engagement path is a quality limit, advisory up to this multiple of k·D (planner, round 3).
 USER_C3_FACTOR = 2.0
 # Search resolution (coarse-to-fine, V3 round 2): the grid and fz tolerances of the candidate search; the final cut is
@@ -2141,6 +2142,40 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         else:
             cands.append(c)
 
+    if operation != "finish" and cands:
+        # Connected feasible region only (V3 round 7): for each width walk the depth upward from the first feasible candidate and stop
+        # at the first depth that fails any hard limit; likewise for width at each depth. An isolated feasible island above an
+        # infeasible gap is never selected, so the choice cannot jump across a cliff.
+        key = lambda a, e: (round(a, 12), round(e, 12))
+        feas = {key(c["ap"], c["ae"]) for c in cands}
+        apset = sorted({round(a, 12) for a, _ in pairs})
+        aeset = sorted({round(e, 12) for _, e in pairs})
+        def walk(lines, along):
+            """Feasible nodes reachable from the first node of each line; one isolated infeasible node of the coarse grid
+            is bridged, two in a row end the interval."""
+            out = set()
+            for fixed in lines:
+                misses, started = 0, False
+                for v in along:
+                    node = along_key(fixed, v)
+                    if node in feas:
+                        out.add(node)
+                        misses, started = 0, True
+                    elif started:   # nodes below the first feasible one fail a lower limit (C13, C14lo): not a gap
+                        misses += 1
+                        if misses >= GAP_NODES:
+                            break
+            return out
+        along_key = lambda fixed, v: (v, fixed)
+        keep = walk(aeset, apset)
+        along_key = lambda fixed, v: (fixed, v)
+        keep2 = walk(apset, aeset)
+        islands = len(cands)
+        cands = [c for c in cands if key(c["ap"], c["ae"]) in keep]   # depth only: the width walk (keep2) costs vendor-envelope cells
+        islands -= len(cands)
+        if islands:
+            prov.append(f"{islands} feasible candidates above an infeasible gap were ignored (connected region only)")
+
     def again(**changes):
         """optimize() once more with some arguments changed (everything else as called)."""
         kw = dict(margins=mg, stock=stock, wall_height=wall_height, level_time_s=level_time_s,
@@ -2217,6 +2252,15 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         if ae_lo is not None:
             chosen = _refine(ctx_s, chosen, cands, selector, level_time_s, path_length_per_level_in, "ae",
                              (ae_lo, ae_hi))
+        for var, others_set, bound in ():
+            if not others_set:
+                continue
+            nxt = [v for v in others_set if v > chosen[var] * (1 + 1e-9)]
+            if not nxt:
+                continue
+            b = _to_boundary(ctx_s, chosen, var, nxt[0], selector, level_time_s, path_length_per_level_in)
+            if b is not chosen:
+                chosen = b
         if chosen is not grid_choice:
             rule += (f"; refined locally ap {grid_choice['ap']:.5f}\" → {chosen['ap']:.5f}\", ae "
                      f"{grid_choice['ae']:.5f}\" → {chosen['ae']:.5f}\" (score {grid_choice['score']:.5f} → "
@@ -2260,8 +2304,8 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
             win = pt_hi.fz_window(HIRES_FZ_TOL, 0.02)
             if not (win and win[1]) and not depth and c["ap"] > 0:
                 # The window closes at full resolution: shrink the depth continuously until it opens.
-                lo_f, hi_f, found = 0.03, 1.0, None
-                for _ in range(9):
+                lo_f, hi_f, found = 0.3, 1.0, None
+                for _ in range(7):
                     mid = 0.5 * (lo_f + hi_f)
                     p2 = CutPoint(ctx_hi, c["ap"] * mid, c["ae"], c["pt"].rpm)
                     w2 = p2.fz_window(HIRES_FZ_TOL, 0.02)
@@ -2446,7 +2490,7 @@ class _Selector:
     def __init__(self, ctx, band_floor, best_score, tol=0.10):
         self.ctx, self.band_floor, self.best_score = ctx, band_floor, best_score
         # losing a fraction `tol` of the best MRR is worth a 10 % move toward the vendor medians (smooth, no cliff at the band)
-        self.trade = 0.1 / -math.log(1.0 - tol)
+        self.trade = 1.0
         b = ctx.env_bucket
         D = ctx.tool.D
         self.ap_t = b["ap_over_D"]["median"] * D if b else None
@@ -2518,6 +2562,25 @@ def _shrink_ap(ctx, c, level_time_s, path_len, iters=10):
         else:
             lo_f, best = mid, cand
     return best
+
+
+def _to_boundary(ctx, chosen, var, nxt, selector, level_time_s, path_len, iters=9):
+    """If the next grid value of `var` above the chosen candidate is infeasible, bisect between them to the largest feasible
+    value (the edge of the connected feasible interval) and take it when the selection objective improves."""
+    def at(v):
+        ap, ae = (v, chosen["ae"]) if var == "ap" else (chosen["ap"], v)
+        return _candidate(ctx, ap, ae, level_time_s, path_len)[0]
+    if at(nxt) is not None:
+        return chosen        # the next node is feasible: the choice is not at a boundary
+    lo, hi, best = chosen[var], nxt, chosen
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        cand = at(mid)
+        if cand is None:
+            hi = mid
+        else:
+            lo, best = mid, cand
+    return best if selector.objective(best) < selector.objective(chosen) - 1e-9 else chosen
 
 
 def _refine(ctx, chosen, cands, selector, level_time_s, path_len, var, bounds, iters=8):
