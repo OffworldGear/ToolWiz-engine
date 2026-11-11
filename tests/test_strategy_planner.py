@@ -25,7 +25,7 @@ def cutout_request(family, alloy, agg=0.5, **kw):
     r = {"family": family, "alloy": alloy, "aggressiveness": agg, "runout": 0.0002, "model": "v2",
          "feature": {"type": "profile_cutout", "depth": 0.25, "length": 12.0,
                      "tabs": {"count": 4, "width": 0.1, "height": 0.04}},
-         "candidate_tools": [TOOL_L, TOOL_S]}
+         "candidate_tools": [dict(TOOL_L), dict(TOOL_S)]}
     r.update(kw)
     return r
 
@@ -252,3 +252,47 @@ class TestEndpoint:
     def test_not_json(self):
         r = self.c.post("/api/strategy/compare", data="x", headers=HDR)
         assert r.status_code == 400
+
+
+def test_wear_confidence_low_and_reasoning_order(cutout):
+    fam, alloy, res = cutout
+    assert res["wear_confidence"] == "low" and "placeholder" in res["wear_confidence_reason"]
+    r = res["reasoning"]
+    assert r[0].startswith("Time:") and r[1 if not r[1].startswith("Time difference") else 2].startswith("Wear (confidence: low)")
+    fastest = min((o for o in res["options"] if o["feasible"]), key=lambda o: o["cycle_time_min"])
+    if res["recommended"] != fastest["name"]:
+        assert any(l.startswith("Alternative: the fastest option is " + fastest["name"]) for l in r)
+    assert all("edge_fraction" not in p for o in res["options"] for p in o["phases"])
+
+
+def test_measured_calibration_sets_confidence(monkeypatch, tmp_path):
+    import cutlog
+    db = str(tmp_path / "c.db")
+    for rpm, life in ((4000, 60), (5000, 38), (6000, 26), (7000, 18), (8000, 12.5)):
+        cutlog.insert_toollife(cutlog.validate_toollife(
+            {"family": "Titanium Alloy", "operation": "Slotting", "diameter_in": 0.125, "flutes": 2, "rpm": rpm,
+             "feed_ipm": 3, "life_minutes": life, "end_reason": "worn"}), db)
+    cal = cutlog.toollife_calibration("Titanium Alloy", db)
+    assert cal["basis"] == "fit" and 0.1 <= cal["taylor_n"] <= 0.6 and cal["n_records"] == 5
+    assert cutlog.toollife_calibration("Titanium Alloy", db, rows=cutlog.fetch_toollife("Titanium Alloy", db_path=db)[:2]) is None
+    monkeypatch.setattr(cutlog, "toollife_calibration", lambda fam, db_path=None, rows=None: cal)
+    res = compare(cutout_request("Titanium Alloy", "Ti-6Al-4V"))
+    assert res["wear_confidence"] == "measured" and "logged tool lives" in res["wear_confidence_reason"]
+    assert any("confidence: measured" in l for l in res["reasoning"])
+
+
+def test_toollife_endpoints_and_validation(tmp_path):
+    import cutlog
+    from flask import Flask
+    a = Flask(__name__)
+    cutlog.register(a, str(tmp_path / "t.db"))
+    c = a.test_client()
+    body = {"family": "Titanium Alloy", "operation": "Slotting", "diameter_in": 0.125, "flutes": 2, "rpm": 4000,
+            "feed_ipm": 3, "life_minutes": 45, "end_reason": "worn", "parts": 30}
+    r = c.post("/api/toollife", json=body)
+    assert r.status_code == 201
+    assert c.post("/api/toollife", json=dict(body, end_reason="lost")).status_code == 400
+    assert c.post("/api/toollife", json=dict(body, life_minutes=0)).status_code == 400
+    j = c.get("/api/toollife?family=Titanium%20Alloy").get_json()
+    assert len(j["records"]) == 1 and j["calibration"] is None
+    assert c.delete(f"/api/toollife/{r.get_json()['id']}").status_code == 200
