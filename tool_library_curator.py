@@ -18,12 +18,17 @@ from typing import Any, Dict, List, Optional
 from toolwiz_common import (
     HOLDER_TAPER_MARGIN_IN,
     HOLDER_TAPER_MARGIN_MM,
-    default_shank,
+    ToolKind,
+    classify,
+    default_shank_inches,
     default_stickout,
     shank_looks_wrong,
     to_inches,
     tool_unit,
 )
+
+
+_SHANK_RULE_KINDS = frozenset({ToolKind.FLAT, ToolKind.BALL, ToolKind.BULL, ToolKind.RADIUS})
 
 
 @dataclass
@@ -104,6 +109,7 @@ def curate_tool_dict(
         return CuratedToolResult(tool_number=t_num, description=desc, curated_tool=t, warnings=warnings)
 
     dc_in = to_inches(dc_raw, unit)
+    f_unit = 25.4 if unit == "millimeters" else 1.0
     lcf_raw = geo.get("LCF")
     lcf_in = to_inches(lcf_raw, unit) if lcf_raw not in (None, "") else 0.0
     if lcf_in <= 0.0:
@@ -117,19 +123,23 @@ def curate_tool_dict(
     sfdm_in = to_inches(sfdm_raw, unit) if sfdm_raw not in (None, "") else 0.0
 
     if sfdm_in <= 0.0:
-        sfdm_in = default_shank(dc_in)
+        sfdm_in = default_shank_inches(dc_in, unit)
         new_sfdm = _from_inches(sfdm_in, unit)
         changes.append(ToolFieldChange(
             "geometry.SFDM", sfdm_raw, new_sfdm,
-            "Populated missing shaft diameter (1/8\" standard blank for micro tools, else DC)."
+            "Populated missing shaft diameter from the shop rule (1/8\" up to 1/8\" tools, 1/4\" up to 1/4\", "
+            "else DC; 4 mm / 6 mm / DC for metric tools)."
         ))
         geo["SFDM"] = new_sfdm
-    elif fix_micro_shank and shank_looks_wrong(dc_in, sfdm_in):
-        new_sfdm_in = default_shank(dc_in)
+    elif fix_micro_shank and classify(t.get("type")) in _SHANK_RULE_KINDS and shank_looks_wrong(
+            dc_in * f_unit, sfdm_in * f_unit, unit):
+        new_sfdm_in = default_shank_inches(dc_in, unit)
         new_sfdm = _from_inches(new_sfdm_in, unit)
         changes.append(ToolFieldChange(
             "geometry.SFDM", sfdm_raw, new_sfdm,
-            f"Corrected micro-tool shaft diameter from DC ({sfdm_raw}) to standard 1/8\" shank ({new_sfdm})."
+            f"Shaft diameter {sfdm_raw} is smaller than the shop rule's shank for a {dc_raw} {'mm' if unit == 'millimeters' else 'in'} "
+            f"tool; proposed {new_sfdm}. The shank is assumed to taper from the shank diameter to the cutting "
+            f"diameter (continuous taper below)."
         ))
         geo["SFDM"] = new_sfdm
         sfdm_in = new_sfdm_in

@@ -29,11 +29,13 @@ from .units import to_inches, tool_unit
 
 
 
-SHANK_WARNING = ("Shank diameter equals the cutting diameter on a tool under 1/8\": the tool is modelled "
+SHANK_WARNING = ("Shank diameter is smaller than this shop's rule: 1/8\" for tools up to 1/8\" (4 mm up to 3 mm), 1/4\" "
+                 "for tools over 1/8\" and under 1/4\" (6 mm for over 3 mm and under 6 mm), the cutting diameter "
+                 "above that. The tool is modelled with a thinner shank than expected, which makes it look more "
+                 "flexible. If your tool follows the rule, correct the tool's shaft diameter "
+                 "(Fusion: Cutter tab > Shaft diameter).")
 
-                 "as a thin rod all the way to the holder. Miniature end mills normally have a 1/8\" shank; "
-
-                 "if yours does, correct the tool's shaft diameter (Fusion: Cutter tab > Shaft diameter).")
+_SHANK_RULE_KINDS = frozenset({ToolKind.FLAT, ToolKind.BALL, ToolKind.BULL, ToolKind.RADIUS})
 
 
 
@@ -231,9 +233,22 @@ class ToolProfile:
 
         has_neck = sl > lcf * 1.01 and sl > 0.0
 
-        if shank_looks_wrong(dc, g.shank_diameter):
+        if isinstance(tool_dict, dict) and tool_dict.get("_legacy_request"):
 
-            warnings.append(SHANK_WARNING)
+            # A web request carries no tool kind (it may be a T-slot cutter or a thread mill): only the
+            # original, kind-independent check applies: a tool under 1/8" whose shank equals its diameter.
+
+            if 0 < dc < 0.125 - 1e-6 and abs(g.shank_diameter - dc) <= 1e-6:
+
+                warnings.append(SHANK_WARNING)
+
+        elif g.kind in _SHANK_RULE_KINDS:
+
+            f = 25.4 if unit == "millimeters" else 1.0
+
+            if shank_looks_wrong(dc * f, g.shank_diameter * f, unit):
+
+                warnings.append(SHANK_WARNING)
 
         if lb < lcf - _EPS:
 
@@ -466,7 +481,7 @@ class ToolProfile:
         if has_relieved_neck and neck_length and neck_length > 0.0:
             geo["shoulder-length"] = float(neck_length)
             geo["shoulder-diameter"] = float(neck_diameter) if (neck_diameter and neck_diameter > 0) else float(shank)
-        tool = {"type": geometry_kind, "unit": "inches", "geometry": geo}
+        tool = {"type": geometry_kind, "unit": "inches", "geometry": geo, "_legacy_request": True}
         return cls.from_fusion(tool, stickout_override=stickout, assume_shaft_taper=assume_shaft_taper)
 
     def to_dict(self) -> Dict[str, Any]:

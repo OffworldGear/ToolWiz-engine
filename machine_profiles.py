@@ -35,6 +35,52 @@ TORQUE_NM_BOUNDS = (0.01, 5000.0)
 MAX_POINTS = 64
 MAX_TEXT = 4000
 
+# Spindle taper / tool interface classes offered in the editor.
+TAPERS = ("BT30", "BBT30", "CAT40", "BT40", "BBT40", "HSK-A63", "HSK-E40", "HSK-E32", "ISO30", "R8",
+          "ER-spindle", "other")
+FEED_BOUNDS_MM_MIN = (1.0, 500000.0)
+RAPID_BOUNDS_M_MIN = (0.1, 2000.0)
+COOLANT_BAR_BOUNDS = (0.0, 400.0)
+
+# ---------------------------------------------------------------------------
+# Default holder / spindle stiffness by taper class (ESTIMATES, used only when a profile has no
+# holder_stiffness of its own).
+#
+# Anchor (published): Ozsahin, Erturk, Ozguven, Budak (2009), Int. J. Machine Tools & Manufacture
+#   49:25-35, Table 2 - identified BT40 holder / 16 mm carbide tool joint: k = 51.6 N/um,
+#   ktheta = 0.126 N*m/urad (the same source machines/speedio_s500x2.json already cites).
+# Spindle body radial stiffness 80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum), in series.
+# Relative factors on the anchor are engineering ESTIMATES, because no table of N/um per taper was
+# found in open literature. What the literature does say, used to pick them:
+#   - HSK radial stiffness "up to five times" that of 7/24 taper systems because of the face contact
+#     (Moldmaking Technology, "HSK: The Critical Link in High-Speed Milling"; Machinery.co.uk,
+#     "Interface choice"); we use a conservative 1.8x for HSK-A63, far below that upper bound.
+#   - Aoyama & Inasaki (2001), CIRP Annals 50(1):281-284: HSK static radial stiffness exceeds the 7/24
+#     taper on the same spindle, and the gap widens with spindle speed (centrifugal growth loosens
+#     the 7/24 taper, tightens HSK).
+#   - Dual-contact 7/24 (BBT, BIG-PLUS) adds flange face contact: Big Daishowa describes it as the
+#     rigid choice for heavy cuts, without numbers; a 1.3x factor is our estimate.
+#   - Taper size: stiffness taken to scale roughly with the gauge diameter relative to the 40 taper
+#     (BT30 31.75 mm vs BT40 44.45 mm big end): 0.7x for 30 taper.
+# ---------------------------------------------------------------------------
+SPINDLE_BODY_K_N_UM = 80.0
+ANCHOR_JOINT_K_N_UM = 51.6
+ANCHOR_JOINT_KTHETA = 0.126
+DUAL_CONTACT_FACTOR = 1.3
+TAPER_STIFFNESS_FACTOR = {   # relative to the BT40 anchor, in the class's native contact (BBT/HSK: dual)
+    "BT30": 0.7, "BBT30": 0.91, "ISO30": 0.7,
+    "CAT40": 1.0, "BT40": 1.0, "BBT40": 1.3,
+    "HSK-A63": 1.8, "HSK-E40": 1.2, "HSK-E32": 0.9,
+    "R8": 0.5, "ER-spindle": 0.9, "other": 0.6,
+}
+DUAL_CONTACT_BY_TAPER = {"BBT30": True, "BBT40": True, "HSK-A63": True, "HSK-E40": True, "HSK-E32": True}
+STIFFNESS_CITATIONS = (
+    "Anchor: Ozsahin, Erturk, Ozguven, Budak 2009, Int J Mach Tools Manuf 49:25 (BT40 joint 51.6 N/um, "
+    "0.126 N*m/urad); spindle body >=80 N/um (NK Enginex ATC-BT30 vendor spec) in series. Taper factors "
+    "are estimates: HSK up to 5x the 7/24 radial stiffness (Moldmaking Technology; Machinery.co.uk, "
+    "'Interface choice'), HSK exceeds 7/24 and gains with speed (Aoyama & Inasaki 2001, CIRP Annals 50(1):281); "
+    "dual-contact adds face contact (Big Daishowa).")
+
 
 def rad_s(rpm):
     return float(rpm) * 2.0 * math.pi / 60.0
@@ -48,6 +94,64 @@ def slugify(name):
 # ---------------------------------------------------------------------------
 # Loading
 # ---------------------------------------------------------------------------
+
+def is_dual_contact(profile, spindle=None):
+    """Dual-contact flag: the spindle's own flag, else the machine's, else the taper class default
+    (BBT/HSK are dual contact by design), else False."""
+    for src in (spindle or {}, profile or {}):
+        if isinstance(src.get("dual_contact"), bool):
+            return src["dual_contact"]
+    return DUAL_CONTACT_BY_TAPER.get((profile or {}).get("spindle_taper"), False)
+
+
+def default_holder_stiffness(taper, dual_contact=None):
+    """Estimated {k_n_um, ktheta_nm_urad, status, derived: True} for a taper class, or None for an
+    unknown class. See the block comment above for the sources; every number is an estimate."""
+    if taper not in TAPER_STIFFNESS_FACTOR:
+        return None
+    if dual_contact is None:
+        dual_contact = DUAL_CONTACT_BY_TAPER.get(taper, False)
+    f = TAPER_STIFFNESS_FACTOR[taper]
+    # HSK and BBT already include the face contact in their factor; the flag only adds it to plain
+    # 7/24 classes that the user marks dual-contact (and removes it from BBT marked non-dual).
+    native = DUAL_CONTACT_BY_TAPER.get(taper, False)
+    if bool(dual_contact) and not native:
+        f *= DUAL_CONTACT_FACTOR
+    elif not bool(dual_contact) and native:
+        f /= DUAL_CONTACT_FACTOR if not taper.startswith("HSK") else 1.5
+    joint = ANCHOR_JOINT_K_N_UM * f
+    k = 1.0 / (1.0 / SPINDLE_BODY_K_N_UM + 1.0 / joint)
+    return {"k_n_um": round(k, 1), "ktheta_nm_urad": round(ANCHOR_JOINT_KTHETA * f, 3),
+            "status": (f"ESTIMATE from taper class {taper}"
+                       f"{' (dual contact)' if dual_contact else ' (single contact)'}: {STIFFNESS_CITATIONS}"),
+            "derived": True}
+
+
+def effective_holder_stiffness(profile):
+    """(stiffness dict or None, source): "profile" when the profile carries its own holder_stiffness
+    (measured, provisional or user override), "taper_default" when derived from its spindle_taper and
+    dual-contact flag, None when neither exists (old behaviour: the engine's own default)."""
+    hs = (profile or {}).get("holder_stiffness")
+    if isinstance(hs, dict) and hs.get("k_n_um") and not hs.get("derived"):
+        return hs, "profile"
+    taper = (profile or {}).get("spindle_taper")
+    if taper:
+        sp = ((profile or {}).get("spindle_options") or {}).get((profile or {}).get("active_spindle")) or {}
+        d = default_holder_stiffness(taper, is_dual_contact(profile, sp))
+        if d:
+            return d, "taper_default"
+    return None, None
+
+
+def _with_derived_stiffness(profile):
+    """Profiles that name a spindle_taper but carry no holder_stiffness get the estimated default, flagged
+    derived (never saved back: validate_profile drops derived stiffness), so engine consumers see it."""
+    if isinstance(profile, dict) and not profile.get("holder_stiffness"):
+        hs, src = effective_holder_stiffness(profile)
+        if src == "taper_default":
+            profile = dict(profile, holder_stiffness=hs)
+    return profile
+
 
 def _read_dir(path):
     out = {}
@@ -67,7 +171,7 @@ def _read_dir(path):
         except (OSError, ValueError):
             continue
         if isinstance(data, dict) and isinstance(data.get("spindle_options"), dict):
-            out[mid] = data
+            out[mid] = _with_derived_stiffness(data)
     return out
 
 
@@ -129,6 +233,24 @@ def _points(raw, field, max_rpm, errors):
     return pts
 
 
+def simple_spindle_fields(peak_torque_nm, base_rpm, continuous_kw, max_rpm):
+    """Spindle fields from the simple mode (peak torque, base rpm, continuous power): constant-power
+    continuous curve above base speed (constant torque below it), momentary curve at peak torque up to
+    base speed (power held constant above it by capacity()). Marked derived."""
+    base = min(float(base_rpm), float(max_rpm))
+    peak_kw = round(float(peak_torque_nm) * rad_s(base) / 1000.0, 2)
+    note = "Generated from peak torque, base rpm and continuous power (simple mode); not a quoted curve."
+    return {
+        "base_rpm": base, "power_kw_continuous": float(continuous_kw), "max_torque_nm_momentary": float(peak_torque_nm),
+        "power_kw_peak": max(peak_kw, float(continuous_kw)),
+        "torque_curve": {"source": "Simple mode: " + note, "ratings": {
+            "continuous": {"power_kw": float(continuous_kw), "derived": True, "note": note,
+                           "points": points_from_power(continuous_kw, base, max_rpm)},
+            "momentary": {"power_kw": max(peak_kw, float(continuous_kw)), "derived": True, "note": note,
+                          "points": [[0.0, float(peak_torque_nm)], [base, float(peak_torque_nm)]]}}},
+    }
+
+
 def validate_spindle(key, raw, errors):
     if not ID_RE.match(str(key)):
         errors.append(f"spindle key '{key}' must be lowercase letters, digits, _ or -")
@@ -137,6 +259,8 @@ def validate_spindle(key, raw, errors):
         errors.append(f"spindle '{key}' must be an object")
         return None
     pre = f"spindle '{key}'"
+    if isinstance(raw.get("simple"), dict) and raw.get("power_kw_continuous") in (None, ""):
+        raw = dict(raw, power_kw_continuous=raw["simple"].get("continuous_kw"))
     sp = {}
     label = _text(raw.get("label"), 80)
     if label:
@@ -149,6 +273,16 @@ def validate_spindle(key, raw, errors):
     sp["max_torque_nm_momentary"] = _num(raw.get("max_torque_nm_momentary"), f"{pre} momentary torque",
                                          *TORQUE_NM_BOUNDS, errors)
     sp["base_rpm"] = _num(raw.get("base_rpm"), f"{pre} base rpm", 1.0, sp["max_rpm"] or RPM_BOUNDS[1], errors)
+    if isinstance(raw.get("dual_contact"), bool):
+        sp["dual_contact"] = raw["dual_contact"]
+    simple = raw.get("simple")
+    if isinstance(simple, dict) and raw.get("torque_curve") in (None, {}, ""):
+        peak = _num(simple.get("peak_torque_nm"), f"{pre} simple peak torque", *TORQUE_NM_BOUNDS, errors, True)
+        base = _num(simple.get("base_rpm"), f"{pre} simple base rpm", 1.0, sp["max_rpm"] or RPM_BOUNDS[1], errors, True)
+        kw = _num(simple.get("continuous_kw"), f"{pre} simple continuous power", *POWER_KW_BOUNDS, errors, True)
+        if None not in (peak, base, kw) and sp["max_rpm"]:
+            sp.update(simple_spindle_fields(peak, base, kw, sp["max_rpm"]))
+            raw = dict(raw, torque_curve=sp["torque_curve"])
     curve = raw.get("torque_curve")
     if curve not in (None, {}, ""):
         if not isinstance(curve, dict) or not isinstance(curve.get("ratings", {}), dict):
@@ -211,10 +345,48 @@ def validate_profile(raw):
         txt = _text(raw.get(field))
         if txt:
             profile[field] = txt
-    # Pass through other simple published facts (feeds, rapids) without interpreting them.
-    for field in ("max_cutting_feed_mm_min", "rapid_m_min", "holder_stiffness"):
-        if field in raw and isinstance(raw[field], (int, float, dict)):
-            profile[field] = raw[field]
+    for field, lim in (("brand", 80), ("model", 80), ("controller", 80)):
+        txt = _text(raw.get(field), lim)
+        if txt and txt.strip():
+            profile[field] = txt.strip()
+    taper = raw.get("spindle_taper")
+    if taper not in (None, ""):
+        if taper in TAPERS:
+            profile["spindle_taper"] = taper
+        else:
+            errors.append(f"spindle_taper must be one of {', '.join(TAPERS)}")
+    if isinstance(raw.get("dual_contact"), bool):
+        profile["dual_contact"] = raw["dual_contact"]
+    feed = _num(raw.get("max_cutting_feed_mm_min"), "max cutting feed", *FEED_BOUNDS_MM_MIN, errors)
+    if feed is not None:
+        profile["max_cutting_feed_mm_min"] = feed
+    rapid = raw.get("rapid_m_min")
+    if isinstance(rapid, dict):
+        r = {ax: _num(rapid.get(ax), f"rapid {ax}", *RAPID_BOUNDS_M_MIN, errors) for ax in ("x", "y", "z")}
+        r = {k: v for k, v in r.items() if v is not None}
+        if r:
+            profile["rapid_m_min"] = r
+    elif isinstance(rapid, (int, float)) and not isinstance(rapid, bool):
+        v = _num(rapid, "rapids", *RAPID_BOUNDS_M_MIN, errors)
+        if v is not None:
+            profile["rapid_m_min"] = {"x": v, "y": v, "z": v}
+    tsc = _num(raw.get("through_spindle_coolant_bar"), "through-spindle coolant pressure", *COOLANT_BAR_BOUNDS, errors)
+    if tsc is not None:
+        profile["through_spindle_coolant_bar"] = tsc
+    hs = raw.get("holder_stiffness")
+    if isinstance(hs, dict) and not hs.get("derived"):
+        k = _num(hs.get("k_n_um"), "holder stiffness k", 0.5, 5000.0, errors)
+        kt = _num(hs.get("ktheta_nm_urad"), "holder stiffness ktheta", 0.001, 100.0, errors)
+        if k is not None:
+            clean = {"k_n_um": k}
+            if kt is not None:
+                clean["ktheta_nm_urad"] = kt
+            for f in ("status", "used_by"):
+                t = _text(hs.get(f), 1200)
+                if t:
+                    clean[f] = t
+            clean.setdefault("status", "User override")
+            profile["holder_stiffness"] = clean
     return (profile if not errors else None), errors
 
 
@@ -359,6 +531,9 @@ def summarize(mid, entry):
         "builtin": entry["builtin"],
         "modified": entry["modified"],
         "active_spindle": p.get("active_spindle"),
+        "brand": p.get("brand"), "model": p.get("model"),
+        "spindle_taper": p.get("spindle_taper"),
+        "dual_contact": is_dual_contact(p, (p.get("spindle_options") or {}).get(p.get("active_spindle"))),
         "spindles": [{"key": k, "label": s.get("label") or k, "max_rpm": s.get("max_rpm"),
                       "power_kw_continuous": s.get("power_kw_continuous")}
                      for k, s in (p.get("spindle_options") or {}).items()],

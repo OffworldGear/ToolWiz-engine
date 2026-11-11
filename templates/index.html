@@ -204,6 +204,7 @@
         <header>
             <h1>ToolWiz CAM & Physics Engine</h1>
             <p>Dynamic Optimization Calculator & Fusion Hub Digital Twin</p>
+            {% include 'partials/machine_switcher_v4.html' %}
             
             <nav class="nav-tabs" style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -554,6 +555,7 @@
                     </div>
 
                     {% include 'partials/results_v3.html' %}
+                    {% include 'partials/runout_card.html' %}
 
                     <!-- v2 PHYSICS DETAIL (only when the v2 model produced the result) -->
                     <details id="v2Panel" class="glass-panel why-panel" style="grid-column: span 2; display:none;">
@@ -1327,6 +1329,7 @@
                 <label for="machineEdNotes">Source / notes</label>
                 <textarea id="machineEdNotes" class="tool-dialog-input" rows="2" maxlength="4000" placeholder="where these numbers come from"></textarea>
             </div>
+            {% include 'partials/machine_editor_v4.html' %}
             <div class="machine-ed-row">
                 <select id="machineEdSpindle" aria-label="Spindle" onchange="onMachineEdSpindleChange()"></select>
                 <button type="button" class="btn-ratio" onclick="addMachineSpindle()">Add spindle</button>
@@ -1348,6 +1351,7 @@
                 <div><label for="machineEdTorque">Momentary torque (N&middot;m)</label>
                     <input type="number" id="machineEdTorque" class="tool-dialog-input" step="any" min="0" oninput="onMachineEdInput()"></div>
             </div>
+            {% include 'partials/machine_simple_v4.html' %}
             <div class="machine-ed-row">
                 <strong style="font-size: var(--fs-sm);">Torque curve points (one &ldquo;rpm, N&middot;m&rdquo; pair per line)</strong>
                 <button type="button" class="btn-ratio" onclick="fillMachineCurvesFromPower()">Fill from power</button>
@@ -4402,6 +4406,7 @@
                     renderV2Panel(res);
                     try { updateFinishModeVisibility(); } catch (e) {}
                     try { renderV3Result(res); } catch (e) { console.warn('v3 result', e); }
+                    try { if (window.RunoutSens) RunoutSens.update(payload, res); } catch (e) { console.warn('runout card', e); }
                     refreshCalibrationStatus();
                     
                     // Render Tips & Machining Advisor
@@ -6415,6 +6420,8 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
     <script src="/static/js/tw_common.js?v=1"></script>
     <script src="/static/js/twin_ui.js?v=1"></script>
     <script src="/static/js/results_v3.js?v=1"></script>
+    <script src="/static/js/runout_sens_v4.js?v=1"></script>
+    <script src="/static/js/machine_editor_v4.js?v=1"></script>
     <script src="/static/js/tslot_ui.js?v=1"></script>
     <script src="/static/js/planner_ui.js?v=1"></script>
     <script src="/static/js/master_ui.js?v=1"></script>

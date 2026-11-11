@@ -7,18 +7,53 @@ from .units import to_inches, tool_unit
 
 
 MICRO_SHANK_IN = 0.125   # standard shank of miniature end mills (Harvey, Helical, OSG, ...)
+SMALL_SHANK_IN = 0.25    # shank of tools larger than 1/8" and smaller than 1/4"
+MICRO_SHANK_MM = 4.0     # metric tools of 3 mm and smaller
+SMALL_SHANK_MM = 6.0     # metric tools larger than 3 mm and smaller than 6 mm
+_SHANK_TOL = 1e-6
 
 
-def default_shank(diameter: float) -> float:
-    """Shank diameter to assume when none is given: 1/8" for tools under 1/8" (miniature end mills
-    are ground on 1/8" shanks), otherwise the cutting diameter."""
-    return MICRO_SHANK_IN if 0 < diameter < MICRO_SHANK_IN else diameter
+def _is_mm(unit) -> bool:
+    return str(unit or "").strip().lower() in ("mm", "millimeter", "millimeters")
 
 
-def shank_looks_wrong(diameter: float, shank: float) -> bool:
-    """A tool under 1/8" whose shank equals its cutting diameter: almost always a tool definition
-    that left the shank at the cutting diameter, which makes it look far more flexible."""
-    return 0 < diameter < MICRO_SHANK_IN - 1e-6 and abs(shank - diameter) <= 1e-6
+def default_shank(diameter: float, unit: str = "inches") -> float:
+    """Shank diameter to assume when none is given, in the same unit as ``diameter`` (the shop's rule).
+
+    Inch tools: D <= 1/8" -> 1/8"; 1/8" < D < 1/4" -> 1/4"; D >= 1/4" -> D.
+    Metric tools (unit "mm"): D <= 3 mm -> 4 mm; 3 mm < D < 6 mm -> 6 mm; D >= 6 mm -> D.
+    A non-positive diameter is returned unchanged."""
+    if not diameter or diameter <= 0:
+        return diameter
+    if _is_mm(unit):
+        if diameter <= 3.0 + _SHANK_TOL:
+            return MICRO_SHANK_MM
+        if diameter < 6.0 - _SHANK_TOL:
+            return SMALL_SHANK_MM
+        return diameter
+    if diameter <= MICRO_SHANK_IN + _SHANK_TOL:
+        return MICRO_SHANK_IN
+    if diameter < SMALL_SHANK_IN - _SHANK_TOL:
+        return SMALL_SHANK_IN
+    return diameter
+
+
+def default_shank_inches(diameter_in: float, unit: str = "inches") -> float:
+    """``default_shank`` for a diameter in inches, applying the rule of the tool's own ``unit``; returns inches."""
+    if _is_mm(unit) and diameter_in and diameter_in > 0:
+        return default_shank(diameter_in * 25.4, "mm") / 25.4
+    return default_shank(diameter_in)
+
+
+def shank_looks_wrong(diameter: float, shank: float, unit: str = "inches") -> bool:
+    """True when the shank is smaller than the shop rule's shank for this diameter (see ``default_shank``):
+    a 1/16" end mill with a 0.062" shank, a 3/16" end mill with a 3/16" shank, a tool whose shank equals a
+    sub-1/8" cutting diameter. Such a tool is modelled as a thin rod and looks far more flexible than it is.
+    ``diameter`` and ``shank`` in the same ``unit``."""
+    if not diameter or diameter <= 0:
+        return False
+    tol = 1e-3 if _is_mm(unit) else 4e-5
+    return shank < default_shank(diameter, unit) - tol
 
 
 def default_stickout(diameter: float, flute_length: float = 0.0) -> float:
@@ -77,7 +112,7 @@ class ToolGeometry:
         if shank is None or shank <= 0:
             shank = length("SF")
         if shank is None or shank <= 0:
-            shank = default_shank(dia)
+            shank = default_shank_inches(dia, unit)
         rad = length("RE", 0.0) or 0.0
 
         nof = geo.get("NOF")

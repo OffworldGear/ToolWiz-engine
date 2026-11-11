@@ -1,0 +1,33 @@
+<!-- Runout sensitivity card (tools of 1/8" and smaller): static/js/runout_sens_v4.js, POST /api/runout_sensitivity -->
+<style>
+    .rs-card { padding: 0.85rem 1rem; min-width: 0; grid-column: span 2; margin-top: 0.75rem; }
+    .rs-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+    .rs-head h3 { margin: 0; font-size: var(--fs-md); color: #e2e8f0; }
+    .rs-run { padding: 5px 12px; background: var(--accent); color: #fff; border: 1px solid var(--accent); border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .rs-run:disabled { opacity: 0.6; cursor: progress; }
+    .rs-note { font-size: var(--fs-sm); color: var(--text-secondary); margin: 0.3rem 0; line-height: 1.45; overflow-wrap: anywhere; }
+    .rs-sum { margin: 0.4rem 0; padding-left: 1.1rem; font-size: var(--fs-sm); color: #cbd5e1; }
+    .rs-sum li { margin-bottom: 0.25rem; overflow-wrap: anywhere; }
+    .rs-chart { width: 100%; height: auto; display: block; background: rgba(15, 23, 42, 0.6); border-radius: 6px; margin: 0.4rem 0; }
+    .rs-chart text { fill: var(--text-secondary); font-size: 11px; font-family: 'Inter', sans-serif; }
+    .rs-chart .axis { stroke: var(--text-secondary); stroke-width: 1; }
+    .rs-chart .grid { stroke: var(--panel-border); stroke-width: 1; }
+    .rs-chart .line { stroke: #38bdf8; stroke-width: 2; fill: none; }
+    .rs-chart .dot { fill: #38bdf8; }
+    .rs-chart .dot.cur { fill: #f59e0b; stroke: #fff; stroke-width: 1; }
+    .rs-wrap { overflow-x: auto; }
+    .rs-table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+    .rs-table caption { text-align: left; color: var(--text-secondary); padding: 0.3rem 0; font-size: var(--fs-xs); }
+    .rs-table th, .rs-table td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
+    .rs-table th:first-child, .rs-table td:first-child { text-align: left; }
+    .rs-table th { color: var(--text-secondary); font-weight: 600; }
+    .rs-table tr.rs-cur td { background: rgba(245, 158, 11, 0.1); }
+    .rs-run:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+</style>
+<section id="runoutSensCard" class="glass-panel rs-card" style="display:none;" aria-labelledby="rsTitle">
+    <div class="rs-head">
+        <h3 id="rsTitle">Runout sensitivity</h3>
+        <button type="button" id="rsRun" class="rs-run" onclick="RunoutSens.run()">Show how runout changes this cut</button>
+    </div>
+    <div id="rsBody" role="status" aria-live="polite"><p class="rs-note">For tools of 1/8&quot; and smaller: the recommended cut at 0 to 0.0005&quot; of runout and at the typical runout of each holder class, so you can see whether a better holder raises MRR.</p></div>
+</section>

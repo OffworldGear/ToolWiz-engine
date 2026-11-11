@@ -231,7 +231,7 @@ class TestToolLibraryCurator(unittest.TestCase):
         self.assertTrue(mcp_res["success"])
         self.assertEqual(mcp_res["modified_tools"], 1)
         ct = mcp_res["curated_tools"][0]
-        self.assertAlmostEqual(ct["geometry"]["SFDM"], 3.175, places=3)
+        self.assertAlmostEqual(ct["geometry"]["SFDM"], 4.0, places=3)   # metric rule: D <= 3 mm -> 4 mm shank
         self.assertEqual(ct["BMC"], "ZrN")
         self.assertTrue(len(ct["shaft"]["segments"]) == 2)
 
