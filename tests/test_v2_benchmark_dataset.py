@@ -14,6 +14,7 @@ V2_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2")
 # tools/v2_invariants.py) must be regenerated before a file moves from v2_staged to v2.
 V2_STAGED_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2_staged")
 OPERATIONS = {"slot", "side", "rough", "hem", "finish", "ramp"}
+END_TYPES = {"square", "ball", "corner_radius"}
 RAMP_KINDS = {"helical", "linear", "plunge", "any"}
 RAMP_RANGES = ("angle_deg", "hole_diameter_over_D", "pitch_over_D", "ramp_feed_factor", "plunge_feed_factor")
 TOOL_FIELDS = ("part_number", "series", "tool_material", "coating", "flutes", "end", "corner_radius",
@@ -95,6 +96,29 @@ class TestV2BenchmarkDataset(unittest.TestCase):
                 for field, value in tool.items():
                     if value is None and field not in ("neck_diameter", "LB", "part_number"):
                         self.assertIn(field, missing, f"{field} is null but not listed in missing")
+
+    def test_end_geometry_and_corner_radius(self):
+        """Square, ball and corner-radius (bull-nose) tools: `end` and `corner_radius` must agree."""
+        seen = set()
+        for name, _, row in self.rows():
+            tool = row["tool"]
+            # Legacy rows spell the end "corner radius" (with a space); accept both spellings.
+            end, cr, dc = str(tool["end"]).replace(" ", "_"), tool["corner_radius"], tool["DC"]
+            seen.add(end)
+            with self.subTest(row=row.get("id")):
+                self.assertIn(end, END_TYPES)
+                if end == "square":
+                    # Square rows may carry a catalog edge-break radius; it must be small next to DC/2.
+                    self.assertTrue(cr is None or 0 <= cr < dc / 2, "square end mill corner radius must be below DC/2")
+                elif end == "ball":
+                    self.assertTrue(positive(cr), "ball rows carry corner_radius = DC/2")
+                    self.assertAlmostEqual(cr, dc / 2, delta=dc * 0.01 + 1e-4)
+                else:
+                    self.assertTrue(positive(cr), "corner_radius rows carry the catalog radius")
+                    self.assertLess(cr, dc / 2 * 0.9999, "a corner radius equal to DC/2 is a ball; use end 'ball'")
+                if cr is None:
+                    self.assertIn("corner_radius", tool["missing"])
+        self.assertIn("square", seen)
 
     def test_material_maps_to_a_toolwiz_family(self):
         for name, _, row in self.rows():

@@ -1,17 +1,125 @@
 {
- "_comment": "Shop T-slot / keyseat cutters. Lengths in millimetres (the model converts). `provisional` lists fields that are assumed, not measured or published: the model prints 'provisional geometry: measure neck diameter, reach and tooth form' for any tool with a non-empty list. `planned` tools are not yet bought. Unknown tooth form is treated as staggered (half the teeth per face), the conservative case.",
+ "_comment": "Shop T-slot / keyseat cutters. Entries with source 'fusion library' are GENERATED from a Fusion tool library by shop_tool_builder.py (python shop_tool_builder.py <library> or the Digital Twin tab 'Refresh shop cutters'): kerf = LCF, neck and reach from the shaft segments, teeth = NOF, tooth form from the tool's toolwiz block or the description. Do not edit them by hand; fix the tool in Fusion. Other entries are hand-entered (not_in_library once a library has been merged). Lengths in millimetres (the model converts). `provisional` lists fields that are assumed, not measured or published: the model prints 'provisional geometry' for any tool with a non-empty list. `planned` tools are not yet bought. Unknown tooth form is treated as staggered (half the teeth per face), the conservative case.",
  "tools": [
+  {
+   "id": "fusion_klot_6x0p5",
+   "name": "6mm x .5mm 4fl Slot Mill (Klot, Fusion library)",
+   "planned": false,
+   "source": "fusion library",
+   "source_url": null,
+   "source_note": "Fusion library tool '6mm x .5mm 4fl Slot Mill', vendor Klot (Amazon Ebay), guid 17aafd41-faa8-4ba1-af49-5d866a5459d8. Kerf = LCF, neck / reach from the shaft segments (shaft_segments), teeth = NOF. Tooth form not stated: treated as staggered.",
+   "library_guid": "17aafd41-faa8-4ba1-af49-5d866a5459d8",
+   "tool_number": 15,
+   "diameter_mm": 6.0,
+   "kerf_mm": 0.5,
+   "shank_diameter_mm": 6.0,
+   "shank_length_mm": null,
+   "oal_mm": 50.0,
+   "teeth": 4,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Titanium",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 3.0,
+   "reach_mm": 10.0,
+   "provisional": [
+    "tooth_form"
+   ]
+  },
+  {
+   "id": "fusion_klot_8x1",
+   "name": "8mm x 1mm 4fl Slot Mill (Klot, Fusion library)",
+   "planned": false,
+   "source": "fusion library",
+   "source_url": null,
+   "source_note": "Fusion library tool '8mm x 1mm 4fl Slot Mill', vendor Klot (Amazon Ebay), guid 59546f4b-f376-4671-9ad8-52fbb715a3eb. Kerf = LCF, neck / reach from the shaft segments (shaft_segments), teeth = NOF. Tooth form not stated: treated as staggered.",
+   "library_guid": "59546f4b-f376-4671-9ad8-52fbb715a3eb",
+   "tool_number": 9,
+   "diameter_mm": 8.0,
+   "kerf_mm": 1.0,
+   "shank_diameter_mm": 8.0,
+   "shank_length_mm": null,
+   "oal_mm": 60.0,
+   "teeth": 4,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Titanium",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 4.0,
+   "reach_mm": 3.5,
+   "provisional": [
+    "tooth_form"
+   ]
+  },
+  {
+   "id": "fusion_haas_9p525x0p7874",
+   "name": "3/8 x 1/32 Keyseat Cutter 8 flute SQUARE STANDARD  KEYSEAT CUTTER - 0. (Haas, Fusion library)",
+   "planned": false,
+   "source": "fusion library",
+   "source_url": null,
+   "source_note": "Fusion library tool '3/8 x 1/32 Keyseat Cutter 8 flute SQUARE STANDARD  KEYSEAT CUTTER - 0.3750 (3/8) DIA X 0.0310 (1/32) WIDTH X 0.5620 (9/16) NECK LENGTH , 8 FLUTES', vendor Haas, guid 48e0ec56-3d80-41dc-8942-17f680181eec. Kerf = LCF, neck / reach from the shaft segments (shaft_segments), teeth = NOF. Tooth form not stated: treated as staggered.",
+   "library_guid": "48e0ec56-3d80-41dc-8942-17f680181eec",
+   "tool_number": 0,
+   "diameter_mm": 9.525,
+   "kerf_mm": 0.7874,
+   "shank_diameter_mm": 9.525,
+   "shank_length_mm": null,
+   "oal_mm": 50.8,
+   "teeth": 8,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Uncoated",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 4.7498,
+   "reach_mm": 14.2875,
+   "provisional": [
+    "tooth_form"
+   ]
+  },
   {
    "id": "klot_6x2",
    "name": "6mm x 2mm Titanium Coated Carbide T Slot End Mill Cutter",
    "planned": false,
    "source_url": "https://www.harfington.com/products/p-1341326",
    "source_note": "Listing: cutting diameter 6 mm, cutting depth 2 mm, shank 6 mm, shank length 31 mm, OAL 50 mm, 4 flutes, solid carbide, titanium coating. Neck, reach and tooth form are not published.",
-   "diameter_mm": 6.0, "kerf_mm": 2.0, "shank_diameter_mm": 6.0, "shank_length_mm": 31.0, "oal_mm": 50.0,
-   "teeth": 4, "tooth_form": null, "cutting_faces": ["periphery", "top", "bottom"],
-   "teeth_per_face": null, "coating": "Titanium", "tool_material": "carbide",
-   "neck_diameter_mm": 3.5, "reach_mm": 10.0,
-   "provisional": ["neck_diameter", "reach", "tooth_form"]
+   "diameter_mm": 6.0,
+   "kerf_mm": 2.0,
+   "shank_diameter_mm": 6.0,
+   "shank_length_mm": 31.0,
+   "oal_mm": 50.0,
+   "teeth": 4,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Titanium",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 3.5,
+   "reach_mm": 10.0,
+   "provisional": [
+    "neck_diameter",
+    "reach",
+    "tooth_form"
+   ],
+   "not_in_library": true
   },
   {
    "id": "klot_4x0.5",
@@ -19,12 +127,37 @@
    "planned": false,
    "source_url": null,
    "source_note": "No listing found on harfington.com or elsewhere (searched 2026-11-11). Geometry other than diameter and kerf is assumed: 6 mm shank, 4 teeth (owner instruction); neck 0.58 x D and reach 1.67 x D keep the proportions of the 6x2 cutter.",
-   "diameter_mm": 4.0, "kerf_mm": 0.5, "shank_diameter_mm": 6.0, "shank_length_mm": null, "oal_mm": 50.0,
-   "teeth": 4, "tooth_form": null, "cutting_faces": ["periphery", "top", "bottom"],
-   "teeth_per_face": null, "coating": "Uncoated", "tool_material": "carbide",
-   "neck_diameter_mm": 2.3, "reach_mm": 6.7,
-   "provisional": ["neck_diameter", "reach", "tooth_form", "shank_diameter", "teeth", "oal", "coating"],
-   "intended_materials": ["Stainless - PH Series (17-4)", "Titanium Alloy"]
+   "diameter_mm": 4.0,
+   "kerf_mm": 0.5,
+   "shank_diameter_mm": 6.0,
+   "shank_length_mm": null,
+   "oal_mm": 50.0,
+   "teeth": 4,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Uncoated",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 2.3,
+   "reach_mm": 6.7,
+   "provisional": [
+    "neck_diameter",
+    "reach",
+    "tooth_form",
+    "shank_diameter",
+    "teeth",
+    "oal",
+    "coating"
+   ],
+   "intended_materials": [
+    "Stainless - PH Series (17-4)",
+    "Titanium Alloy"
+   ],
+   "not_in_library": true
   },
   {
    "id": "klot_8x0.5",
@@ -32,12 +165,36 @@
    "planned": false,
    "source_url": null,
    "source_note": "No listing found (searched 2026-11-11). Geometry other than diameter and kerf is assumed: 6 mm shank, 4 teeth (owner instruction); neck 0.58 x D and reach 1.67 x D keep the proportions of the 6x2 cutter.",
-   "diameter_mm": 8.0, "kerf_mm": 0.5, "shank_diameter_mm": 6.0, "shank_length_mm": null, "oal_mm": 50.0,
-   "teeth": 4, "tooth_form": null, "cutting_faces": ["periphery", "top", "bottom"],
-   "teeth_per_face": null, "coating": "Uncoated", "tool_material": "carbide",
-   "neck_diameter_mm": 4.6, "reach_mm": 13.3,
-   "provisional": ["neck_diameter", "reach", "tooth_form", "shank_diameter", "teeth", "oal", "coating"],
-   "intended_materials": ["Titanium Alloy"]
+   "diameter_mm": 8.0,
+   "kerf_mm": 0.5,
+   "shank_diameter_mm": 6.0,
+   "shank_length_mm": null,
+   "oal_mm": 50.0,
+   "teeth": 4,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Uncoated",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 4.6,
+   "reach_mm": 13.3,
+   "provisional": [
+    "neck_diameter",
+    "reach",
+    "tooth_form",
+    "shank_diameter",
+    "teeth",
+    "oal",
+    "coating"
+   ],
+   "intended_materials": [
+    "Titanium Alloy"
+   ],
+   "not_in_library": true
   },
   {
    "id": "harvey_867330",
@@ -45,12 +202,27 @@
    "planned": true,
    "source_url": "https://www.harveytool.com/products/tool-details-867330",
    "source_note": "Catalog geometry: D 0.375, width 0.062, neck 0.125, reach (length below shank) 0.187, shank 0.375, OAL 2.5, 8 flutes, staggered tooth, coating code 'UN' (read as uncoated). Speeds and feeds sheet SF_867300 is in tests/benchmarks/tslot/harvey.json. teeth_per_face = 4 by the stagger rule (not published). No non-staggered 3/8 x 1/16 Harvey part was found.",
-   "diameter_mm": 9.525, "kerf_mm": 1.5748, "shank_diameter_mm": 9.525, "shank_length_mm": null, "oal_mm": 63.5,
-   "teeth": 8, "tooth_form": "staggered", "cutting_faces": ["periphery", "top", "bottom"],
-   "teeth_per_face": 4, "coating": "Uncoated", "tool_material": "carbide",
-   "neck_diameter_mm": 3.175, "reach_mm": 4.7498,
+   "diameter_mm": 9.525,
+   "kerf_mm": 1.5748,
+   "shank_diameter_mm": 9.525,
+   "shank_length_mm": null,
+   "oal_mm": 63.5,
+   "teeth": 8,
+   "tooth_form": "staggered",
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": 4,
+   "coating": "Uncoated",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 3.175,
+   "reach_mm": 4.7498,
    "provisional": [],
-   "intended_materials": ["Titanium Alloy"]
+   "intended_materials": [
+    "Titanium Alloy"
+   ]
   },
   {
    "id": "klot_8x1.6",
@@ -58,12 +230,36 @@
    "planned": true,
    "source_url": null,
    "source_note": "No listing found (searched 2026-11-11). Geometry other than diameter and kerf is assumed: 6 mm shank, 4 teeth; neck 0.58 x D and reach 1.67 x D.",
-   "diameter_mm": 8.0, "kerf_mm": 1.6, "shank_diameter_mm": 6.0, "shank_length_mm": null, "oal_mm": 50.0,
-   "teeth": 4, "tooth_form": null, "cutting_faces": ["periphery", "top", "bottom"],
-   "teeth_per_face": null, "coating": "Uncoated", "tool_material": "carbide",
-   "neck_diameter_mm": 4.6, "reach_mm": 13.3,
-   "provisional": ["neck_diameter", "reach", "tooth_form", "shank_diameter", "teeth", "oal", "coating"],
-   "intended_materials": ["Titanium Alloy"]
+   "diameter_mm": 8.0,
+   "kerf_mm": 1.6,
+   "shank_diameter_mm": 6.0,
+   "shank_length_mm": null,
+   "oal_mm": 50.0,
+   "teeth": 4,
+   "tooth_form": null,
+   "cutting_faces": [
+    "periphery",
+    "top",
+    "bottom"
+   ],
+   "teeth_per_face": null,
+   "coating": "Uncoated",
+   "tool_material": "carbide",
+   "neck_diameter_mm": 4.6,
+   "reach_mm": 13.3,
+   "provisional": [
+    "neck_diameter",
+    "reach",
+    "tooth_form",
+    "shank_diameter",
+    "teeth",
+    "oal",
+    "coating"
+   ],
+   "intended_materials": [
+    "Titanium Alloy"
+   ]
   }
- ]
+ ],
+ "library_source": "Offworldgear_TI_Steel1_Updated4_20261019_125408_v6.json"
 }

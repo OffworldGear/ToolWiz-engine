@@ -43,7 +43,7 @@ BASELINE_AGGRESSIVENESS = 0.5     # tool life is relative to the 50 % speed leve
 WEAR_RATIO_POINTS = ((0.0, 1.1), (0.5, 1.3), (1.0, 2.0))   # allowed wear / least wear at aggressiveness a
 MAX_CANDIDATES = 8
 TAYLOR_LIFE_CAP = 10.0            # Taylor T/T_ref is credited up to this multiple of the baseline (see _life)
-FEATURE_TYPES = ("profile_cutout", "slot", "tslot")
+FEATURE_TYPES = ("profile_cutout", "slot", "tslot", "pocket")
 
 _PHYSICS = None
 
@@ -158,7 +158,8 @@ def build_cut_request(req: Dict[str, Any], tool: Dict[str, Any], operation: str,
         flutes=tool["flutes"], flute_length=tool["flute_length"], shank_diameter=tool["shank_diameter"],
         stickout=tool["stickout"], aggressiveness=req["aggressiveness"], max_rpm=m["max_rpm"], max_hp=m["max_hp"],
         runout=req["runout"], cut_depth=cut_depth, cut_width=cut_width, fusion_tool=_fusion_tool(tool),
-        model=req["model"], machine_profile=m["profile"] if m.get("profile", {}).get("spindle_options") else None)
+        model=req["model"], machine_profile=m["profile"] if m.get("profile", {}).get("spindle_options") else None,
+        finish_mode=req.get("finish_mode"), target_ra=req.get("target_ra"), wall_tolerance=req.get("wall_tolerance"))
 
 
 def _validate(request: Dict[str, Any]) -> Dict[str, Any]:
@@ -179,8 +180,6 @@ def _validate(request: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(feat, dict):
         raise ValueError("'feature' object is required")
     ftype = str(feat.get("type") or "").lower()
-    if ftype == "pocket":
-        raise ValueError("feature type 'pocket' is not supported yet; use profile_cutout, slot or tslot")
     if ftype not in FEATURE_TYPES:
         raise ValueError(f"feature.type must be one of {', '.join(FEATURE_TYPES)}")
     cands = request.get("candidate_tools")
@@ -193,6 +192,9 @@ def _validate(request: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _feature_dims(feat: Dict[str, Any], ftype: str) -> Dict[str, Any]:
+    if ftype == "pocket":
+        from strategy_pocket import pocket_dims
+        return pocket_dims(feat)
     depth = _num(feat, "depth", positive=True, where="feature.")
     length = _num(feat, "length", positive=True, where="feature.")
     if depth is None and ftype != "tslot":
@@ -893,7 +895,13 @@ def compare(request: Dict[str, Any], physics: Any = None, machine_profile: Optio
         out = compare_tslot(req, physics, machine, m)
     else:
         dims = _feature_dims(req["feature"], ftype)
-        options, skipped, extra_ass = _compare_endmill(req, dims, physics, machine, m)
+        if ftype == "pocket":
+            from strategy_pocket import compare_pocket_options
+            for k in ("finish_mode", "target_ra", "wall_tolerance"):
+                req[k] = dims.get(k)
+            options, skipped, extra_ass = compare_pocket_options(req, dims, physics, machine, m)
+        else:
+            options, skipped, extra_ass = _compare_endmill(req, dims, physics, machine, m)
         best, _, allowed, _ = _rank(options, req["aggressiveness"])
         for o in options:
             o["cycle_time_min"] = round(o["cycle_time_min"], 4)

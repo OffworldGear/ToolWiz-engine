@@ -17,6 +17,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import json
+import math
 import re
 import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -234,7 +235,8 @@ def classify_op(strategy: str, name: str, tool: Dict[str, Any], geometry: Dict[s
         w, d = geometry.get("slot_width_in") or geometry.get("channel_width_in"), tool.get("diameter_in")
         if w and d and w <= 1.1 * d:
             return "slot"
-        if stock_radial is not None and stock_radial <= 0.00005 and "rough" not in n:
+        ms = geometry.get("multi_stepover") or {}
+        if stock_radial is not None and stock_radial <= 0.00005 and "rough" not in n and not (ms.get("enabled") and (ms.get("count") or 0) >= 2):
             return "finish"
         return "contour"
     if "pocket" in s or "pocket" in n:
@@ -303,6 +305,22 @@ def _geometry_of(raw: Dict[str, Any]) -> Dict[str, Any]:
                        "height": _first(tabs, ("height_in", "height_mm", "height"), "len") or 0.0,
                        "style": str(tabs.get("style") or "3d").lower()}
     out["is_slot"] = bool(g.get("is_slot") or raw.get("is_slot"))
+    # Widths measured by the add-in (docs/SETUP_ADVISOR.md "Measured widths"): multiple stepovers, B-Rep channel / pocket.
+    ms = g.get("multi_stepover") if isinstance(g.get("multi_stepover"), dict) else raw.get("multi_stepover")
+    if isinstance(ms, dict):
+        cnt = ms.get("count")
+        so = _first(ms, ("stepover_in", "stepover_mm", "stepover"), "len")
+        out["multi_stepover"] = {"enabled": bool(ms.get("enabled")), "count": int(cnt) if isinstance(cnt, (int, float)) and cnt else None,
+                                 "stepover_in": so}
+    out["effective_cut_width_in"] = pick(("effective_cut_width_in", "effective_cut_width_mm"))
+    out["channel_length_in"] = pick(("channel_length_in", "channel_length_mm"))
+    pk = {"area_in2": pick(("pocket_area_in2",), "num"), "perimeter_in": pick(("pocket_perimeter_in", "pocket_perimeter_mm")),
+          "island_perimeter_in": pick(("pocket_island_perimeter_in", "pocket_island_perimeter_mm")),
+          "min_corner_radius_in": pick(("pocket_min_corner_radius_in", "pocket_min_corner_radius_mm"))}
+    if pk["area_in2"] and pk["perimeter_in"]:
+        out["pocket"] = {k: v for k, v in pk.items() if v is not None}
+    src = g.get("sources") if isinstance(g.get("sources"), dict) else raw.get("geometry_sources")
+    out["sources"] = {str(k): str(v) for k, v in src.items()} if isinstance(src, dict) else {}
     return out
 
 
@@ -945,6 +963,25 @@ def _strategy_request(op: Dict[str, Any], tool: Dict[str, Any], others: List[Dic
         return dict(base, feature={"type": "tslot", "slot_height": H, "radial_depth": R, "length": length},
                     candidate_tools=cands[:MAX_STRATEGY_CANDIDATES + 1]), None
     channel = g.get("channel_width_in")
+    pk = g.get("pocket")
+    if kind in ("adaptive", "pocket", "rough") and pk and depth:
+        feature = {"type": "pocket", "depth": depth, "area": pk["area_in2"], "perimeter": pk["perimeter_in"]}
+        if pk.get("min_corner_radius_in"):
+            feature["corner_radius"] = pk["min_corner_radius_in"]
+        if pk.get("island_perimeter_in"):
+            feature["island_perimeter"] = pk["island_perimeter_in"]
+        cands, seen = [_spec(tool)], {(round(D, 5), tool["flutes"])}
+        for o in others:
+            t = o["tool"]
+            if o["kind"] in ("tslot", "hole", "face") or not t.get("diameter_in"):
+                continue
+            key = (round(t["diameter_in"], 5), t.get("flutes"))
+            if key in seen or (t.get("type") and "mill" not in (t.get("type") or "")):
+                continue
+            seen.add(key)
+            cands.append(_spec(_complete_tool(t)[0]))
+        cands.sort(key=lambda c: -c["diameter"])
+        return dict(base, feature=feature, candidate_tools=cands[:MAX_STRATEGY_CANDIDATES]), None
     if kind == "adaptive":
         if not (channel and channel <= 3.0 * D):
             return None, None            # not in a narrow channel: nothing to compare
@@ -1002,6 +1039,9 @@ def _strategy_suggestion(op, tool, others, physics, machine_profile, ctx) -> Tup
     kind, D = op["kind"], tool["diameter_in"]
     if kind == "tslot":
         curo = next((o for o in opts if "(this operation)" in str(o.get("name"))), None)
+    elif (cmp_.get("feature") or {}).get("type") == "pocket":
+        want = "pocket_adaptive" if kind == "adaptive" else "pocket_offset"
+        curo = next((o for o in opts if o["strategy"] == want and abs((o["tool"] or {}).get("diameter", 0) - D) < 1e-6), None)
     elif kind == "adaptive":
         curo = next((o for o in opts if o["strategy"] == "adaptive" and abs((o["tool"] or {}).get("diameter", 0) - D) < 1e-6), None)
     else:
@@ -1019,6 +1059,221 @@ def _strategy_suggestion(op, tool, others, physics, machine_profile, ctx) -> Tup
            "tab_advice": list(cmp_.get("tab_advice") or [])[:3],
            "options": [_compact_option(o) for o in opts][:8]}
     return sug, None
+
+
+def _multi_findings(op, tool, b) -> List[Dict[str, Any]]:
+    """Findings for an op with multiple stepovers (see ``_multi_stepover``)."""
+    cur = op["current"]
+    slot, side, n, so, D = b["slot_pass"], b["side_passes"], b["count"], b["stepover_in"], b["tool_diameter_in"]
+    out: List[Dict[str, Any]] = []
+    nums = dict(count=n, stepover_in=so, effective_cut_width_in=b["effective_cut_width_in"], slot_feed_ipm=slot["feed_ipm"],
+                slot_rpm=slot["rpm"], side_feed_ipm=side["feed_ipm"], side_rpm=side["rpm"],
+                slot_chip_load_ipt=slot["chip_load_ipt"], side_chip_load_ipt=side["chip_load_ipt"])
+    head = (f"{n} stepovers of {so:.4f} in on a {D:.4f} in tool: the first pass is a full slot (ae = D = {D:.4f} in), the other {n - 1} are "
+            f"side passes (ae = {side['ae_in']:.4f} in). ToolWiz gives {slot['feed_ipm']:.2f} IPM at {slot['rpm']} rpm for the slot pass "
+            f"and {side['feed_ipm']:.2f} IPM at {side['rpm']} rpm for the side passes.")
+    if not slot["feasible"]:
+        out.append(_f("STOP", "multi_stepover_infeasible", "The full-slot pass of this multi-stepover contour has no safe cut",
+                      head + f" ToolWiz finds no safe full-width cut at the op's stepdown (limited by {slot['limited_by']}).",
+                      "Lower the stepdown, or split the operation and clear the slot with adaptive or a smaller tool.", **nums))
+        return out
+    r = b["chip_load_vs_slot_x"]
+    if r is not None:
+        nums["chip_load_vs_slot_x"] = r
+        cl = b["current_chip_load_ipt"]
+        msg = head + f" The op's chip load is {cl:.5f} in/tooth, {r:.1f}x the slot pass's {slot['chip_load_ipt']:.5f}."
+        rec = (f"Set the operation to the slot pass's numbers: {slot['rpm']} rpm, {slot['feed_ipm']:.2f} IPM, stepdown {slot['ap_in']:.4f} in "
+               "(safe for every pass). To use the faster side-pass feed, split the operation (below).")
+        if r > CHIP_STOP_RATIO:
+            out.append(_f("STOP", "multi_stepover_overload", "One feed for a slot pass and side passes overloads the slot pass",
+                          msg + " The first, full-width pass is overloaded.", rec, **nums))
+        elif r > 1.0 + OFF_FRACTION:
+            out.append(_f("CAUTION", "multi_stepover_overload", "The feed is above what the full-slot pass of this operation can take",
+                          msg, rec, **nums))
+        elif b["side_over_slot_feed_x"] and b["side_over_slot_feed_x"] >= SAVINGS_MIN_SPEEDUP:
+            out.append(_f("INFO", "multi_stepover_underfed",
+                          "The feed is right for the full slot, so the side passes are under-fed",
+                          msg + f" The side passes could run {b['side_over_slot_feed_x']:.1f}x faster ({side['feed_ipm']:.2f} IPM).",
+                          "Split the operation: a full-slot contour at the slot feed and a side-pass contour at the side feed, or use adaptive.",
+                          **nums))
+    else:
+        out.append(_f("INFO", "multi_stepover_info", "This operation has multiple stepovers", head,
+                      f"Use {slot['rpm']} rpm and {slot['feed_ipm']:.2f} IPM (the slot pass limits the operation).", **nums))
+    t, alt = b.get("times") or {}, b.get("alternatives") or {}
+    split, adap = alt.get("split_slot_plus_side_passes"), alt.get("adaptive")
+    single = t.get("single_op_at_slot_feed_min")
+    if single and (split or adap):
+        # like for like: the planner's options include a wall finish the single contour op does not have
+        def tm(o):
+            return o["cycle_time_excl_wall_finish_min"]
+        cand = [o for o in (split, adap) if o and o.get("feasible")]
+        best = min(cand, key=tm, default=None)
+        if best:
+            parts = []
+            if split:
+                parts.append(f"split into a slot op and a side-pass op {tm(split):.2f} min")
+            if adap:
+                parts.append(f"adaptive {tm(adap):.2f} min")
+            nums2 = dict(single_op_min=single, best_alternative_min=tm(best), best_alternative=best["name"], slot_length_in=t["length_in"])
+            faster = tm(best) < single * 0.9
+            detail = (f"One operation at the slot feed takes about {single:.2f} min (path / feed, no finishing pass); the planner estimates "
+                      + ", ".join(parts) + f" for the same {b['effective_cut_width_in']:.4f} in wide cut, also without the wall finish "
+                      f"(with entries and links).")
+            if faster:
+                out.append(_f("INFO", "multi_stepover_split", "A split or adaptive operation is faster than one multi-stepover contour",
+                              detail + f" Fastest: {best['name']}.", "Split the operation, or use 2D Adaptive Clearing; see the strategy options.",
+                              **nums2))
+            else:
+                out.append(_f("INFO", "multi_stepover_alternatives", "Split and adaptive alternatives are no faster for this cut",
+                              detail + " At this width the single operation at the slot feed is already competitive.",
+                              "Keep one operation at the slot pass's numbers.", **nums2))
+    return out
+
+
+def _geometry_sources(op: Dict[str, Any], tool: Dict[str, Any]) -> Dict[str, str]:
+    """Per geometry field the advisor uses for this op: ``measured`` (sent by the add-in from Fusion parameters / B-Rep, or given
+    in the request) or ``assumed`` (missing: the advisor falls back to the tool diameter or skips the check)."""
+    g, kind, src = op["geometry"], op["kind"], op["geometry"].get("sources") or {}
+    out: Dict[str, str] = {}
+
+    def mark(field, present):
+        out[field] = (src.get(field) or "measured") if present else "assumed"
+    if multi_stepover_active(op):
+        mark("effective_cut_width_in", bool(g.get("effective_cut_width_in")))
+    if kind in ("slot", "contour") or (kind == "adaptive" and not g.get("pocket")) or multi_stepover_active(op):
+        mark("slot_width_in", bool(g.get("slot_width_in") or g.get("channel_width_in")))
+    if kind == "tslot":
+        mark("radial_depth_in", bool(g.get("radial_depth_in")))
+        mark("slot_height_in", bool(g.get("slot_height_in")))
+    if kind in ("adaptive", "pocket", "rough"):
+        pk = g.get("pocket") or {}
+        for f, k in (("pocket_area_in2", "area_in2"), ("pocket_perimeter_in", "perimeter_in"),
+                     ("pocket_min_corner_radius_in", "min_corner_radius_in")):
+            mark(f, bool(pk.get(k)))
+    if kind in ("slot", "contour", "adaptive", "pocket", "rough", "tslot"):
+        mark("depth_in", bool(g.get("depth_in")))
+        mark("toolpath_length_in", bool(g.get("toolpath_length_in")))
+    return out
+
+
+MULTI_KINDS = ("contour", "slot", "rough", "pocket")
+SLOT_EXPLANATION = ("Slotting means full radial width (ae = D). A wider cut against one wall is side milling: traditional roughing "
+                    "at 30-60% D, or adaptive at 5-30% D.")
+
+
+def multi_stepover_active(op: Dict[str, Any]) -> bool:
+    """True for a 2D contour / pocket style op with the roughing passes toggle on and at least two stepovers."""
+    ms = op["geometry"].get("multi_stepover") or {}
+    return bool(ms.get("enabled") and (ms.get("count") or 0) >= 2 and ms.get("stepover_in") and op["kind"] in MULTI_KINDS)
+
+
+def _multi_stepover(op, tool, physics, machine, ctx, cache) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """Analysis of an op with multiple stepovers: ToolWiz for the full-slot pass (ae = D, the limiting one) and for the side passes
+    (ae = stepover) at the op's stepdown. Returns (block, slot cut dict) or (None, None) when ToolWiz cannot be run."""
+    g, cur = op["geometry"], op["current"]
+    ms = g["multi_stepover"]
+    D, n, so = tool["diameter_in"], int(ms["count"]), float(ms["stepover_in"])
+    ap = cur["stepdown_in"]
+    key = lambda opn, w: (opn, D, tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"),
+                          ctx["family"], ctx["alloy"], ap, w)
+    res = {}
+    for nm, opn, w in (("slot", "Slotting", D), ("side", "Roughing", min(so, D))):
+        k = key(opn, w)
+        res[nm] = cache.get(k) or _run_endmill(physics, machine, ctx, tool, opn, ap, w)
+        cache[k] = res[nm]
+    slot, side = _cut_dict(res["slot"], tool["flutes"]), _cut_dict(res["side"], tool["flutes"])
+    w_eff = g.get("effective_cut_width_in") or (D + (n - 1) * so)
+    fl = tool["flutes"]
+    fz_cur = (cur["feed_ipm"] / (cur["rpm"] * fl)) if (cur["feed_ipm"] and cur["rpm"] and fl) else None
+    block: Dict[str, Any] = {
+        "count": n, "stepover_in": so, "tool_diameter_in": D, "effective_cut_width_in": round(w_eff, 5),
+        "effective_cut_width_source": g["sources"].get("effective_cut_width_in", "measured" if g.get("effective_cut_width_in") else "computed from the parameters"),
+        "slot_pass": {"ae_in": D, "rpm": slot["rpm"], "feed_ipm": slot["feed_ipm"], "chip_load_ipt": slot["chip_load_ipt"],
+                      "ap_in": slot["ap_in"], "feasible": slot["feasible"], "limited_by": slot["limited_by"]},
+        "side_passes": {"ae_in": min(so, D), "count": n - 1, "rpm": side["rpm"], "feed_ipm": side["feed_ipm"],
+                        "chip_load_ipt": side["chip_load_ipt"], "ap_in": side["ap_in"], "feasible": side["feasible"]},
+        "safe_numbers": {"rpm": slot["rpm"], "feed_ipm": slot["feed_ipm"], "stepdown_in": slot["ap_in"],
+                         "why": "the full-slot pass limits the operation: one feed serves every pass, so the safe feed is the slot pass's"},
+        "current_chip_load_ipt": round(fz_cur, 6) if fz_cur else None,
+        "chip_load_vs_slot_x": round(fz_cur / slot["chip_load_ipt"], 2) if (fz_cur and slot["chip_load_ipt"]) else None,
+        "chip_load_vs_side_x": round(fz_cur / side["chip_load_ipt"], 2) if (fz_cur and side["chip_load_ipt"]) else None,
+        "side_over_slot_feed_x": round(side["feed_ipm"] / slot["feed_ipm"], 2) if slot["feed_ipm"] else None,
+        "explanation": [
+            f"With {n} stepovers of {so:.4f} in on a {D:.4f} in tool, Fusion cuts {w_eff:.4f} in wide: the first pass is a full-width slot "
+            f"(ae = D = {D:.4f} in) and the other {n - 1} are side passes (ae = {min(so, D):.4f} in).",
+            "A single feed for the operation either overloads the slot pass or under-feeds the side passes; ToolWiz's feed for the slot "
+            "pass is the safe one.", SLOT_EXPLANATION],
+        "times": None, "alternatives": None,
+    }
+    return block, slot
+
+
+def _multi_times(block, op, tool, ctx, physics, machine_profile, others, strategies) -> None:
+    """Fill block["times"] / ["alternatives"]: current approach and single-op-at-slot-feed estimates (path / feed) and the strategy
+    planner's split / adaptive options for the effective width. Needs the op's depth and toolpath length (or the measured length)."""
+    g, cur = op["geometry"], op["current"]
+    n, D = block["count"], tool["diameter_in"]
+    depth, tp = g.get("depth_in"), g.get("toolpath_length_in")
+    lv_cur = max(1, math.ceil(depth / cur["stepdown_in"] - 1e-9)) if (depth and cur["stepdown_in"]) else 1
+    L, how = g.get("channel_length_in"), "measured from the opposing walls"
+    if not L and tp:
+        L, how = tp / (n * lv_cur), f"toolpath length / ({n} passes x {lv_cur} level(s)) (assumed: every pass runs the slot length once per level)"
+    if not L:
+        block["times_note"] = "no slot length (measured wall length or generated toolpath) in the snapshot: times not computed"
+        return
+    lv_slot = max(1, math.ceil(depth / block["slot_pass"]["ap_in"] - 1e-9)) if (depth and block["slot_pass"]["ap_in"]) else lv_cur
+    t = {"length_in": round(L, 4), "length_source": how, "levels_current": lv_cur, "levels_at_slot_ap": lv_slot}
+    if cur["feed_ipm"]:
+        t["as_programmed_min"] = round(n * lv_cur * L / cur["feed_ipm"], 4)
+    if block["slot_pass"]["feed_ipm"]:
+        t["single_op_at_slot_feed_min"] = round(n * lv_slot * L / block["slot_pass"]["feed_ipm"], 4)
+        t["note"] = "path / feed only (no entries, retracts or finishing); the planner's times below include them"
+    block["times"] = t
+    if not (strategies and depth):
+        return
+    import strategy_planner
+    D_in = tool["diameter_in"]
+    W = block["effective_cut_width_in"]
+    cands, seen = [_spec(tool)], {(round(D_in, 5), tool["flutes"])}
+    for o in others:
+        ot = o["tool"]
+        if o["kind"] in ("tslot", "hole", "face") or not ot.get("diameter_in") or ot["diameter_in"] > W * 1.0001:
+            continue
+        k = (round(ot["diameter_in"], 5), ot.get("flutes"))
+        if k in seen:
+            continue
+        seen.add(k)
+        cands.append(_spec(_complete_tool(ot)[0]))
+    req = {"family": ctx["family"], "alloy": ctx["alloy"], "aggressiveness": ctx["aggressiveness"], "runout": ctx["runout"],
+           "model": ctx["model"], "feature": {"type": "slot", "width": W, "depth": depth, "length": L},
+           "candidate_tools": sorted(cands, key=lambda c: -c["diameter"])[:MAX_STRATEGY_CANDIDATES]}
+    try:
+        cmp_ = strategy_planner.compare(req, physics=physics, machine_profile=machine_profile)
+    except (ValueError, KeyError) as e:
+        block["times_note"] = f"strategy comparison skipped: {e}"
+        return
+    opts = cmp_.get("options") or []
+
+    def mine(strategy):
+        return next((o for o in opts if o["strategy"] == strategy and abs((o["tool"] or {}).get("diameter", 0) - D_in) < 1e-6), None)
+    split, adap = mine("contour_slot_side_passes"), mine("adaptive")
+
+    def compact(o):
+        if not o:
+            return None
+        c = _compact_option(o)
+        fin = sum(p.get("in_cut_min", 0.0) for p in o.get("phases") or [] if str(p.get("name", "")).startswith("wall finishing"))
+        c["cycle_time_excl_wall_finish_min"] = round(o["cycle_time_min"] - fin, 4)
+        return c
+    block["alternatives"] = {
+        "split_slot_plus_side_passes": compact(split),
+        "adaptive": compact(adap),
+        "recommended": cmp_.get("recommended"),
+        "note": ("split = one full-slot contour at the slot feed plus a side-pass contour at the side feed (both walls finished); "
+                 "adaptive = one 2D Adaptive Clearing in the channel; both include entries, links and the wall finish")}
+    best = next((o for o in opts if o.get("name") == cmp_.get("recommended")), None)
+    if best:
+        block["alternatives"]["recommended_option"] = compact(best)
 
 
 # ===================================================================================================================
@@ -1153,16 +1408,32 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     usr_res = cache.get(key_u) or _run_endmill(physics, machine, ctx, tool, opn, depth, width)
                     cache[key_u] = usr_res
                     usr = _cut_dict(usr_res, tool["flutes"])
+                ms_block = None
+                if multi_stepover_active(op):
+                    ms_block, slot_d = _multi_stepover(op, tool, physics, machine, ctx, cache)
+                    usr = slot_d                       # the full-slot pass limits the op: compare the op's numbers with it
+                    _multi_times(ms_block, op, tool, ctx, physics, machine_profile, [o for o in ops if o is not op], strategies)
+                    entry["multi_stepover"] = ms_block
                 entry["toolwiz"]["recommended"], entry["toolwiz"]["at_current_engagement"] = rec, usr
-                entry["findings"].extend(_endmill_findings(op, tool, rec, usr, machine, ctx, {"depth": depth, "width": width}))
+                fnd = _endmill_findings(op, tool, rec, usr, machine, ctx, {"depth": depth, "width": width})
+                if ms_block:
+                    fnd = [f for f in fnd if f["code"] not in ("chip_load_high", "chip_load_off", "feed_off", "stepover_high", "time_saving")]
+                    fnd = _multi_findings(op, tool, ms_block) + fnd
+                entry["findings"].extend(fnd)
                 entry["findings"].extend(_oversight_findings(op, tool, usr_res or rec_res, ctx))
         except Exception as e:      # ToolWiz could not be run for this op: report, keep going
             entry["findings"].append(_f("INFO", "toolwiz_error", "ToolWiz could not be run for this operation",
                                         f"{type(e).__name__}: {e}"[:300], "Check the tool geometry and material in the snapshot."))
         entry["apply_plan"] = _apply_plans(op, rec, usr, tsl) if kind != "hole" else None
+        if entry.get("multi_stepover") and entry["multi_stepover"]["slot_pass"]["feasible"]:
+            sn = entry["multi_stepover"]["safe_numbers"]       # keep the op's stepovers: only speed, feed and stepdown change
+            plan = {"tool_spindleSpeed": _expr("rpm", sn["rpm"]), "tool_feedCutting": _expr("feed", sn["feed_ipm"]),
+                    "maximumStepdown": _expr("len", sn["stepdown_in"])}
+            entry["apply_plan"] = {"recommended": plan, "keep_engagement": {k: plan[k] for k in ("tool_spindleSpeed", "tool_feedCutting")}}
 
         # strategy suggestion
-        if strategies and tool0.get("diameter_in") and kind in ("slot", "contour", "adaptive", "tslot"):
+        if strategies and tool0.get("diameter_in") and kind in ("slot", "contour", "adaptive", "tslot", "pocket", "rough") \
+                and not entry.get("multi_stepover"):
             sug, note = _strategy_suggestion(op, tool if kind != "tslot" else tool0, [o for o in ops if o is not op], physics, machine_profile, ctx)
             if sug:
                 strat_out.append(sug)
@@ -1178,6 +1449,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                         time_saved_min=sug["time_saved_min"], time_saved_pct=sug["time_saved_pct"]))
             elif note:
                 strat_notes.append(f"{op['name']}: {note}")
+        entry["geometry_sources"] = _geometry_sources(op, tool0)
         entry["findings"] = _order(entry["findings"])
         ops_out.append(entry)
         setup_ops.append({

@@ -13,6 +13,8 @@ from .cam_geometry_inspector import (
     calc_corner_engagement,
     calc_thin_wall_compliance_factor,
     is_wall_only_operation,
+    contour_effective_width_in,
+    measure_op_widths,
 )
 
 __all__ = [
@@ -20,4 +22,5 @@ __all__ = [
     "UnitError", "to_inches", "tool_unit",
     "ToolGeometry", "default_stickout", "default_shank", "shank_looks_wrong", "MICRO_SHANK_IN", "HOLDER_TAPER_MARGIN_IN", "HOLDER_TAPER_MARGIN_MM", "Segment", "ToolProfile", "safe_eval_length",
     "CM_TO_IN", "OperationGeometryReport", "inspect_operation_geometry", "calc_corner_engagement", "calc_thin_wall_compliance_factor", "is_wall_only_operation",
+    "contour_effective_width_in", "measure_op_widths",
 ]
