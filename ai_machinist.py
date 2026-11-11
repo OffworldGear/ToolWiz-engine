@@ -7,6 +7,8 @@ import os
 import json
 import httpx
 
+from toolwiz_common import numeric_guard
+
 
 SYSTEM_INSTRUCTION = """You are the ToolWiz AI Machinist & Senior CAM Applications Engineer (Fusion 360, Mastercam, Siemens NX).
 You have deep, first-principles expertise in cutting tool mechanics, metallurgy (work-hardening in austenitic stainless like 316 and Nitronic 60, titanium, nickel superalloys), machine tool stiffness, spindle thrust compliance, cantilever beam deflection, surface finish, chip thinning, entry dynamics, and CAM compensation strategies.
@@ -25,7 +27,11 @@ CRITICAL MACHINING PRINCIPLES TO APPLY:
 
 2. Tone and Style:
    - Provide concrete, nuanced, shop-floor proven advice. Avoid simplistic "never do this" rules; explain the underlying physics, when advanced techniques are used, and the necessary safeguards.
-   - Always quote specific numbers and units (both Imperial and Metric).
+   - NEVER produce a number yourself. Every speed, feed, chip load, rpm, SFM, depth, width, stock or time you
+     mention must be copied from the ToolWiz telemetry or tool results in the prompt (quote it with its units). If a
+     number you need is not in the prompt, say that ToolWiz has not provided it and tell the user which ToolWiz
+     calculation to run; do not estimate, round to a "typical" value or recall a handbook value. Replies are checked
+     automatically and any reply containing a number that is not in the telemetry is discarded.
    - Reference the active cutter and material telemetry provided in the prompt.
    - Format cleanly in GitHub Flavored Markdown with bold headers, bullet points, and code/parameter callouts.
 """
@@ -513,6 +519,153 @@ def get_available_gemini_models(api_key: str) -> tuple[list[str], str | None]:
         return [], _scrub_key(f"Model discovery network error: {str(e)}", api_key)
 
 
+def api_key_available(api_key: str = None) -> bool:
+    """True when a Gemini API key is passed or set in GEMINI_API_KEY / GOOGLE_API_KEY."""
+    return bool((api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip())
+
+
+is_available = api_key_available
+
+
+def _gemini_generate(system_instruction: str, prompt: str, key: str, preferred_model: str = None,
+                     temperature: float = 0.35, max_tokens: int = 4096) -> dict:
+    """One Gemini generateContent call with model discovery and fallback across up to 6 models.
+
+    Returns ``{"text", "model", "error", "auth_error"}``: ``text`` is the concatenated reply (None on failure),
+    ``error`` the scrubbed last error, ``auth_error`` True when Google rejected the key."""
+    discovered_models, discovery_err = get_available_gemini_models(key)
+    if discovery_err and "Authentication Error" in discovery_err:
+        return {"text": None, "model": None, "error": discovery_err, "auth_error": True}
+
+    pref = (preferred_model or "").strip()
+    candidates = []
+    if pref and pref.lower() != "auto":
+        candidates.append(pref)
+    if discovered_models:
+        for m in discovered_models:
+            if m not in candidates:
+                candidates.append(m)
+    else:
+        for m in ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-pro"]:
+            if m not in candidates:
+                candidates.append(m)
+
+    last_err = discovery_err or "No response"
+    for model in candidates[:6]:
+        clean_model = model.replace("models/", "").strip()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent"
+        headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
+        payload = {
+            "system_instruction": {"parts": [{"text": system_instruction}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+        }
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(url, json=payload, headers=headers)
+                if resp.status_code == 200:
+                    cands = resp.json().get("candidates", [])
+                    if cands:
+                        parts = (cands[0].get("content") or {}).get("parts", [])
+                        text = "".join(p.get("text", "") for p in parts if "text" in p).strip()
+                        if text:
+                            return {"text": text, "model": clean_model, "error": None, "auth_error": False}
+                else:
+                    try:
+                        err_msg = resp.json().get("error", {}).get("message", resp.text[:150])
+                    except Exception:
+                        err_msg = resp.text[:150]
+                    last_err = _scrub_key(f"HTTP {resp.status_code} ({clean_model}): {err_msg}", key)
+        except Exception as e:
+            last_err = _scrub_key(f"Network exception ({clean_model}): {str(e)}", key)
+    return {"text": None, "model": None, "error": last_err, "auth_error": False}
+
+
+def generate_text(system_instruction: str, prompt: str, api_key: str = None, preferred_model: str = None,
+                  temperature: float = 0.2, max_tokens: int = 2048) -> dict:
+    """Plain LLM completion for the setup advisor: ``{"success", "text", "model", "error"}``.
+
+    No key -> ``success`` False with ``error`` "no API key". Never raises."""
+    key = (api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+    if not key:
+        return {"success": False, "text": None, "model": None, "error": "no API key"}
+    try:
+        r = _gemini_generate(system_instruction, prompt, key, preferred_model, temperature, max_tokens)
+    except Exception as e:      # defensive: callers must always get a dict
+        return {"success": False, "text": None, "model": None, "error": _scrub_key(str(e), key)}
+    return {"success": bool(r["text"]), "text": r["text"], "model": r["model"], "error": r["error"]}
+
+
+def ask_machinist(question: str, context: dict = None, api_key: str = None) -> dict:
+    """Short Q&A used by the oversight engine and library curator: ``{"success", "answer"}``.
+
+    The answer passes the numeric guard against ``context`` (numbers must come from it); a reply with an
+    unsupported number is dropped (``success`` False)."""
+    ctx = context or {}
+    key = (api_key or "").strip() or None
+    if not api_key_available(key):
+        return {"success": False, "answer": None, "error": "no API key"}
+    ctx_text = format_context_for_prompt(ctx)
+    res = generate_text(SYSTEM_INSTRUCTION, f"{ctx_text}\n\n### Question:\n{question}", api_key=key)
+    if not res["success"]:
+        return {"success": False, "answer": None, "error": res["error"]}
+    chk = numeric_guard.check_numbers(res["text"], ctx, extra_texts=[question, ctx_text])
+    if not chk["ok"]:
+        return {"success": False, "answer": None, "error": "reply rejected: numbers not from ToolWiz",
+                "rejected_numbers": chk["rejected_numbers"]}
+    return {"success": True, "answer": res["text"], "model": res["model"]}
+
+
+_SPEED_FEED_WORDS = ("speed", "feed", "rpm", "sfm", "chip load", "chipload", "ipt", "stepover", "stepdown", "step over",
+                     "step down", "depth of cut", "doc", "woc", "engagement", "stock to leave", "how fast", "how deep",
+                     "mrr", "cycle time", "how long")
+
+
+def is_speed_feed_question(prompt: str) -> bool:
+    """True when the question asks about speeds, feeds, depths, widths, stock or times (needs ToolWiz numbers)."""
+    p = (prompt or "").lower()
+    return any(w in p for w in _SPEED_FEED_WORDS)
+
+
+def toolwiz_numbers_for(context: dict) -> dict:
+    """ToolWiz numbers for the chat context when it names a material family and a tool diameter but carries no
+    result yet: runs ``pipeline.run_cut`` (v2 when the saved model says so) and returns the headline numbers
+    (``{}`` when the context is too thin or the engine is not importable). Inches, IPM, rpm, SFM."""
+    ctx = context or {}
+    fam = ctx.get("materialFamily") or ctx.get("family")
+    try:
+        dia = float(ctx.get("diameter_in") if ctx.get("diameter_in") is not None else ctx.get("diameter"))
+    except (TypeError, ValueError):
+        return {}
+    if not fam or dia <= 0 or ctx.get("isMetric"):
+        return {}
+    try:
+        import app as _app
+        from pipeline import CutRequest, run_cut
+        lim = _app.machine_limits()
+        req = CutRequest(
+            family=str(fam), alloy=str(ctx.get("material") or ""), operation=str(ctx.get("operation") or "Roughing"),
+            coating=str(ctx.get("coating") or "Uncoated"), diameter=dia, flutes=int(float(ctx.get("flutes") or 4)),
+            flute_length=float(ctx.get("fluteLength") or 3.0 * dia), shank_diameter=None,
+            stickout=float(ctx["stickout"]) if ctx.get("stickout") else None,
+            max_rpm=lim["max_rpm"], max_hp=lim["max_hp"], runout=lim["runout"], machine_profile=_app.active_machine(),
+            model=ctx.get("model"))
+        r = run_cut(_app.physics, req)
+    except Exception:
+        return {}
+    return {"source": "ToolWiz pipeline.run_cut", "rpm": round(r.rpm), "feed_ipm": round(r.feed_ipm, 2),
+            "sfm": round(r.sfm, 1), "chip_load_ipt": round(r.adj_ipt, 5), "doc_in": round(r.doc, 4),
+            "woc_in": round(r.woc, 4), "feasible": r.feasible}
+
+
+def _deterministic_numbers_reply(context: dict, extra: dict = None) -> str:
+    """Reply made only of ToolWiz numbers (the live telemetry block plus any computed results)."""
+    parts = [format_context_for_prompt(context or {})]
+    if extra:
+        parts.append("ToolWiz calculation: " + ", ".join(f"{k} = {v}" for k, v in extra.items() if k != "source"))
+    return "\n\n".join(parts)
+
+
 def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, preferred_model: str = None) -> dict:
     """
     Sends the user prompt along with live ToolWiz telemetry to Google Gemini.
@@ -533,93 +686,44 @@ def query_ai_machinist(prompt: str, context: dict = None, api_key: str = None, p
             "apiKeyConfigured": False
         }
 
+    tw_numbers = {}
+    if is_speed_feed_question(prompt) and not (context or {}).get("rpm"):
+        tw_numbers = toolwiz_numbers_for(context or {})
+        if tw_numbers:
+            context_str += "\n\n### ToolWiz calculation (the only numbers you may quote)\n" + json.dumps(tw_numbers)
     full_prompt = f"{context_str}\n\n### Machinist Question:\n{prompt}"
 
-    # 1. Dynamically discover models supported by this specific API key
-    discovered_models, discovery_err = get_available_gemini_models(key)
-    
-    # If the key was rejected by Google as invalid (400/403), warn immediately
-    if discovery_err and "Authentication Error" in discovery_err:
+    gen = _gemini_generate(SYSTEM_INSTRUCTION, full_prompt, key, preferred_model)
+    if gen["auth_error"]:
         offline_reply = get_offline_expert_response(prompt, context or {})
         return {
             "success": True,
-            "reply": f"{offline_reply}\n\n> [!WARNING]\n> **Google API Key Error**: {discovery_err}. Please verify your API key in the settings (⚙️).",
+            "reply": f"{offline_reply}\n\n> [!WARNING]\n> **Google API Key Error**: {gen['error']}. Please verify your API key in the settings (⚙️).",
             "mode": "fallback_offline",
             "model": "toolwiz-machining-expert",
             "apiKeyConfigured": True,
-            "warning": discovery_err
+            "warning": gen["error"]
+        }
+    if gen["text"]:
+        # Numeric guard: every number must come from the ToolWiz telemetry / calculation or the user's own question.
+        chk = numeric_guard.check_numbers(gen["text"], {"context": context or {}, "toolwiz": tw_numbers},
+                                          extra_texts=[prompt, context_str])
+        if chk["ok"]:
+            return {"success": True, "reply": gen["text"], "mode": "gemini_live", "model": gen["model"],
+                    "apiKeyConfigured": True, "numeric_check": chk}
+        bad = ", ".join(chk["rejected_numbers"][:8])
+        return {
+            "success": True,
+            "reply": (_deterministic_numbers_reply(context, tw_numbers) +
+                      f"\n\n> [!NOTE]\n> The AI reply was withheld because it contained numbers that did not come from "
+                      f"ToolWiz ({bad}). The ToolWiz numbers above are the ones to use."),
+            "mode": "guard_fallback",
+            "model": gen["model"],
+            "apiKeyConfigured": True,
+            "numeric_check": chk,
         }
 
-    # If user selected a specific model (e.g. gemini-2.5-pro), prioritize it first
-    pref = (preferred_model or "").strip()
-    candidates = []
-    if pref and pref.lower() != "auto":
-        candidates.append(pref)
-
-    # Add discovered models
-    if discovered_models:
-        for m in discovered_models:
-            if m not in candidates:
-                candidates.append(m)
-    else:
-        for m in ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-pro"]:
-            if m not in candidates:
-                candidates.append(m)
-
-    candidate_models = candidates[:6]
-    last_err = discovery_err or "No response"
-
-    # 2. Query Gemini with the candidate models
-    for model in candidate_models:
-        clean_model = model.replace("models/", "").strip()
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent"
-        headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
-        payload = {
-            "system_instruction": {
-                "parts": [{"text": SYSTEM_INSTRUCTION}]
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": full_prompt}]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.35,
-                "maxOutputTokens": 4096,
-            }
-        }
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                resp = client.post(url, json=payload, headers=headers)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    candidates_list = data.get("candidates", [])
-                    if candidates_list:
-                        candidate = candidates_list[0]
-                        content = candidate.get("content", {})
-                        parts = content.get("parts", [])
-                        # Concatenate all text parts to guarantee complete, untruncated answers
-                        text_chunks = [p.get("text", "") for p in parts if "text" in p]
-                        text = "".join(text_chunks).strip()
-                        if text:
-                            return {
-                                "success": True,
-                                "reply": text,
-                                "mode": "gemini_live",
-                                "model": clean_model,
-                                "apiKeyConfigured": True
-                            }
-                else:
-                    try:
-                        err_msg = resp.json().get("error", {}).get("message", resp.text[:150])
-                    except Exception:
-                        err_msg = resp.text[:150]
-                    last_err = _scrub_key(f"HTTP {resp.status_code} ({clean_model}): {err_msg}", key)
-        except Exception as e:
-            last_err = _scrub_key(f"Network exception ({clean_model}): {str(e)}", key)
-
+    last_err = gen["error"]
     # If all live attempts failed, fall back cleanly to knowledge engine with diagnostic message
     offline_reply = get_offline_expert_response(prompt, context or {})
     return {

@@ -26,7 +26,29 @@ ALLOWED_ACTIONS = (
     "get_toolpath_status",
     "apply_stock_to_leave",
     "snapshot_compare",
+    "apply_operation_parameters",
 )
+
+# Fusion CAM parameter names ``apply_operation_parameters`` may write (feeds, speeds, stepdown, stepover / optimal
+# load, stock to leave, ramp, tabs). The value is an expression string with units ("0.0625 in", "12000 rpm").
+APPLY_ALLOWED_PARAMS = {
+    "tool_spindleSpeed": "rpm",
+    "tool_feedCutting": "feed",
+    "tool_feedPlunge": "feed",
+    "tool_feedRamp": "feed",
+    "tool_rampAngle": "angle",
+    "rampAngle": "angle",
+    "helicalRampDiameter": "len",
+    "maximumStepdown": "len",
+    "stepdown": "len",
+    "maximumStepover": "len",
+    "stepover": "len",
+    "optimalLoad": "len",
+    "stockToLeave": "len",
+    "verticalStockToLeave": "len",
+    "tabWidth": "len",
+    "tabHeight": "len",
+}
 
 _lock = threading.Lock()
 _live_state: Dict[str, Any] = {
@@ -88,10 +110,29 @@ def reset_bridge_state() -> None:
         })
 
 
+def _check_apply_params(params: Dict[str, Any]) -> Optional[str]:
+    """Error text when ``apply_operation_parameters`` params are malformed or name a parameter outside the allow-list."""
+    if not str(params.get("op_id") or "").strip():
+        return "apply_operation_parameters needs 'op_id'"
+    vals = params.get("params")
+    if not isinstance(vals, dict) or not vals:
+        return "apply_operation_parameters needs a non-empty 'params' object {parameter name: expression string}"
+    for name, expr in vals.items():
+        if name not in APPLY_ALLOWED_PARAMS:
+            return f"parameter {name!r} may not be written; allowed: {', '.join(sorted(APPLY_ALLOWED_PARAMS))}"
+        if not isinstance(expr, str) or not expr.strip():
+            return f"value of {name!r} must be an expression string with units, e.g. '0.0625 in'"
+    return None
+
+
 def enqueue_command(action: str, params: Optional[Dict[str, Any]] = None) -> str:
     """Queue a command for the Fusion add-in's CustomEvent handler and return its ``request_id``."""
     if action not in ALLOWED_ACTIONS:
         raise ValueError(f"Unsupported bridge action {action!r}. Allowed: {', '.join(ALLOWED_ACTIONS)}")
+    if action == "apply_operation_parameters":
+        bad = _check_apply_params(dict(params or {}))
+        if bad:
+            raise ValueError(bad)
     req_id = str(uuid.uuid4())
     ev = threading.Event()
     item = {
@@ -125,6 +166,33 @@ def record_command_result(request_id: str, result: Dict[str, Any]) -> bool:
         return True
 
 
+def submit_command(action: str, params: Optional[Dict[str, Any]] = None, wait: float = 0.0) -> Dict[str, Any]:
+    """Send a command to the add-in without blocking longer than ``wait`` seconds.
+
+    With a direct executor registered the command runs at once. Otherwise ``wait`` > 0 blocks for the add-in's
+    result (as ``execute_bridge_action``); ``wait`` = 0 only queues and returns ``{"success": True, "queued": True,
+    "request_id"}``; poll ``peek_result(request_id)`` (or ``GET /api/fusion_bridge/result/<request_id>``)."""
+    with _lock:
+        direct = _direct_executor
+    if direct is not None or wait > 0:
+        return execute_bridge_action(action, params, timeout=max(0.05, float(wait or 0.05)))
+    try:
+        req_id = enqueue_command(action, params)
+    except ValueError as ex:
+        return {"success": False, "error": str(ex)}
+    return {"success": True, "queued": True, "request_id": req_id}
+
+
+def peek_result(request_id: str) -> Optional[Dict[str, Any]]:
+    """The add-in's result for a queued command (None while pending or unknown). A finished result is kept
+    until read here, then removed."""
+    with _lock:
+        if request_id in _results:
+            _result_events.pop(request_id, None)
+            return _results.pop(request_id)
+    return None
+
+
 def execute_bridge_action(
     action: str,
     params: Optional[Dict[str, Any]] = None,
@@ -136,6 +204,10 @@ def execute_bridge_action(
         return {"success": False, "error": f"Unsupported bridge action {action!r}"}
 
     params = dict(params or {})
+    if action == "apply_operation_parameters":
+        bad = _check_apply_params(params)
+        if bad:
+            return {"success": False, "error": bad}
     with _lock:
         direct = _direct_executor
 
@@ -206,6 +278,13 @@ def register(app) -> None:
             return jsonify({"success": False, "error": "request_id is required"}), 400
         ok = record_command_result(req_id, result)
         return jsonify({"success": ok})
+
+    @bp.route("/api/fusion_bridge/result/<request_id>", methods=["GET"])
+    def bridge_result_peek(request_id):
+        res = peek_result(request_id)
+        if res is None:
+            return jsonify({"success": True, "pending": True})
+        return jsonify({"success": True, "pending": False, "result": res})
 
     @bp.route("/api/fusion_bridge/command", methods=["POST"])
     def bridge_command():
