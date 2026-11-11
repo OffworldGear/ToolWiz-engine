@@ -30,7 +30,7 @@
             return;
         }
         data = r.data.result && typeof r.data.result === 'object' ? Object.assign({}, r.data, r.data.result) : r.data;
-        if (!Array.isArray(data.operations) && !data.setup_findings && !data.strategy_suggestions && !data.narrative) { renderEmpty(); return; }
+        if (!Array.isArray(data.operations)) { renderEmpty(); return; }
         render();
     };
     function renderEmpty() {
@@ -54,63 +54,116 @@
     }
     const sortF = list => (list || []).slice().sort((a, b) => (RANK[sevOf(a)] ?? 2) - (RANK[sevOf(b)] ?? 2));
 
-    // Values of `current` / `toolwiz` come in inches, IPM, SFM; keys with those suffixes are converted for display.
+    // Values come in inches, IPM, SFM, in^3/min; keys with those suffixes are converted for display.
     function fmtVal(k, v) {
         if (v == null || typeof v === 'object') return v == null ? '—' : JSON.stringify(v);
         if (typeof v !== 'number') return String(v);
-        if (/_in$|^(doc|woc|ap|ae|stepdown|stepover|diameter|stickout)$/i.test(k)) return T.len(v);
+        if (/_in$/i.test(k)) return T.len(v);
         if (/_ipm$|^feed(rate)?$/i.test(k)) return T.feed(v);
         if (/_sfm$|^sfm$/i.test(k)) return T.sfm(v);
         if (/_ipt$|^ipt$/i.test(k)) return T.ipt(v);
+        if (/in3_min$/i.test(k)) return T.metric() ? (v * 16.387).toFixed(2) + ' cm³/min' : v.toFixed(3) + ' in³/min';
         return Number.isInteger(v) ? String(v) : String(+v.toPrecision(4));
     }
-    const label = k => String(k).replace(/_(in|ipm|sfm|ipt)$/i, '').replace(/_/g, ' ');
-    function kvTable(obj) {
-        const keys = Object.keys(obj || {}).filter(k => obj[k] != null && typeof obj[k] !== 'object');
-        return keys.length ? `<div class="v3-kv">${keys.map(k => `<div><span>${E(label(k))}</span><strong>${E(fmtVal(k, obj[k]))}</strong></div>`).join('')}</div>` : '<div class="v3-sub">—</div>';
+    const LABELS = { rpm: 'spindle speed', ap_in: 'axial depth', ae_in: 'radial width', stepdown_in: 'stepdown', stepover_in: 'stepover', chip_load_ipt: 'chip load', mrr_in3_min: 'MRR',
+        stock_radial_in: 'radial stock', stock_axial_in: 'axial stock', deflection_in: 'deflection', flutes_cutting: 'flutes cutting', feed_ipm: 'feed' };
+    const label = k => LABELS[k] || String(k).replace(/_(in|ipm|sfm|ipt)$/i, '').replace(/_/g, ' ');
+    function kvTable(obj, keys) {
+        const ks = (keys || Object.keys(obj || {})).filter(k => obj && obj[k] != null && typeof obj[k] !== 'object');
+        return ks.length ? `<div class="v3-kv">${ks.map(k => `<div><span>${E(label(k))}</span><strong>${E(fmtVal(k, obj[k]))}</strong></div>`).join('')}</div>` : '<div class="v3-sub">—</div>';
+    }
+    const TW_KEYS = ['rpm', 'sfm', 'feed_ipm', 'ap_in', 'ae_in', 'chip_load_ipt', 'mrr_in3_min', 'deflection_in', 'flutes_cutting'];
+
+    function planTable(plan) {
+        return `<div class="v3-kv adv-plan">${Object.keys(plan).map(k => `<div><span>${E(k)}</span><strong>${E(plan[k])}</strong></div>`).join('')}</div>`;
+    }
+    function applyBlock(o, idx) {
+        const ap = o.apply_plan;
+        if (!ap || (!ap.recommended && !ap.keep_engagement)) return '';
+        const btn = (kind, text, title) => `<button type="button" class="btn-ratio v3-btn" id="advApply_${idx}_${kind}" onclick="advisorApply(${idx}, '${kind}')" title="${E(title)}">${E(text)}</button>`;
+        return `<div class="adv-apply"><h5 class="v3-h5">Apply ToolWiz's values to this operation</h5>
+            ${ap.recommended ? `<div class="v3-sub">ToolWiz recommended engagement and speeds:</div>${planTable(ap.recommended)}${btn('recommended', 'Apply recommended values', 'Send exactly these parameters to the Fusion add-in')}` : ''}
+            ${ap.keep_engagement ? `<div class="v3-sub" style="margin-top:0.6rem;">Or keep your own depth and width and change only speed and feed:</div>${planTable(ap.keep_engagement)}${btn('keep_engagement', 'Apply speed and feed only', 'Send exactly these parameters to the Fusion add-in')}` : ''}
+            <div class="v3-sub">Fusion asks you to confirm every change before anything is written.</div>
+            <div id="advApplyMsg_${idx}" class="v3-status" role="status" aria-live="polite"></div></div>`;
+    }
+    window.advisorApply = async function (idx, kind) {
+        const o = data && data.operations && data.operations[idx];
+        const msg = $('advApplyMsg_' + idx);
+        if (!o || !o.apply_plan || !o.apply_plan[kind]) return;
+        const btns = document.querySelectorAll(`[id^="advApply_${idx}_"]`); btns.forEach(b => { b.disabled = true; });
+        msg.className = 'v3-status'; msg.textContent = 'Sending to the Fusion add-in…';
+        const r = await T.api('/api/setup_advisor/apply', { op_id: o.op_id, params: o.apply_plan[kind], reason: 'ToolWiz setup advisor' });
+        btns.forEach(b => { b.disabled = false; });
+        if (r.ok) {
+            const n = Object.keys(r.data.accepted || o.apply_plan[kind]).length;
+            msg.className = 'v3-status ok-text';
+            msg.textContent = `Sent ${n} parameter${n === 1 ? '' : 's'} to the Fusion add-in${r.data.request_id ? ' (request ' + r.data.request_id + ')' : ''}. Fusion will ask you to confirm before anything is changed.`;
+            return;
+        }
+        const rej = r.data && r.data.rejected;
+        msg.className = 'v3-status err';
+        msg.innerHTML = rej && Object.keys(rej).length
+            ? `ToolWiz refused to send these parameters:<ul class="v2-list">${Object.keys(rej).map(k => `<li><strong>${E(k)}</strong>: ${E(rej[k])}</li>`).join('')}</ul>`
+            : E('Could not apply: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
+    };
+
+    function strategyHtml(sg) {
+        if (typeof sg === 'string') return `<li>${E(sg)}</li>`;
+        const cur = sg.current_option && sg.current_option.name, rec = sg.recommended_option && sg.recommended_option.name || sg.recommended;
+        const saved = T.finite(sg.time_saved_min) && sg.time_saved_min >= 0.05 ? `saves <strong>${T.num(sg.time_saved_min, 1)} min</strong>${T.finite(sg.time_saved_pct) ? ` (${T.num(sg.time_saved_pct, 0)} %)` : ''} per part` : '';
+        const reasons = Array.isArray(sg.reasoning) ? sg.reasoning : (sg.reasoning ? [sg.reasoning] : []);
+        const tabs = Array.isArray(sg.tab_advice) ? sg.tab_advice : [];
+        return `<div class="adv-sugg-item"><div class="v3-title">${E(sg.name || sg.op_id || '')} ${sg.same_as_current ? '<span class="v3-pill ok">your approach is already the best</span>' : ''}</div>
+            <div class="v3-sub">Recommended: <strong>${E(rec || '')}</strong>${cur && !sg.same_as_current ? `; your current approach: ${E(cur)}` : ''}${saved ? '; ' + saved : ''}.</div>
+            ${(reasons.length || tabs.length) ? `<details class="v3-more"><summary>Why</summary><ul>${reasons.concat(tabs).map(t => `<li>${E(t)}</li>`).join('')}</ul></details>` : ''}</div>`;
     }
 
     function render() {
-        const d = data, c = counts(d);
-        const when = d.received_at || d.pushed_at || d.timestamp || d.created_at;
-        $('advMeta').textContent = [d.setup || d.setup_name, d.family ? d.family + (d.alloy ? ' / ' + d.alloy : '') : '', when ? 'received ' + String(when).replace('T', ' ').slice(0, 19) : ''].filter(Boolean).join(' · ');
+        const d = data, c = counts(d), sm = d.summary || {}, st = d.settings || {};
+        const when = d.generated_at || d.received_at || d.pushed_at || d.timestamp;
+        $('advMeta').textContent = [d.document || d.setup, st.family ? st.family + (st.alloy ? ' / ' + st.alloy : '') : '',
+            T.finite(st.aggressiveness) ? 'aggressiveness ' + Math.round((st.aggressiveness > 1 ? st.aggressiveness : st.aggressiveness * 100)) + ' %' : '',
+            T.finite(st.runout_in) ? 'runout ' + T.len(st.runout_in) : '', st.model ? 'model ' + st.model : '', when ? 'generated ' + String(when).replace('T', ' ').slice(0, 19) : ''].filter(Boolean).join(' · ');
+        const verdict = sm.verdict ? `<span class="v3-pill ${sm.verdict === 'PASS' ? 'ok' : sm.verdict === 'STOP' ? 'bad' : 'warn'}">Verdict: ${E(sm.verdict)}</span>` : '';
         const chips = ['STOP', 'CAUTION', 'INFO'].map(s => `<label class="audit-sev"><input type="checkbox" value="${s}"${hidden.has(s) ? '' : ' checked'} onchange="advisorFilter(this)"> ${T.sevBadge(s)} <strong>${c[s]}</strong></label>`).join('');
-        const summary = `<div class="glass-panel"><div class="audit-filters" role="group" aria-label="Show findings by severity">${chips}</div></div>`;
+        const summary = `<div class="glass-panel"><div class="audit-filters" role="group" aria-label="Show findings by severity">${verdict}${sm.operations != null ? `<span class="v3-sub">${sm.operations} operations</span>` : ''}${chips}</div></div>`;
 
-        // narrative: only when the numeric guard passed
+        // narrative: shown only when the numeric guard passed
         let narr = '';
         const chk = d.narrative_check;
-        if (d.narrative) {
-            if (chk && chk.ok === true) narr = `<div class="glass-panel"><div class="v3-title">Advisor summary <span class="v3-pill ok">numbers verified by ToolWiz</span></div><div class="adv-narr">${E(d.narrative).replace(/\n/g, '<br>')}</div></div>`;
-            else narr = `<div class="glass-panel">${T.callout('warn', 'Narrative withheld', `The optional AI summary was not shown because it contained numbers ToolWiz could not verify${chk && (chk.rejected_numbers || []).length ? ` (${chk.rejected_numbers.length} unverified)` : ''}. The findings below are calculated by ToolWiz and are complete without it.`)}</div>`;
-        }
+        if (d.narrative && chk && chk.ok === true) narr = `<div class="glass-panel"><div class="v3-title">Advisor summary <span class="v3-pill ok">numbers verified by ToolWiz</span></div><div class="adv-narr">${E(d.narrative).replace(/\n/g, '<br>')}</div></div>`;
+        else if (chk && chk.ok === false) narr = `<div class="glass-panel">${T.callout('warn', 'AI summary withheld', `The optional AI summary was not shown because it contained numbers ToolWiz could not verify${(chk.rejected_numbers || []).length ? ` (${chk.rejected_numbers.length} unverified)` : ''}. The findings below are calculated by ToolWiz and are complete without it.`)}${d.narrative_note ? `<div class="v3-sub">${E(d.narrative_note)}</div>` : ''}</div>`;
+        else if (d.narrative_note) narr = `<div class="v3-sub adv-note">${E(d.narrative_note)}</div>`;
+
         const setupF = sortF(d.setup_findings).map(findingHtml).join('');
-        const sugg = (d.strategy_suggestions || []).map(s => typeof s === 'string' ? `<li>${E(s)}</li>` : `<li><strong>${E(s.title || s.name || '')}</strong> ${E(s.detail || s.reason || s.recommendation || '')}</li>`).join('');
-        const ops = (d.operations || []).map(o => {
+        const sugg = (d.strategy_suggestions || []).map(strategyHtml).join('');
+        const sNotes = (d.strategy_notes || []).map(t => `<li>${E(t)}</li>`).join('');
+        const ops = (d.operations || []).map((o, idx) => {
             const fs = sortF(o.findings), worst = fs.length ? sevOf(fs[0]) : 'OK';
+            const tw = (o.toolwiz || {}), rec = tw.recommended, cur = tw.at_current_engagement;
+            const notes = (o.notes || []).map(t => `<li>${E(t)}</li>`).join('');
             return `<details class="glass-panel adv-op"${worst === 'STOP' || worst === 'CAUTION' ? ' open' : ''}><summary><span class="adv-opname">${E(o.name || o.op_id || 'Operation')}</span>
-                <span class="v3-sub">${E(o.strategy || '')}</span> ${fs.length ? T.sevBadge(worst) + ` <span class="v3-sub">${fs.length} finding${fs.length > 1 ? 's' : ''}</span>` : '<span class="v3-pill ok">no findings</span>'}</summary>
-                <div class="adv-cols"><div><h5 class="v3-h5">In the setup now</h5>${kvTable(o.current)}</div><div><h5 class="v3-h5">ToolWiz recommends</h5>${kvTable(o.toolwiz)}</div></div>
-                ${fs.map(findingHtml).join('')}</details>`;
+                <span class="v3-sub">${E(o.strategy || '')}${o.kind ? ' (' + E(o.kind) + ')' : ''}</span> ${fs.length ? T.sevBadge(worst) + ` <span class="v3-sub">${fs.length} finding${fs.length > 1 ? 's' : ''}</span>` : '<span class="v3-pill ok">no findings</span>'}</summary>
+                <div class="adv-cols adv-cols3"><div><h5 class="v3-h5">In the setup now</h5>${kvTable(o.current, ['rpm', 'feed_ipm', 'stepdown_in', 'stepover_in', 'chip_load_ipt', 'mrr_in3_min', 'stock_radial_in', 'stock_axial_in'])}</div>
+                    ${cur ? `<div><h5 class="v3-h5">ToolWiz at your depth and width</h5>${kvTable(cur, TW_KEYS)}</div>` : ''}
+                    <div><h5 class="v3-h5">ToolWiz recommends</h5>${kvTable(rec, TW_KEYS)}</div></div>
+                ${fs.map(findingHtml).join('')}${applyBlock(o, idx)}${notes ? `<details class="v3-more"><summary>Assumptions</summary><ul>${notes}</ul></details>` : ''}</details>`;
         }).join('');
         $('advBody').innerHTML = summary + narr +
             (setupF ? `<div class="glass-panel"><h3 class="v3-h3">Setup-level findings</h3>${setupF}</div>` : '') +
-            (sugg ? `<div class="glass-panel"><h3 class="v3-h3">Strategy suggestions</h3><ul class="v2-list adv-sugg">${sugg}</ul></div>` : '') +
+            (sugg || sNotes ? `<div class="glass-panel"><h3 class="v3-h3">Strategy suggestions</h3>${sugg}${sNotes ? `<ul class="v2-list adv-sugg">${sNotes}</ul>` : ''}</div>` : '') +
             `<h3 class="v3-h3 adv-ophead">Operations (${(d.operations || []).length})</h3>` + (ops || '<div class="glass-panel"><div class="v3-empty">No operations in this setup.</div></div>');
     }
     window.advisorFilter = function (box) { if (box.checked) hidden.delete(box.value); else hidden.add(box.value); render(); };
 })();
 
-/** AI chat: HTML for the "numbers verified by ToolWiz" badge. The server reports the numeric guard result; the field
- * name is not fixed yet, so several spellings are accepted. Returns '' when the server says nothing (older server). */
+/** AI chat: HTML for the guard badge. The server reports `numeric_check: {ok, rejected_numbers}` and `mode`
+ * ("gemini_live" = LLM text passed the guard, "guard_fallback" = LLM text withheld, ToolWiz numbers shown). */
 function aiVerifiedBadge(data) {
     if (!data || typeof data !== 'object') return '';
-    const g = data.numbers_verified !== undefined ? data.numbers_verified
-        : (data.verified !== undefined ? data.verified
-        : (data.narrative_check && data.narrative_check.ok !== undefined ? data.narrative_check.ok
-        : (data.numeric_guard && data.numeric_guard.ok !== undefined ? data.numeric_guard.ok
-        : (data.guard && data.guard.ok !== undefined ? data.guard.ok : undefined))));
-    if (g === true) return '<span class="v3-pill ok ai-verified" title="Every speed, feed, depth and width in this answer was checked against a ToolWiz calculation.">numbers verified by ToolWiz</span>';
-    if (g === false) return '<span class="v3-pill warn ai-verified" title="The answer contained numbers ToolWiz could not verify; do not rely on them.">unverified numbers withheld</span>';
+    const nc = data.numeric_check;
+    if (data.mode === 'guard_fallback') return '<span class="v3-pill warn ai-verified" title="The AI answer contained numbers ToolWiz could not verify, so it was replaced by ToolWiz calculations.">AI text withheld: unverified numbers</span>';
+    if (nc && nc.ok === true) return '<span class="v3-pill ok ai-verified" title="Every speed, feed, depth and width in this answer was checked against a ToolWiz calculation.">numbers verified by ToolWiz</span>';
     return '';
 }

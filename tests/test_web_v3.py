@@ -136,3 +136,32 @@ class TestRunoutCardFlutes(unittest.TestCase):
         self.assertNotIn("flutes: document.getElementById('flutes').value", html)
         self.assertNotIn("parseInt(document.getElementById('flutes')?.value) || 1", html)
         self.assertNotIn("(4 FL)", html)
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestAdvisorUi(unittest.TestCase):
+    def _eval(self, expr):
+        js = r"""
+        const vm = require('vm'), fs = require('fs'), path = require('path');
+        const ctx = { document: { getElementById: () => null, querySelectorAll: () => [] }, isMetric: false, console };
+        ctx.window = ctx; ctx.esc = v => String(v == null ? '' : v); vm.createContext(ctx);
+        for (const f of ['tw_common', 'advisor_ui']) vm.runInContext(fs.readFileSync(path.join(%s, 'static', 'js', f + '.js'), 'utf8'), ctx);
+        process.stdout.write(String(vm.runInContext(%s, ctx)));
+        """ % (json.dumps(ROOT), json.dumps(expr))
+        out = subprocess.run([NODE, "-e", js], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        return out.stdout
+
+    def test_chat_badge_only_when_numeric_check_ok(self):
+        self.assertIn("numbers verified by ToolWiz", self._eval("aiVerifiedBadge({mode:'gemini_live', numeric_check:{ok:true}})"))
+        self.assertEqual(self._eval("aiVerifiedBadge({mode:'gemini_live'})"), "")
+        self.assertEqual(self._eval("aiVerifiedBadge({numeric_check:{ok:false}})"), "")
+        self.assertIn("AI text withheld: unverified numbers", self._eval("aiVerifiedBadge({mode:'guard_fallback', numeric_check:{ok:false}})"))
+        self.assertEqual(self._eval("aiVerifiedBadge({numbers_verified:true})"), "")   # guessed field names are gone
+
+    def test_apply_sends_exactly_the_plan(self):
+        js = open(os.path.join(ROOT, "static", "js", "advisor_ui.js"), encoding="utf-8").read()
+        self.assertIn("/api/setup_advisor/apply", js)
+        self.assertIn("params: o.apply_plan[kind]", js)
+        self.assertIn("rejected", js)
+        self.assertIn("Fusion will ask you to confirm", js)

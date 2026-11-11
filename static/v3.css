@@ -165,3 +165,10 @@
 .adv-ophead { margin-bottom: 0; }
 .err-text { color: #fca5a5; }
 @media (max-width: 700px) { .adv-cols { grid-template-columns: 1fr; } }
+.adv-cols3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.adv-apply { margin: 0.75rem 0; padding: 0.6rem 0.8rem; border: 1px dashed rgba(56, 189, 248, 0.45); border-radius: 8px; }
+.adv-plan { margin: 0.3rem 0 0.5rem; }
+.adv-sugg-item { padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.adv-note { padding: 0 0.25rem; }
+.ok-text { color: #4ade80; }
+@media (max-width: 1100px) { .adv-cols3 { grid-template-columns: 1fr; } }
