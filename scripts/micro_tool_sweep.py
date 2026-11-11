@@ -79,6 +79,7 @@ def main():
     args = parser.parse_args()
 
     client = toolwiz_app.app.test_client()
+    client.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "sweep"
     physics = toolwiz_app.physics
 
     for operation in OPERATIONS:

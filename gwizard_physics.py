@@ -53,9 +53,122 @@ from typing import Dict, List, Tuple, Any, Optional
 logger = logging.getLogger("ToolWizPhysics")
 
 
+def is_tap_tool_type(name: str) -> bool:
+    """Return True if name indicates a tapping tool, strictly excluding tapered mills."""
+    if not name:
+        return False
+    s = str(name).lower()
+    if "taper" in s:
+        return False
+    return bool(re.search(r'\b(tap|taps|tapping)\b', s))
+
+
+def is_drilling_tool_type(tool_type: str, geometry: str = "") -> bool:
+    """Return True if tool_type or geometry represents an axial hole-making tool (drill, tap, reamer, bore)."""
+    t_str = str(tool_type or "").lower()
+    g_str = str(geometry or "").lower()
+    if is_tap_tool_type(t_str) or is_tap_tool_type(g_str):
+        return True
+    combined = f"{t_str} {g_str}"
+    if "taper" in combined and not any(k in combined for k in ["drill", "reamer", "bore", "tap"]):
+        return False
+    return bool(re.search(r'\b(drill|drills|drilling|reamer|reamers|reaming|bore|boring|counterbore|countersink|spot drill|center drill|annular|parabolic)\b', combined))
+
+
 # =============================================================================
 # 1. HARDNESS & METALLURGY CONVERSION (ASTM E140)
 # =============================================================================
+
+# Vendor-fitted hard-milling correction, relative to the same tool at 45 HRC.
+# Sources (manufacturer PDFs, retrieved 2026-09-30):
+#   OSG AE-CPR4-H 6 mm, up to 45 / 45-55 / 55-65 HRC: SFM 1.00 / 0.90 / 0.70-0.82, IPT 1.00 / 0.83-0.90 / 0.68-0.70
+#   Harvey hardened-steel finishers, 56-68 vs 45-55 Rc: SFM 0.857, IPT 0.80
+# GWizard's bounded linear model gives ~0.90 SFM and no IPT reduction at 60 HRC, which is too aggressive.
+# Band midpoints are used as knots; beyond 65 HRC the last value is held and a critical tip is raised.
+HARD_MILL_ONSET_HRC = 45.0
+HARD_MILL_FACTORS: List[Tuple[float, float, float]] = [
+    # (HRC, SFM factor, IPT factor)
+    (45.0, 1.00, 1.00),
+    (50.0, 0.90, 0.87),
+    (60.0, 0.75, 0.70),
+    (65.0, 0.68, 0.65),
+]
+
+
+def is_ferrous_family(material_family: str) -> bool:
+    """The hard-milling curve is fitted to hardened STEEL data only."""
+    f = str(material_family or "").lower()
+    return any(k in f for k in ("steel", "stainless", "iron"))
+
+
+def hard_milling_factors(hrc: float) -> Tuple[float, float]:
+    """Piecewise-linear (SFM, IPT) multipliers for hardened work above 45 HRC."""
+    pts = HARD_MILL_FACTORS
+    if hrc <= pts[0][0]:
+        return 1.0, 1.0
+    if hrc >= pts[-1][0]:
+        return pts[-1][1], pts[-1][2]
+    for (h0, s0, i0), (h1, s1, i1) in zip(pts, pts[1:]):
+        if h0 <= hrc <= h1:
+            t = (hrc - h0) / (h1 - h0)
+            return s0 + (s1 - s0) * t, i0 + (i1 - i0) * t
+    return 1.0, 1.0
+
+
+# Copper alloys that genuinely work-harden when machined. Pure coppers, brasses, leaded
+# free-machining and bearing bronzes, and tin bell-metal bronzes do not.
+COPPER_WORK_HARDENING_KEYS = (
+    "aluminum bronze", "aluminium bronze", "nickel-aluminum", "ampco", "c62", "c63", "c64", "c95",
+    "beryllium copper", "copper beryllium", "moldmax", "c17",
+    "nickel copper", "cupronickel", "copper-nickel", "c706", "c715",
+    "toughmet", "c729", "silicon bronze", "c655", "nickel silver alloy", "c752",
+    "c510", "c519", "c521",  # unleaded phosphor bronzes (C54400 is leaded, free-machining)
+)
+WORK_HARDENING_ALLOY_KEYS = ("nitronic", "inconel", "titanium", "316", "304")
+
+
+# Long-reach chip load (OSG overhang tables, e.g. EXOCARB AM-HFC List 4970: L/D <= 4: fz 100%,
+# 4-5: 80%, 5-6: 60%; PHOENIX guides 4-6xD: 60-80%, 6-10xD: 40-60%). Lowest chip-load factor allowed
+# by stickout band; the depth trade may use anything between this and 100%.
+REACH_CHIPLOAD_BANDS = ((4.0, 1.0), (5.0, 0.8), (float("inf"), 0.6))
+WORK_HARDENING_CHIPLOAD_FLOOR = 0.8   # thin chips rub on the hardened layer
+DEPTH_TRADE_MRR = 0.10                # removal rate the depth trade may give up for fewer Z levels
+
+
+REACH_SFM_ONSET_LD = 4.0
+REACH_SFM_PER_D = 0.10
+REACH_SFM_MIN = 0.40
+
+
+def reach_sfm_factor(stickout: float, diameter: float) -> float:
+    """Surface-speed factor for a milling cutter's stickout (1.0 up to 4xD, -10% per D, >= 40%)."""
+    if diameter <= 0 or stickout <= 0:
+        return 1.0
+    over = stickout / diameter - REACH_SFM_ONSET_LD
+    return 1.0 if over <= 0 else max(REACH_SFM_MIN, 1.0 - REACH_SFM_PER_D * over)
+
+
+def reach_chipload_floor(stickout: float, diameter: float) -> float:
+    if diameter <= 0 or stickout <= 0:
+        return 1.0
+    ld = stickout / diameter
+    for upper, factor in REACH_CHIPLOAD_BANDS:
+        if ld <= upper:
+            return factor
+    return REACH_CHIPLOAD_BANDS[-1][1]
+
+
+def alloy_work_hardens(material_family: str, alloy: str, mat_props: Optional[Dict[str, Any]] = None) -> bool:
+    """True only when the selected alloy actually work-hardens.
+
+    Copper is decided per alloy (the family mixes free-machining brass with aluminum bronze);
+    other families use their family flag plus a few alloy keywords.
+    """
+    a = str(alloy or "").lower()
+    if str(material_family or "").lower().startswith("copper"):
+        return any(k in a for k in COPPER_WORK_HARDENING_KEYS)
+    return bool((mat_props or {}).get("work_hardening", False)) or any(k in a for k in WORK_HARDENING_ALLOY_KEYS)
+
 
 class ASTMHardnessConverter:
     """
@@ -90,6 +203,38 @@ class ASTMHardnessConverter:
                 
         return hrc
 
+    # ASTM E140 Table 1: Rockwell B (HRB) to Brinell (HB, 500 kgf below ~HRB 80, 3000 kgf above).
+    _HRB_TO_HB_TABLE: List[Tuple[float, float]] = [
+        (40.0, 70.0), (50.0, 82.0), (60.0, 107.0), (65.0, 116.0), (70.0, 125.0), (75.0, 137.0),
+        (80.0, 150.0), (85.0, 165.0), (90.0, 185.0), (95.0, 207.0), (100.0, 240.0),
+    ]
+
+    @classmethod
+    def hrb_to_brinell(cls, hrb: float) -> float:
+        """Convert Rockwell B (HRB) to approximate Brinell (HB) by linear interpolation."""
+        t = cls._HRB_TO_HB_TABLE
+        if hrb <= t[0][0]:
+            return t[0][1]
+        if hrb >= t[-1][0]:
+            return t[-1][1]
+        for (x0, y0), (x1, y1) in zip(t, t[1:]):
+            if x0 <= hrb <= x1:
+                return y0 + (y1 - y0) * (hrb - x0) / (x1 - x0)
+        return hrb
+
+    @classmethod
+    def brinell_to_hrc(cls, hb: float) -> Optional[float]:
+        """Inverse of hrc_to_brinell. Returns None below the HRC scale (< ~226 HB)."""
+        table = cls._HRC_TO_HB_TABLE
+        if hb < table[0][1]:
+            return None
+        if hb >= table[-1][1]:
+            return table[-1][0]
+        for (h0, b0), (h1, b1) in zip(table, table[1:]):
+            if b0 <= hb <= b1:
+                return h0 + (h1 - h0) * ((hb - b0) / (b1 - b0))
+        return None
+
     @classmethod
     def parse_hardness(cls, hardness_val: Any) -> Optional[float]:
         """
@@ -121,7 +266,9 @@ class ASTMHardnessConverter:
         
         if is_hrc:
             return cls.hrc_to_brinell(raw_val)
-            
+        if "hrb" in h_str.lower():
+            return cls.hrb_to_brinell(raw_val)
+
         return raw_val
 
 
@@ -606,7 +753,10 @@ class CuttingMechanics:
         op_low = str(operation).lower()
         is_finish = "finish" in op_low
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low or "hem" in op_low
-        
+        # Slotting is a roughing pass (the wall is finished separately), so it gets the same
+        # allowance as adaptive; the old 0.002xD rule was the strictest of all roughing types.
+        is_slot = "slot" in op_low
+
         if "high feed" in op_low or "hf" in op_low:
             lim = diameter * 0.002 * (0.5 + aggressiveness * 0.8)
             return max(0.0005, min(0.0030, lim))
@@ -618,16 +768,19 @@ class CuttingMechanics:
             # Finishing: tight tolerance (0.001x to 0.002x D, max 0.0005")
             lim = diameter * 0.002 * (0.7 + aggressiveness * 0.6)
             return max(0.0001, min(0.0005, lim))
-        elif is_adaptive:
+        elif is_adaptive or is_slot:
             # High Efficiency Milling (HEM) uses roughing-grade allowable deflection (0.001" - 0.003" based on aggressiveness)
             lim = diameter * 0.006 * (0.35 + aggressiveness * 0.65)
-            return max(0.0004, min(0.0030, lim))
+            # Floor scales with diameter: a fixed 0.0004" floor allowed 1.3% of D on a 1/32" tool
+            # (vs ~0.5% on larger tools), letting micro HEM run 2xD deep unchecked.
+            return max(min(0.0004, diameter * 0.004), min(0.0030, lim))
         else:
-            # Traditional roughing / 3D roughing / slotting / facing:
+            # Traditional roughing / 3D roughing / facing:
             lim = diameter * 0.002 * (0.2 + aggressiveness)
             if diameter <= 0.125:
-                # Micro-tool transverse compliance floor to prevent false alerts on sub-100 microinch deflections
-                lim = max(0.00035, lim)
+                # Micro-tool floor, scaled with diameter (0.3% of D, at most 0.00035"): a fixed 0.00035"
+                # allowed 1.1% of D on a 1/32" tool, ~3x what adaptive allows.
+                lim = max(min(0.00035, diameter * 0.003), lim)
             return min(0.0010, lim)
 
     @classmethod
@@ -759,6 +912,80 @@ class BeamDeflectionEngine:
 
         return total * half_len
 
+    _PANELS_TAPER: int = 4
+
+    @classmethod
+    def equivalent_stickout(cls, segments: Any, diameter: float, flutes: int = 4,
+                            helix_angle: float = 30.0) -> Optional[float]:
+        """Stickout of a plain tool (cutting diameter all the way to the holder, same flutes) that
+        bends as much as this one: L * (compliance / plain-tool compliance)^(1/3). A straight tool
+        returns its own stickout; a stub on a larger shank comes out shorter, a long slim neck longer.
+        None when there is no profile."""
+        if not segments or diameter <= 0:
+            return None
+        segs = list(segments)
+        stickout = float(segs[-1].end)
+        actual = sum(cls._segment_integral(sg, flutes, helix_angle) for sg in segs)
+        plain = []
+        for sg in segs:
+            if sg.fluted:
+                plain.append(sg)
+            else:
+                plain.append(type(sg)(sg.kind, sg.start, sg.end, diameter, diameter, False))
+        ref = sum(cls._segment_integral(sg, flutes, helix_angle) for sg in plain)
+        if actual <= 0 or ref <= 0:
+            return stickout
+        return stickout * (actual / ref) ** (1.0 / 3.0)
+
+    @classmethod
+    def _segment_integral(cls, seg: Any, flutes: int, helix_angle: float) -> float:
+        """Integral_{start}^{end} x^2 / I(x) dx for one segment (x from the tip)."""
+        x0, x1 = float(seg.start), float(seg.end)
+        if x1 <= x0:
+            return 0.0
+        fluted = bool(seg.fluted)
+
+        def inertia(d: float) -> float:
+            d = max(0.001, d)
+            return cls.fluted_core_inertia(d, flutes, helix_angle) if fluted else cls.solid_circular_inertia(d)
+
+        d0, d1 = float(seg.d0), float(seg.d1)
+        if abs(d1 - d0) <= 1e-12 * max(d0, d1, 1.0):
+            i_c = inertia(d0)
+            return (x1 ** 3 - x0 ** 3) / (3.0 * i_c) if i_c > 0.0 else 0.0
+
+        # Tapered: d(x) is linear in x; 5-point Gauss-Legendre (on a few panels for steep tapers).
+        total = 0.0
+        panels = cls._PANELS_TAPER
+        for k in range(panels):
+            a = x0 + (x1 - x0) * k / panels
+            b = x0 + (x1 - x0) * (k + 1) / panels
+            mid, half = 0.5 * (a + b), 0.5 * (b - a)
+            for xi, wi in zip(cls._GAUSS_X, cls._GAUSS_W):
+                x = mid + half * xi
+                d_x = d0 + (d1 - d0) * (x - x0) / (x1 - x0)
+                i_x = inertia(d_x)
+                if i_x > 0.0:
+                    total += wi * half * (x ** 2) / i_x
+        return total
+
+    @classmethod
+    def deflection_from_segments(
+        cls,
+        force_lbs: float,
+        segments: Any,
+        flutes: int = 4,
+        helix_angle: float = 30.0,
+        is_carbide: bool = True
+    ) -> float:
+        """Tip deflection (inches) of a cantilever described by profile segments:
+        delta = F/E * sum_i Integral_seg x^2 / I(x) dx, with x measured from the tip."""
+        if force_lbs <= 0.0 or not segments:
+            return 0.0
+        E = 90000000.0 if is_carbide else 30000000.0
+        integral_sum = sum(cls._segment_integral(sg, flutes, helix_angle) for sg in segments)
+        return max(0.0, (force_lbs / E) * integral_sum)
+
     @classmethod
     def calculate_deflection(
         cls,
@@ -772,41 +999,25 @@ class BeamDeflectionEngine:
         taper_angle: float = 0.0,
         flutes: int = 4,
         helix_angle: float = 30.0,
-        is_carbide: bool = True
+        is_carbide: bool = True,
+        segments: Optional[Any] = None
     ) -> float:
         """
         Calculates tool tip deflection (inches) for a stepped cantilever beam.
+        When `segments` is given it is used as-is; otherwise segments are built from the
+        legacy arguments via ToolProfile.from_legacy so every caller shares the segment code.
         """
         if cutting_force_lbs <= 0.0 or stickout <= 0.0 or diameter <= 0.0:
             return 0.0
 
-        E = 90000000.0 if is_carbide else 30000000.0
-        shank_dia = shank_diameter if shank_diameter > 0.0 else diameter
-        neck_dia = neck_diameter if (neck_diameter is not None and neck_diameter > 0.0) else shank_dia
-
-        L1 = max(0.0, min(flute_length, stickout))
-        L2 = max(0.0, min(neck_length, stickout) - L1)
-        L3 = max(0.0, stickout - L1 - L2)
-
-        integral_sum = 0.0
-
-        if L1 > 0.0:
-            i_flute = cls.fluted_core_inertia(diameter, flutes, helix_angle)
-            if i_flute > 0.0:
-                integral_sum += (L1 ** 3) / (3.0 * i_flute)
-
-        if L2 > 0.0:
-            integral_sum += cls.calc_tapered_neck_integral(L1, L1 + L2, neck_dia, taper_angle)
-
-        if L3 > 0.0:
-            x_start = L1 + L2
-            x_end = stickout
-            i_shank = cls.solid_circular_inertia(shank_dia)
-            if i_shank > 0.0:
-                integral_sum += (x_end**3 - x_start**3) / (3.0 * i_shank)
-
-        tip_deflection = (cutting_force_lbs / E) * integral_sum
-        return max(0.0, tip_deflection)
+        if segments is None:
+            from toolwiz_common.tool_profile import ToolProfile
+            segments = ToolProfile.from_legacy(
+                diameter, flutes, flute_length, shank_diameter, stickout,
+                has_relieved_neck=True, neck_diameter=neck_diameter, neck_length=neck_length,
+                taper_angle=taper_angle,
+            ).segments
+        return cls.deflection_from_segments(cutting_force_lbs, segments, flutes, helix_angle, is_carbide)
 
 
 # =============================================================================
@@ -840,8 +1051,22 @@ class OptimizationEngine:
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
         neck_diameter: Optional[float] = None,
-        corner_radius: float = 0.0
+        corner_radius: float = 0.0,
+        details: Optional[Dict[str, Any]] = None,
+        profile: Optional[Any] = None,
+        min_chipload_factor: float = 1.0
     ) -> Tuple[float, float, float]:
+        """Returns (doc, woc, deflection_limit). If `details` is a dict it is filled with
+        {"feasible": bool, "limited_by": "deflection"|"power"|"flute_length"|"geometry_rule"}."""
+        if details is None:
+            details = {}
+        details.update({"feasible": True, "limited_by": "geometry_rule"})
+        if profile is None and stickout > 0.0 and diameter > 0.0:
+            # Build the segment model once instead of on every deflection evaluation.
+            from toolwiz_common.tool_profile import ToolProfile
+            profile = ToolProfile.from_legacy(
+                diameter, flutes, flute_length, shank_size, stickout, has_relieved_neck=True,
+                neck_diameter=neck_diameter, neck_length=neck_length, taper_angle=taper_angle)
         default_max_deflect = diameter * 0.002
         op_low = operation.lower()
         is_adaptive = "adaptive" in op_low or "trochoidal" in op_low
@@ -893,8 +1118,11 @@ class OptimizationEngine:
             else:
                 macro_woc_ratio = 0.10
 
-            t = max(0.0, min(1.0, (diameter - 0.03125) / (0.250 - 0.03125)))
-            woc_ratio = 0.45 * (1.0 - t) + macro_woc_ratio * t
+            # Harvey/Helical HEM Guidebook: 7-30% radial for HEM, widening to 10-35% for micro tools
+            # (< 1/8") so chips stay above the minimum chip thickness. Blend from 25% at <= 1/16"
+            # to the macro ratio at 1/8".
+            t = max(0.0, min(1.0, (diameter - 0.0625) / (0.125 - 0.0625)))
+            woc_ratio = max(macro_woc_ratio, 0.25 * (1.0 - t) + macro_woc_ratio * t)
             target_woc = diameter * woc_ratio
         elif "face" in op_low:
             target_woc = diameter * 0.75
@@ -959,10 +1187,10 @@ class OptimizationEngine:
             else:
                 macro_doc_mult = 1.5
 
-            t = max(0.0, min(1.0, (diameter - 0.03125) / (0.250 - 0.03125)))
-            s_doc = t ** 2.305
-            doc_ratio = 0.08 * (1.0 - s_doc) + macro_doc_mult * s_doc
-            target_adaptive_doc = diameter * doc_ratio
+            # Harvey/Helical HEM Guidebook: "up to twice the cutter diameter axially" at every size.
+            # (A former micro-tool rule shrank this to ~0.1xD; no manufacturer data supports that.)
+            # The deflection loop below caps the depth for long or slender tools.
+            target_adaptive_doc = diameter * macro_doc_mult
 
             avail_flute = flute_length if flute_length > 0.0 else target_adaptive_doc
             max_doc = min(avail_flute, target_adaptive_doc)
@@ -977,7 +1205,7 @@ class OptimizationEngine:
         else:
             max_doc = min(diameter * 4.0, flute_length if flute_length > 0.0 else diameter * 1.5)
             min_doc = max(diameter * 0.02, 0.0005)
-            step = max(diameter * 0.02, 0.0005)
+            step = max(diameter * 0.01, 0.0002)   # was 2% of D: 0.0025" steps on a 1/8" tool
 
         best_doc = min_doc
         best_woc = target_woc
@@ -1002,7 +1230,8 @@ class OptimizationEngine:
                 diameter, shank_size, stickout, current_doc, target_woc, feed, eval_rpm, flutes,
                 is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
                 neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
-                neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
+                neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius,
+                profile=profile
             )
 
             _, _, _, est_hp = CuttingMechanics.calc_cutting_forces(
@@ -1011,7 +1240,9 @@ class OptimizationEngine:
             )
 
             if deflect > target_deflection or est_hp > max_hp:
+                details["limited_by"] = "deflection" if deflect > target_deflection else "power"
                 break
+            details["limited_by"] = "flute_length"
 
             found_safe = True
             best_doc = current_doc
@@ -1020,9 +1251,59 @@ class OptimizationEngine:
             else:
                 current_doc += step
 
+        # Long reach: when deflection (not flute length) caps the depth, a lighter chip allows a deeper
+        # stepdown at almost the same removal rate and far fewer Z levels. OSG publishes overhang
+        # tables that reduce chip load (fz) and axial depth together beyond 4xD; the caller passes the
+        # lowest chip-load factor its bands allow. Rule: deepest stepdown whose removal rate stays
+        # within DEPTH_TRADE_MRR of the best candidate.
+        if (found_safe and details.get("limited_by") == "deflection" and min_chipload_factor < 1.0
+                and (is_adaptive or "slot" in op_low or "rough" in op_low) and "finish" not in op_low):
+            def _search(scale):
+                found, cur = None, min_doc
+                while cur <= max_doc:
+                    ipt_s = physics.calc_adjusted_chipload(
+                        base_ipt * scale, cur, target_woc, diameter, diameter, operation=operation,
+                        geometry=geometry, corner_radius=corner_radius)
+                    feed_s = physics.calc_feedrate(eval_rpm, flutes, ipt_s)
+                    d_s = physics.tool_deflection(
+                        diameter, shank_size, stickout, cur, target_woc, feed_s, eval_rpm, flutes,
+                        is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
+                        neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
+                        neck_diameter=neck_diameter, operation=operation, geometry=geometry,
+                        corner_radius=corner_radius, profile=profile)
+                    _, _, _, hp_s = CuttingMechanics.calc_cutting_forces(
+                        diameter, cur, target_woc, feed_s, eval_rpm, flutes, unit_hp, helix_angle,
+                        operation=operation, geometry=geometry, corner_radius=corner_radius)
+                    if d_s > target_deflection or hp_s > max_hp:
+                        break
+                    found = (cur, feed_s)
+                    cur = max_doc if (cur < max_doc and cur + step > max_doc) else cur + step
+                return found
+
+            candidates = []
+            f = 1.0
+            while f >= min_chipload_factor - 1e-9:
+                res = _search(f)
+                if res:
+                    candidates.append((round(f, 2), res[0], res[0] * target_woc * res[1]))
+                f -= 0.05
+            if candidates:
+                best_mrr = max(c[2] for c in candidates)
+                ok = [c for c in candidates if c[2] >= best_mrr * (1.0 - DEPTH_TRADE_MRR)]
+                chosen = max(ok, key=lambda c: (c[1], c[0]))
+                if chosen[0] < 1.0 and chosen[1] > best_doc:
+                    details["depth_trade"] = {"chipload_factor": chosen[0], "doc_full_chip": best_doc,
+                                              "doc": chosen[1]}
+                    best_doc = chosen[1]
+
         # If even min_doc exceeded target_deflection at target_woc (e.g. tough alloy, high stickout, or non-carbide):
         # Step down radial immersion (WOC) to reduce cutting force and guarantee a safe cut within deflection limits
-        if not found_safe:
+        if not found_safe and "slot" in op_low:
+            # A slot is full width by definition: never narrow it; report that no safe depth exists.
+            best_doc = min_doc
+            details["feasible"] = False
+            details["limited_by"] = "deflection"
+        elif not found_safe:
             best_doc = min_doc
             for woc_ratio in [0.35, 0.25, 0.15, 0.10, 0.05]:
                 cand_woc = max(diameter * 0.02, diameter * woc_ratio)
@@ -1036,11 +1317,21 @@ class OptimizationEngine:
                     diameter, shank_size, stickout, min_doc, cand_woc, feed, eval_rpm, flutes,
                     is_carbide=is_carbide, material_family=material_family, helix_angle=helix_angle,
                     neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length,
-                    neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius
+                    neck_diameter=neck_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius,
+                    profile=profile
                 )
                 best_woc = cand_woc
                 if deflect <= target_deflection:
                     break
+            else:
+                # Even the lightest candidate cut exceeds the deflection limit: no safe cut exists.
+                details["feasible"] = False
+            details["limited_by"] = "deflection"
+
+        # The DOC loop can also stop at the operation's depth rule (e.g. adaptive micro-tool
+        # depth), which is not the flute length; report which one actually capped it.
+        if details.get("limited_by") == "flute_length" and flute_length > 0 and best_doc < flute_length * 0.999:
+            details["limited_by"] = "operation_depth_rule"
 
         return best_doc, best_woc, target_deflection
 
@@ -1081,7 +1372,7 @@ class AdvisoryEngine:
             return tips
 
         mat_props = physics.machinability.get(material_family, {})
-        is_work_hardening = mat_props.get("work_hardening", False) or any(w in str(alloy).lower() for w in ["nitronic", "inconel", "titanium", "316", "304"])
+        is_work_hardening = alloy_work_hardens(material_family, alloy, mat_props)
         sb_factor = mat_props.get("springback_factor", 0.0002)
         if "nitronic 60" in str(alloy).lower():
             sb_factor = max(sb_factor, 0.0006)
@@ -1091,7 +1382,7 @@ class AdvisoryEngine:
         is_highly_elastic = any(m in mat_lower for m in ["plastic", "titanium", "wood", "zirconium", "delrin", "acetal", "nylon", "peek", "teflon", "rubber"])
         has_high_springback = sb_factor >= 0.0004 or is_highly_elastic or any(s in mat_lower for s in ["nitronic", "titanium", "inconel", "316", "304", "plastic", "zirconium", "peek", "delrin", "acetal", "nylon"])
 
-        is_drilling = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "annular", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "parabolic"])
+        is_drilling = is_drilling_tool_type(tool_type, geometry)
         is_saw = geometry in ["T-Slot", "Keyseat", "Woodruff"] or "saw" in str(tool_type).lower() or "woodruff" in str(tool_type).lower()
         ld_ratio = stickout / diameter if diameter > 0.0 else 0.0
         fl_ratio = (flute_length / diameter) if (diameter > 0.0 and flute_length > 0.0) else 0.0
@@ -1126,12 +1417,14 @@ class AdvisoryEngine:
 
             mat_display_name = alloy if (alloy and alloy.strip()) else material_family
             op_lower = str(operation).lower()
-            is_floor_finishing = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"])
-            is_finishing = "finish" in op_lower or is_floor_finishing or cut_width <= (diameter * 0.15)
-            should_advise_wear_comp = (
+            is_roughing_op = any(r in op_lower for r in ["rough", "adaptive", "clearing", "pocket", "trochoidal", "hem", "slot"])
+            is_floor_finishing = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"]) and not is_roughing_op
+            is_finishing = ("finish" in op_lower or is_floor_finishing or (cut_width <= (diameter * 0.15) and not is_roughing_op)) and not is_roughing_op
+            # Negative stock-to-leave only makes sense on finishing passes; roughing must keep stock.
+            should_advise_wear_comp = is_finishing and (
                 total_error >= 0.00025
-                or (has_high_springback and is_finishing)
-                or (has_high_springback and springback_inches >= 0.0003)
+                or has_high_springback
+                or springback_inches >= 0.0003
             )
 
             if should_advise_wear_comp:
@@ -1220,17 +1513,29 @@ class AdvisoryEngine:
                     "message": (
                         f"Tool stickout is {ld_ratio:.1f}xD ({stickout:.3f}\" / {stickout*25.4:.1f} mm), which is "
                         f"{stickout/flute_length:.1f}x longer than the flutes ({flute_length:.3f}\" / {flute_length*25.4:.1f} mm). "
-                        f"This extreme overhang forces severe speed and feed reductions to avoid chatter. Choking the tool up in the collet "
-                        f"(~{rec_st:.3f}\" / {rec_st*25.4:.1f} mm) will eliminate chatter penalties and dramatically boost performance."
+                        f"Deflection grows with the cube of overhang, so the safe depth and width of cut are much smaller. "
+                        f"Choking the tool up in the collet (~{rec_st:.3f}\" / {rec_st*25.4:.1f} mm) allows a far larger cut."
                     ),
                     "type": "warning"
                 })
-            elif ld_ratio > critical_ld:
+            elif is_drilling and ld_ratio > critical_ld:
                 tips.append({
                     "title": "Resonance & Chatter Penalty",
                     "message": (
-                        f"Tool stickout is {ld_ratio:.1f}x diameter. For {'drilling' if is_drilling else 'milling'}, overhangs over {critical_ld:.1f}xD "
+                        f"Tool stickout is {ld_ratio:.1f}x diameter. For drilling, overhangs over {critical_ld:.1f}xD "
                         f"induce self-excited chatter. Feeds and speeds have been scaled down to stabilize the cut."
+                    ),
+                    "type": "warning"
+                })
+            elif not is_drilling and ld_ratio > (4.0 if "hss" in str(tool_type).lower() else 7.0):
+                # G-Wizard's milling stickout warning (GWizFeedSpeedMath.as ~2614)
+                lim = 4.0 if "hss" in str(tool_type).lower() else 7.0
+                tips.append({
+                    "title": "Excessive Stickout",
+                    "message": (
+                        f"Tool stickout is {ld_ratio:.1f}x diameter. Keep it under {lim:.0f}xD for "
+                        f"{'HSS' if lim == 4.0 else 'carbide'} tooling where possible. Feeds and speeds are not reduced; "
+                        f"the depth and width of cut are limited by tool deflection instead."
                     ),
                     "type": "warning"
                 })
@@ -1286,18 +1591,52 @@ class AdvisoryEngine:
                 contact_sfm = physics.calc_sfm(rpm, eff_dia)
                 nominal_sfm = physics.calc_sfm(rpm, diameter)
                 
-                tip_type = "warning" if eff_ratio < 0.40 else "info"
+                is_ball = "ball" in str(geometry).lower() or "ball" in str(tool_type).lower()
+                tip_type = "warning" if (is_ball and eff_ratio < 0.40) else "info"
+                speed_line = (
+                    f"• **Spindle Speed:** RPM is sized for the contact circle ({contact_sfm:.0f} SFM there); "
+                    f"at the full diameter the surface speed is {nominal_sfm:.0f} SFM."
+                )
+                if is_ball:
+                    tips.append({
+                        "title": "Ball Mill Effective Diameter & 3D Contouring Dynamics",
+                        "message": (
+                            f"At your shallow cut depth ({cut_depth:.4f}\" / {cut_depth*25.4:.3f} mm), cutting occurs on the ball radius at an "
+                            f"**Effective Cutting Diameter (Deff) of {eff_dia:.4f}\" ({eff_dia*25.4:.3f} mm)** ({eff_ratio*100:.0f}% of nominal {diameter:.4f}\").\n"
+                            f"{speed_line}\n"
+                            f"• **Zero-SFM Dead Center Trap:** Surface speed is 0 SFM at the tip of the ball. "
+                            f"Avoid dragging the tip across flat floors; use sloped toolpaths or a 10°–15° tool tilt so the cut happens on the radius."
+                        ),
+                        "type": tip_type
+                    })
+                else:
+                    flat = max(0.0, diameter - 2.0 * corner_radius)
+                    tips.append({
+                        "title": "Corner Radius Effective Diameter",
+                        "message": (
+                            f"At {cut_depth:.4f}\" ({cut_depth*25.4:.3f} mm) depth, less than the {corner_radius:.4f}\" corner radius, "
+                            f"the engaged diameter is **{eff_dia:.4f}\" ({eff_dia*25.4:.3f} mm)** ({eff_ratio*100:.0f}% of nominal), "
+                            f"including the {flat:.4f}\" ({flat*25.4:.3f} mm) flat bottom.\n"
+                            f"{speed_line}\n"
+                            f"• The flat bottom cuts floors cleanly; there is no zero-speed center as on a ball mill."
+                        ),
+                        "type": tip_type
+                    })
+
+        if not is_drilling and diameter > 0.0 and any(k in str(operation).lower() for k in ("adaptive", "trochoidal", "hem")):
+            if diameter < 0.031:
                 tips.append({
-                    "title": "Ball Mill Effective Diameter & 3D Contouring Dynamics",
-                    "message": (
-                        f"At your shallow cut depth ({cut_depth:.4f}\" / {cut_depth*25.4:.3f} mm), cutting occurs on the ball radius at an "
-                        f"**Effective Cutting Diameter (Deff) of {eff_dia:.4f}\" ({eff_dia*25.4:.3f} mm)** ({eff_ratio*100:.0f}% of nominal {diameter:.4f}\").\n"
-                        f"• **Elevated Spindle Speed:** Spindle RPM ({rpm:,.0f} RPM) is scaled up to maintain true surface speed ({contact_sfm:.0f} SFM) "
-                        f"at the actual contact circle. At the full cutter equator, surface speed is {nominal_sfm:.0f} SFM.\n"
-                        f"• **Zero-SFM Dead Center Trap:** Surface footage collapses to literally 0 SFM at the absolute center tip of the ball ($Z=0$). "
-                        f"Avoid dragging the tip perpendicular across flat floors; use 3D sloped toolpaths or a 10°–15° tool lead/tilt angle so cutting forces shear cleanly on the spinning radius."
-                    ),
-                    "type": tip_type
+                    "title": "HEM Not Recommended Below 0.031\"",
+                    "message": ("Harvey/Helical's HEM Guidebook advises against high-efficiency milling with cutters under "
+                                "0.031\" (0.8 mm). Use conventional light-radial profiling or slotting instead."),
+                    "type": "critical"
+                })
+            elif diameter < 0.062:
+                tips.append({
+                    "title": "Micro HEM Risk",
+                    "message": ("HEM below 0.062\" (1.6 mm) is possible but risky (Harvey/Helical HEM Guidebook). Keep runout "
+                                "minimal, use a rigid holder and verify the first cuts at reduced aggressiveness."),
+                    "type": "warning"
                 })
 
         if diameter < 0.125:
@@ -1361,7 +1700,7 @@ class AdvisoryEngine:
                     "type": "info"
                 })
 
-        is_tap_tool = "tap" in tool_type.lower() or "tap" in str(operation).lower()
+        is_tap_tool = is_tap_tool_type(tool_type) or is_tap_tool_type(operation)
         if is_tap_tool:
             if str(tap_type).lower() == "form":
                 is_brittle = any(b in material_family.lower() for b in ["cast iron", "graphite"])
@@ -1466,11 +1805,14 @@ class AdvisoryEngine:
                 })
 
         # Geometry Sanity Audits: Stickout Ratio, Aluminum Flute Count, and Collet Grip
-        is_hole_tool = any(d in str(tool_type).lower() for d in ["drill", "tap", "reamer", "bore"]) or any(d in str(geometry).lower() for d in ["drill", "tap", "reamer"])
+        is_hole_tool = is_drilling_tool_type(tool_type, geometry)
         if not is_hole_tool and diameter > 0.0:
             l_d = stickout / diameter
             has_relieved_neck = neck_diameter > 0.0 and neck_diameter < (diameter * 0.98)
-            if l_d > 4.5 and not has_relieved_neck:
+            already_warned = any(t.get("title") in ("Excessive Stickout", "Excessive Stickout Overhang") for t in tips)
+            if already_warned:
+                pass  # one stickout warning is enough
+            elif l_d > 4.5 and not has_relieved_neck:
                 tips.append({
                     "title": "Severe Tool Stickout Warning",
                     "message": (
@@ -1509,6 +1851,31 @@ class AdvisoryEngine:
                 ),
                 "type": "warning"
             })
+
+        hb = physics.resolve_alloy_hardness(material_family, alloy) if alloy else None
+        hrc = ASTMHardnessConverter.brinell_to_hrc(hb) if hb else None
+        if hrc is not None and hrc > HARD_MILL_ONSET_HRC and not is_drilling and is_ferrous_family(material_family):
+            sfm_f, ipt_f = hard_milling_factors(hrc)
+            if hrc > HARD_MILL_FACTORS[-1][0]:
+                tips.append({
+                    "title": "Hardness Beyond Vendor Data",
+                    "message": (
+                        f"~{hrc:.0f} HRC is above the highest hardness in the vendor data behind the hard-milling "
+                        f"correction (65 HRC). Speeds are held at the 65 HRC values (SFM x{sfm_f:.2f}, IPT x{ipt_f:.2f}); "
+                        "confirm with the tool manufacturer before cutting."
+                    ),
+                    "type": "critical"
+                })
+            else:
+                tips.append({
+                    "title": "Hard Milling Correction Applied",
+                    "message": (
+                        f"Workpiece ~{hrc:.0f} HRC: speeds scaled SFM x{sfm_f:.2f} and chipload x{ipt_f:.2f} relative to 45 HRC "
+                        "(fitted to OSG AE-H and Harvey hardened-steel data). Use a hard-milling grade end mill; "
+                        "generic carbide drops far more steeply above 40 HRC."
+                    ),
+                    "type": "info"
+                })
 
         if not tips:
             tips.append({
@@ -1652,11 +2019,11 @@ class GWizardPhysics:
         if lookup_tool not in known_sfm_tools:
             if "thread" in t_low or geometry == "Thread Mill":
                 lookup_tool = "Carbide Thread Mill"
-            elif "drill" in t_low or geometry in ["Drill", "Spot Drill", "Twist Drill", "Parabolic"]:
-                lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
             elif "ream" in t_low or geometry == "Reamer":
                 lookup_tool = "HSS Reamer"
-            elif "tap" in t_low or tool_type == "Tapping":
+            elif is_drilling_tool_type(t_low, geometry) and not is_tap_tool_type(t_low):
+                lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
+            elif is_tap_tool_type(t_low) or tool_type == "Tapping":
                 lookup_tool = "Tapping"
             elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "High Feed", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
                 if "hp" in t_low:
@@ -1667,12 +2034,22 @@ class GWizardPhysics:
         for entry in self.sfm_data:
             if entry["material"] == material and entry["tool"] == lookup_tool:
                 sfm = float(entry["sfm"])
-                if tool_type == "Tapping":
+                if lookup_tool in ("Carbide Twist Drill", "HP Carbide Twist Drill"):
+                    carb_sfm = max(
+                        self._db_sfm(material, "Carbide Twist Drill") or 0.0,
+                        self._db_sfm(material, "Gun Drill") or 0.0,
+                        (self._db_sfm(material, "HSS Twist Drill") or 0.0) * 2.5,
+                    )
+                    if lookup_tool == "Carbide Twist Drill":
+                        sfm = carb_sfm
+                    elif carb_sfm > 0.0 and sfm > carb_sfm * 1.25:
+                        sfm = carb_sfm * 1.10
+                if tool_type == "Tapping" or is_tap_tool_type(tool_type):
                     if tap_type == "form":
                         mult_key = "CarbideForm" if is_carbide else "HSSForm"
                         mult = float(entry.get(mult_key, 0.0) or 0.0)
                         if mult <= 0.0:
-                            mult = 2.0  # Modern high-performance form taps (OSG NRT) in tough alloys
+                            mult = 1.0  # Fallback to standard SFM (never 2.0x in tough alloys)
                         sfm *= mult
                     elif tap_type == "spiral_point":
                         sfm *= 1.15  # Through-hole gun tap
@@ -1682,12 +2059,12 @@ class GWizardPhysics:
                         sfm *= 1.00  # Standard blind-hole cut tap
                 break
 
-        if tool_type != "Tapping":
+        if tool_type != "Tapping" and not is_tap_tool_type(tool_type):
             if is_saw:
                 sfm *= 0.75  # G-Wizard GWizFeedSpeedMath.as:522: 25% reduction for Saws & Woodruff
             elif geometry in ["Thread Mill", "Lollipop"]:
                 sfm *= 0.50
-            elif geometry in ["Drill", "Spot Drill"] and "drill" not in str(tool_type).lower():
+            elif geometry in ["Drill", "Spot Drill"] and not is_drilling_tool_type(tool_type):
                 sfm *= 0.50
 
         if geometry == "Rougher":
@@ -1696,6 +2073,11 @@ class GWizardPhysics:
         if geometry == "Indexable Mill":
             sfm *= 1.25
 
+        # Pointed chamfer/V-bit tips are fragile: Harvey chamfer-cutter tables top out
+        # at ~1000 SFM in 6061 vs ~1200+ for end mills of the same size (~0.8x).
+        if geometry in ["V-Bit", "Chamfer", "Chamfer Mill", "Engraving"]:
+            sfm *= 0.80
+
         # Small & Micro-Tool thermal dissipation and chip evacuation scaling:
         # Micro-drills (< 1/4") have fragile web cores and restricted hole chip evacuation,
         # requiring conservative SFM scaling to prevent wandering and binding.
@@ -1703,11 +2085,13 @@ class GWizardPhysics:
         # exit into open space each revolution and must maintain proper shear velocity (180-250 SFM)
         # to prevent built-up edge (BUE) and chipping.
         if diameter is not None and 0.0 < diameter < 0.250:
-            is_drill_tool = "drill" in tool_type.lower() or "drill" in str(geometry).lower()
+            is_drill_tool = is_drilling_tool_type(tool_type, str(geometry)) and not is_tap_tool_type(tool_type)
             if is_drill_tool:
-                scale = max(0.20, (diameter / 0.250) ** 0.50)
+                # RPM already scales inversely with diameter; apply only a mild SFM taper for
+                # small-drill web thickness and flute chip evacuation.
+                scale = max(0.65, (diameter / 0.250) ** 0.25)
                 sfm *= scale
-            elif diameter < 0.125 and tool_type != "Tapping" and not is_saw:
+            elif diameter < 0.125 and tool_type != "Tapping" and not is_tap_tool_type(tool_type) and not is_saw:
                 mat_lower = str(material).lower()
                 is_gummy = any(g in mat_lower for g in ["plastic", "lead", "gold", "silver"])
                 if is_gummy:
@@ -1752,9 +2136,9 @@ class GWizardPhysics:
         if lookup_tool not in known_ipt_tools:
             if "thread" in t_low or geometry == "Thread Mill":
                 lookup_tool = "Carbide Endmill"
-            elif "drill" in t_low or geometry in ["Drill", "Spot Drill", "Twist Drill", "Parabolic"]:
+            elif is_drilling_tool_type(t_low, geometry) and not is_tap_tool_type(t_low):
                 lookup_tool = "Carbide Twist Drill" if is_carbide else "HSS Twist Drill"
-            elif "tap" in t_low or tool_type == "Tapping":
+            elif is_tap_tool_type(t_low) or tool_type == "Tapping":
                 lookup_tool = "Carbide Twist Drill"
             elif is_saw or any(s in t_low for s in ["end", "mill", "slot", "chamfer", "dovetail"]) or geometry in ["Square", "Ball", "Radiused", "High Feed", "T-Slot", "Keyseat", "Woodruff", "Rougher", "V-Bit", "Engraving", "Chamfer", "Chamfer Mill", "Dovetail"]:
                 if "hp" in t_low:
@@ -1783,6 +2167,16 @@ class GWizardPhysics:
                                 ipt = ipt1 + (ipt2 - ipt1) * ((diameter - d1) / (d2 - d1))
                             break
                 break
+
+        # A solid carbide twist drill is stiffer than an HSS twist drill and should never
+        # receive a smaller base chipload than an HSS twist drill of the same diameter.
+        if lookup_tool == "Carbide Twist Drill" and not is_tap_tool_type(tool_type) and tool_type != "Tapping":
+            hss_ipt = self.get_base_ipt(
+                material, "HSS Twist Drill", diameter, geometry=geometry,
+                runout=runout, cut_depth=cut_depth, cut_width=cut_width,
+                flutes=flutes, is_carbide=False
+            )
+            ipt = max(ipt, hss_ipt)
 
         if is_saw:
             # G-Wizard GWizFeedSpeedMath.as:2039-2042 & 2246-2291: sawTPIAdjust on base endmill IPT
@@ -1830,10 +2224,12 @@ class GWizardPhysics:
 
             return max(best_finish, saw_ipt)
 
-        if "tap" not in str(tool_type).lower():
-            if geometry in ["Thread Mill", "Lollipop"]:
+        if not is_tap_tool_type(tool_type):
+            # Dovetails share the lollipop's narrow neck and angled edge; Harvey dovetail
+            # chiploads run ~50% of an end mill of the same diameter.
+            if geometry in ["Thread Mill", "Lollipop", "Dovetail"]:
                 ipt *= 0.50
-            elif geometry in ["Drill", "Spot Drill", "Parabolic"] and "drill" not in str(tool_type).lower():
+            elif geometry in ["Drill", "Spot Drill", "Parabolic"] and not is_drilling_tool_type(tool_type):
                 ipt *= 0.50
 
         if geometry == "Rougher":
@@ -1931,7 +2327,29 @@ class GWizardPhysics:
 
         return adjusted_ipt
 
-    def get_coating_multiplier(self, coating: str, material_family: str) -> float:
+    def _db_sfm(self, material: str, tool: str) -> Optional[float]:
+        for entry in self.sfm_data:
+            if entry["material"] == material and entry["tool"] == tool:
+                try:
+                    return float(entry["sfm"])
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    def tialn_endmill_multiplier(self, material_family: str, tool_type: str = "") -> Optional[float]:
+        """GWizard rates TiAlN-coated carbide end mills per material ("TiAlN Carbide Endmill").
+        Returns that rating relative to the selected carbide end mill class (HP or standard), never
+        below 1.0, or None when the database has no such rating for the material. HP Carbide already
+        assumes a premium coated tool, so in e.g. PH stainless, 316 and H13 the coating adds nothing."""
+        tialn = self._db_sfm(material_family, "TiAlN Carbide Endmill")
+        ref = self._db_sfm(material_family,
+                           "HP Carbide Endmill" if "hp" in str(tool_type).lower() else "Carbide Endmill")
+        if not tialn or not ref:
+            return None
+        return max(1.0, tialn / ref)
+
+    def get_coating_multiplier(self, coating: str, material_family: str, tool_type: str = "",
+                               geometry: str = "", is_carbide: bool = False) -> float:
         if coating == "Uncoated" or not material_family:
             return 1.0
 
@@ -1943,6 +2361,15 @@ class GWizardPhysics:
         if coating in ["TiAlN", "AlTiN"]:
             if is_aluminum:
                 return 0.80
+            t_low = str(tool_type).lower()
+            is_carbide_endmill = (is_carbide and not is_drilling_tool_type(t_low, geometry)
+                                  and not is_tap_tool_type(t_low)
+                                  and not any(k in t_low for k in ("thread", "ream", "indexable"))
+                                  and geometry != "Thread Mill")
+            if is_carbide_endmill:
+                m = self.tialn_endmill_multiplier(material_family, tool_type)
+                if m is not None:
+                    return m
             if is_ferrous or is_titanium:
                 return 1.40
             return 1.20
@@ -1999,7 +2426,7 @@ class GWizardPhysics:
         aggr_scalar = 0.70 + (aggressiveness * 0.60)
         angle *= aggr_scalar
 
-        is_hole = any(h in str(geometry).lower() for h in ["drill", "parabolic", "reamer", "tap", "bore"]) or any(h in str(tool_type).lower() for h in ["drill", "reamer", "tap", "bore", "annular"])
+        is_hole = is_drilling_tool_type(tool_type, geometry)
 
         if is_hole:
             angle = 90.0
@@ -2028,16 +2455,67 @@ class GWizardPhysics:
 
         return angle, ramp_feed, plunge_feed
 
+    def match_alloy(self, material_family: str, alloy_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Resolve a user alloy string ("6061-T6", "6061 (T6, T651)", "4140") to one row of
+        specific_alloys within the given family only.
+
+        Score = alloy-name match + matched condition tokens (word-boundary). Ties, and bare
+        alloy names with several conditions, resolve to the HARDEST row so speeds err low.
+        """
+        target = str(alloy_name or "").strip().lower()
+        if not target:
+            return None
+        # Optional trailing hardness tag from the UI, e.g. "maraging 200 (annealed) [285 hb]".
+        tag = re.search(r'\[([^\]]+)\]\s*$', target)
+        wanted_hb = None
+        if tag:
+            wanted_hb = re.sub(r'\s*hb\s*$', '', tag.group(1)).strip()
+            target = target[:tag.start()].strip()
+
+        def norm(s: str) -> str:
+            return " ".join(re.sub(r'[()\[\],;/\-]+', ' ', s).split())
+
+        best, best_key = None, None
+        for a in self.specific_alloys:
+            if a.get("family") != material_family:
+                continue
+            base = str(a.get("alloy", "")).strip().lower()
+            if not base or not re.search(r'(?<![a-z0-9])' + re.escape(base) + r'(?![a-z0-9])', target):
+                continue
+            condition = str(a.get("condition", "")).strip().lower()
+            # Whatever remains after removing the alloy name is the user's condition text.
+            exact = bool(condition) and norm(target.replace(base, " ", 1)) == norm(condition)
+            tokens = [t.strip() for t in re.split(r'[,/;]', condition) if t.strip()]
+            cond_hits = sum(1 for t in tokens
+                            if re.search(r'(?<![a-z0-9])' + re.escape(t) + r'(?![a-z0-9])', target))
+            hb = ASTMHardnessConverter.parse_hardness(a.get("hardness")) or 0.0
+            hb_match = wanted_hb is not None and str(a.get("hardness", "")).strip().lower().replace(" hb", "") == wanted_hb
+            key = (len(base), exact, cond_hits, hb_match, (cond_hits - len(tokens)) if cond_hits else 0, hb)
+            if best_key is None or key > best_key:
+                best, best_key = a, key
+        return best
+
+    def resolve_alloy_hardness(self, material_family: str, alloy_name: str) -> Optional[float]:
+        """Brinell hardness for an alloy string: DB row first, else an explicit 'NN HRC' in the text."""
+        row = self.match_alloy(material_family, alloy_name)
+        hb = ASTMHardnessConverter.parse_hardness(row.get("hardness")) if row else None
+        if not hb and "hrc" in str(alloy_name).lower():
+            hb = ASTMHardnessConverter.parse_hardness(alloy_name)
+        return hb
+
     def apply_alloy_hardness_scaling(
         self,
         material_family: str,
         alloy_name: str,
         sfm: float,
-        ipt: float
+        ipt: float,
+        is_carbide: bool = True
     ) -> Tuple[float, float]:
         """
-        Dynamically scale SFM and IPT based on the alloy's Brinell Hardness (HB).
+        Dynamically scale SFM based on the alloy's Brinell Hardness (HB).
         Supports HRC, HB, and range conversions via ASTM E140.
+        Uses G-Wizard's genuine bounded linear adjustment model (adjSFMForHardness).
         """
         if not alloy_name or not material_family:
             return sfm, ipt
@@ -2045,22 +2523,7 @@ class GWizardPhysics:
         alloy_hardness = None
         norm_target = alloy_name.strip().lower()
 
-        for a in self.specific_alloys:
-            if a.get("family") == material_family:
-                base_alloy = str(a.get("alloy", "")).strip().lower()
-                condition = str(a.get("condition", "")).strip().lower()
-                combined = f"{base_alloy} ({condition})".lower()
-
-                if norm_target in [base_alloy, combined] or base_alloy in norm_target:
-                    parsed_hb = ASTMHardnessConverter.parse_hardness(a.get("hardness"))
-                    if parsed_hb:
-                        alloy_hardness = parsed_hb
-                        break
-
-        if not alloy_hardness:
-            if "hrc" in norm_target:
-                alloy_hardness = ASTMHardnessConverter.parse_hardness(norm_target)
-
+        alloy_hardness = self.resolve_alloy_hardness(material_family, alloy_name)
         if not alloy_hardness:
             return sfm, ipt
 
@@ -2069,18 +2532,32 @@ class GWizardPhysics:
             return sfm, ipt
 
         min_bhn = float(mat_props.get("minBHN", 1.0))
-        cexp = float(mat_props.get("cexp", 10.0))
+        max_bhn = float(mat_props.get("maxBHN", 450.0))
+        sfm_range = float(mat_props.get("sfmrange", 0.0) if is_carbide else (mat_props.get("sfmrangehss", 0.0) or mat_props.get("sfmrange", 0.0)))
 
-        if alloy_hardness <= min_bhn:
-            return sfm, ipt
+        # G-Wizard genuine bounded linear adjustment (GWizFeedSpeedMath.as:356-370)
+        # adjSFMForHardness(param1: base_sfm, param2: sfmrange, param3: minBHN, param4: maxBHN, param5: bhn)
+        # Above HARD_MILL_ONSET_HRC, GWizard's linear model is used only up to the onset and the
+        # vendor-fitted curve takes over for both SFM and IPT (see HARD_MILL_FACTORS).
+        hrc = ASTMHardnessConverter.brinell_to_hrc(float(alloy_hardness))
+        is_hard_milling = hrc is not None and hrc > HARD_MILL_ONSET_HRC and is_ferrous_family(material_family)
+        gw_bhn = ASTMHardnessConverter.hrc_to_brinell(HARD_MILL_ONSET_HRC) if is_hard_milling else float(alloy_hardness)
 
-        sfm_mult = (min_bhn / alloy_hardness) ** (cexp / 15.0)
-        ipt_mult = (min_bhn / alloy_hardness) ** (cexp / 25.0)
+        if sfm_range > 0 and max_bhn > min_bhn:
+            range_adj = sfm_range * 0.7
+            range_adj = min(0.4 * sfm, range_adj)
+            clamped_bhn = min(max_bhn, max(min_bhn, gw_bhn))
+            bhn_span = max_bhn - min_bhn
+            norm = (clamped_bhn - min_bhn) / bhn_span
+            adj = (0.5 - norm) * range_adj
+            sfm = max(10.0, sfm + adj)
 
-        sfm_mult = max(0.05, min(1.0, sfm_mult))
-        ipt_mult = max(0.20, min(1.0, ipt_mult))
+        if is_hard_milling:
+            sfm_f, ipt_f = hard_milling_factors(hrc)
+            sfm *= sfm_f
+            ipt *= ipt_f
 
-        return sfm * sfm_mult, ipt * ipt_mult
+        return sfm, ipt
 
     def apply_chatter_penalty(
         self,
@@ -2096,6 +2573,12 @@ class GWizardPhysics:
         if is_saw_woodruff:
             # G-Wizard GWizFeedsSpeeds2.as:1604: this.fsm.adjustSFMForLength = false
             return sfm, ipt
+        if not is_drilling:
+            # Milling: OSG overhang tables cut surface speed beyond 4xD (EXOCARB AM-HFC: 4-5xD 90%,
+            # 5-6xD 80%; PHOENIX 6-10xD 40-60%) - about 10% per diameter, used here as a straight
+            # line with a 40% floor. Chip load is handled by the long-reach depth trade
+            # (reach_chipload) and depth by the deflection limit. G-Wizard length-adjusts drills only.
+            return sfm * reach_sfm_factor(stickout, diameter), ipt
 
         if diameter <= 0.0 or stickout <= 0.0:
             return sfm, ipt
@@ -2108,8 +2591,15 @@ class GWizardPhysics:
             return sfm, ipt
 
         overage = ld_ratio - critical_ld
-        sfm_mult = max(0.20, 1.0 - (overage * 0.15))
-        ipt_mult = max(0.15, 1.0 - (overage * 0.20))
+        if is_drilling:
+            # Drills are loaded axially and guided by the hole/conical point (no lateral side loads
+            # like end mills), and standard jobber drills routinely have stickouts of 8-12xD.
+            # Hole-depth chip evacuation is handled separately in calc_adjusted_chipload.
+            sfm_mult = max(0.85, 1.0 - (overage * 0.02))
+            ipt_mult = max(0.80, 1.0 - (overage * 0.03))
+        else:
+            sfm_mult = max(0.20, 1.0 - (overage * 0.15))
+            ipt_mult = max(0.15, 1.0 - (overage * 0.20))
 
         return sfm * sfm_mult, ipt * ipt_mult
 
@@ -2202,11 +2692,14 @@ class GWizardPhysics:
         neck_diameter: Optional[float] = None,
         operation: str = "Roughing",
         geometry: str = "Square",
-        corner_radius: float = 0.0
+        corner_radius: float = 0.0,
+        profile: Optional[Any] = None,
+        segments: Optional[Any] = None
     ) -> float:
         """
         Calculates tool tip deflection (inches) from cutting forces and stepped
-        cantilever beam mechanics.
+        cantilever beam mechanics. `profile` (a ToolProfile) or `segments` take precedence
+        over the legacy geometry arguments.
         """
         if rpm <= 0.0 or diameter <= 0.0 or cut_depth <= 0.0 or cut_width <= 0.0 or feedrate <= 0.0:
             return 0.0
@@ -2234,7 +2727,8 @@ class GWizardPhysics:
             taper_angle=taper_angle,
             flutes=flutes,
             helix_angle=helix_angle,
-            is_carbide=is_carbide
+            is_carbide=is_carbide,
+            segments=segments if segments is not None else (profile.segments if profile is not None else None)
         )
 
     def recommend_cut_parameters(
@@ -2257,13 +2751,17 @@ class GWizardPhysics:
         taper_angle: float = 0.0,
         flute_length: float = 1.0,
         neck_diameter: Optional[float] = None,
-        corner_radius: float = 0.0
+        corner_radius: float = 0.0,
+        details: Optional[Dict[str, Any]] = None,
+        profile: Optional[Any] = None,
+        min_chipload_factor: float = 1.0
     ) -> Tuple[float, float, float]:
         return OptimizationEngine.recommend_cut_parameters(
             self, diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide,
             operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family,
             helix_angle, neck_length, taper_angle, flute_length, neck_diameter,
-            corner_radius=corner_radius
+            corner_radius=corner_radius, details=details, profile=profile,
+            min_chipload_factor=min_chipload_factor
         )
 
     def calc_deflection_limit(

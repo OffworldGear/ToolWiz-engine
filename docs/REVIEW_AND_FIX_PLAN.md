@@ -7,6 +7,11 @@ and the Fusion add-in (`ToolWizFusionAddin/`).
 Part 1 is the review. Part 2 is the fix plan, split into work packages that a smaller agent can
 execute one at a time. Part 3 lists the decisions only the owner can make.
 
+**Update 2026-11-11.** Parts 1–3 describe `master` at `0ff47f9` and are kept as written. Part 4
+re-checks every finding against `toolwiz/hardening` at `24f6998`, which also contains the v2
+physics engine that Parts 1–3 never saw. Part 5 is the design for micro-tool handling and
+replaces WP-4, WP-5 and WP-6 of Part 2: that work should now be done in v2, not v1.
+
 Every number below was produced by running the engine, not by reading the code alone. Reproduce
 with `python scripts/micro_tool_sweep.py` (add `--stickout 0.5` for a realistic 1/8" shank
 gauge length).
@@ -445,3 +450,202 @@ chip thinning.
 | D4 | Reference hardness per material family. | Hardness of the family's named alloy in its usual supply condition (6061-T6 = 95 HB). |
 | D5 | Whether `mf` is a valid unit-power value for steels. | Compare three steels against Machinery's Handbook before changing data. |
 | D6 | Whether `tools/` and `gwizard_source/` belong in the repository. | Remove both from the tree; keep a script that fetches the tools if still needed. |
+
+---
+
+## Part 4 — Review of `toolwiz/hardening` (2026-11-11, commit `24f6998`)
+
+Method: the branch's own suite (`pytest`: 682 passed, 3 failed), `scripts/micro_tool_sweep.py`,
+direct calls to every endpoint, and `scripts/v2_candidate_probe.py` for the v2 optimizer.
+
+### 4.1 Status of the Part 1 findings
+
+| Finding | Status | Evidence |
+|---|---|---|
+| C1 condition ignored | Fixed | 440C Annealed SFM × 1.13, Hardened × 0.75 |
+| C2 hardness anchor | Fixed | 6061-T6 × 0.97, 7075-T6 × 0.80. Softer-than-reference alloys are now sped up (6061-O × 1.17); confirm that is wanted |
+| C3 cobalt as carbide | Fixed in the add-in | Cobalt with `isCarbide: false` gives 105 SFM. The endpoint still defaults to carbide when the field is absent |
+| C4 batch all HP carbide | Fixed | Reads tool material; drills, reamers and taps use their own rows |
+| C5 Fusion rounding | Fixed | 0.005" tool: stepover 0.00125" |
+| C6 offsets overwritten | Fixed | `json_mutator.py` no longer touches `post-process` |
+| P1 stepped shank | Fixed | Tool profile segments drive deflection |
+| P2 stickout penalty | Fixed | 1/16" at 0.5" stickout: 15.6 IPM against 24.0 short (was 3.2 against 21) |
+| P3 adaptive heuristic (v1) | Fixed | 1/16" 6061: 2 × D at 25% stepover |
+| P4 deflection limit (v1) | **Partly** | Adaptive and slotting scale with diameter and the slider works. "Roughing" still drops from 0.00035" at 0.125" to 0.00018" at 0.126", and a 1/2" tool in 4130 at 50% stepover still gets 0.12 × D |
+| P5 runout unused | **v1: no. v2: yes** | v1 only adds a tip; feed and depth are identical from 0 to 0.005". v2 models runout per flute (see Part 5) |
+| P6 no breakage check | **v1: no. v2: yes** | v1 docstring still claims one. v2 has a fatigue-stress check (C4) |
+| P7 ramp from thinned feed (v1) | **Open** | Adaptive ramp feed is 1.13–1.64 × the slotting feed for the same tool |
+| P8 force calibration | Superseded | v2 uses Kienzle coefficients and applies the load at its centroid |
+| P9 drill flutes | Fixed | 2 and 4 flutes give the same feed |
+| F1–F5, F7, F8 | Fixed | Unit guesses, shank default, feed guesses, `math` import, slider step, hole operations |
+| F4 aggressiveness scaling of stock compensation | Replaced | Now an explicit strength setting |
+| F6 unit toggle rounding | Not checked | |
+| S1 pipeline duplication | Fixed | `pipeline.py`; `stock_compensation` still assumes carbide (`app.py:1911, 1923`) |
+| S3 tests | Fixed | `pytest` runs from the root and writes to a temp directory |
+| S6 repository contents | Open | `tools/` (193 MB) and `gwizard_source/` remain; 17 root-level test scripts remain |
+| Minor: `eval`, API key in URL, upload CSRF, HTTP status | Fixed | |
+
+### 4.2 New problems on this branch
+
+**N1. The web page and the Fusion add-in use different engines by default.**
+`templates/index.html:271` selects v2 and sends `model: "v2"`. The add-in sends no model, and
+`v2_bridge.resolve_model` falls back to v1. The same tool gets different numbers in the two
+clients until someone changes the selector on the page, which saves a setting both then follow.
+
+**N2. v2 chooses impractical cuts.** Examples (LOC 3 × D, 1/8" shank or larger):
+
+| Case | v2 result |
+|---|---|
+| 1/4" 4FL, 6061, adaptive, runout 0 | 3 × D deep, 0.90 × D wide, 20 IPM (0.0003" per tooth) |
+| 1/16" 3FL, 6061, adaptive, runout 0 | 3 × D deep, 0.90 × D wide, 9 IPM |
+| 1/4" 4FL, 4130, slotting, runout 0 | 3 × D deep (0.75" slot), 1.6 IPM (0.00007" per tooth) |
+| 1/8" 3FL, 6061, slotting, any runout | 3 × D deep slot |
+
+The cause is in the selection, not the force model. Part 5.2 explains it.
+
+**N3. v2 output jumps with small input changes.** 1/16" 3FL adaptive in 6061: feed
+9.3 → 13.9 → 9.7 → 4.7 IPM as runout goes 0 → 0.0001" → 0.0002" → 0.0005", with stepover
+flipping between 45% and 90% of diameter. Zero runout gives the worst answers, and
+`v2_bridge.py:136` now lets zero through.
+
+**N4. v2 rejects most micro tools at the default runout.** At 0.0002", 2-flute tools at or
+below 1/32" return "no safe cut" in aluminum and steel adaptive and in aluminum slotting, and
+the response carries v1 numbers with a warning not to run them. A 1/32" tool becomes feasible at
+about 0.00013", a 0.020" tool at 0.00008", a 0.010" tool at 0.00003".
+
+**N5. Three tests fail.** `test_addin_server.py::test_set_preset_steps_matches_names` expects
+4-decimal strings (the code now writes 5); `test_web_model_switch.py` expects the old
+"v2 (physics, beta)" label; `test_tool_profile.py::test_t13_full` needs `t13_full.json`, which
+is git-ignored.
+
+**N6. The server detects the test client.** `app.py:462-467` ignores the saved model when the
+host is `localhost` with no port. Tests therefore never exercise the path real users hit.
+Pass the settings path into the app from `conftest.py` instead.
+
+**N7. This document was corrupted** on the hardening branch by a save in the wrong encoding
+(every ×, — and ³). The copy on `claude/relaxed-planck-jj379u` is the good one.
+
+### 4.3 Correction to my earlier advice
+
+I recommended keeping v1 as the default. That was right as a stop-gap and wrong as a
+direction. v1 has no model of a micro tool: no per-flute runout, no breakage limit, forces from
+a unit-power constant. v2 has all three, built on 1,466 vendor rows. Its defects are in how it
+picks among feasible cuts and in three limit definitions. Fix those and make v2 the default for
+both clients; keep v1 as the fallback for tool types v2 does not cover.
+
+---
+
+## Part 5 — Micro tools: deflection and runout in the physics engine
+
+### 5.1 What v2 already does correctly
+
+- **Runout per flute** (`physics_v2/optimize.py`, `Engagement`): each flute sits at its own
+  radius, so each has its own radial engagement and chip thickness, including flutes that miss
+  the stock entirely. The worst phase of the runout is searched (`runout_offsets_worst`).
+- **Forces**: Kienzle specific force at each flute's own chip thickness, integrated along the
+  helix, giving force, torque and the height of the load on the tool for each rotation angle.
+- **Deflection**: stepped beam from the real tool profile, load applied at its centroid, holder
+  compliance in series (`CutPoint._beam`).
+- **Breakage**: principal stress at each critical section against a carbide fatigue limit
+  (C4, 1425 MPa).
+- **Chip limits**: minimum chip thickness from edge radius (C1); worst-flute chip against the
+  vendor median for the diameter band (C2).
+
+This is the right model for a micro tool. Nothing here needs replacing.
+
+### 5.2 Why it still gives bad answers
+
+Measured with `scripts/v2_candidate_probe.py`.
+
+**Cause A — every flute is required to cut.** C1 is applied to the thinnest flute. With
+runout T, a 2-flute tool needs a feed per tooth above roughly T before the low flute touches,
+while C2 caps the high flute. On a 1/16" tool at 0.0002" the feasible feed window at 5% stepover
+is 0.000464–0.000538". Below 1/32" the window closes and the optimizer reports "no safe cut".
+In practice a small tool at ordinary runout cuts on one flute; that costs tool life, not the
+tool. Forcing `c1_flute="wall"` (the generating flute only) makes every case in N4 feasible.
+
+**Cause B — the objective is flat in depth, and the tie-breaks pick the extreme.** Once
+deflection (C3) binds, going deeper moves the load toward the shank, so depth costs almost no
+deflection and the feed falls in proportion. For the 1/4" slot in 4130:
+
+| Depth | Feed (IPM) | Feed per tooth | MRR (in³/min) |
+|---|---|---|---|
+| 0.25 × D | 17.7 | 0.00075" | 0.277 |
+| 1 × D | 3.5 | 0.00015" | 0.217 |
+| 3 × D | 1.7 | 0.00007" | 0.313 |
+
+All three are within about 30% in MRR. The rule "deepest cut within 10% of the best score",
+followed by the robustness tie-break (`optimize.py:1896-1916`), then picks the deepest and
+widest candidate at the smallest chip. The same flatness makes the choice flip when any input
+moves (N3).
+
+**Cause C — nothing stops a deep, wide cut except deflection.** There is no chip-evacuation
+limit for slots at or above 1/8" (C8 stops there), no upper bound on "adaptive" stepover below
+0.9 × D, no lower bound on chip load other than the rubbing limit (0.000024" on the 1/4" tool),
+and no chatter limit.
+
+**Cause D — the deflection allowance does not scale.** C3 is 50% of a fixed 0.05 mm stock to
+leave, 0.00098" for every tool. That is 0.4% of a 1/4" tool, 1.6% of a 1/16" tool and 10% of a
+0.010" tool, where the stress check takes over at about 3.5%.
+
+### 5.3 Design
+
+Keep the model. Change four things.
+
+**1. Two runout regimes, never "no safe cut" for runout alone.**
+- *All flutes cutting*: as now (C1 on the thinnest flute).
+- *Reduced flutes*: when that is infeasible, re-solve with C1 on the wall-generating flute.
+  C2 and C4 still use the worst flute's true chip, which the engagement model already computes
+  as up to `z × fz`. Report the number of flutes cutting, the runout at which all flutes would
+  cut (`max_feasible_tir`), and a tool-life warning.
+- Results must be continuous as runout goes to zero and non-increasing in runout.
+
+**2. Deflection allowance tied to diameter.**
+`C3 allow = min(50% of stock to leave, k × D)`, with `k` from 0.5% to 1.5% across the
+aggressiveness slider (1.0% at 50%). Above 3/32" the stock-to-leave term governs as now.
+C4 stays as the breakage guard. Owner decision D7.
+
+**3. Operation envelopes and a chip-load floor, so depth cannot be bought by starving the chip.**
+- Adaptive: stepover between `max(2 × TIR, 0.05 × D)` and `0.30 × D` (0.40 × D non-ferrous).
+- Roughing: stepover up to 0.50 × D. Slotting: stepover = D.
+- Slot depth cap for every diameter, taken from the vendor slot rows (628 exist) as the median
+  depth/D per diameter band and material family, scaled by aggressiveness. Extends C8.
+- Chip-load floor: feed per tooth at least 50% of the vendor consensus for the bucket (C14
+  already looks this up as a ceiling), or twice the rubbing limit where no consensus exists.
+
+**4. A selection rule that is not flat.**
+Among candidates within 10% of the best MRR, choose the one closest to vendor consensus in
+depth/D and feed per tooth (log distance), not the deepest. Use the robustness margins only to
+break exact ties. Then refine locally so the result does not sit on a grid node.
+
+**Later, optional — chatter limit (C15).** A stability estimate needs only quantities v2 already
+has: limiting depth ≈ `2 × k × ζ × (1 + ζ) / (K_t × N)`, with `k` the static tip stiffness,
+`ζ` an assumed damping ratio (0.02–0.03), `K_t` the specific force and `N` the mean number of
+teeth in the cut. It is uncertain by about a factor of two, so treat it as a soft cap scaled by
+aggressiveness and calibrate `ζ` against the vendor depth data before enabling it.
+
+### 5.4 Work packages (replace WP-4, WP-5, WP-6)
+
+Rules of Part 2 apply. Work in `physics_v2/optimize.py` unless stated. Run
+`python -m pytest tests/test_v2_optimize.py tests/test_v2_bridge.py -q` and the probe before
+and after each package.
+
+| ID | Change | Done when |
+|---|---|---|
+| M0 | Fix N5, N6. Make both clients request the same model: the add-in sends `model` read from `/api/model_settings`. Until M1–M4 land, set the page default back to v1. | `pytest` is green; a fresh install gives identical numbers in page and add-in. |
+| M1 | Reduced-flute regime. In `optimize`, when no candidate survives and the eliminations are C1/C2 only, re-run once with `c1_flute="wall"` (generalize the existing C14 fallback at lines 1857–1881). Add `flutes_cutting` and the feasible-runout value to the result and to `/api/calculate`. `v2_bridge` must not fall back to v1 for this case. | Every row of N4 returns `feasible: true` with a warning. For 2-flute tools 0.010"–1/4" in 6061 and 4130, feed is non-increasing over runout 0, 0.00005", 0.0001", 0.0002", 0.0005", and the step from 0 to 0.00005" changes feed by less than 15%. |
+| M2 | C3 allowance `min(stock term, k × D)` in `_Context` (near line 1295). `k` in `params.py`. | Probe shows `C3 allow` = 0.000625" for a 1/16" tool at 50%; 1/4" unchanged. |
+| M3 | Envelopes and floor. Stepover bounds per operation at lines 1829–1830. Slot depth cap table generated by a new function in `tools/v2_invariants.py` into `data/model_v2/slot_depth.json`; `slot_depth_ratio` reads it. Chip-load floor added to `lower_checks` as a new check `C14lo`. | Adaptive never returns stepover above 0.40 × D. 1/4" 4130 slot depth is at or below the table value and feed per tooth is at least 50% of consensus. No case in the sweep returns feed per tooth below twice the rubbing limit. |
+| M4 | Selection rule of 5.3 item 4, replacing lines 1895–1916. Keep `_refine_ae`. | For 1/16", 1/8", 1/4" in 6061 and 4130, adaptive and slotting: changing runout, stickout or aggressiveness by 10% changes depth, stepover and feed by less than 25% each. The Part 4 N2 table no longer reproduces. |
+| M5 | Make v2 the default for both clients (`resolve_model` default and the page). Remove the "beta" wording everywhere or keep it everywhere. Update `tests/test_web_model_switch.py`. | Same request through page payload and add-in payload returns the same model and numbers. |
+| M6 | v1 clean-up for the tool types v2 does not cover: fix the "Roughing" limit step at 1/8" (`gwizard_physics.py`, `calc_deflection_limit`), compute ramp and plunge feed from the un-thinned chipload (WP-7), delete the stress claim from the module docstring. | Limit is monotonic in diameter for all operations; ramp feed never exceeds slotting feed. |
+| M7 | Optional: C15 chatter cap as in 5.3, off by default behind a parameter. | With it on, no adaptive result exceeds the estimated limiting depth at 50% aggressiveness. |
+
+### 5.5 Additional owner decisions
+
+| ID | Decision | Recommended default |
+|---|---|---|
+| D7 | Micro deflection allowance `k`. | 0.5–1.5% of diameter across the slider. |
+| D8 | Whether a reduced-flute cut is offered automatically or only after a prompt. | Offer it automatically with a warning and the runout needed for all flutes to cut. |
+| D9 | Chip-load floor as a fraction of vendor consensus. | 50%. |
+| D10 | Default runout. 0.0002" puts every tool under about 3/64" in the reduced-flute regime. | Keep 0.0002" as the default and make the field prominent for tools under 1/8". |

@@ -4,15 +4,240 @@ import json
 import math
 import uuid
 import re
+import logging
 from flask import Flask, render_template, request, jsonify, send_file
-from gwizard_physics import GWizardPhysics
+from werkzeug.exceptions import HTTPException
+from gwizard_physics import GWizardPhysics, is_tap_tool_type, is_drilling_tool_type
+from pipeline import CutRequest, run_cut
 from ai_machinist import query_ai_machinist, get_available_gemini_models
+from toolwiz_common import (
+    ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
+    ToolGeometry, ToolProfile, default_stickout, default_shank, to_inches, UnitError, safe_eval_length,
+    tool_unit as tool_unit_of,
+    calc_thin_wall_compliance_factor,
+)
+
+safe_eval_expr = safe_eval_length  # backwards-compatible alias
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB upload/request cap
+
+import cutlog
+cutlog.register(app)
+import fusion_bridge
+fusion_bridge.register(app)
+import machine_profiles
 
 # Initialize physics engine
 db_path = os.path.join(os.path.dirname(__file__), "materials_database_clean.json")
 physics = GWizardPhysics(db_path)
+
+# ---------------------------------------------------------------------------
+# Machine profile (defaults for max RPM / max HP)
+# ---------------------------------------------------------------------------
+MACHINE_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "machines", "speedio_s500x2.json")
+KW_TO_HP = 1.341
+FALLBACK_MAX_RPM = 16000.0
+FALLBACK_MAX_HP = 10.0
+
+
+def _derive_limits(profile, active=None):
+    """Profile copy with active_spindle, max_rpm and max_hp taken from the active spindle."""
+    profile = dict(profile or {})
+    max_rpm, max_hp = FALLBACK_MAX_RPM, FALLBACK_MAX_HP
+    spindles = profile.get("spindle_options") or {}
+    if active not in spindles:
+        active = profile.get("active_spindle")
+    try:
+        spindle = spindles.get(active) or {}
+        if spindle.get("max_rpm"):
+            max_rpm = float(spindle["max_rpm"])
+        if spindle.get("power_kw_continuous"):
+            max_hp = round(float(spindle["power_kw_continuous"]) * KW_TO_HP, 2)
+    except (TypeError, ValueError, AttributeError):
+        max_rpm, max_hp = FALLBACK_MAX_RPM, FALLBACK_MAX_HP
+    profile["active_spindle"] = active
+    profile["max_rpm"] = max_rpm
+    profile["max_hp"] = max_hp
+    return profile
+
+
+def load_machine_profile(path=MACHINE_PROFILE_PATH):
+    """Load the machine profile and derive default max RPM / HP from the active spindle."""
+    profile = {}
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            profile = json.load(fh)
+    except (OSError, ValueError) as exc:
+        logging.getLogger(__name__).warning("Machine profile %s unavailable: %s", path, exc)
+        profile = {}
+    return _derive_limits(profile if isinstance(profile, dict) else {})
+
+
+MACHINE = load_machine_profile()
+
+# User overrides for machine limits live on the server so the web UI and the Fusion add-in
+# share them. Profile values are the defaults; data/machine_settings.json holds overrides.
+MACHINE_SETTINGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "machine_settings.json")
+MACHINE_LIMIT_BOUNDS = {"max_rpm": (100.0, 60000.0), "max_hp": (0.1, 100.0), "runout": (0.0, 0.002)}
+DEFAULT_RUNOUT_IN = 0.0002   # TIR at the cutting edge (good ER collet / milling chuck)
+
+
+def _validated_overrides(raw):
+    out = {}
+    for key, (lo, hi) in MACHINE_LIMIT_BOUNDS.items():
+        try:
+            val = float((raw or {}).get(key))
+        except (TypeError, ValueError, AttributeError):
+            continue
+        if lo <= val <= hi:
+            out[key] = val
+    return out
+
+
+def active_machine(settings=None):
+    """The selected machine profile (machines/ or data/machines/) with its active spindle's limits.
+
+    Falls back to the default machine, then to any profile, then to the built-in fallback limits."""
+    settings = settings or machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    profiles = machine_profiles.list_profiles()
+    mid = settings["active_machine"]
+    if mid not in profiles:
+        default = machine_profiles.DEFAULT_MACHINE_ID
+        mid = default if default in profiles else next(iter(profiles), None)
+    if mid is None:
+        prof = _derive_limits({})
+        prof.update(machine_id=None, builtin=False, modified=False)
+        return prof
+    entry = profiles[mid]
+    chosen = (settings["machines"].get(mid) or {}).get("active_spindle")
+    prof = _derive_limits(entry["profile"], chosen)
+    prof.update(machine_id=mid, builtin=entry["builtin"], modified=entry["modified"])
+    return prof
+
+
+def load_machine_overrides(path=None):
+    """Return validated user overrides {max_rpm?, max_hp?, runout?} for the active machine."""
+    settings = machine_profiles.read_settings(path or MACHINE_SETTINGS_PATH)
+    mid = active_machine(settings).get("machine_id")
+    return _validated_overrides(settings["machines"].get(mid) or {})
+
+
+def _spindle_summary(machine):
+    sp = (machine.get("spindle_options") or {}).get(machine.get("active_spindle")) or {}
+    curves = {}
+    for rating in machine_profiles.RATINGS:
+        pts = machine_profiles.rating_points(sp, rating)
+        if pts:
+            stored = ((sp.get("torque_curve") or {}).get("ratings") or {}).get(rating)
+            curves[rating] = {"points": pts,
+                              "derived": True if stored is None else bool(stored.get("derived", False)),
+                              "label": machine_profiles.RATING_LABELS[rating]}
+    return {
+        "key": machine.get("active_spindle"),
+        "label": sp.get("label") or machine.get("active_spindle"),
+        "base_rpm": sp.get("base_rpm"),
+        "power_kw_continuous": sp.get("power_kw_continuous"),
+        "power_kw_10min": sp.get("power_kw_10min"),
+        "power_kw_peak": sp.get("power_kw_peak"),
+        "max_torque_nm_momentary": sp.get("max_torque_nm_momentary"),
+        "torque_curves": curves,
+    }
+
+
+def machine_limits():
+    """Effective limits: user override if set, else the active spindle's profile value."""
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    machine = active_machine(settings)
+    ov = _validated_overrides(settings["machines"].get(machine.get("machine_id")) or {})
+    return {
+        "max_rpm": ov.get("max_rpm", machine["max_rpm"]),
+        "max_hp": ov.get("max_hp", machine["max_hp"]),
+        "runout": ov.get("runout", machine.get("runout", DEFAULT_RUNOUT_IN)),
+        "profile_max_rpm": machine["max_rpm"],
+        "profile_max_hp": machine["max_hp"],
+        "overridden": sorted(ov.keys()),
+        "machine_id": machine.get("machine_id"),
+        "machine": machine.get("machine"),
+        "spindle": _spindle_summary(machine),
+    }
+
+ALLOWED_ORIGINS = ("http://127.0.0.1:5000", "http://localhost:5000") + tuple(
+    o.strip().rstrip("/") for o in os.environ.get("TOOLWIZ_EXTRA_ORIGINS", "").split(",") if o.strip())
+CLIENT_HEADER = "X-ToolWiz-Client"
+
+
+@app.before_request
+def csrf_guard():
+    """Drive-by / CSRF protection for state-changing API calls.
+
+    Browsers cannot attach a custom header cross-origin without a CORS preflight
+    (which this server never grants), so requiring X-ToolWiz-Client blocks drive-by
+    form posts. A present Origin header must additionally be our own origin.
+    """
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path.startswith("/api/"):
+        if not (request.headers.get(CLIENT_HEADER) or "").strip():
+            return jsonify({"success": False, "error": f"Missing {CLIENT_HEADER} header"}), 403
+        origin = request.headers.get("Origin")
+        if origin is not None and origin.rstrip("/") not in ALLOWED_ORIGINS:
+            return jsonify({"success": False, "error": "Cross-origin request rejected"}), 403
+    return None
+
+
+def _json_body():
+    """Request JSON body as a dict ({} when missing/invalid)."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def _fusion_tool_arg(obj):
+    """Validated optional Fusion tool dict ({"type","unit","geometry"}) from a request object."""
+    ft = obj.get("fusion_tool") if isinstance(obj, dict) else None
+    if ft in (None, "", {}):
+        return None
+    if not isinstance(ft, dict) or not isinstance(ft.get("geometry"), dict):
+        raise ValueError("fusion_tool must be an object with a 'geometry' object")
+    return {k: ft[k] for k in ft}
+
+
+def _fusion_payload(tool_dict):
+    """The canonical {"type","unit","geometry"} slice of a raw Fusion tool dict."""
+    return {"type": tool_dict.get("type"), "unit": tool_dict.get("unit"),
+            "geometry": tool_dict.get("geometry") or {}}
+
+
+def _stickout_arg(data, fusion_tool, default=1.5):
+    """Request stickout: with a fusion_tool it only overrides Fusion's LB when explicitly sent."""
+    if fusion_tool is not None:
+        v = data.get("stickout")
+        return float(v) if v not in (None, "") else None
+    return float(data.get("stickout", default))
+
+
+def _runout_arg(data):
+    """Explicit runout in inches, preserving 0.0 when sent (falsy 'or' would overwrite 0.0 with default)."""
+    v = data.get("runout")
+    if v not in (None, ""):
+        return float(v)
+    return float(machine_limits()["runout"])
+
+
+def _api_error(exc):
+    """Map an exception from an API handler to a JSON error response."""
+    if isinstance(exc, HTTPException):
+        return jsonify({"success": False, "error": exc.description or exc.name}), (exc.code or 500)
+    if isinstance(exc, KeyError):
+        key = exc.args[0] if exc.args else ""
+        return jsonify({"success": False, "error": f"Missing required field: {key}"}), 400
+    if isinstance(exc, (ValueError, TypeError)):
+        return jsonify({"success": False, "error": f"Invalid input: {exc}"[:300]}), 400
+    app.logger.error("Unhandled error in %s %s", request.method, request.path, exc_info=exc)
+    return jsonify({"success": False, "error": "Internal server error"}), 500
+
+
+@app.errorhandler(413)
+def _too_large(_e):
+    return jsonify({"success": False, "error": "Request too large (limit 50 MB)"}), 413
 
 @app.route("/")
 def index():
@@ -26,16 +251,13 @@ def add_header(response):
     response.headers["Expires"] = "0"
     return response
 
-# Tool categories grouped by type, ordered HP -> Carbide -> HSS
+# Tool categories grouped by type, ordered HP -> Carbide -> HSS.
+# Geometry variants (bull nose, high feed) are NOT categories: they are Geometry selections.
 TOOL_GROUPS = [
     {
         "group": "End Mills",
         "tools": [
-            "HP Carbide High Feed Endmill",
-            "HP Carbide Bull Nose Endmill",
             "HP Carbide Endmill",
-            "Carbide High Feed Endmill",
-            "Carbide Bull Nose Endmill",
             "Carbide Endmill",
             "Indexable End Or Face Mill",
             "HP HSS Endmill",
@@ -100,343 +322,361 @@ def get_data():
             if t not in ordered_tools:
                 ordered_tools.append(t)
         
+    # Real DB category names (the Tool Material dropdown is derived from these).
+    tool_categories = sorted(
+        {e["tool"] for e in physics.sfm_data}
+        - {"TiAlN Carbide Endmill"}
+        - {e["tool"] for e in physics.sfm_data if str(e["tool"]).startswith("Turning:")}
+    )
+
     return jsonify({
         "families": families,
         "tools": ordered_tools,
         "tool_groups": TOOL_GROUPS,
-        "alloys": physics.specific_alloys
+        "tool_categories": tool_categories,
+        "alloys": physics.specific_alloys,
+        "machine": {**active_machine(), **machine_limits()}
     })
+
+
+# Which code this process loaded: the desktop launcher restarts a server whose stamp is older than
+# the files on disk (a stale server otherwise keeps answering on port 5000 after an update).
+from toolwiz_common.server_stamp import code_stamp as _code_stamp
+import datetime as _dt
+SERVER_INFO = {
+    "code_stamp": _code_stamp(os.path.dirname(os.path.abspath(__file__))),
+    "pid": os.getpid(),
+    "started": _dt.datetime.now().isoformat(timespec="seconds"),
+}
+
+
+@app.route("/api/server_info", methods=["GET"])
+def server_info():
+    return jsonify(SERVER_INFO)
+
+
+@app.route("/api/machine_limits", methods=["GET", "POST"])
+def api_machine_limits():
+    """GET effective limits; POST {maxRpm?, maxHp?, runout?} to override (null/"" clears back to the profile).
+    runout is in inches."""
+    if request.method == "GET":
+        return jsonify({"success": True, **machine_limits()})
+    body = _json_body()
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    mid = active_machine(settings).get("machine_id") or machine_profiles.DEFAULT_MACHINE_ID
+    entry = settings["machines"].setdefault(mid, {})
+    for field, key in (("maxRpm", "max_rpm"), ("maxHp", "max_hp"), ("runout", "runout")):
+        if field not in body:
+            continue
+        val = body[field]
+        if val is None or str(val).strip() == "":
+            entry.pop(key, None)
+            continue
+        try:
+            num = float(val)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "error": f"{field} must be a number"}), 400
+        lo, hi = MACHINE_LIMIT_BOUNDS[key]
+        if not lo <= num <= hi:
+            return jsonify({"success": False, "error": f"{field} must be between {lo:g} and {hi:g}"}), 400
+        entry[key] = num
+    machine_profiles.write_settings(MACHINE_SETTINGS_PATH, settings)
+    return jsonify({"success": True, **machine_limits()})
+
+
+def _machine_list(settings=None):
+    settings = settings or machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    current = active_machine(settings)
+    return {
+        "success": True,
+        "active_machine": current.get("machine_id"),
+        "active_spindle": current.get("active_spindle"),
+        "machines": [machine_profiles.summarize(mid, e) for mid, e in machine_profiles.list_profiles().items()],
+    }
+
+
+@app.route("/api/machines", methods=["GET", "POST"])
+def api_machines():
+    """GET the machine list and the selection. POST {id?, profile} saves a profile to data/machines/
+    (a new id when id is absent); editing a built-in machine saves the user's copy under the same id."""
+    if request.method == "GET":
+        return jsonify(_machine_list())
+    body = _json_body()
+    profile, errors = machine_profiles.validate_profile(body.get("profile"))
+    if errors:
+        return jsonify({"success": False, "error": "; ".join(errors[:6])}), 400
+    profiles = machine_profiles.list_profiles()
+    mid = body.get("id")
+    if mid in (None, ""):
+        mid = machine_profiles.unique_id(profile["machine"], profiles)
+    elif not machine_profiles.ID_RE.match(str(mid)):
+        return jsonify({"success": False, "error": "invalid machine id"}), 400
+    machine_profiles.save_user_profile(mid, profile)
+    return jsonify({**_machine_list(), "id": mid})
+
+
+@app.route("/api/machines/<mid>", methods=["GET", "DELETE"])
+def api_machine(mid):
+    """GET one full profile. DELETE removes the user's file; a built-in machine reverts to its shipped profile."""
+    profiles = machine_profiles.list_profiles()
+    if mid not in profiles:
+        return jsonify({"success": False, "error": "unknown machine"}), 404
+    if request.method == "GET":
+        e = profiles[mid]
+        return jsonify({"success": True, "id": mid, "profile": e["profile"], "builtin": e["builtin"],
+                        "modified": e["modified"]})
+    if not machine_profiles.delete_user_profile(mid):
+        return jsonify({"success": False, "error": "This is a built-in machine with no saved edits."}), 400
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    if mid not in machine_profiles.list_profiles():
+        settings["machines"].pop(mid, None)
+        if settings["active_machine"] == mid:
+            settings["active_machine"] = machine_profiles.DEFAULT_MACHINE_ID
+        machine_profiles.write_settings(MACHINE_SETTINGS_PATH, settings)
+    return jsonify(_machine_list())
+
+
+@app.route("/api/machines/select", methods=["POST"])
+def api_machine_select():
+    """POST {machine_id, spindle?}: make this machine (and spindle) active for the web UI and Fusion."""
+    body = _json_body()
+    mid = body.get("machine_id")
+    profiles = machine_profiles.list_profiles()
+    if mid not in profiles:
+        return jsonify({"success": False, "error": "unknown machine"}), 404
+    spindles = profiles[mid]["profile"].get("spindle_options") or {}
+    spindle = body.get("spindle")
+    if spindle not in (None, "") and spindle not in spindles:
+        return jsonify({"success": False, "error": "unknown spindle for this machine"}), 400
+    settings = machine_profiles.read_settings(MACHINE_SETTINGS_PATH)
+    settings["active_machine"] = mid
+    if spindle:
+        settings["machines"].setdefault(mid, {})["active_spindle"] = spindle
+    machine_profiles.write_settings(MACHINE_SETTINGS_PATH, settings)
+    return jsonify({**_machine_list(settings), "limits": machine_limits()})
+
+
+import v2_bridge
+
+
+def _request_model(data):
+    """Cutting model for this request: its own "model", else the saved setting, else TOOLWIZ_MODEL, else v1.
+    Flask's test client (Host "localhost" with no port) ignores the saved setting, so a model saved from
+    the web page can't change what the test suite checks."""
+    is_test_client = request.host == "localhost"
+    return v2_bridge.resolve_model(data.get("model"), use_saved=not is_test_client)[0]
+
+
+def _model_fields(res):
+    return {"model": res.model, "model_note": res.model_note, "v1": res.v1, "v2": res.v2}
+
+
+@app.route("/api/model_settings", methods=["GET", "POST"])
+def api_model_settings():
+    """GET the cutting model in effect and where it came from; POST {model: "v1"|"v2"} saves it for the
+    web page and the Fusion add-in."""
+    if request.method == "POST":
+        try:
+            v2_bridge.save_model(_json_body().get("model"))
+        except ValueError as ex:
+            return jsonify({"success": False, "error": str(ex)}), 400
+    model, source = v2_bridge.resolve_model(None)
+    return jsonify({"success": True, "model": model, "source": source, "models": list(v2_bridge.MODELS)})
+
 
 @app.route("/api/calculate", methods=["POST"])
 def calculate():
     """Calculate physics engine parameters from incoming JSON data"""
     try:
-        data = request.json
-        family = data.get("family", "")
-        tool = data.get("tool", "")
+        data = _json_body()
+        fusion_tool = _fusion_tool_arg(data)
         diameter = float(data.get("diameter", 0.5))
-        flutes = int(data.get("flutes", 4))
         cut_depth = float(data.get("cutDepth", 0.25))
         cut_width = float(data.get("cutWidth", 0.25))
-        stickout = float(data.get("stickout", 1.5))
-        is_carbide = bool(data.get("isCarbide", True))
-        geometry = data.get("geometry", "Square")
-        operation = data.get("operation", "Roughing")
-        coating = data.get("coating", "Uncoated")
-        
-        # Normalize legacy baked-in coating tool names so coatings are not double-multiplied
-        if "tialn" in tool.lower() or "altin" in tool.lower():
-            tool = "Carbide Endmill"
-            if coating == "Uncoated" or not coating:
-                coating = "AlTiN"
-        corner_radius = float(data.get("cornerRadius", 0.0))
-        cutter_thickness = float(data.get("cutterThickness", 0.125))
-        flute_length = float(data.get("fluteLength", 1.0))
-        neck_length = float(data.get("neckLength", 0.5))
-        taper_angle = float(data.get("taperAngle", 0.0))
-        helix_angle = float(data.get("helixAngle", 30.0))
-        aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0  # Scale 0-100 to 0.0-1.0
-        max_rpm = float(data.get("maxRpm", 16000))
-        max_hp = float(data.get("maxHp", 10.0))
-        runout = float(data.get("runout", 0.0002))
-        tap_type = data.get("tapType", "")
         is_metric = bool(data.get("isMetric", False))
+        shank_size = float(data.get("shankDiameter") or default_shank(diameter))
 
-        # Contextual resolution: extract tap style directly from geometry when tapping
-        geo_lower = geometry.lower()
-        if "form" in geo_lower or "roll" in geo_lower:
-            tap_type = "form"
-        elif "spiral_point" in geo_lower or "gun" in geo_lower:
-            tap_type = "spiral_point"
-        elif "straight" in geo_lower or "hand" in geo_lower:
-            tap_type = "straight_flute"
-        elif "spiral_flute" in geo_lower or ("spiral" in geo_lower and "point" not in geo_lower):
-            tap_type = "spiral_flute"
-        elif not tap_type:
-            tap_type = "form"
-        
-        # Identify saw/woodruff tools
-        is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
-        if is_saw_woodruff:
-            if "t-slot" not in geometry.lower() and "keyseat" not in geometry.lower() and "woodruff" not in geometry.lower():
-                geometry = "T-Slot"
-            if cutter_thickness > 0.0:
-                flute_length = cutter_thickness
+        req = CutRequest(
+            family=data.get("family", ""),
+            alloy=data.get("alloy", ""),
+            tool=data.get("tool", ""),
+            geometry=data.get("geometry", "Square"),
+            operation=data.get("operation", "Roughing"),
+            coating=data.get("coating", "Uncoated"),
+            diameter=diameter,
+            flutes=int(data.get("flutes", 4)),
+            flute_length=float(data.get("fluteLength", 1.0)),
+            shank_diameter=shank_size,
+            neck_diameter=float(data.get("neckDiameter", shank_size)),
+            neck_length=float(data.get("neckLength", 0.5)),
+            has_relieved_neck=bool(data.get("hasRelievedNeck", False)),
+            corner_radius=float(data.get("cornerRadius", 0.0)),
+            taper_angle=float(data.get("taperAngle", 0.0)),
+            helix_angle=float(data.get("helixAngle", 30.0)),
+            stickout=_stickout_arg(data, fusion_tool),
+            cutter_thickness=float(data.get("cutterThickness", 0.125)),
+            is_carbide=bool(data.get("isCarbide", True)),
+            aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,  # Scale 0-100 to 0.0-1.0
+            max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
+            max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
+            runout=_runout_arg(data),
+            cut_depth=cut_depth,
+            cut_width=cut_width,
+            tap_type=data.get("tapType", ""),
+            pitch=float(data.get("pitch", 0.05)),
+            is_metric=is_metric,
+            fusion_tool=fusion_tool,
+            model=_request_model(data),
+            machine_profile=active_machine(),
+            feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
+        )
+        res = run_cut(physics, req)
 
-        # Determine sizes
-        has_relieved_neck = bool(data.get("hasRelievedNeck", False))
-        is_form_stepped = is_saw_woodruff or any(s in geometry.lower() for s in ["lollipop", "dovetail"])
-        shank_size = float(data.get("shankDiameter", diameter))
-        if has_relieved_neck or is_form_stepped:
-            neck_diameter = float(data.get("neckDiameter", shank_size))
-        else:
-            neck_diameter = diameter
-        
-        # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(
-            family, tool, geometry=geometry, diameter=diameter,
-            tap_type=tap_type, is_carbide=is_carbide
-        )
-        base_ipt = physics.get_base_ipt(
-            family, tool, diameter, geometry=geometry, runout=runout,
-            cut_depth=cut_depth, cut_width=cut_width, flutes=flutes, is_carbide=is_carbide
-        )
-        
-        # Alloy-specific hardness adjustment via exponential BHN curve
-        alloy = data.get("alloy", "")
-        target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-        
-        is_hole_tool = any(d in tool.lower() for d in ["drill", "tap", "reamer", "bore", "annular"]) or any(d in geometry.lower() for d in ["drill", "parabolic", "tap", "form", "spiral_flute", "spiral_point", "straight_flute", "reamer"])
-        is_tapping = "tap" in tool.lower() or "tap" in operation.lower() or "form" in geo_lower or "spiral_flute" in geo_lower or "spiral_point" in geo_lower or "straight_flute" in geo_lower
-
-        # Chatter / Resonance penalty based on stickout length (8xD threshold for hole tools vs 3.5xD for milling; bypassed for saws/woodruff)
-        target_sfm, base_ipt = physics.apply_chatter_penalty(
-            target_sfm, base_ipt, diameter, stickout, is_drilling=is_hole_tool, is_saw_woodruff=is_saw_woodruff, flute_length=flute_length
-        )
-        
-        if not is_tapping:
-            target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-            # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
-            hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(cut_width, diameter, operation=operation)
-            target_sfm *= hem_sfm_mult
-        
-        # Apply Coating Modifier
-        target_sfm *= physics.get_coating_multiplier(coating, family)
-        
-        effective_diameter = physics.calc_effective_diameter(diameter, cut_depth, geometry, corner_radius)
-        
-        # 2. Physics Equations
-        ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
-        is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
-        rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
-        
-        if is_hole_tool:
-            cut_width = diameter
-            if any(m in operation.lower() for m in ["rough", "adaptive", "trochoidal", "slot", "face", "finish"]):
-                if "tap" in tool.lower():
-                    operation = "Rigid Tapping"
-                elif "ream" in tool.lower():
-                    operation = "Precision Reaming"
-                else:
-                    operation = "Drilling"
-
-        tap_drill_info = None
-        if "tap" in tool.lower() or "tap" in operation.lower():
-            pitch = float(data.get("pitch", 0.05))
-            feedrate = round(rpm) * pitch
-            adjusted_ipt = pitch
-            tap_drill_info = physics.calc_tap_drill(
-                major_dia=diameter,
-                pitch=pitch,
-                tap_type=tap_type,
-                material_family=family,
-                is_metric=is_metric
-            )
-        else:
-            adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, cut_depth, cut_width, diameter, effective_diameter, operation=operation, geometry=geometry, tool_type=tool, corner_radius=corner_radius)
-            feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
-            
-        mrr = physics.calc_mrr(cut_depth, cut_width, feedrate, geometry=geometry, diameter=diameter)
-        
-        actual_sfm = physics.calc_sfm(rpm, diameter)
-        contact_sfm = physics.calc_sfm(rpm, effective_diameter)
-        # 3. Ramping Params
-        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool)
-        
-        op_lower = str(operation).lower()
-        is_floor_finish = any(s in op_lower for s in ["floor", "facing", "flat", "horizontal", "face"])
-        is_finishing = "finish" in op_lower or is_floor_finish or cut_width <= (diameter * 0.15)
-
-        if is_hole_tool:
-            deflection = 0.0
-            springback = 0.0
-            total_error = 0.0
-            wear_comp = 0.0
-            radial_comp = 0.0
-            axial_comp = 0.0
-        else:
-            deflection = physics.tool_deflection(
-                diameter, shank_size, stickout, cut_depth, cut_width, feedrate, rpm, flutes, is_carbide, material_family=family,
-                helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-                operation=operation, geometry=geometry, corner_radius=corner_radius
-            )
-            springback, total_error, wear_comp = physics.calc_springback_and_deflection(
-                family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, deflection, alloy=alloy
-            )
-            radial_comp = wear_comp
-            axial_comp = -springback
-        
-        tips = physics.generate_advanced_strategies(
-            family, diameter, cut_depth, cut_width, feedrate, rpm, flutes, coating, deflection,
-            tool_type=tool, stickout=stickout, geometry=geometry, flute_length=flute_length,
-            operation=operation, tap_type=tap_type, neck_diameter=neck_diameter, alloy=alloy,
-            corner_radius=corner_radius
-        )
-        
-        if is_spindle_limited:
-            feed_val = feedrate if not is_metric else feedrate * 25.4
-            feed_unit = "IPM" if not is_metric else "mm/min"
-            tips.append({
-                "title": "Spindle RPM Limited",
-                "message": (
-                    f"Your machine's spindle speed cap ({max_rpm:,.0f} RPM) limits surface speed to {actual_sfm:.1f} SFM "
-                    f"(ideal: {target_sfm:.0f} SFM at {ideal_rpm:,.0f} RPM). Tool Wizard has synchronized your feedrate "
-                    f"to {feed_val:.1f} {feed_unit} to maintain optimal chipload ({adjusted_ipt:.5f}\" IPT) and prevent tool rubbing."
-                ),
-                "type": "info"
-            })
-        
-        rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
-            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-            corner_radius=corner_radius
-        )
-        
-        ipr = (feedrate / rpm) if rpm > 0.0 else (adjusted_ipt * flutes)
+        diameter = res.diameter
+        neck_diameter = res.neck_diameter
         max_radial_reach = (diameter - neck_diameter) / 2.0 if (neck_diameter > 0.0 and neck_diameter < diameter) else diameter
 
         resp = {
             "success": True,
-            "rpm": round(rpm),
-            "feedrate": round(feedrate, 2),
-            "mrr": round(mrr, 6),
-            "deflection": round(deflection, 6),
-            "springback": round(springback, 6),
-            "total_error": round(total_error, 6),
-            "wear_comp": round(wear_comp, 6),
-            "radial_comp": round(radial_comp, 6),
-            "axial_comp": round(axial_comp, 6),
-            "is_floor_finish": is_floor_finish,
-            "is_finishing": is_finishing,
-            "sfm": round(actual_sfm, 1),
-            "effective_diameter": round(effective_diameter, 5),
-            "contact_sfm": round(contact_sfm, 1),
-            "base_ipt": round(base_ipt, 6),
-            "adj_ipt": round(adjusted_ipt, 6),
-            "ipr": round(ipr, 6),
-            "ramp_angle": round(ramp_angle, 1),
-            "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
-            "rec_doc": round(rec_doc, 4),
-            "rec_woc": round(rec_woc, 4),
-            "rec_limit": round(rec_limit, 5),
+            "rpm": round(res.rpm),
+            "feedrate": round(res.feed_ipm, 2),
+            "mrr": round(res.mrr, 6),
+            "deflection": round(res.deflection, 7),
+            "springback": round(res.springback, 6),
+            "total_error": round(res.total_error, 6),
+            "wear_comp": round(res.wear_comp, 6),
+            "radial_comp": round(res.wear_comp, 6),
+            "axial_comp": round(-res.springback, 6),
+            "is_floor_finish": res.is_floor_finish,
+            "is_finishing": res.is_finishing,
+            "sfm": round(res.sfm, 1),
+            "effective_diameter": round(res.effective_diameter, 5),
+            "contact_sfm": round(res.contact_sfm, 1),
+            "base_ipt": round(res.base_ipt, 6),
+            "adj_ipt": round(res.adj_ipt, 6),
+            "ipr": round(res.ipr, 6),
+            "ramp_angle": round(res.ramp_angle, 1),
+            "ramp_feed": round(res.ramp_feed, 2),
+            "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
+            "rec_doc": round(res.rec_doc, 4),
+            "rec_woc": round(res.rec_woc, 4),
+            "rec_limit": round(res.rec_limit, 7),
             "max_radial_reach": round(max_radial_reach, 5),
             "neck_diameter": round(neck_diameter, 5),
-            "shank_diameter": round(shank_size, 5),
-            "flute_length": round(flute_length, 5),
-            "is_spindle_limited": is_spindle_limited,
-            "ideal_rpm": round(ideal_rpm),
-            "target_sfm": round(target_sfm, 1),
-            "tips": tips
+            "shank_diameter": round(res.shank_diameter, 5),
+            "flute_length": round(res.flute_length, 5),
+            "is_spindle_limited": res.is_spindle_limited,
+            "ideal_rpm": round(res.ideal_rpm),
+            "target_sfm": round(res.target_sfm, 1),
+            "feasible": res.feasible,
+            "limited_by": res.limited_by,
+            "tips": res.tips,
+            "provenance": res.provenance,
+            "profile": res.profile,
+            **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
+            **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            **_model_fields(res),
         }
-        if tap_drill_info:
-            resp["tap_drill"] = tap_drill_info
-            resp["tap_type"] = tap_type
+        if res.tap_drill:
+            resp["tap_drill"] = res.tap_drill
+            resp["tap_type"] = res.tap_type
+        from oversight_engine import evaluate_holistic_oversight
+        resp["oversight"] = evaluate_holistic_oversight(data, resp, feature_geometry=res.feature_geometry).to_dict()
         return jsonify(resp)
-        
+
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
+
 
 @app.route("/api/calculate_for_fusion", methods=["POST"])
 def calculate_for_fusion():
     """Endpoint specifically designed for the Fusion 360 Add-in"""
     try:
-        data = request.json
-        family = data.get("family", "")
-        tool = data.get("tool", "Carbide Endmill") # default fallback
-        operation = data.get("operation", "Roughing")
-        aggressiveness = float(data.get("aggressiveness", 50.0)) / 100.0
-        max_rpm = float(data.get("maxRpm", 16000))
-        max_hp = float(data.get("maxHp", 10.0))
-        runout = float(data.get("runout", 0.0002))
-        
-        # Tool Geometry from Fusion JSON payload
+        data = _json_body()
+        fusion_tool = _fusion_tool_arg(data)
         diameter = float(data.get("diameter", 0.25))
-        flutes = int(data.get("flutes", 4))
-        coating = data.get("coating", "Uncoated")
-        geometry = data.get("geometry", "Square")
-        corner_radius = float(data.get("cornerRadius", 0.0))
-        cutter_thickness = float(data.get("cutterThickness", 0.125))
-        flute_length = float(data.get("fluteLength", 1.0))
-        neck_length = float(data.get("neckLength", 0.5))
-        shank_size = float(data.get("shankDiameter", diameter))
-        taper_angle = float(data.get("taperAngle", 0.0))
-        helix_angle = float(data.get("helixAngle", 30.0))
-        stickout = float(data.get("stickout", 1.5))
-        is_carbide = True  # Assuming Fusion tool implies carbide if not specified
-        
-        is_saw_woodruff = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool.lower() for s in ["woodruff", "saw"])
-        if is_saw_woodruff and cutter_thickness > 0.0:
-            flute_length = cutter_thickness
+        shank_size = float(data.get("shankDiameter") or default_shank(diameter))
+        pitch = data.get("pitch")
 
-        has_relieved_neck = bool(data.get("hasRelievedNeck", False))
-        is_form_stepped = is_saw_woodruff or any(s in geometry.lower() for s in ["lollipop", "dovetail"])
-        if has_relieved_neck or is_form_stepped:
-            neck_diameter = float(data.get("neckDiameter", shank_size))
-        else:
-            neck_diameter = diameter
+        # cut_depth / cut_width are left unset: the pipeline uses the recommended DOC/WOC
+        req = CutRequest(
+            family=data.get("family", ""),
+            alloy=data.get("alloy", ""),
+            tool=data.get("tool", "Carbide Endmill"),  # default fallback
+            geometry=data.get("geometry", "Square"),
+            operation=data.get("operation", "Roughing"),
+            coating=data.get("coating", "Uncoated"),
+            diameter=diameter,
+            flutes=int(data.get("flutes", 4)),
+            flute_length=float(data.get("fluteLength", 1.0)),
+            shank_diameter=shank_size,
+            neck_diameter=float(data.get("neckDiameter", shank_size)),
+            neck_length=float(data.get("neckLength", 0.5)),
+            has_relieved_neck=bool(data.get("hasRelievedNeck", False)),
+            corner_radius=float(data.get("cornerRadius", 0.0)),
+            taper_angle=float(data.get("taperAngle", 0.0)),
+            helix_angle=float(data.get("helixAngle", 30.0)),
+            stickout=_stickout_arg(data, fusion_tool),
+            cutter_thickness=float(data.get("cutterThickness", 0.125)),
+            is_carbide=bool(data.get("isCarbide", True)),  # Fusion tool implies carbide if not specified
+            aggressiveness=float(data.get("aggressiveness", 50.0)) / 100.0,
+            max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
+            max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
+            runout=_runout_arg(data),
+            cut_depth=None,
+            cut_width=None,
+            tap_type=data.get("tapType", ""),
+            pitch=float(pitch) if pitch is not None else None,
+            is_metric=bool(data.get("isMetric", False)),
+            fusion_tool=fusion_tool,
+            model=_request_model(data),
+            machine_profile=active_machine(),
+            feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
+        )
+        res = run_cut(physics, req)
 
-        # 1. Lookup Base Parameters
-        target_sfm = physics.get_base_sfm(family, tool, geometry=geometry, diameter=diameter, is_carbide=is_carbide)
-        base_ipt = physics.get_base_ipt(
-            family, tool, diameter, geometry=geometry, runout=runout,
-            cut_depth=cutter_thickness, cut_width=diameter * 0.25, flutes=flutes, is_carbide=is_carbide
-        )
-        
-        # Alloy-specific hardness adjustment via exponential BHN curve
-        alloy = data.get("alloy", "")
-        target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-            
-        target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-        target_sfm *= physics.get_coating_multiplier(coating, family)
-        
-        # 2. Physics Equations
-        rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-        # Using recommended DOC and WOC for the final feedrate
-        rec_doc, rec_woc, rec_limit = physics.recommend_cut_parameters(
-            diameter, shank_size, stickout, flutes, rpm, base_ipt, is_carbide, operation, aggressiveness, geometry, cutter_thickness, max_hp, material_family=family,
-            helix_angle=helix_angle, neck_length=neck_length, taper_angle=taper_angle, flute_length=flute_length, neck_diameter=neck_diameter,
-            corner_radius=corner_radius
-        )
-        
-        # High Efficiency Milling (HEM) low-immersion thermal cooling speed boost
-        hem_sfm_mult = physics.calc_hem_thermal_sfm_multiplier(rec_woc, diameter, operation=operation)
-        target_sfm *= hem_sfm_mult
-        rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-        
-        effective_diameter = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_radius)
-        ideal_rpm = (target_sfm * 12.0) / (math.pi * effective_diameter) if effective_diameter > 0 else 0.0
-        is_spindle_limited = bool(max_rpm > 0 and ideal_rpm > (max_rpm * 1.005))
-        rpm = physics.calc_rpm(target_sfm, effective_diameter, max_rpm=max_rpm)
-        
-        adjusted_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, effective_diameter, operation=operation, geometry=geometry, corner_radius=corner_radius)
-        feedrate = physics.calc_feedrate(rpm, flutes, adjusted_ipt)
-        actual_sfm = physics.calc_sfm(rpm, diameter)
-        contact_sfm = physics.calc_sfm(rpm, effective_diameter)
-        
-        # 3. Ramping Params
-        tool_val = data.get("tool", "")
-        ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_val)
-        
         return jsonify({
             "success": True,
-            "name": f"ToolWiz: {family} - {operation}",
-            "rpm": round(rpm),
-            "feed": round(feedrate, 2),
-            "sfm": round(actual_sfm, 1),
-            "effective_diameter": round(effective_diameter, 5),
-            "contact_sfm": round(contact_sfm, 1),
-            "ipt": round(adjusted_ipt, 6),
-            "doc": round(rec_doc, 3),
-            "woc": round(rec_woc, 3),
-            "ramp_feed": round(ramp_feed, 2),
-            "plunge_feed": max(round(plunge_feed, 4), 0.0001) if feedrate > 0.0 else 0.0,
-            "is_spindle_limited": is_spindle_limited,
-            "ideal_rpm": round(ideal_rpm)
+            "name": f"ToolWiz: {req.family} - {req.operation}",
+            "rpm": round(res.rpm),
+            "feed": round(res.feed_ipm, 2),
+            "sfm": round(res.sfm, 1),
+            "effective_diameter": round(res.effective_diameter, 5),
+            "contact_sfm": round(res.contact_sfm, 1),
+            "ipt": round(res.adj_ipt, 6),
+            "doc": round(res.rec_doc, 5),
+            "woc": round(res.rec_woc, 5),
+            "ramp_feed": round(res.ramp_feed, 2),
+            "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
+            "ramp_angle": round(res.ramp_angle, 2),
+            # v2 ramp model only (None under v1): tool-centre helix diameter, its minimum, and C7's slot-engagement
+            # speed (information only; ramp_feed is at the cutting rpm, which Fusion uses for the ramp)
+            "ramp_diameter_in": round(res.ramp_diameter, 5) if res.ramp_diameter is not None else None,
+            "ramp_min_diameter_in": round(res.ramp_min_diameter, 5) if res.ramp_min_diameter is not None else None,
+            "ramp_rpm": round(res.ramp_rpm) if res.ramp_rpm is not None else None,
+            "is_spindle_limited": res.is_spindle_limited,
+            "ideal_rpm": round(res.ideal_rpm),
+            "feasible": res.feasible,
+            "limited_by": res.limited_by,
+            "provenance": res.provenance,
+            "profile": res.profile,
+            "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
+            **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
+            **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
+            "oversight": __import__("oversight_engine").evaluate_holistic_oversight(
+                data,
+                {"diameter": res.diameter, "flute_length": res.flute_length, "shank_diameter": res.shank_diameter,
+                 "doc": res.rec_doc, "woc": res.rec_woc, "rpm": res.rpm, "feed_ipm": res.feed_ipm,
+                 "adj_ipt": res.adj_ipt, "deflection": res.deflection, "rec_limit": res.rec_limit,
+                 "feasible": res.feasible, "profile": res.profile, "v1": res.v1, "v2": res.v2},
+                feature_geometry=res.feature_geometry
+            ).to_dict(),
+            **_model_fields(res),
         })
-        
+
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
+
 
 @app.route("/api/threads/standards", methods=["GET"])
 def get_thread_standards():
@@ -445,13 +685,13 @@ def get_thread_standards():
         data = physics.get_thread_standards()
         return jsonify({"success": True, **data})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
 
 @app.route("/api/threads/calculate", methods=["POST"])
 def calculate_thread():
     """Calculate thread specifications, G-Wizard tapping drill table, and blind hole clearance."""
     try:
-        data = request.json or {}
+        data = _json_body()
         family = data.get("family", "ISO Coarse")
         size = data.get("size", "M1.6-0.35")
         th_class = data.get("class", "6H")
@@ -535,14 +775,22 @@ def calculate_thread():
             "minor_min_mm": round(min_minor_in * 25.4, 3),
         }
 
+        # Report when the database only had a different class than requested (additive fields).
+        class_used = str(entry.get("class", "")) if entry else th_class
+        class_fallback = bool(entry) and bool(class_used) and class_used.upper() != str(th_class).upper()
+        thread_spec["class_requested"] = th_class
+        thread_spec["class_used"] = class_used or th_class
+
         return jsonify({
             "success": True,
             "thread": thread_spec,
+            "class_used": class_used or th_class,
+            "class_fallback": class_fallback,
             "blind_hole": blind_hole,
             "drills": drills
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return _api_error(e)
 
 import zipfile
 import io
@@ -559,6 +807,53 @@ from tool_merger import (
 
 bm = BackupManager()
 
+_HSS_RE = re.compile(r"\b(hss|hss-e|hsse|hss-co|cobalt|high[\s-]?speed(?:\s+steel)?|powder\s+metal|pm)\b", re.I)
+
+def tool_is_carbide(t_dict):
+    """Carbide unless the tool's material/grade/description clearly says HSS/cobalt/HSS-E/PM."""
+    geo = t_dict.get("geometry") or {}
+    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("BMC"), geo.get("BMC"),
+             t_dict.get("grade"), geo.get("grade"),
+             (t_dict.get("postProcess") or {}).get("material"), t_dict.get("description")]
+    text = " ".join(json.dumps(p) if isinstance(p, (dict, list)) else str(p) for p in parts if p)
+    if "carbide" in text.lower():
+        return True
+    return not _HSS_RE.search(text)
+
+
+_COBALT_RE = re.compile(r"\b(cobalt|hss-e|hsse|hss-co|m35|m42)\b", re.I)
+
+
+def _batch_db_tool_type(kind, t_dict, is_carbide):
+    """Resolve the G-Wizard DB tool category for batch preset generation (WP-1d / C4)."""
+    geo = t_dict.get("geometry") or {}
+    parts = [t_dict.get("material"), geo.get("material"), t_dict.get("BMC"), geo.get("BMC"),
+             t_dict.get("grade"), geo.get("grade"),
+             (t_dict.get("postProcess") or {}).get("material"), t_dict.get("description")]
+    text = " ".join(json.dumps(p) if isinstance(p, (dict, list)) else str(p) for p in parts if p)
+    text_low = text.lower()
+    is_cobalt = bool(_COBALT_RE.search(text))
+
+    if kind is ToolKind.TAP:
+        return "Tapping"
+    if kind is ToolKind.REAMER:
+        return "Carbide Reamer" if is_carbide else "HSS Reamer"
+    if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL):
+        return "HP Carbide Twist Drill" if is_carbide else "HSS Spot Drill"
+    if is_hole_kind(kind):
+        if is_carbide:
+            return "HP Carbide Twist Drill"
+        if is_cobalt:
+            return "Cobalt Twist Drill"
+        return "HSS Twist Drill"
+    if kind is ToolKind.SLOT and any(k in text_low for k in ("saw", "slitting", "woodruff", "keyseat")):
+        return "Carbide Saws & Woodruff Cutters" if is_carbide else "HSS Saws & Woodruff Cutters"
+    if kind is ToolKind.THREAD_MILL:
+        return "Carbide Thread Mill"
+    if kind is ToolKind.FACE and "indexable" in text_low:
+        return "Indexable End Or Face Mill"
+    return "Carbide Endmill" if is_carbide else "HSS Endmill"
+
 def parse_dim(val, tool_unit=""):
     """Helper to parse tool dimensions from JSON to inches"""
     return parse_dimension_in(val, tool_unit)
@@ -567,12 +862,12 @@ def parse_dim(val, tool_unit=""):
 def twin_export_receive():
     """Receives exported tool library (or multiple libraries) JSON from Fusion 360 Add-in"""
     try:
-        data = request.json
+        data = _json_body()
         if not data:
             return jsonify({"success": False, "error": "No JSON payload received"}), 400
             
         libraries_list = data.get("libraries")
-        auto_dedup = bool(data.get("deduplicate", True))
+        auto_dedup = bool(data.get("deduplicate", False))
         
         if libraries_list and isinstance(libraries_list, list):
             lib_name = data.get("master_library_name", "Master_Shop_Tool_Crib")
@@ -603,7 +898,7 @@ def twin_export_receive():
                 "backup": backup_info
             })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/deduplicate", methods=["POST"])
 def twin_deduplicate():
@@ -630,7 +925,7 @@ def twin_deduplicate():
             "backup": backup_info
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/load", methods=["GET"])
 def twin_load():
@@ -657,18 +952,25 @@ def twin_load():
         for idx, t in enumerate(raw_tools):
             t_dict = json.loads(t) if isinstance(t, str) else t
             geo = t_dict.get("geometry", {})
-            tool_unit = t_dict.get("unit", geo.get("unit", ""))
-            
-            dia_in = parse_dim(geo.get("DC", 6.35), tool_unit)
-            flutes = int(geo.get("NOF", 4))
-            flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            shank_dia = parse_dim(geo.get("SF", dia_in), tool_unit)
-            corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
-            stickout = parse_dim(t_dict.get("stickout", flute_len * 1.5), tool_unit)
-            
+            kind = classify(t_dict.get("type"))
+            geo_error = None
+            try:
+                unit_label = tool_unit_of(t_dict)
+            except (UnitError, ValueError, TypeError):
+                unit_label = None
+            try:
+                g = ToolGeometry.from_fusion(t_dict, stickout_override=t_dict.get("stickout"))
+                dia_in, flutes, flute_len = g.diameter, g.flutes, g.flute_length
+                shank_dia, corner_rad = g.shank_diameter, g.corner_radius
+                stickout, stickout_source = g.stickout, g.stickout_source
+            except (UnitError, ValueError, TypeError) as ge:
+                geo_error = str(ge)
+                dia_in = flutes = flute_len = shank_dia = corner_rad = stickout = 0
+                stickout_source = "unavailable"
+
             t_num = t_dict.get("postProcess", {}).get("number", t_dict.get("post-process", {}).get("number", 0))
             desc = t_dict.get("description", f"{dia_in:.3f}in Tool")
-            t_type = geo.get("type", t_dict.get("type", "end mill"))
+            t_type = t_dict.get("type") or geo.get("type") or "end mill"
             custom_aggr = t_dict.get("custom_aggressiveness", None)
             
             presets = t_dict.get("start-values", {}).get("presets", [])
@@ -689,11 +991,17 @@ def twin_load():
                 preset_list.append({
                     "name": p_name,
                     "guid": p_guid,
+                    "operation_type": p.get("operation_type", ""),
+                    "is_toolwiz": bool(p.get("operation_type")) or " - " in p_name,
                     "material_query": p_mat,
-                    "rpm": p.get("n", 0),
-                    "feed": p.get("v_f", 0),
-                    "sfm": p.get("v_c", 0),
-                    "ipt": p.get("f_z", 0),
+                    "rpm": p.get("n", p.get("rpm", 0)),
+                    "n": p.get("n", p.get("rpm", 0)),
+                    "feed": p.get("v_f", p.get("feed", 0)),
+                    "v_f": p.get("v_f", p.get("feed", 0)),
+                    "sfm": p.get("v_c", p.get("sfm", 0)),
+                    "v_c": p.get("v_c", p.get("sfm", 0)),
+                    "ipt": p.get("f_z", p.get("ipt", 0)),
+                    "f_z": p.get("f_z", p.get("ipt", 0)),
                     "stepdown": p.get("stepdown", 0),
                     "stepover": p.get("stepover", 0),
                     "ramp_feed": p.get("v_f_ramp", 0),
@@ -717,6 +1025,11 @@ def twin_load():
                 "shank_diameter_in": round(shank_dia, 4),
                 "corner_radius_in": round(corner_rad, 4),
                 "stickout_in": round(stickout, 4),
+                "stickout_source": stickout_source,
+                "tool_kind": kind.value,
+                "unit": unit_label,
+                "is_metric": unit_label == "millimeters",
+                "geometry_error": geo_error,
                 "custom_aggressiveness": custom_aggr,
                 "signature": signature,
                 "presets": preset_list,
@@ -735,14 +1048,28 @@ def twin_load():
             "backups": backups
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
+
+@app.route("/api/twin/tool/<int:index>", methods=["GET"])
+def twin_tool(index):
+    """Raw Fusion tool dict at `index` of the working library (404 when out of range)."""
+    try:
+        data = bm.load_working_library()
+        raw_tools = (data or {}).get("tools", [])
+        if index < 0 or index >= len(raw_tools):
+            return jsonify({"success": False, "error": f"Tool index {index} out of range"}), 404
+        t = raw_tools[index]
+        return jsonify({"success": True, "tool": json.loads(t) if isinstance(t, str) else t})
+    except Exception as e:
+        return _api_error(e)
+
 
 @app.route("/api/twin/backups", methods=["GET", "POST"])
 def twin_backups():
     """List or restore backups"""
     try:
         if request.method == "POST":
-            filename = request.json.get("filename")
+            filename = _json_body().get("filename")
             if not filename:
                 return jsonify({"success": False, "error": "Filename required"}), 400
             restored = bm.restore_backup(filename)
@@ -750,13 +1077,13 @@ def twin_backups():
         else:
             return jsonify({"backups": bm.list_backups()})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/update_tool", methods=["POST"])
 def twin_update_tool():
     """Updates a single tool's metadata, custom aggressiveness override, or dimensions"""
     try:
-        payload = request.json
+        payload = _json_body()
         tool_idx = payload.get("tool_index")
         if tool_idx is None:
             return jsonify({"success": False, "error": "tool_index is required."}), 400
@@ -800,13 +1127,13 @@ def twin_update_tool():
 
         return jsonify({"success": True, "tool_index": tool_idx})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/delete_tool", methods=["POST"])
 def twin_delete_tool():
     """Safely deletes a tool from the working library and creates a backup snapshot"""
     try:
-        payload = request.json
+        payload = _json_body()
         tool_idx = payload.get("tool_index")
         if tool_idx is None:
             return jsonify({"success": False, "error": "tool_index is required."}), 400
@@ -829,12 +1156,12 @@ def twin_delete_tool():
             "backup": backup_info
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/delete_preset", methods=["POST"])
 def twin_delete_preset():
     try:
-        payload = request.json
+        payload = _json_body()
         tool_idx = payload.get("tool_index")
         preset_guid = payload.get("preset_guid")
         
@@ -869,7 +1196,7 @@ def twin_delete_preset():
         return jsonify({"success": True})
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/batch_generate", methods=["POST"])
 def twin_batch_generate():
@@ -879,7 +1206,7 @@ def twin_batch_generate():
     and automatic springback & wear compensation calculations.
     """
     try:
-        req_data = request.json
+        req_data = _json_body()
         tool_indices = req_data.get("tool_indices", []) # list of integer indices or "all"
         family = req_data.get("family", "Steel - Tool (H13)")
         alloy = req_data.get("alloy", "CPM MagnaCut (Hardened ~62 HRC)")
@@ -893,9 +1220,9 @@ def twin_batch_generate():
         clean_all_non_toolwiz = bool(req_data.get("clean_all_non_toolwiz", False))
         
         coating = req_data.get("coating", "AlTiN")
-        max_rpm = float(req_data.get("maxRpm", 16000))
-        max_hp = float(req_data.get("maxHp", 10.0))
-        runout = float(req_data.get("runout", 0.0002))
+        max_rpm = float(req_data.get("maxRpm") or machine_limits()["max_rpm"])
+        max_hp = float(req_data.get("maxHp") or machine_limits()["max_hp"])
+        runout = _runout_arg(req_data)
         
         library_data = bm.load_working_library()
         if not library_data or "tools" not in library_data:
@@ -909,6 +1236,7 @@ def twin_batch_generate():
         
         updated_tools_count = 0
         total_presets_injected = 0
+        skipped = []
         
         for idx in indices_to_update:
             if idx < 0 or idx >= len(tools):
@@ -917,36 +1245,42 @@ def twin_batch_generate():
             raw_t = tools[idx]
             t_dict = json.loads(raw_t) if isinstance(raw_t, str) else dict(raw_t)
             
-            if t_dict.get("type") == "holder":
+            tool_type = str(t_dict.get("type") or "").lower()
+            geo = t_dict.get("geometry", {}) or {}
+            kind = classify(t_dict.get("type"))
+            tool_number = t_dict.get("postProcess", {}).get("number", t_dict.get("post-process", {}).get("number"))
+
+            def _skip(reason, idx=idx, t_dict=t_dict, tool_number=tool_number):
+                skipped.append({
+                    "tool_index": idx,
+                    "number": tool_number,
+                    "description": t_dict.get("description", ""),
+                    "type": t_dict.get("type", ""),
+                    "reason": reason,
+                })
+
+            if kind in (ToolKind.HOLDER, ToolKind.PROBE):
+                _skip(f"{kind.value} is not a cutting tool")
                 continue
-                
-            tool_type = t_dict.get("type", "end mill").lower()
-            valid_milling_types = [
-                "end mill", "flat end mill", "ball end mill", "bull nose end mill", 
-                "chamfer mill", "face mill", "slot mill", "tapered mill", 
-                "dovetail mill", "lollipop mill", "radius mill", "form mill",
-                "engraving chamfer mill", "thread mill"
-            ]
-            valid_drilling_types = [
-                "drill", "spot drill", "center drill", "tap", "tap right hand", "tap left hand", "reamer", "bore", "counterbore", "countersink"
-            ]
-            
-            is_milling = any(m in tool_type for m in ["mill", "end mill", "face", "slot", "fly", "router"])
-            is_drilling = any(d in tool_type for d in ["drill", "tap", "reamer", "bore", "sink"])
-            
-            if not is_milling and not is_drilling:
-                is_milling = True  # Default to milling physics
-                
-            geo = t_dict.get("geometry", {})
-            tool_unit = t_dict.get("unit", geo.get("unit", ""))
-            
-            diameter = parse_dim(geo.get("DC", 6.35), tool_unit)
-            flutes = int(geo.get("NOF", 4)) if is_milling else int(geo.get("NOF", 2))
-            flute_len = parse_dim(geo.get("LCF", 25.4), tool_unit)
-            shank_dia = parse_dim(geo.get("SF", diameter), tool_unit)
-            corner_rad = parse_dim(geo.get("RE", 0.0), tool_unit)
-            stickout = parse_dim(t_dict.get("stickout", flute_len * 1.5), tool_unit)
-            is_carbide = True
+            if kind is ToolKind.UNKNOWN:
+                _skip(f"unrecognized tool type {t_dict.get('type')!r}")
+                continue
+            try:
+                g = ToolGeometry.from_fusion(t_dict, stickout_override=t_dict.get("stickout"))
+                t_unit = tool_unit_of(t_dict)
+            except (UnitError, ValueError, TypeError) as ge:
+                _skip(f"invalid geometry: {ge}")
+                continue
+            if is_tap_kind(kind) and g.thread_pitch is None:
+                _skip("tap has no thread pitch (TP); refusing to assume one")
+                continue
+
+            is_drilling = is_hole_kind(kind)
+            is_tap = is_tap_kind(kind)
+            is_milling = is_milling_kind(kind)
+            diameter, flutes, flute_len = g.diameter, g.flutes, g.flute_length
+            shank_dia, corner_rad, stickout = g.shank_diameter, g.corner_radius, g.stickout
+            is_carbide = tool_is_carbide(t_dict)
 
             # Determine tool aggressiveness:
             # 1. Check if an explicit override was passed in tool_aggr_map
@@ -958,28 +1292,28 @@ def twin_batch_generate():
                 else:
                     t_dict.pop("custom_aggressiveness", None)
 
-            # 2. Resolve effective aggressiveness
+            # 2. Resolve effective aggressiveness (0..100 percent or 0..1 float; integer 1 is 1%, float 1.0 is 100%)
             if use_tool_overrides and t_dict.get("custom_aggressiveness") is not None:
-                effective_aggr_val = float(t_dict["custom_aggressiveness"])
+                raw_aggr = t_dict["custom_aggressiveness"]
             else:
-                effective_aggr_val = float(base_aggressiveness)
-
-            aggressiveness = effective_aggr_val / 100.0 if effective_aggr_val > 1.0 else effective_aggr_val
+                raw_aggr = req_data.get("aggressiveness", req_data.get("base_aggressiveness", 50.0))
+            effective_aggr_val = float(raw_aggr)
+            aggressiveness = effective_aggr_val / 100.0 if (effective_aggr_val > 1.0 or raw_aggr == 1) else effective_aggr_val
 
             # Geometry classification
-            if "slot" in tool_type or "woodruff" in tool_type or "keyseat" in tool_type:
+            if kind is ToolKind.SLOT:
                 geometry = "T-Slot"
-            elif "dovetail" in tool_type:
+            elif kind is ToolKind.DOVETAIL:
                 geometry = "Dovetail"
-            elif "lollipop" in tool_type:
+            elif kind is ToolKind.LOLLIPOP:
                 geometry = "Lollipop"
-            elif "thread" in tool_type:
+            elif kind is ToolKind.THREAD_MILL:
                 geometry = "Thread Mill"
-            elif "chamfer" in tool_type or "engraving" in tool_type:
+            elif kind is ToolKind.CHAMFER:
                 geometry = "Chamfer"
-            elif "ball" in tool_type or "radius" in tool_type:
+            elif kind in (ToolKind.BALL, ToolKind.RADIUS):
                 geometry = "Ball Nose"
-            elif "bull" in tool_type:
+            elif kind is ToolKind.BULL:
                 geometry = "Bull Nose"
             else:
                 geometry = "Square" if corner_rad == 0 else "Radiused"
@@ -997,31 +1331,32 @@ def twin_batch_generate():
             presets_list = t_dict["start-values"]["presets"]
 
             if is_drilling:
-                is_tap = "tap" in tool_type
-                db_tool_type = "Tapping" if is_tap else ("HP Carbide Twist Drill" if is_carbide else "Carbide Twist Drill")
+                db_tool_type = _batch_db_tool_type(kind, t_dict, is_carbide)
+                hole_op = ("Tapping" if is_tap else ("Precision Reaming" if kind is ToolKind.REAMER else "Drilling"))
+                hole_geo = ("Reamer" if kind is ToolKind.REAMER
+                            else ("Spot Drill" if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL) else "Square"))
                 
-                target_sfm = physics.get_base_sfm(family, db_tool_type, diameter=diameter)
-                adj_ipt = physics.get_base_ipt(family, db_tool_type, diameter, runout=runout)
+                res = run_cut(physics, CutRequest(
+                    family=family, alloy=alloy, tool=db_tool_type, geometry=hole_geo,
+                    operation=hole_op, coating=coating,
+                    diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
+                    corner_radius=corner_rad, stickout=stickout,
+                    is_carbide=is_carbide,
+                    aggressiveness=aggressiveness, max_rpm=max_rpm, max_hp=max_hp, runout=runout,
+                    # Form-tap speed multipliers only when the tool says it's a form/roll tap.
+                    tap_type=("form" if any(k in str(t_dict.get("description", "")).lower() for k in ("form", "roll"))
+                              else "spiral_flute"),
+                    pitch=g.thread_pitch if is_tap else None,
+                    apply_coating=False,  # the batch-wide coating choice isn't known to match hole tools
+                    fusion_tool=_fusion_payload(t_dict),
+                    model=_request_model(req_data),
+                    machine_profile=active_machine(),
+                ))
+                rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
+                op_suffix = "Tapping" if is_tap else "Drilling"
+                final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - {op_suffix}"
                 
-                target_sfm, adj_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, adj_ipt)
-                target_sfm, adj_ipt = physics.apply_chatter_penalty(target_sfm, adj_ipt, diameter, stickout, is_drilling=True)
-                
-                if not is_tap:
-                    target_sfm, adj_ipt = physics.apply_aggressiveness(target_sfm, adj_ipt, aggressiveness)
-                
-                rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-                
-                if is_tap:
-                    tp = parse_dim(geo.get("TP", 1.0), tool_unit)
-                    feedrate = rpm * tp
-                    adj_ipt = tp
-                else:
-                    feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
-                    
-                actual_sfm = physics.calc_sfm(rpm, diameter)
-                final_preset_name = custom_preset_name if custom_preset_name else f"{material_label} - Drilling"
-                
-                if tool_unit == "inches":
+                if t_unit == "inches":
                     p_n = float(rpm)
                     p_vc = float(actual_sfm)
                     p_fz = float(adj_ipt)
@@ -1065,38 +1400,36 @@ def twin_batch_generate():
                 total_presets_injected += 1
                 
             elif is_milling:
-                is_saw = any(s in geometry.lower() for s in ["t-slot", "woodruff", "keyseat"]) or any(s in tool_type.lower() for s in ["woodruff", "saw"])
+                mill_db_tool = _batch_db_tool_type(kind, t_dict, is_carbide)
                 for strat in strategies:
-                    target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
-                    base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, runout=runout, flutes=flutes, is_carbide=is_carbide)
-                    
-                    target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-                    target_sfm, base_ipt = physics.apply_chatter_penalty(target_sfm, base_ipt, diameter, stickout, is_drilling=False, is_saw_woodruff=is_saw)
-                    
-                    target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-                    target_sfm *= physics.get_coating_multiplier(coating, family)
-                    
-                    rpm = physics.calc_rpm(target_sfm, diameter, max_rpm=max_rpm)
-                    rec_doc, rec_woc, _ = physics.recommend_cut_parameters(
-                        diameter, shank_dia, stickout, flutes, rpm, base_ipt, is_carbide, strat, aggressiveness, geometry, flute_len, max_hp, material_family=family, flute_length=flute_len,
-                        corner_radius=corner_rad
-                    )
-                    
-                    eff_dia = physics.calc_effective_diameter(diameter, rec_doc, geometry, corner_rad)
-                    adj_ipt = physics.calc_adjusted_chipload(base_ipt, rec_doc, rec_woc, diameter, eff_dia, operation=strat, geometry=geometry, corner_radius=corner_rad)
-                    feedrate = physics.calc_feedrate(rpm, flutes, adj_ipt)
-                    actual_sfm = physics.calc_sfm(rpm, diameter)
-                    ramp_angle, ramp_feed, plunge_feed = physics.calc_ramping(family, diameter, feedrate, geometry, flutes, aggressiveness, tool_type=tool_type)
-                    
+                    res = run_cut(physics, CutRequest(
+                        family=family, alloy=alloy, tool=mill_db_tool, geometry=geometry, operation=strat,
+                        coating=coating, diameter=diameter, flutes=flutes, flute_length=flute_len,
+                        shank_diameter=shank_dia, corner_radius=corner_rad, stickout=stickout,
+                        cutter_thickness=flute_len, is_carbide=is_carbide, aggressiveness=aggressiveness,
+                        max_rpm=max_rpm, max_hp=max_hp, runout=runout,
+                        fusion_tool=_fusion_payload(t_dict),
+                        model=_request_model(req_data),
+                        machine_profile=active_machine(),
+                    ))
+                    if not res.feasible:
+                        skipped.append({
+                            "tool_index": idx,
+                            "number": tool_number,
+                            "description": t_dict.get("description", ""),
+                            "type": t_dict.get("type", ""),
+                            "strategy": strat,
+                            "reason": f"infeasible strategy {strat!r}: no safe cut (limited by {res.limited_by or 'unknown'}); preset not written",
+                        })
+                        continue
+
+                    rec_doc, rec_woc = res.doc, res.woc
+                    rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
+                    ramp_angle, ramp_feed, plunge_feed = res.ramp_angle, res.ramp_feed, res.plunge_feed
+
                     wear_comp_note = ""
                     if "finish" in strat.lower():
-                        deflection = physics.tool_deflection(
-                            diameter, shank_dia, stickout, rec_doc, rec_woc, feedrate, rpm, flutes,
-                            is_carbide=is_carbide, material_family=family, flute_length=flute_len
-                        )
-                        sb, total_err, wear_comp = physics.calc_springback_and_deflection(
-                            family, diameter, rec_doc, rec_woc, feedrate, rpm, flutes, deflection, alloy=alloy
-                        )
+                        wear_comp = res.wear_comp
                         if abs(wear_comp) > 0.0002:
                             wear_comp_note = f" | Wear Comp: {wear_comp:+.4f}\""
 
@@ -1105,7 +1438,7 @@ def twin_batch_generate():
                     else:
                         preset_name = f"{material_label} - {strat}"
                     
-                    if tool_unit == "inches":
+                    if t_unit == "inches":
                         p_n = float(rpm)
                         p_vc = float(actual_sfm)
                         p_fz = float(adj_ipt)
@@ -1185,11 +1518,12 @@ def twin_batch_generate():
             "success": True,
             "updated_tools_count": updated_tools_count,
             "total_presets_injected": total_presets_injected,
+            "skipped": skipped,
             "backup": backup_info
         })
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/get_import_payload", methods=["GET"])
 def twin_get_import_payload():
@@ -1200,7 +1534,7 @@ def twin_get_import_payload():
             return jsonify({"success": False, "error": "No working library found."}), 404
         return jsonify({"success": True, "library": data})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/upload", methods=["POST"])
 def twin_upload():
@@ -1210,14 +1544,12 @@ def twin_upload():
     automatic library merging and deduplication.
     """
     try:
-        uploaded_files = request.files.getlist('files')
-        if not uploaded_files and 'file' in request.files:
-            uploaded_files = [request.files['file']]
+        uploaded_files = request.files.getlist('files') + request.files.getlist('file')
             
         if not uploaded_files or uploaded_files[0].filename == '':
             return jsonify({"success": False, "error": "No file uploaded"}), 400
 
-        merge_mode = request.form.get("merge_mode", "merge_deduplicate")
+        merge_mode = request.form.get("merge_mode", "merge")
         parsed_libraries = []
 
         for file in uploaded_files:
@@ -1263,7 +1595,7 @@ def twin_upload():
                 })
 
         master_lib_name = "Master_Shop_Tool_Crib" if len(parsed_libraries) > 1 else parsed_libraries[0]["library_name"]
-        auto_dedup = merge_mode != "raw"
+        auto_dedup = merge_mode == "merge_deduplicate"
         merged_library, summary = merge_multiple_libraries(parsed_libraries, master_library_name=master_lib_name, deduplicate=auto_dedup)
 
         backup_info = bm.save_working_library(merged_library, master_lib_name)
@@ -1278,7 +1610,7 @@ def twin_upload():
         })
         
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 @app.route("/api/twin/download", methods=["GET"])
 def twin_download():
@@ -1306,13 +1638,14 @@ def twin_download():
             download_name=f"{lib_name}.json"
         )
     except Exception as e:
-        return str(e), 500
+        app.logger.error("Library download failed", exc_info=e)
+        return "Internal server error", 500
 
 @app.route("/api/ai_chat", methods=["POST"])
 def ai_chat():
     """Handles conversational AI Machinist inquiries with live ToolWiz telemetry"""
     try:
-        data = request.get_json() or {}
+        data = _json_body()
         message = data.get("message", "").strip()
         if not message:
             return jsonify({"success": False, "error": "Message is required"}), 400
@@ -1324,13 +1657,21 @@ def ai_chat():
         result = query_ai_machinist(message, context=context, api_key=api_key, preferred_model=preferred_model)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
-@app.route("/api/ai_models", methods=["GET"])
+@app.route("/api/ai_models", methods=["GET", "POST"])
 def ai_models():
     """Returns the list of available Gemini models for the configured or provided API key"""
     try:
-        api_key = request.args.get("apiKey", "").strip() or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
+        data = _json_body()
+        api_key = (
+            request.headers.get("x-goog-api-key")
+            or request.headers.get("x-api-key")
+            or data.get("apiKey")
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+            or ""
+        )
         if not api_key:
             return jsonify({
                 "success": True,
@@ -1364,11 +1705,12 @@ def ai_models():
             
         return jsonify({"success": True, "models": result_list})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
 
 def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
     """Evaluates dimension expressions like '(-.1) * 1mm', '(.1)*1mm', or '0mm'
     into clean, formatted numeric strings like '-0.100 mm' or '0.000 mm'.
+    Uses safe AST parser without eval().
     """
     if expr_str is None or str(expr_str).strip() == "":
         return "0.000 mm" if doc_unit == "mm" else "0.0000 in"
@@ -1385,7 +1727,7 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
         math_str = re.sub(r'([0-9\.\)])\s*(?:mm|millimeter|millimetre|inches|inch|in|\")', r'\1 * 1.0', s, flags=re.I)
         math_str = re.sub(r'(?:mm|millimeter|millimetre|inches|inch|in|\")', r' 1.0 ', math_str, flags=re.I)
         if re.match(r'^[0-9\.\+\-\*\/\(\)\s]+$', math_str):
-            val = float(eval(math_str, {'__builtins__': None}, {}))
+            val = float(safe_eval_length(math_str))
             if abs(val) < 1e-6:
                 val = 0.0
             if unit == "mm":
@@ -1396,21 +1738,45 @@ def clean_and_eval_stock_expr(expr_str, doc_unit="in"):
         pass
     return s
 
+def _stock_strength(pct):
+    """User strength setting (percent, 25/50/75/100 in the add-in) as a 0..1 scale; bad input -> 1.0."""
+    try:
+        v = float(pct)
+    except (TypeError, ValueError):
+        return 1.0
+    return max(0.0, min(1.0, v / 100.0))
+
+
+def is_hole_op(name, strategy=""):
+    """Operation that machines a hole (by name or strategy), where radial stock counts twice on diameter."""
+    text = f"{name} {strategy}".lower()
+    return any(k in text for k in ("bore", "hole", "circular", "helical"))
+
+
 @app.route("/api/stock_compensation", methods=["POST"])
 def stock_compensation():
     """Calculates tool deflection, material springback, and recommended radial/axial stock to leave
     for a batch of Fusion 360 CAM operations.
     """
     try:
-        data = request.get_json() or {}
+        data = _json_body()
         family = data.get("family", "Aluminum - Wrought (6061)")
         alloy = data.get("alloy", "")
-        agg_raw = data.get("aggressiveness", 50)
-        aggressiveness = float(agg_raw) / 100.0 if float(agg_raw) > 1.0 else float(agg_raw)
+        comp_adjust_raw = data.get("comp_adjust_pct")
+        if comp_adjust_raw is not None:
+            comp_adjust_pct = max(-25.0, min(25.0, float(comp_adjust_raw)))
+            comp_scalar = 1.0 + (comp_adjust_pct / 100.0)
+        else:
+            agg_raw = data.get("aggressiveness", 50)
+            aggressiveness = float(agg_raw) / 100.0 if (float(agg_raw) > 1.0 or agg_raw == 1) else float(agg_raw)
+            comp_scalar = 0.75 + (max(0.0, min(1.0, aggressiveness)) * 0.50)
+            comp_adjust_pct = round((comp_scalar - 1.0) * 100.0, 1)
         mode = data.get("mode", "auto_compensate")  # auto_compensate, zero_finishing, custom
         custom_radial_offset = str(data.get("custom_radial_offset", "0.0000 in")).strip()
         custom_axial_offset = str(data.get("custom_axial_offset", "0.0000 in")).strip()
         operations = data.get("operations", [])
+        radial_scale = _stock_strength(data.get("radial_pct", 100))
+        axial_scale = _stock_strength(data.get("axial_pct", 100))
         
         results = []
         for op in operations:
@@ -1423,21 +1789,52 @@ def stock_compensation():
             is_metric = "mm" in unit or "milli" in unit or "mm" in raw_rad.lower() or "mm" in raw_ax.lower()
             doc_unit = "mm" if is_metric else "in"
             
-            # Geometry (always in inches internally)
-            diameter = float(op.get("diameter", 0.375))
+            # Explicit, deterministic units. Defaults: lengths in inches, feed in IPM.
+            length_unit = str(op.get("length_unit", "in")).strip().lower()
+            feed_unit = str(op.get("feed_unit", "ipm")).strip().lower()
+            if length_unit in ("in", "inch", "inches"):
+                len_factor = 1.0
+            elif length_unit in ("mm", "millimeter", "millimeters"):
+                len_factor = 1.0 / 25.4
+            else:
+                return jsonify({"success": False, "error": f"Operation {op_id!r}: invalid length_unit {length_unit!r} (use 'in' or 'mm')"}), 400
+            if feed_unit in ("ipm", "in/min", "in_min"):
+                feed_factor = 1.0
+            elif feed_unit in ("mm_min", "mm/min", "mmpm"):
+                feed_factor = 1.0 / 25.4
+            else:
+                return jsonify({"success": False, "error": f"Operation {op_id!r}: invalid feed_unit {feed_unit!r} (use 'ipm' or 'mm_min')"}), 400
+
+            def _len_in(key, default_in):
+                raw_v = op.get(key)
+                return default_in if raw_v is None else float(raw_v) * len_factor
+
+            # Geometry and cut parameters, converted to inches / IPM
+            diameter = _len_in("diameter", 0.375)
             flutes = max(int(op.get("flutes", 4)), 1)
-            flute_len = float(op.get("fluteLength", diameter * 2.0))
-            shank_dia = float(op.get("shankDiameter", diameter))
-            stickout = float(op.get("stickout", flute_len * 1.5))
+            flute_len = _len_in("fluteLength", diameter * 2.0)
+            shank_dia = _len_in("shankDiameter", diameter)
+            stickout = _len_in("stickout", 0.0)
+            if stickout <= 0:
+                stickout = default_stickout(diameter, flute_len)
             coating = op.get("coating", "Uncoated")
             geometry = op.get("geometry", "Square")
-            
-            # Feeds & Speeds / Cut parameters (normalized to inches and IPM internally)
+
+            # Fusion's own tool fields, when sent, replace the hand-mapped geometry above.
+            op_fusion = _fusion_tool_arg(op)
+            op_profile = None
+            if op_fusion is not None:
+                explicit_stick = _len_in("stickout", 0.0)
+                op_profile = ToolProfile.from_fusion(op_fusion, stickout_override=explicit_stick if explicit_stick > 0 else None)
+                pg = op_profile.geometry
+                diameter, flutes, flute_len = pg.diameter, pg.flutes, pg.flute_length
+                shank_dia, stickout = pg.shank_diameter, op_profile.stickout
+
             rpm = float(op.get("rpm", 0.0))
-            feedrate_ipm = float(op.get("feedrate", 0.0))
-            doc_in = float(op.get("doc", 0.0))
-            woc_in = float(op.get("woc", 0.0))
-            
+            feedrate_ipm = float(op.get("feedrate", 0.0)) * feed_factor
+            doc_in = _len_in("doc", 0.0)
+            woc_in = _len_in("woc", 0.0)
+
             zero_rad_str = "0.000 mm" if is_metric else "0.0000 in"
             zero_ax_str = "0.000 mm" if is_metric else "0.0000 in"
             default_rough_rad = "0.500 mm" if is_metric else "0.0200 in"
@@ -1482,17 +1879,6 @@ def stock_compensation():
                     is_finishing = False
                 
             # If doc/woc or feeds/speeds are missing, use standard finishing or roughing defaults
-            # Sanitize inputs for realistic physics against accidental unit confusion (e.g. mm/min sent as IPM)
-            if is_metric:
-                if feedrate_ipm > 120 or (rpm > 0 and flutes > 0 and (feedrate_ipm / (rpm * flutes)) > 0.008):
-                    feedrate_ipm = feedrate_ipm / 25.4
-                if doc_in > diameter * 4.0:
-                    doc_in = doc_in / 25.4
-                if woc_in > diameter:
-                    woc_in = woc_in / 25.4
-            elif feedrate_ipm > 150:
-                feedrate_ipm = feedrate_ipm / 25.4
-
             if is_finishing:
                 if is_floor_finish:
                     if doc_in <= 0:
@@ -1517,30 +1903,55 @@ def stock_compensation():
                     woc_in = diameter * 0.40  # 40% D roughing
                     
             if rpm <= 0 or feedrate_ipm <= 0:
-                target_sfm = physics.get_base_sfm(family, "Carbide Endmill", geometry=geometry, diameter=diameter)
-                base_ipt = physics.get_base_ipt(family, "Carbide Endmill", diameter, geometry=geometry, flutes=flutes, is_carbide=True)
-                target_sfm, base_ipt = physics.apply_alloy_hardness_scaling(family, alloy, target_sfm, base_ipt)
-                target_sfm, base_ipt = physics.apply_aggressiveness(target_sfm, base_ipt, aggressiveness)
-                target_sfm *= physics.get_coating_multiplier(coating, family)
+                limits = machine_limits()
+                res = run_cut(physics, CutRequest(
+                    family=family, alloy=alloy, tool="Carbide Endmill", geometry=geometry,
+                    operation="Finishing" if is_finishing else "Roughing", coating=coating,
+                    diameter=diameter, flutes=flutes, flute_length=flute_len, shank_diameter=shank_dia,
+                    stickout=stickout, is_carbide=True, aggressiveness=0.5,
+                    max_rpm=limits["max_rpm"], max_hp=limits["max_hp"],
+                    cut_depth=doc_in, cut_width=woc_in,
+                    fusion_tool=op_fusion,
+                ))
                 if rpm <= 0:
-                    rpm = physics.calc_rpm(target_sfm, diameter)
+                    rpm = res.rpm
                 if feedrate_ipm <= 0:
-                    feedrate_ipm = physics.calc_feedrate(rpm, flutes, base_ipt)
+                    feedrate_ipm = physics.calc_feedrate(rpm, flutes, res.adj_ipt)
                     
             defl = physics.tool_deflection(
                 diameter=diameter, shank_size=shank_dia, stickout=stickout, cut_depth=doc_in, cut_width=woc_in,
                 feedrate=feedrate_ipm, rpm=rpm, flutes=flutes, is_carbide=True, material_family=family,
-                flute_length=flute_len, operation="Finishing" if is_finishing else "Roughing"
+                flute_length=flute_len, operation="Finishing" if is_finishing else "Roughing",
+                profile=op_profile
             )
             sb, total_err, wear_comp = physics.calc_springback_and_deflection(
                 material_family=family, diameter=diameter, cut_depth=doc_in, cut_width=woc_in,
                 feedrate=feedrate_ipm, rpm=rpm, flutes=flutes, deflection_inches=defl, alloy=alloy
             )
             
-            # Aggressiveness scaling (0% = 0.60x conservative, 50% = 1.00x nominal, 100% = 1.40x aggressive)
-            agg_scalar = 0.60 + (aggressiveness * 0.80)
-            defl *= agg_scalar
-            sb *= agg_scalar
+            # Compensation trim around populated speeds/feeds baseline (0% = 1.00x Recommended, -25%..+25% = 0.75x..1.25x)
+            defl *= comp_scalar
+            sb *= comp_scalar
+            # Learned correction from logged real cuts for this material (no-op below 3 samples).
+            corrected, calib = cutlog.apply_calibration(family, defl + sb)
+            if calib.get("applied") and (defl + sb) > 0:
+                scale = corrected / (defl + sb)
+                defl *= scale
+                sb *= scale
+            op_fg = dict(op.get("feature_geometry") or {}) if isinstance(op.get("feature_geometry"), dict) else {}
+            wt_in = op_fg.get("min_wall_thickness_in")
+            ft_in = op_fg.get("min_floor_thickness_in")
+            wh_in = op_fg.get("wall_height_in")
+            is_tw, is_tf, wp_comp = calc_thin_wall_compliance_factor(
+                float(wt_in) if (wt_in is not None and float(wt_in) > 0) else None,
+                float(wh_in) if (wh_in is not None and float(wh_in) > 0) else None,
+                float(ft_in) if (ft_in is not None and float(ft_in) > 0) else None,
+            )
+            if wp_comp > 1.0:
+                sb *= wp_comp
+                op_fg["is_thin_wall"] = bool(is_tw)
+                op_fg["is_thin_floor"] = bool(is_tf)
+                op_fg["workpiece_compliance_factor"] = round(wp_comp, 3)
             total_err = defl + sb
             wear_comp = -total_err
             
@@ -1563,40 +1974,32 @@ def stock_compensation():
                     # Precision finish cuts should never exceed 0.0025" (0.065 mm) or 2.5% of tool diameter
                     # to prevent any risk of part gouging or scrap.
                     max_safe_comp_in = min(0.0025, max(0.0008, diameter * 0.025))
-                    eff_total_err = min(total_err, max_safe_comp_in)
-                    eff_sb = min(sb, max_safe_comp_in)
-                    
+                    # The user's strength setting (25-100%) scales the predicted compensation.
+                    rad_in = -min(total_err, max_safe_comp_in) * radial_scale
+                    ax_in = -min(sb, max_safe_comp_in) * axial_scale
+                    if is_metric:
+                        rec_rad, rec_ax = f"{rad_in * 25.4:.3f} mm", f"{ax_in * 25.4:.3f} mm"
+                    else:
+                        rec_rad, rec_ax = f"{rad_in:.4f} in", f"{ax_in:.4f} in"
                     if is_floor_finish:
-                        if is_metric:
-                            rec_ax_val = -eff_sb * 25.4
-                            rec_rad_val = -eff_total_err * 25.4
-                            rec_ax = f"{rec_ax_val:.3f} mm"
-                            rec_rad = f"{rec_rad_val:.3f} mm"
-                            advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\nTip: Use Rad +0.150mm if floor-only"
-                        else:
-                            rec_ax_val = -eff_sb
-                            rec_rad_val = -eff_total_err
-                            rec_ax = f"{rec_ax_val:.4f} in"
-                            rec_rad = f"{rec_rad_val:.4f} in"
-                            advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\nTip: Use Rad +0.005\" if floor-only"
+                        tip = "Tip: Use Rad +0.150mm if floor-only" if is_metric else "Tip: Use Rad +0.005\" if floor-only"
+                        advisory = f"Floor Ax: {rec_ax} | Comb Rad: {rec_rad}\n{tip}"
                     else:  # Wall finishing / lateral contour
-                        if is_metric:
-                            rec_rad_val = -eff_total_err * 25.4
-                            rec_ax_val = -eff_sb * 25.4
-                            rec_rad = f"{rec_rad_val:.3f} mm"
-                            rec_ax = f"{rec_ax_val:.3f} mm"
-                            advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\nKeep Ax: 0.000 if floor pre-cut"
-                        else:
-                            rec_rad_val = -eff_total_err
-                            rec_ax_val = -eff_sb
-                            rec_rad = f"{rec_rad_val:.4f} in"
-                            rec_ax = f"{rec_ax_val:.4f} in"
-                            advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\nKeep Ax: 0.000\" if floor pre-cut"
+                        keep = "Keep Ax: 0.000 if floor pre-cut" if is_metric else "Keep Ax: 0.000\" if floor pre-cut"
+                        advisory = f"Wall Rad: {rec_rad} | Floor Ax: {rec_ax}\n{keep}"
+                    if is_hole_op(op_name, strat):
+                        advisory += "\nHole: radial stock acts on both sides (diameter changes 2x)"
+                    if is_tw and wt_in is not None:
+                        w_lbl = f"{float(wt_in) * 25.4:.2f} mm" if is_metric else f"{float(wt_in):.4f}\""
+                        advisory += f"\nThin Wall ({w_lbl}): x{wp_comp:.2f} push-off comp; use spring pass"
+                    elif is_tf and ft_in is not None:
+                        f_lbl = f"{float(ft_in) * 25.4:.2f} mm" if is_metric else f"{float(ft_in):.4f}\""
+                        advisory += f"\nThin Floor ({f_lbl}): x{wp_comp:.2f} floor springback comp"
                 else:
                     rec_rad = current_radial
                     rec_ax = current_axial
                     advisory = f"Roughing Pass\nRetaining stock ({rec_rad})"
-                    
+
             results.append({
                 "id": op_id,
                 "name": op_name,
@@ -1608,9 +2011,16 @@ def stock_compensation():
                 "springback_in": round(sb, 6),
                 "total_error_in": round(total_err, 6),
                 "wear_comp_offset_in": round(wear_comp, 6),
+                "doc_in": round(doc_in, 5),
+                "woc_in": round(woc_in, 5),
+                "radial_scale": radial_scale,
+                "axial_scale": axial_scale,
                 "recommended_radial_stock": rec_rad,
                 "recommended_axial_stock": rec_ax,
-                "advisory": advisory
+                "advisory": advisory,
+                "calibration": calib,
+                **({"profile": op_profile.to_dict()} if op_profile is not None else {}),
+                **({"feature_geometry": op_fg} if op_fg else {}),
             })
             
         return jsonify({
@@ -1620,10 +2030,92 @@ def stock_compensation():
             "results": results
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return _api_error(e)
+
+@app.route("/api/oversight_review", methods=["POST"])
+def api_oversight_review():
+    """Holistic shop-floor oversight review outside single-operation physics equations."""
+    try:
+        from oversight_engine import evaluate_holistic_oversight
+        body = _json_body()
+        cut_req = body.get("cut_request") or body
+        cut_res = body.get("cut_result")
+        if not isinstance(cut_res, dict) or not cut_res:
+            fusion_tool = _fusion_tool_arg(cut_req)
+            dia = float(cut_req.get("diameter", 0.25))
+            req = CutRequest(
+                family=cut_req.get("family", ""),
+                alloy=cut_req.get("alloy", ""),
+                tool=cut_req.get("tool", "Carbide Endmill"),
+                coating=cut_req.get("coating", "Uncoated"),
+                geometry=cut_req.get("geometry", "Square"),
+                operation=cut_req.get("operation", "Roughing"),
+                diameter=dia,
+                flutes=int(cut_req.get("flutes", 4)),
+                flute_length=float(cut_req.get("fluteLength") or (dia * 3.0)),
+                shank_diameter=float(cut_req.get("shankDiameter") or default_shank(dia)),
+                stickout=float(cut_req.get("stickout")) if cut_req.get("stickout") else None,
+                cut_depth=float(cut_req["cutDepth"]) if cut_req.get("cutDepth") is not None else None,
+                cut_width=float(cut_req["cutWidth"]) if cut_req.get("cutWidth") is not None else None,
+                aggressiveness=float(cut_req.get("aggressiveness", 50.0)) / 100.0,
+                fusion_tool=fusion_tool,
+                model=cut_req.get("model"),
+                machine_profile=active_machine(),
+                feature_geometry=cut_req.get("feature_geometry") if isinstance(cut_req.get("feature_geometry"), dict) else None,
+            )
+            r = run_cut(physics, req)
+            cut_res = {
+                "diameter": r.diameter, "flute_length": r.flute_length, "shank_diameter": r.shank_diameter,
+                "doc": r.doc, "woc": r.woc, "rpm": r.rpm, "feed_ipm": r.feed_ipm,
+                "adj_ipt": r.adj_ipt, "deflection": r.deflection, "rec_limit": r.rec_limit,
+                "feasible": r.feasible, "profile": r.profile, "v1": r.v1, "v2": r.v2,
+                "feature_geometry": r.feature_geometry,
+            }
+        report = evaluate_holistic_oversight(
+            cut_request=cut_req,
+            cut_result=cut_res,
+            feature_geometry=body.get("feature_geometry") or cut_res.get("feature_geometry"),
+            setup_audit=body.get("setup_audit"),
+            include_ai_opinion=bool(body.get("include_ai_opinion", False)),
+        )
+        return jsonify({"success": True, **report.to_dict()})
+    except Exception as e:
+        return _api_error(e)
+
+
+@app.route("/api/library/curate", methods=["POST"])
+def api_library_curate():
+    """Inspect and auto-curate a Fusion 360 tool library (or the working library), populating missing
+    shaft tapers (0.5 mm holder margin), fixing micro-tool shanks, and inferring metadata."""
+    try:
+        from tool_library_curator import curate_tool_library
+        body = _json_body()
+        use_working = bool(body.get("use_working_library", False))
+        apply_working = bool(body.get("apply_to_working_library", False))
+        lib_data = bm.load_working_library() if use_working else None
+        if use_working and lib_data:
+            source = lib_data
+        else:
+            source = body.get("tools") or body.get("library") or []
+
+        report = curate_tool_library(
+            source,
+            fix_micro_shank=bool(body.get("fix_micro_shank", True)),
+            populate_shaft_taper=bool(body.get("populate_shaft_taper", True)),
+            infer_metadata_from_description=bool(body.get("infer_metadata_from_description", True)),
+            use_ai=bool(body.get("use_ai", False)),
+        )
+        if use_working and apply_working and lib_data:
+            lib_data["tools"] = report["curated_tools"]
+            bm.save_working_library(lib_data, lib_data.get("library_name", "Curated_Library"))
+            report["applied_to_working_library"] = True
+
+        return jsonify({"success": True, **report})
+    except Exception as e:
+        return _api_error(e)
+
 
 if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="127.0.0.1", port=5000, debug=debug_mode)
-
 

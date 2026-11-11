@@ -1,0 +1,19 @@
+{
+  "type": "probe",
+  "unit": "millimeters",
+  "description": "Renishaw Probe",
+  "guid": "f7",
+  "postProcess": {
+    "number": 9
+  },
+  "geometry": {
+    "DC": 6.0,
+    "NOF": 1,
+    "LCF": 30.0,
+    "SFDM": 6.0,
+    "assemblyGaugeLength": 150.0
+  },
+  "start-values": {
+    "presets": []
+  }
+}

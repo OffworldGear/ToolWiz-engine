@@ -108,6 +108,7 @@ class TestToolMerger(unittest.TestCase):
             "tools": [
                 {
                     "description": "3/8 Flat Endmill",
+                    "unit": "inches",
                     "geometry": {"DC": 0.375, "NOF": 3, "LCF": 0.75, "SF": 0.375, "RE": 0.0},
                     "start-values": {"presets": [{"name": "6061 - Adaptive", "v_f": "120 in/min"}]}
                 }
@@ -118,12 +119,14 @@ class TestToolMerger(unittest.TestCase):
             "tools": [
                 {
                     "description": "3/8 Flat Endmill",
+                    "unit": "inches",
                     "geometry": {"DC": 0.375, "NOF": 3, "LCF": 0.75, "SF": 0.375, "RE": 0.0},
                     "start-values": {"presets": [{"name": "4140 - Adaptive", "v_f": "45 in/min"}]}
                 },
                 {
                     "description": "1/8 2FL Drill",
                     "type": "drill",
+                    "unit": "inches",
                     "geometry": {"DC": 0.125, "NOF": 2, "LCF": 1.0, "SF": 0.125, "RE": 0.0},
                     "start-values": {"presets": [{"name": "Drill 4140", "v_f": "10 in/min"}]}
                 }

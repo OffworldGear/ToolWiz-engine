@@ -13,6 +13,9 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
     Safely mutates a Fusion Tool JSON string by injecting or updating a preset 
     in the start-values.presets array.
     
+    Returns a plain tuple: (json_str, preset_name, was_updated).
+    Tool numbers and offsets (post-process section) are never modified.
+
     Parameters:
       - original_json_string: raw tool JSON string
       - new_preset_data: dictionary with rpm, feed, sfm, ipt, doc, woc, name, etc.
@@ -55,10 +58,12 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
     sfm_num = float(round(sfm_val if not is_metric else sfm_val * 0.3048, 2))
     ipt_num = float(round(ipt_val if not is_metric else ipt_val * 25.4, 6))
     feed_num = float(round(feed_val if not is_metric else feed_val * 25.4, 2))
-    doc_num = float(round(doc_val if not is_metric else doc_val * 25.4, 4))
-    woc_num = float(round(woc_val if not is_metric else woc_val * 25.4, 4))
+    doc_num = float(round(doc_val if not is_metric else doc_val * 25.4, 5 if not is_metric else 4))
+    woc_num = float(round(woc_val if not is_metric else woc_val * 25.4, 5 if not is_metric else 4))
     rf_num = float(round(rf if not is_metric else rf * 25.4, 2))
     pf_num = float(round(pf if not is_metric else pf * 25.4, 2))
+    ramp_angle_val = new_preset_data.get("ramp_angle", new_preset_data.get("ramp-angle", 2.0))
+    ramp_angle_num = float(round(float(ramp_angle_val if ramp_angle_val is not None else 2.0), 2))
 
     mapped_data = {
         "guid": str(uuid.uuid4()),
@@ -84,18 +89,12 @@ def mutate_tool_json(original_json_string, new_preset_data, target_preset_to_rep
         "stepover": woc_num,
         "use-stepdown": True,
         "use-stepover": True,
-        "ramp-angle": 2.0,
+        "ramp-angle": ramp_angle_num,
         "tool-coolant": "flood"
     }
     
-    # Preserve tool number in post-process section if provided
-    t_num = new_preset_data.get("tool_number") or new_preset_data.get("number")
-    if t_num:
-        if "post-process" not in tool_dict or not isinstance(tool_dict["post-process"], dict):
-            tool_dict["post-process"] = {}
-        tool_dict["post-process"]["number"] = int(t_num)
-        tool_dict["post-process"]["diameter-offset"] = int(t_num)
-        tool_dict["post-process"]["length-offset"] = int(t_num)
+    # NOTE: post-process number, diameter-offset and length-offset are deliberately
+    # never written here. This module only injects / updates a cutting-data preset.
 
     was_updated = False
     

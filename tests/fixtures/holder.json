@@ -1,0 +1,15 @@
+{
+  "type": "holder",
+  "unit": "inches",
+  "description": "ER32 Collet Holder",
+  "guid": "f6",
+  "postProcess": {
+    "number": 0
+  },
+  "geometry": {
+    "assemblyGaugeLength": 3.0
+  },
+  "start-values": {
+    "presets": []
+  }
+}

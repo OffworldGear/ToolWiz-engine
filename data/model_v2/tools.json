@@ -1,0 +1,136 @@
+{
+ "version": "2026-10-17.1",
+ "status": "PROPOSED (calibration step 4)",
+ "generated_by": "tools/calibrate_v2.py",
+ "date": "2026-10-17",
+ "carbide": {
+  "E_mpa": {
+   "value": 570000.0,
+   "source": "CERATIZIT p-line 05/2024 p.22, 10 % Co submicron"
+  },
+  "trs_mpa": {
+   "value": 3800.0,
+   "source": "CERATIZIT CT-GS20Y 3800; Hyperion K10F 3700"
+  },
+  "fatigue_fraction": {
+   "value": 0.375,
+   "source": "Carbide fatigue / TRS: 0.33\u20130.42 fully reversed or 10\u2076\u201310\u2078 cycles (Schleinkofer 1996, Kursawe 2001, Brookes, Schedler via Preis 2004); 0.375 \u00d7 3.8 GPa = 1425 MPa adopted for C4 (Round 4); docs/research/carbide_and_edge_radius.md \u00a72"
+  }
+ },
+ "edge_radius_mm": {
+  "value": 0.002,
+  "source": "micro end mills 0.4\u20133.5 \u00b5m (Liang 2018; J\u00e4ckel 2024); no data vs diameter; not calibrated (C1 rarely binds above 1/32\")"
+ },
+ "C2": {
+  "basis": "data/model_v2/chip_limits.json (band median of worst-flute h/D, eccentric runout at TIR 0.0002\")",
+  "source": "confirmed on the hold-out rows against fitted alternatives (calibration_report.json c2)"
+ },
+ "aggressiveness": {
+  "status": "user decision 2026-10-17 (points accepted in principle); optimize.Margins(scheme='consensus')",
+  "scale_points": {
+   "value": [
+    [
+     0.0,
+     0.76
+    ],
+    [
+     0.5,
+     0.92
+    ],
+    [
+     0.75,
+     1.0
+    ],
+    [
+     1.0,
+     1.1
+    ]
+   ],
+   "source": "user 2026-10-17: 75 % \u2248 vendor median (1.00), 50 % default 0.92 (Speedio BT30 starting point), 100 % 1.10 (vendors' 'may increase 10\u201320 %', e.g. Harvey speeds-feeds page), 0 % 0.76 (vendor lower quartile; worst-flute h/D p25/median 0.76, calibration_report.json)"
+  },
+  "interpolation": "monotone cubic (Fritsch\u2013Carlson) through the points",
+  "scale_at": {
+   "a=0": 0.76,
+   "a=0.25": 0.84,
+   "a=0.5": 0.92,
+   "a=0.75": 1.0,
+   "a=1": 1.1
+  },
+  "applies_to": [
+   "C7 speed level (the tool-life target as speed: T/T_ref = scale^(\u22121/n))",
+   "C2 chip limit",
+   "C14 caps on SFM, fz and MRR (scale \u00d7 the bucket vendor median)"
+  ],
+  "C4": {
+   "value": [
+    [
+     0.0,
+     0.88
+    ],
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "source": "\u00d7 the fatigue limit 1425 MPa, never above it: 0.88 = 0.33/0.375 at a = 0 (Schleinkofer 1996, R = \u22121, via Preis 2004), 1.0 at a = 1; linear"
+  },
+  "lambda": {
+   "value": 0.3,
+   "source": "fixed (C1 never relaxed); centre of 0.2\u20130.4 (Wojciechowski 2022)"
+  },
+  "C5_margin": {
+   "value": "0.2\u00b7(1 \u2212 a)",
+   "source": "unchanged; the spindle is a hard limit"
+  },
+  "never_relaxed": [
+   "C1",
+   "C3 (with the spindle/holder compliance)",
+   "C4",
+   "C5",
+   "C9"
+  ],
+  "vendor_spread_check": {
+   "value": {
+    "sfm": {
+     "p10": 0.63709,
+     "p25": 0.82051,
+     "p75": 1.0927,
+     "p90": 1.3787,
+     "n_group_medians": 333
+    },
+    "fz_over_D": {
+     "p10": 0.70343,
+     "p25": 0.88889,
+     "p75": 1.1514,
+     "p90": 1.4516,
+     "n_group_medians": 333
+    }
+   },
+   "source": "vendor-group median / bucket vendor median over L1 buckets with \u2265 3 groups"
+  }
+ },
+ "C14": {
+  "basis": "data/model_v2/consensus.json",
+  "source": "Vendor consensus (user decisions 2026-10-17): speed, chip load and MRR (per unit engaged area and flute) \u2264 consensus_scale(a) \u00d7 the vendor median of the matching bucket (family, hardness, diameter band, operation, engagement) with \u2265 2 independent vendor groups, widened stepwise (diameter band, engagement, hardness) when fewer; data/model_v2/consensus.json from the benchmark rows; none \u2192 the physics result"
+ },
+ "machine_bt30": {
+  "k_spindle_n_um": {
+   "value": 80.0,
+   "source": "NK Enginex ATC-BT30 spindle spec 'Radial stiffness \u226580 N/\u03bcm' (vendor minimum, not Brother; https://nkenginex.com/products/cnc-atc-bt30-spindle)"
+  },
+  "k_holder_joint_n_um": {
+   "value": 51.6,
+   "source": "holder-tool joint k_yf 5.1581e7 N/m, carbide 16 mm tool in a BT40 holder (\u00d6z\u015fahin, Ert\u00fcrk, \u00d6zg\u00fcven, Budak 2009, IJMTM 49:25, Table 2)"
+  },
+  "ktheta_holder_joint_nm_urad": {
+   "value": 0.12631,
+   "source": "holder-tool joint k_\u03b8m 1.2631e5 N\u00b7m/rad, same paper and table; no size-30 taper rotational value was found"
+  },
+  "combined_k_n_um": {
+   "value": 31.368,
+   "source": "series of the two translational values above"
+  },
+  "status": "PROVISIONAL BT30: spindle \u226580 N/\u00b5m (NK Enginex spec) in series with a holder-tool joint 51.6 N/\u00b5m and 0.126 N\u00b7m/\u00b5rad (\u00d6z\u015fahin et al. 2009, BT40, 16 mm tool); measure on the Speedio",
+  "stored_in": "machines/speedio_s500x2.json holder_stiffness (user-editable machine profile field; optimize.speedio_16k(holder=True), params.machine())"
+ }
+}

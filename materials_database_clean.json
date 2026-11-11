@@ -2189,6 +2189,18 @@
       "hardness": "270"
     },
     {
+      "family": "Copper Alloy - Wrought",
+      "alloy": "C51000 - Phosphor Bronze 5% Sn",
+      "condition": "H02 (1/2 Hard)",
+      "hardness": "78 HRB"
+    },
+    {
+      "family": "Copper Alloy - Wrought",
+      "alloy": "C51000 - Phosphor Bronze 5% Sn",
+      "condition": "H04 (Hard)",
+      "hardness": "87 HRB"
+    },
+    {
       "family": "Cast Iron - Ductile",
       "alloy": "Ductile Cast Iron",
       "condition": "grade 60-40-18",
