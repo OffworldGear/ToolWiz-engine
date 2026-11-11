@@ -4825,7 +4825,7 @@
                 <line x1="${cx - rd_px}" y1="${yTip + 8}" x2="${cx + rd_px}" y2="${yTip + 8}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
                 <line x1="${cx - rd_px}" y1="${yTip + 4}" x2="${cx - rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>
                 <line x1="${cx + rd_px}" y1="${yTip + 4}" x2="${cx + rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>`;
-            dims += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${c.diaVal.toFixed(dec)} ${c.unit} (${c.nof || currentFlutes()} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
+            dims += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${c.diaVal.toFixed(dec)} ${c.unit} (${c.nof || (typeof currentFlutes === 'function' ? currentFlutes() : '?')} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
 
             // 6. Explicit Taper Beginning & Ending Markers on the Tool!
             if (taperSegs.length > 0) {
@@ -5431,7 +5431,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
                 <line x1="${cx - rd_px}" y1="${yTip + 8}" x2="${cx + rd_px}" y2="${yTip + 8}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
                 <line x1="${cx - rd_px}" y1="${yTip + 4}" x2="${cx - rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>
                 <line x1="${cx + rd_px}" y1="${yTip + 4}" x2="${cx + rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>`;
-            svgContent += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${diaVal.toFixed(dec)} ${unit} (${currentFlutes()} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
+            svgContent += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${diaVal.toFixed(dec)} ${unit} (${typeof currentFlutes === 'function' ? currentFlutes() : '?'} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
 
             // 6. Explicit Taper Beginning & Ending Markers on Tool
             if (effShankDia > effNeckDia + 1e-4) {
