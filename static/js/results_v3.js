@@ -62,12 +62,18 @@
             <button type="button" class="btn-ratio v3-btn" onclick="applyRecommendations()">Show it on the sliders</button></div>`;
     }
 
-    function runoutCard(res) {
+    /** Flute count: the response's own count if it sends one, else the page's single flute value (currentFlutes()). */
+    function fluteCount(res) {
+        const own = parseInt(res && (res.flutes != null ? res.flutes : res.number_of_flutes));
+        if (own > 0) return own;
+        return typeof currentFlutes === 'function' ? currentFlutes() : (parseInt(($('flutes_val') || {}).value) || null);
+    }
+    function runoutCard(res, nfOverride, runoutOverride) {
         if (!res.runout_regime && res.flutes_cutting == null && res.tir_all_flutes_in == null) return '';
-        const nf = parseInt(($('flutes') && $('flutes').value) || ($('flutes_val') && $('flutes_val').value)) || null;
+        const nf = nfOverride || fluteCount(res);
         const cutting = res.flutes_cutting;
         const all = res.runout_regime === 'all_flutes' || (nf && cutting != null && cutting >= nf);
-        const runout = (typeof runoutInches !== 'undefined') ? runoutInches : null;
+        const runout = runoutOverride != null ? runoutOverride : ((typeof runoutInches !== 'undefined') ? runoutInches : null);
         const head = cutting != null
             ? `${cutting}${nf ? ' of ' + nf : ''} flute${(nf || cutting) > 1 ? 's' : ''} cutting`
             : (all ? 'All flutes cutting' : 'Reduced flutes cutting');
@@ -76,11 +82,11 @@
             : `At your runout of <strong>${T.len(runout)}</strong> only ${cutting != null ? cutting : 'some'}${nf ? ' of ' + nf : ''} flute${cutting === 1 ? '' : 's'} form a chip; the rest rub.`);
         if (T.finite(res.tir_all_flutes_in)) parts.push(all ? `All flutes would still cut up to <strong>${T.len(res.tir_all_flutes_in)}</strong> runout.` : `All flutes cut at runout of <strong>${T.len(res.tir_all_flutes_in)}</strong> or less.`);
         if (T.finite(res.runout_ratio)) parts.push(`Tooth-to-tooth offset is ${T.pct(res.runout_ratio)} of the chip load${res.runout_ratio > 0.25 ? ' (above the 25 % an all-flute cut tolerates)' : ''}.`);
-        const dia = res.diameter || null;
         return `<div class="v3-row"><div>
             <div class="v3-title"><span class="v3-pill ${all ? 'ok' : 'warn'}">${T.esc(head)}</span> Runout effect</div>
             <div class="v3-sub">${parts.join(' ')}</div></div></div>`;
     }
+    window.runoutCardHtml = runoutCard;
 
     function stockCard(res) {
         const r = res.recommended_radial_stock_in, a = res.recommended_axial_stock_in;

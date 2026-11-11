@@ -96,3 +96,43 @@ class TestWebV3(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(NODE, "node not installed")
+class TestRunoutCardFlutes(unittest.TestCase):
+    """The runout card must count flutes from the same value the request sends (flutes_val), not a stale default."""
+
+    def run_card(self, response, flutes_val="2", stale_range="4"):
+        js = r"""
+        const vm = require('vm'), fs = require('fs'), path = require('path');
+        const root = %s;
+        const els = { flutes_val: { value: %s }, flutes: { value: %s } };
+        const ctx = { document: { getElementById: id => els[id] || null }, isMetric: false, runoutInches: 0.0002, console };
+        ctx.window = ctx; ctx.esc = v => String(v == null ? '' : v);
+        vm.createContext(ctx);
+        vm.runInContext("function currentFlutes(){const n=parseInt(document.getElementById('flutes_val')?.value); if(n>0) return n; const r=parseInt(document.getElementById('flutes')?.value); return r>0?r:2;}", ctx);
+        for (const f of ['tw_common', 'results_v3']) vm.runInContext(fs.readFileSync(path.join(root, 'static', 'js', f + '.js'), 'utf8'), ctx);
+        process.stdout.write(ctx.runoutCardHtml(%s));
+        """ % (json.dumps(ROOT), json.dumps(flutes_val), json.dumps(stale_range), json.dumps(response))
+        out = subprocess.run([NODE, "-e", js], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        return out.stdout
+
+    RES = {"flutes_cutting": 1, "runout_regime": "reduced_flutes", "tir_all_flutes_in": 0.000196, "runout_ratio": 0.66}
+
+    def test_two_flute_tool_says_of_2_even_if_range_slider_is_stale(self):
+        html = self.run_card(self.RES, flutes_val="2", stale_range="4")
+        self.assertIn("1 of 2 flutes cutting", html)
+        self.assertNotIn("of 4", html)
+
+    def test_response_flute_count_wins(self):
+        html = self.run_card(dict(self.RES, flutes=3), flutes_val="2")
+        self.assertIn("1 of 3 flutes cutting", html)
+
+    def test_page_sends_and_draws_the_same_flute_value(self):
+        html = app_module.app.test_client().get("/").get_data(as_text=True)
+        self.assertIn("function currentFlutes()", html)
+        self.assertIn("flutes: currentFlutes(),", html)
+        self.assertNotIn("flutes: document.getElementById('flutes').value", html)
+        self.assertNotIn("parseInt(document.getElementById('flutes')?.value) || 1", html)
+        self.assertNotIn("(4 FL)", html)

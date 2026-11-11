@@ -1731,6 +1731,15 @@
             return FUSION_TYPE_BY_GEOMETRY[geo] || 'flat end mill';
         }
 
+        // One flute count for the whole page: the number field is authoritative (it is what buildFusionTool sends as NOF);
+        // the range slider only goes to 10 and can lag behind it.
+        function currentFlutes() {
+            const n = parseInt(document.getElementById('flutes_val')?.value);
+            if (n > 0) return n;
+            const r = parseInt(document.getElementById('flutes')?.value);
+            return r > 0 ? r : 2;
+        }
+
         function isGroupShown(id) {
             const el = document.getElementById(id);
             return !!el && el.style.display !== 'none';
@@ -3964,7 +3973,7 @@
             const dia = parseFloat(document.getElementById('diameter')?.value) || 0;
             const summary = res ? [
                 `<strong>${esc(document.getElementById('family')?.value)}</strong> &middot; ${esc(document.getElementById('operation')?.value)}`,
-                `${esc(toolName)} &Oslash;${esc(dia)} ${u} &times; ${esc(document.getElementById('flutes')?.value)}fl`,
+                `${esc(toolName)} &Oslash;${esc(dia)} ${u} &times; ${esc(currentFlutes())}fl`,
                 `${esc(res.rpm)} RPM &middot; ${esc(conv(res.feedrate).toFixed(isMetric ? 0 : 1))} ${isMetric ? 'mm/min' : 'IPM'}`,
                 `Predicted: deflection ${esc(conv(res.deflection).toFixed(isMetric ? 4 : 5))} ${u}, springback ${esc(conv(res.springback).toFixed(isMetric ? 4 : 5))} ${u}, total error ${esc(conv(res.total_error).toFixed(isMetric ? 4 : 5))} ${u}`
             ].join('<br>') : '';
@@ -3992,7 +4001,7 @@
                 operation: document.getElementById('operation')?.value || '',
                 tool_description: document.getElementById('tool')?.value || '',
                 diameter_in: toIn(parseFloat(document.getElementById('diameter')?.value) || 0),
-                flutes: parseInt(document.getElementById('flutes')?.value) || 1,
+                flutes: currentFlutes(),
                 stickout_in: toIn(parseFloat(document.getElementById('stickout_val')?.value) || 0),
                 rpm: res.rpm,
                 feed_ipm: res.feedrate,
@@ -4114,7 +4123,7 @@
                 maxHp: parseFloat(document.getElementById('maxHp').value),
                 runout: p_runout,
                 diameter: p_dia,
-                flutes: document.getElementById('flutes').value,
+                flutes: currentFlutes(),
                 pitch: p_pitch,
                 tapType: isTap ? geo : (document.getElementById('tapType')?.value || "form"),
                 isMetric: isMetric,
@@ -4225,7 +4234,7 @@
                     
                     let out_ipt = isMetric ? res.adj_ipt * 25.4 : res.adj_ipt;
                     let out_bipt = isMetric ? res.base_ipt * 25.4 : res.base_ipt;
-                    let p_flutes_num = parseInt(document.getElementById('flutes')?.value) || 2;
+                    let p_flutes_num = currentFlutes();
                     let out_ipr = res.ipr ? (isMetric ? res.ipr * 25.4 : res.ipr) : (out_ipt * p_flutes_num);
                     
                     document.getElementById('adj_ipt').innerText = out_ipt.toFixed(isMetric ? 4 : 5);
@@ -4816,7 +4825,7 @@
                 <line x1="${cx - rd_px}" y1="${yTip + 8}" x2="${cx + rd_px}" y2="${yTip + 8}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
                 <line x1="${cx - rd_px}" y1="${yTip + 4}" x2="${cx - rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>
                 <line x1="${cx + rd_px}" y1="${yTip + 4}" x2="${cx + rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>`;
-            dims += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${c.diaVal.toFixed(dec)} ${c.unit} (${c.nof || 4} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
+            dims += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${c.diaVal.toFixed(dec)} ${c.unit} (${c.nof || currentFlutes()} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
 
             // 6. Explicit Taper Beginning & Ending Markers on the Tool!
             if (taperSegs.length > 0) {
@@ -5422,7 +5431,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
                 <line x1="${cx - rd_px}" y1="${yTip + 8}" x2="${cx + rd_px}" y2="${yTip + 8}" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrowCyan)" marker-end="url(#arrowCyan)"/>
                 <line x1="${cx - rd_px}" y1="${yTip + 4}" x2="${cx - rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>
                 <line x1="${cx + rd_px}" y1="${yTip + 4}" x2="${cx + rd_px}" y2="${yTip + 12}" stroke="#0284c7" stroke-width="1"/>`;
-            svgContent += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${diaVal.toFixed(dec)} ${unit} (4 FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
+            svgContent += dimBadge(cx, yTip + 26, `Cutter Ø (DC): ${diaVal.toFixed(dec)} ${unit} (${currentFlutes()} FL)`, '#38bdf8', 'rgba(15, 23, 42, 0.95)', '#0284c7', 'middle', 9.5);
 
             // 6. Explicit Taper Beginning & Ending Markers on Tool
             if (effShankDia > effNeckDia + 1e-4) {
