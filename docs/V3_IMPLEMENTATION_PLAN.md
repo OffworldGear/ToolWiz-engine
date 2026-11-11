@@ -153,7 +153,11 @@ any slotting data useful for tab milling. Same schema and citation rules.
 comparison; stock-to-leave advice for true-to-size parts tied to the deflection model.
 
 **WP-B2 T-slot and v1 clean-up (owner: `gwizard_physics.py`, T-slot parts of `pipeline.py`,
-`tests/test_tslot_*.py`).** Up/down (face) cutting for T-slot and keyseat cutters; conformance
+`tests/test_tslot_*.py`).** Up/down (face) cutting for T-slot and keyseat cutters. Owner decision
+2026-11-11: staggered-tooth keyseat cutters (Harvey: "relieved to allow cutting on both sides of
+head") are the up/down cutter class. Teeth alternate faces, so each face (and each periphery side
+under a staggered layout) has about half the teeth: axial face cutting uses `teeth_per_face = z/2`
+for feed per tooth, and peripheral slotting chip load follows the vendor's staggered-tooth data; conformance
 against `tests/benchmarks/tslot/`; M6 of REVIEW Part 5.4 (roughing limit step, ramp from the
 un-thinned chip load, docstring).
 
