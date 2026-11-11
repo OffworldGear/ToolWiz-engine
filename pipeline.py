@@ -95,6 +95,13 @@ class CutRequest:
     model: Optional[str] = None
     machine_profile: Optional[Dict[str, Any]] = None   # active machine profile (v2 spindle/holder data)
     feature_geometry: Optional[Dict[str, Any]] = None  # live B-Rep geometry from cam_geometry_inspector
+    # T-slot / keyseat / woodruff cutters (tslot_model); all optional
+    tooth_form: Optional[str] = None                 # "straight" | "staggered" | None (unknown -> staggered)
+    cutting_faces: Optional[List[str]] = None        # subset of periphery / top / bottom
+    teeth_per_face: Optional[int] = None
+    tslot_operation: str = "full_slot"               # full_slot | side_cut | both_sides | axial_step
+    slot_height: Optional[float] = None              # finished slot height along Z (in)
+    radial_depth_total: Optional[float] = None       # total radial depth wanted (in)
 
 
 @dataclass
@@ -155,6 +162,7 @@ class CutResult:
     v2: Optional[Dict[str, Any]] = None   # v2 details: binding limits, checks, warnings, provenance
     feature_geometry: Optional[Dict[str, Any]] = None
     corner_feed_ipm: Optional[float] = None
+    tslot: Optional[Dict[str, Any]] = None  # tslot_model output for T-slot / keyseat / woodruff cutters
 
 
 def _ratio(after: float, before: float) -> float:
@@ -680,6 +688,9 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         shank_diameter=r.shank_diameter, neck_diameter=r.neck_diameter,
         profile=r.profile.to_dict() if r.profile is not None else None,
     )
+    if ctx.is_saw:
+        import tslot_model
+        tslot_model.apply_to_result(result, tslot_model.run_for_request(physics, r), r)
     if req.model == "v2":
         import v2_bridge
         result = v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
