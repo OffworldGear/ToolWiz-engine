@@ -9,6 +9,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.exceptions import HTTPException
 from gwizard_physics import GWizardPhysics, is_tap_tool_type, is_drilling_tool_type
 from pipeline import CutRequest, run_cut
+from toolwiz_common.tool_strategy import plan_strategies, slot_faces
 from ai_machinist import query_ai_machinist, get_available_gemini_models
 from toolwiz_common import (
     ToolKind, classify, is_hole_kind, is_tap_kind, is_milling_kind,
@@ -1429,9 +1430,19 @@ def twin_batch_generate():
                 
             elif is_milling:
                 mill_db_tool = _batch_db_tool_type(kind, t_dict, is_carbide)
-                for strat in strategies:
+                jobs, job_reasons = plan_strategies(kind, t_dict, list(strategies))
+                for why in job_reasons:
+                    skipped.append({"tool_index": idx, "number": tool_number,
+                                    "description": t_dict.get("description", ""), "type": t_dict.get("type", ""),
+                                    "reason": why})
+                if not jobs:
+                    continue    # nothing valid for this tool type: leave the tool untouched
+                tooth_form, cut_faces = slot_faces(t_dict) if kind is ToolKind.SLOT else (None, None)
+                for job in jobs:
+                    strat = job["label"]
+                    is_axial = job["tslot_operation"] == "axial_step"
                     res = run_cut(physics, CutRequest(
-                        family=family, alloy=alloy, tool=mill_db_tool, geometry=geometry, operation=strat,
+                        family=family, alloy=alloy, tool=mill_db_tool, geometry=geometry, operation=job["operation"],
                         coating=coating, diameter=diameter, flutes=flutes, flute_length=flute_len,
                         shank_diameter=shank_dia, corner_radius=corner_rad, stickout=stickout,
                         cutter_thickness=flute_len, is_carbide=is_carbide, aggressiveness=aggressiveness,
@@ -1439,6 +1450,10 @@ def twin_batch_generate():
                         fusion_tool=_fusion_payload(t_dict),
                         model=_request_model(req_data),
                         machine_profile=active_machine(),
+                        **({"tslot_operation": job["tslot_operation"], "tooth_form": tooth_form,
+                            "cutting_faces": cut_faces,
+                            # the Z step does not depend on the slot height, but is 0 for a one-level slot
+                            "slot_height": 2.0 * flute_len if is_axial else None} if job["tslot_operation"] else {}),
                     ))
                     if not res.feasible:
                         skipped.append({
@@ -1453,6 +1468,14 @@ def twin_batch_generate():
 
                     rec_doc, rec_woc = res.doc, res.woc
                     rpm, adj_ipt, feedrate, actual_sfm = res.rpm, res.adj_ipt, res.feed_ipm, res.sfm
+                    if job["tslot_operation"]:
+                        # T-slot: stepdown = kerf (the head's cutting width), stepover = radial depth per pass.
+                        # Axial step: stepdown = Z step; the Z feed is the preset feed, so f_z is the value
+                        # that reproduces it (v_f = n x f_z x flutes).
+                        rec_woc = res.tslot["radial_depth_per_pass_in"]
+                        rec_doc = res.tslot["axial_plan"]["z_step_in"] if is_axial else res.tslot["geometry"]["kerf"]
+                        if is_axial and rpm > 0:
+                            adj_ipt = feedrate / (rpm * flutes)
                     ramp_angle, ramp_feed, plunge_feed = res.ramp_angle, res.ramp_feed, res.plunge_feed
 
                     wear_comp_note = ""
