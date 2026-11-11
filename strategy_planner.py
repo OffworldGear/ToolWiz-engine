@@ -16,10 +16,11 @@ Cycle time = cutting path / feed + ramp entries + links (see ``_levels``), with 
 ``LINK_FEED_FACTOR`` x cutting feed capped at the machine's maximum cutting feed, rapid and retract height from
 the machine profile (defaults: 50 m/min, 0.1 in).
 
-Tool wear: per phase, in-cut minutes / ``life`` where ``life = (v_life / v_used)^(1/n) x (0.5 / edge_fraction)``,
-``v_life`` is physics_v2's Taylor speed (``optimize.taylor_speed_m_min``) at the phase's engagement angle with
-the 50 % aggressiveness speed scale (the baseline), ``v_used`` the SFM ToolWiz chose, ``n`` = ``material.taylor_n``
-and ``edge_fraction = engagement angle / 2 pi``. Wear per part is normalized so the least-wear option is 1.0.
+Tool wear: per phase, in-cut minutes / ``life`` where ``life = min((v_life / v_used)^(1/n), 10)``; ``v_life`` is
+physics_v2's Taylor speed (``optimize.taylor_speed_m_min``) at the phase's engagement angle with the 50 %
+aggressiveness speed scale (it already credits light engagement), ``v_used`` the SFM ToolWiz chose, ``n`` =
+``material.taylor_n``. With logged tool lives (cutlog) v_life and n are measured. Wear per part is normalized so the
+least-wear option is 1.0. ``wear_confidence`` is "low" on the placeholder exponent, "measured" with a calibration.
 """
 from __future__ import annotations
 
@@ -188,7 +189,7 @@ def _validate(request: Dict[str, Any]) -> Dict[str, Any]:
     if len(cands) > MAX_CANDIDATES:
         raise ValueError(f"at most {MAX_CANDIDATES} candidate tools")
     return {"family": family, "alloy": str(request.get("alloy") or ""), "aggressiveness": float(agg),
-            "runout": float(runout), "model": model, "feature": feat, "candidates": cands, "ftype": ftype}
+            "runout": float(runout), "model": model, "use_cutlog": request.get("use_cutlog", True) is not False, "feature": feat, "candidates": cands, "ftype": ftype}
 
 
 def _feature_dims(feat: Dict[str, Any], ftype: str) -> Dict[str, Any]:
@@ -235,7 +236,9 @@ def _run(physics, req, tool, operation, machine, cut_depth=None, cut_width=None)
 
 
 def _material(physics, req):
-    """physics_v2 Material for the request's family at its alloy hardness (None when the family isn't calibrated)."""
+    """LifeModel for the request: physics_v2 Material for the family at its alloy hardness (None when the family
+    isn't calibrated) plus the shop's measured tool-life calibration when there is enough logged data."""
+    mat = None
     try:
         from physics_v2 import params
         hb = None
@@ -243,9 +246,17 @@ def _material(physics, req):
             hb = physics.resolve_alloy_hardness(req["family"], req["alloy"]) if req["alloy"] else None
         except Exception:
             hb = None
-        return params.material(req["family"], hb=hb, coating=req.get("coating"))
+        mat = params.material(req["family"], hb=hb, coating=req.get("coating"))
     except Exception:
-        return None
+        mat = None
+    cal = None
+    if req.get("use_cutlog", True):
+        try:
+            import cutlog
+            cal = cutlog.toollife_calibration(req["family"])
+        except Exception:
+            cal = None
+    return LifeModel(mat, cal, req["family"])
 
 
 def _engagement_angle(ae: float, d: float) -> float:
@@ -255,26 +266,63 @@ def _engagement_angle(ae: float, d: float) -> float:
     return math.acos(max(-1.0, min(1.0, 1.0 - 2.0 * ae / d)))
 
 
-def _life(material, sfm: float, d: float, ae: float) -> Dict[str, Optional[float]]:
-    """Relative tool life of one phase (dimensionless, 1.0 = a full slot cut at the 50 % baseline speed).
+class LifeModel:
+    """Tool-life model for one request: the v2 Material (Taylor law) and, when the shop has logged enough tool
+    lives for this family (cutlog.toollife_calibration), the measured calibration. ``confidence`` is "measured"
+    with a calibration, else "low" because material.taylor_n is a literature placeholder."""
 
-    ``taylor`` = (v_life / v_used)^(1/n) with v_life = optimize.taylor_speed_m_min at the phase's engagement
-    angle, T/T_ref = 1 and the 50 % consensus speed scale; ``edge_fraction`` = engagement angle / 2 pi;
-    ``life`` = taylor x 0.5 / edge_fraction (a slot, edge fraction 0.5, has life = taylor). ``taylor`` is capped at
-    ``TAYLOR_LIFE_CAP`` x the baseline: when the spindle's rpm limit holds the speed far below the tool-life speed
-    (small tools, aluminium) the Taylor law extrapolates to absurd lives (>1000x); beyond that other wear modes
-    (chipping, built-up edge, breakage) dominate, so no further credit is given."""
+    def __init__(self, material, cal=None, family=""):
+        self.material, self.cal, self.family = material, cal, family
+
+    @property
+    def confidence(self) -> str:
+        return "measured" if self.cal else "low"
+
+    def why(self) -> str:
+        if self.cal:
+            c = self.cal
+            fit = f"Taylor exponent fitted from the records (n = {c['taylor_n']:.2f})" if c.get("taylor_n") else \
+                f"measured median life {c['life_ref_min']:.0f} min at {c['v_ref_sfm']:.0f} SFM, exponent from the model"
+            return f"{c['n_records']} logged tool lives for {self.family}: {fit}."
+        n = self.material.taylor_n if self.material is not None else None
+        return (f"material.taylor_n = {n if n is not None else '?'} is a literature placeholder (one Ti-6Al-4V paper, "
+                f"carbide range 0.2-0.5) and no measured tool lives are logged for {self.family or 'this family'}; "
+                f"log tool lives at POST /api/toollife (at least {_min_life()} per family) to calibrate.")
+
+
+def _min_life() -> int:
+    try:
+        import cutlog
+        return cutlog.MIN_LIFE_RECORDS
+    except Exception:
+        return 3
+
+
+def _life(model, sfm: float, d: float, ae: float) -> Dict[str, Optional[float]]:
+    """Relative tool life of one phase (dimensionless), one consistent model.
+
+    ``taylor`` = (v_life / v_used)^(1/n): v_used is the SFM ToolWiz chose; v_life is the speed at which the tool
+    reaches the reference life for THIS engagement, physics_v2.optimize.taylor_speed_m_min at the phase's engagement
+    angle (it already contains the engagement speed factor, so a light cut has a higher v_life) with T/T_ref = 1
+    and the 50 % consensus speed scale. n = material.taylor_n. With a shop calibration, v_life is the measured
+    SFM and n the fitted exponent when there is one. ``taylor`` is capped at TAYLOR_LIFE_CAP: when the spindle's
+    rpm limit holds a small tool far below its life speed the law extrapolates to absurd lives (>1000x); beyond the
+    cap other wear modes (chipping, built-up edge, breakage) dominate, so no more is credited. Wear of the phase
+    = in-cut minutes / life (no separate engagement-time factor: the engagement is already in v_life)."""
     phi = _engagement_angle(ae, d)
-    edge = phi / (2.0 * math.pi)
-    if material is None or sfm <= 0:
-        return {"taylor": None, "edge_fraction": edge, "life": None, "phi_deg": math.degrees(phi)}
-    from physics_v2 import optimize as o
-    v_life = o.taylor_speed_m_min(material, phi, 1.0, d * MM_PER_IN, o.consensus_scale(BASELINE_AGGRESSIVENESS))
+    material, cal = model.material, model.cal
+    if sfm <= 0 or (material is None and not cal):
+        return {"taylor": None, "taylor_raw": None, "life": None, "phi_deg": math.degrees(phi)}
     v_used = sfm / FT_PER_M
-    raw = (v_life / v_used) ** (1.0 / material.taylor_n)
+    n = (cal or {}).get("taylor_n") or (material.taylor_n if material is not None else 0.25)
+    if cal:
+        v_life = cal["v_ref_sfm"] / FT_PER_M
+    else:
+        from physics_v2 import optimize as o
+        v_life = o.taylor_speed_m_min(material, phi, 1.0, d * MM_PER_IN, o.consensus_scale(BASELINE_AGGRESSIVENESS))
+    raw = (v_life / v_used) ** (1.0 / n)
     taylor = min(raw, TAYLOR_LIFE_CAP)
-    return {"taylor": taylor, "taylor_raw": raw, "edge_fraction": edge, "life": taylor * 0.5 / edge,
-            "phi_deg": math.degrees(phi)}
+    return {"taylor": taylor, "taylor_raw": raw, "life": taylor, "phi_deg": math.degrees(phi)}
 
 
 def allowed_wear_ratio(aggressiveness: float) -> float:
@@ -412,7 +460,6 @@ def _phase(name, res, tool, material, *, cut_min, ramp_min, ae, ap, note=""):
     return {"name": name, "operation": res.operation, "rpm": round(res.rpm), "sfm": round(res.sfm, 1),
             "feed_ipm": round(res.feed_ipm, 3), "fz_in": round(res.adj_ipt, 6), "ap": round(ap, 5), "ae": round(ae, 5),
             "in_cut_min": cut_min + ramp_min, "engagement_angle_deg": round(life["phi_deg"], 1),
-            "edge_fraction": round(life["edge_fraction"], 4),
             "taylor_life_ratio": None if life["taylor"] is None else round(life["taylor"], 3),
             "taylor_life_ratio_uncapped": None if life["taylor"] is None else round(life["taylor_raw"], 3),
             "relative_life": None if life["life"] is None else round(life["life"], 3), "note": note,
@@ -689,39 +736,49 @@ def _rank(options: List[Dict[str, Any]], agg: float) -> Tuple[Optional[Dict[str,
     return best, reasoning, allowed, least
 
 
-def _reasoning(options, best, allowed, agg, ftype) -> List[str]:
+def _reasoning(options, best, allowed, agg, ftype, model=None) -> List[str]:
+    """Reasoning lines: the time difference first, then the wear estimate with its confidence, then the fastest
+    option named as the alternative when it is not the recommendation, then the other options and the risks."""
     lines: List[str] = []
     if best is None:
         lines.append("No option could be recommended: every option is infeasible or has no tool-life estimate (see each option's risks).")
         return lines
+    conf = model.confidence if model is not None else "low"
     feas = [o for o in options if o["feasible"]]
-    fastest_all = min(feas, key=lambda o: o["cycle_time_min"])
+    fastest = min(feas, key=lambda o: o["cycle_time_min"])
     least = min((o for o in feas if o.get("tool_wear_per_part")), key=lambda o: o["tool_wear_per_part"])
-    lines.append(f"Rule: choose the fastest option whose wear per part is within {allowed:.2f}x of the least-wear option "
-                 f"(aggressiveness {agg:.2f}: 1.1 at 0, 1.3 at 0.5, 2.0 at 1.0).")
-    if best is least:
-        lines.append(f"Recommended: {best['name']} - {best['cycle_time_min']:.2f} min per part, and it is also the least-wear "
-                     f"option (wear per part 1.00).")
+    others = [o for o in feas if o is not best]
+    # 1. time
+    if others:
+        slowest = max(others, key=lambda o: o["cycle_time_min"])
+        parts = [f"{o['name']} {o['cycle_time_min']:.2f} min" for o in sorted(others, key=lambda o: o["cycle_time_min"])]
+        lines.append(f"Time: recommended {best['name']} takes {best['cycle_time_min']:.2f} min per part; the others take "
+                     f"{'; '.join(parts)} (up to {slowest['cycle_time_min'] / best['cycle_time_min']:.1f}x as long as the recommendation).")
+        if best is not fastest:
+            lines.append(f"Time difference to the fastest option ({fastest['name']}, {fastest['cycle_time_min']:.2f} min): "
+                         f"the recommendation is {best['cycle_time_min'] - fastest['cycle_time_min']:.2f} min per part slower.")
     else:
-        saved = (1.0 - best["cycle_time_min"] / least["cycle_time_min"]) * 100.0
-        lines.append(f"Recommended: {best['name']} - {best['cycle_time_min']:.2f} min per part, wear per part "
-                     f"{best['tool_wear_per_part']:.2f}x the least-wear option ({least['name']}, {least['cycle_time_min']:.2f} min).")
-        lines.append(f"Time saved versus the least-wear option: {least['cycle_time_min'] - best['cycle_time_min']:.2f} min per part "
-                     f"({saved:.0f}% less) at the cost of {best['tool_wear_per_part']:.2f}x the tool wear per part.")
-    if fastest_all is not best:
-        lines.append(f"Faster but rejected: {fastest_all['name']} ({fastest_all['cycle_time_min']:.2f} min) wears the tool "
-                     f"{fastest_all['tool_wear_per_part']:.2f}x the least-wear option, above the {allowed:.2f}x limit.")
-    slower = [o for o in feas if o is not best]
-    for o in sorted(slower, key=lambda o: o["cycle_time_min"]):
-        if o is fastest_all and fastest_all is not best:
-            continue
+        lines.append(f"Time: {best['name']} is the only feasible option, {best['cycle_time_min']:.2f} min per part.")
+    # 2. wear with confidence
+    why = model.why() if model is not None else ""
+    lines.append(f"Wear (confidence: {conf}): the recommendation wears the tool {best['tool_wear_per_part']:.2f}x the least-wear option "
+                 f"({least['name']}{', itself' if best is least else ''}); allowed {allowed:.2f}x at aggressiveness {agg:.2f} "
+                 f"(1.1 at 0, 1.3 at 0.5, 2.0 at 1.0). {why}")
+    if conf == "low":
+        lines.append("Because the wear estimate is low-confidence, weigh the time difference above more than the wear ratio.")
+    # 3. fastest as the alternative
+    if fastest is not best:
+        lines.append(f"Alternative: the fastest option is {fastest['name']} ({fastest['cycle_time_min']:.2f} min); it was not chosen "
+                     f"because it wears the tool {fastest['tool_wear_per_part']:.2f}x the least-wear option, above the {allowed:.2f}x limit.")
+    elif best is not least:
+        lines.append(f"Alternative: the least-wear option is {least['name']} ({least['cycle_time_min']:.2f} min, wear 1.00x).")
+    for o in sorted(others, key=lambda o: o["cycle_time_min"]):
         lines.append(f"{o['name']}: {o['cycle_time_min']:.2f} min, wear {o['tool_wear_per_part']:.2f}x.")
     for o in options:
         if not o["feasible"]:
-            why = o.get("critical") or o["risks"][:1]
-            lines.append(f"{o['name']} excluded: not feasible ({'; '.join(why)}).")
-    warn = [f"{best['name']}: {r}" for r in best["risks"]]
-    lines.extend(warn)
+            w = o.get("critical") or o["risks"][:1]
+            lines.append(f"{o['name']} excluded: not feasible ({'; '.join(w)}).")
+    lines.extend(f"{best['name']}: {r}" for r in best["risks"])
     return lines
 
 
@@ -732,7 +789,7 @@ def _reasoning(options, best, allowed, agg, ftype) -> List[str]:
 def _compare_endmill(req, dims, physics, machine, m):
     ftype = req["ftype"]
     tools = sorted((_tool_spec(t, i) for i, t in enumerate(req["candidates"])), key=lambda t: -t["diameter"])
-    material = _material(physics, req)
+    material = req["_life_model"]
     options: List[Dict[str, Any]] = []
     skipped: List[str] = []
     assumptions: List[str] = []
@@ -794,10 +851,10 @@ def _common_assumptions(m: _M, req, ftype) -> List[str]:
         "no ramp) + links (3D tab lifts at link feed, 2D tab retracts at rapid, trochoid return arcs at link feed) + one approach "
         "and retract. Levels of equal depth = ceil(depth / ToolWiz ap); each level starts with one ramp entry, the ramp's horizontal "
         "run replaces cutting length on that level. Tool changes, part load/unload, tab removal and air time between parts are not included.",
-        "Tool life: in-cut minutes / life, life = (v_life / v_used)^(1/n) x 0.5 / (engagement angle / 2 pi). v_life is the v2 Taylor "
+        "Tool life: in-cut minutes / life, life = min((v_life / v_used)^(1/n), 10). v_life is the v2 Taylor "
         "speed (physics_v2.optimize.taylor_speed_m_min) at that phase's engagement angle with the 50 % speed scale; v_used the SFM ToolWiz chose; "
-        "n = the family's taylor_n (a placeholder, carbide range 0.2-0.5). The Taylor ratio is capped at 10 x the baseline (when the spindle's rpm cap holds speed far below the life speed the law extrapolates to absurd lives). The edge-fraction term is an approximation (the Taylor "
-        "speed already credits light engagement, so adaptive's wear advantage may be overstated). Wear per part is normalized to the "
+        "n = the family's taylor_n (a placeholder, carbide range 0.2-0.5). The Taylor ratio is capped at 10 x (when the spindle's rpm cap holds speed far below the life speed the law extrapolates to absurd lives). The engagement is "
+        "counted once, inside v_life. Wear per part is normalized to the "
         "least-wear option = 1.0; only ratios mean anything.",
         "Recommendation rule: the fastest feasible option whose wear per part <= allowed ratio x least wear; allowed = 1.1 at "
         "aggressiveness 0, 1.3 at 0.5, 2.0 at 1.0 (linear between).",
@@ -830,6 +887,7 @@ def compare(request: Dict[str, Any], physics: Any = None, machine_profile: Optio
     machine = machine_defaults(machine_profile)
     m = _M(machine)
     ftype = req["ftype"]
+    req["_life_model"] = _material(physics, req)
     if ftype == "tslot":
         from strategy_tslot import compare_tslot
         out = compare_tslot(req, physics, machine, m)
@@ -841,7 +899,7 @@ def compare(request: Dict[str, Any], physics: Any = None, machine_profile: Optio
             o["cycle_time_min"] = round(o["cycle_time_min"], 4)
             o["cutting_minutes"] = round(o["cutting_minutes"], 4)
             o["time_breakdown_min"] = {k: round(v, 4) for k, v in o["time_breakdown_min"].items()}
-        reasoning = _reasoning(options, best, allowed, req["aggressiveness"], ftype)
+        reasoning = _reasoning(options, best, allowed, req["aggressiveness"], ftype, req["_life_model"])
         tab_adv = []
         if ftype == "profile_cutout":
             ap_eff = (best or options[0]).get("_ap_eff") or options[0]["ap"]
@@ -860,5 +918,6 @@ def compare(request: Dict[str, Any], physics: Any = None, machine_profile: Optio
         if o.get("relative_tool_life") is not None:
             o["relative_tool_life"] = round(o["relative_tool_life"], 3)
     out.update({"feature": {k: v for k, v in req["feature"].items()}, "family": req["family"], "alloy": req["alloy"],
-                "aggressiveness": req["aggressiveness"], "runout": req["runout"], "model": req["model"]})
+                "aggressiveness": req["aggressiveness"], "runout": req["runout"], "model": req["model"],
+                "wear_confidence": req["_life_model"].confidence, "wear_confidence_reason": req["_life_model"].why()})
     return out

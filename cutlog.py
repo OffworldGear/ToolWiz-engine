@@ -58,7 +58,33 @@ CREATE TABLE IF NOT EXISTS cutlog (
     source TEXT NOT NULL DEFAULT 'web'
 );
 CREATE INDEX IF NOT EXISTS idx_cutlog_family ON cutlog (family COLLATE NOCASE, id);
+CREATE TABLE IF NOT EXISTS toollife (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    family TEXT NOT NULL,
+    alloy TEXT,
+    operation TEXT NOT NULL,
+    tool_description TEXT,
+    diameter_in REAL NOT NULL,
+    flutes INTEGER NOT NULL,
+    rpm REAL NOT NULL,
+    feed_ipm REAL NOT NULL,
+    doc_in REAL,
+    woc_in REAL,
+    life_minutes REAL NOT NULL,
+    parts INTEGER,
+    end_reason TEXT NOT NULL,
+    notes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_toollife_family ON toollife (family COLLATE NOCASE, id);
 """
+
+# Tool-life records (table toollife): one row per tool, logged when it is retired.
+END_REASONS = ("worn", "chipped", "broken", "still_good")
+MIN_LIFE_RECORDS = 3          # records (same family) for a measured life
+MIN_FIT_RECORDS = 5           # records with >= 2 distinct speeds for a fitted Taylor exponent
+MIN_SPEED_SPREAD = 1.25       # fastest / slowest speed in the fit
+N_FIT_RANGE = (0.1, 0.6)      # a fitted exponent outside this is rejected (noise)
 
 _COLUMNS = [
     "id", "created_at", "family", "alloy", "operation", "tool_description", "tool_number",
@@ -437,4 +463,133 @@ def register(app, db_path=None):
     app.add_url_rule("/api/cutlog", "cutlog_create", create_cut, methods=["POST"])
     app.add_url_rule("/api/cutlog", "cutlog_list", list_cuts, methods=["GET"])
     app.add_url_rule("/api/cutlog/<int:cut_id>", "cutlog_delete", remove_cut, methods=["DELETE"])
+    def create_toollife():
+        try:
+            clean = validate_toollife(request.get_json(silent=True))
+        except ValidationError as e:
+            return _err(str(e))
+        return jsonify({"success": True, "id": insert_toollife(clean, path)}), 201
+
+    def list_toollife():
+        family = (request.args.get("family") or "").strip() or None
+        return jsonify({"success": True, "records": fetch_toollife(family, 1000, path),
+                        "calibration": toollife_calibration(family, path) if family else None})
+
+    def remove_toollife(row_id):
+        if not delete_toollife(row_id, path):
+            return _err("Record not found", 404)
+        return jsonify({"success": True})
+
+    app.add_url_rule("/api/toollife", "toollife_create", create_toollife, methods=["POST"])
+    app.add_url_rule("/api/toollife", "toollife_list", list_toollife, methods=["GET"])
+    app.add_url_rule("/api/toollife/<int:row_id>", "toollife_delete", remove_toollife, methods=["DELETE"])
     app.add_url_rule("/api/calibration", "cutlog_calibration", get_calibration, methods=["GET"])
+
+
+# --------------------------------------------------------------------------
+# Tool life records and calibration
+# --------------------------------------------------------------------------
+
+def validate_toollife(data):
+    """Validate a tool-life POST body. Required: family, operation, diameter_in, flutes, rpm, feed_ipm,
+    life_minutes (cutting minutes the tool lasted), end_reason (worn | chipped | broken | still_good);
+    optional alloy, tool_description, doc_in, woc_in, parts, notes. Raises ValidationError."""
+    if not isinstance(data, dict):
+        raise ValidationError("JSON object body required")
+    out = {
+        "family": _str(data, "family", 100, required=True),
+        "alloy": _str(data, "alloy", 200),
+        "operation": _str(data, "operation", 100, required=True),
+        "tool_description": _str(data, "tool_description", 300),
+        "diameter_in": _num(data, "diameter_in", 0, 6, lo_exclusive=True),
+        "flutes": _int(data, "flutes", 1, 100),
+        "rpm": _num(data, "rpm", 0, 60000, lo_exclusive=True),
+        "feed_ipm": _num(data, "feed_ipm", 0, 5000, lo_exclusive=True),
+        "doc_in": _num(data, "doc_in", 0, 6, lo_exclusive=True, required=False),
+        "woc_in": _num(data, "woc_in", 0, 6, lo_exclusive=True, required=False),
+        "life_minutes": _num(data, "life_minutes", 0, 100000, lo_exclusive=True),
+        "parts": _int(data, "parts", 0, 10000000, required=False),
+        "notes": _str(data, "notes", 2000),
+    }
+    er = data.get("end_reason")
+    if er not in END_REASONS:
+        raise ValidationError("end_reason must be one of " + ", ".join(END_REASONS))
+    out["end_reason"] = er
+    return out
+
+
+def insert_toollife(clean, db_path=None):
+    cols = list(clean.keys()) + ["created_at"]
+    vals = list(clean.values()) + [datetime.now(timezone.utc).isoformat(timespec="seconds")]
+    conn = _connect(db_path)
+    try:
+        cur = conn.execute(f"INSERT INTO toollife ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", vals)
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def fetch_toollife(family=None, limit=None, db_path=None):
+    """Newest-first tool-life rows as dicts, optionally for one family (case-insensitive)."""
+    sql, args = "SELECT * FROM toollife", []
+    if family:
+        sql += " WHERE family = ? COLLATE NOCASE"
+        args.append(family)
+    sql += " ORDER BY id DESC"
+    if limit:
+        sql += " LIMIT ?"
+        args.append(int(limit))
+    conn = _connect(db_path)
+    try:
+        return [dict(r) for r in conn.execute(sql, args).fetchall()]
+    finally:
+        conn.close()
+
+
+def delete_toollife(row_id, db_path=None):
+    conn = _connect(db_path)
+    try:
+        cur = conn.execute("DELETE FROM toollife WHERE id = ?", (row_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def toollife_calibration(family, db_path=None, rows=None):
+    """Measured tool life for a family from logged tools, or None when there is not enough data.
+
+    Uses rows ended 'worn' or 'chipped' (a 'broken' tool or a 'still_good' one says nothing about wear life).
+    Speed per record = pi x D x rpm / 12 (SFM). Returns ``{"basis", "n_records", "v_ref_sfm", "life_ref_min",
+    "taylor_n" (None unless fitted)}``:
+      * >= MIN_LIFE_RECORDS records: ``life_ref_min`` = median life, ``v_ref_sfm`` = median SFM of the records.
+      * additionally >= MIN_FIT_RECORDS records whose fastest/slowest SFM >= MIN_SPEED_SPREAD: ``taylor_n`` = -slope of
+        ln v against ln T (least squares), accepted only inside N_FIT_RANGE; ``basis`` = 'fit'.
+    """
+    rows = rows if rows is not None else fetch_toollife(family, db_path=db_path)
+    pts = []
+    for r in rows:
+        if r.get("end_reason") not in ("worn", "chipped"):
+            continue
+        v = math.pi * r["diameter_in"] * r["rpm"] / 12.0
+        if v > 0 and r["life_minutes"] > 0:
+            pts.append((v, r["life_minutes"]))
+    if len(pts) < MIN_LIFE_RECORDS:
+        return None
+    out = {"basis": "median", "n_records": len(pts), "v_ref_sfm": statistics.median(p[0] for p in pts),
+           "life_ref_min": statistics.median(p[1] for p in pts), "taylor_n": None}
+    vs = [p[0] for p in pts]
+    if len(pts) >= MIN_FIT_RECORDS and max(vs) / min(vs) >= MIN_SPEED_SPREAD:
+        xs = [math.log(p[1]) for p in pts]
+        ys = [math.log(p[0]) for p in pts]
+        mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+        sxx = sum((x - mx) ** 2 for x in xs)
+        if sxx > 0:
+            n = -sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx
+            if N_FIT_RANGE[0] <= n <= N_FIT_RANGE[1]:
+                out.update(basis="fit", taylor_n=n)
+                # anchor the line through the centroid: T at v_ref
+                out["v_ref_sfm"] = math.exp(my)
+                out["life_ref_min"] = math.exp(mx)
+    return out

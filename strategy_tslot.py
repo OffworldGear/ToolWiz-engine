@@ -83,7 +83,7 @@ def compare_tslot(req: Dict[str, Any], physics: Any, machine: Dict[str, Any], m:
         if v is None:
             raise ValueError(f"'feature.{nm}' is required for a tslot job (inches)")
     shop = tslot_model.load_shop_tools()
-    material = _material(physics, req)
+    material = req["_life_model"]
     hrc = _hrc(physics, req["family"], req["alloy"])
     options: List[Dict[str, Any]] = []
     for i, c in enumerate(req["candidates"]):
@@ -171,7 +171,6 @@ def compare_tslot(req: Dict[str, Any], physics: Any, machine: Dict[str, Any], m:
                         "sfm": round(full["sfm"], 1), "feed_ipm": round(lat, 3), "fz_in": round(full["chip_load_ipt"], 6),
                         "ap": round(g["kerf"], 5), "ae": round(ae, 5), "in_cut_min": cycle - t_pos,
                         "engagement_angle_deg": round(life["phi_deg"], 1),
-                        "edge_fraction": round(life["edge_fraction"], 4),
                         "taylor_life_ratio": None if life["taylor"] is None else round(life["taylor"], 3),
                         "taylor_life_ratio_uncapped": None if life["taylor"] is None else round(life["taylor_raw"], 3),
                         "relative_life": None if life["life"] is None else round(life["life"], 3), "note": ""}],
@@ -181,7 +180,7 @@ def compare_tslot(req: Dict[str, Any], physics: Any, machine: Dict[str, Any], m:
         o["cycle_time_min"] = round(o["cycle_time_min"], 4)
         o["cutting_minutes"] = round(o["cutting_minutes"], 4)
         o["time_breakdown_min"] = {k: round(v, 4) for k, v in o["time_breakdown_min"].items()}
-    reasoning = _reasoning(options, best, allowed, req["aggressiveness"], "tslot")
+    reasoning = _reasoning(options, best, allowed, req["aggressiveness"], "tslot", req["_life_model"])
     prem = [o for o in options if o["tool"].get("id") and str(o["tool"]["id"]).startswith("harvey")]
     if prem and best is not None:
         for p in prem:
