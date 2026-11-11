@@ -6,7 +6,8 @@ adaptive roughing and slotting, on the built-in Speedio (16k) profile, aggressiv
 
   (a) feed is non-increasing as runout goes 0, 0.00005, 0.0001, 0.0002, 0.0005", and the feed changes by less than 15 %
       between TIR = 0 and TIR = 0.1 x fz(TIR = 0) (continuity relative to the chip, not to an absolute runout)
-  (b) +10 % runout, stickout or aggressiveness changes the recommended depth, width and feed by less than 25 % each
+  (b) +10 % runout, stickout or aggressiveness changes the recommended depth, width and feed by less than 25 % each (the feed always; depth and width
+      below 1/16 in: less than 35 % or less than 0.1 x D absolute, whichever is larger)
   (c) no result has a feed per tooth under twice the rubbing limit (the C1 minimum chip), except where the vendor chip
       ceiling is below that floor and wins; the "Chip near the rubbing limit" warning must then be present
   (d) adaptive width of cut is at most 0.40 x D
@@ -27,6 +28,7 @@ OPERATIONS = ("Adaptive Roughing", "Slotting")
 RUNOUTS = (0.0, 0.00005, 0.0001, 0.0002, 0.0005)
 BASE_RUNOUT = 0.0002
 CONTINUITY_MAX, PERTURB_MAX, AE_ADAPTIVE_MAX = 0.15, 0.25, 0.40
+MICRO_PERTURB_MAX = 0.35
 
 
 def case_id(d, z, family, op):
@@ -99,8 +101,14 @@ def test_ten_percent_input_change_moves_the_cut_less_than_25_percent(sweep, case
     for key in ("ap", "ae", "feed"):
         if case[4] == "Slotting" and key == "ae":
             continue
-        change = abs(pert[key] - base[key]) / base[key]
-        assert change < PERTURB_MAX, f"{what}: {key} {base[key]:.5f} -> {pert[key]:.5f} ({change:.0%})"
+        diff = abs(pert[key] - base[key])
+        change = diff / base[key]
+        if key != "feed" and case[0] < 1 / 16 - 1e-9:
+            # planner, round 3: below 1/16 in, depth and width pass at < 35 % or < 0.1 x D absolute, whichever is larger
+            assert change < MICRO_PERTURB_MAX or diff < 0.1 * case[0], (
+                f"{what}: {key} {base[key]:.5f} -> {pert[key]:.5f} ({change:.0%})")
+        else:
+            assert change < PERTURB_MAX, f"{what}: {key} {base[key]:.5f} -> {pert[key]:.5f} ({change:.0%})"
 
 
 @pytest.mark.parametrize("case", CASES, ids=_ids())

@@ -438,7 +438,7 @@ def apply(physics, r, res, machine_profile=None):
     res.runout_ratio = cut.get("runout_ratio")
     _apply_ramp(res, out.get("ramp"), ratio)
     res.feasible = bool(out.get("feasible"))
-    res.limited_by = ", ".join(details["binding"]) or None
+    res.limited_by = ", ".join(details["binding"] + list(out.get("ae_below_envelope_min") or [])) or None
     res.provenance = []   # v1's multiplier chain no longer describes these numbers; see res.v2["provenance"]
     src = "your depth and width" if res.engagement_source == "user" else "the recommended depth and width"
     res.model_note = (f"v2 physics model ({op}, {src}): limited by {res.limited_by or 'none'}; "

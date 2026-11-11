@@ -227,6 +227,18 @@ class TestRound2(unittest.TestCase):
         self.assertEqual(r["engagement_source"], "user")
         self.assertIn("recommended_radial_stock_in", r)
 
+    def test_user_engagement_c3_is_advisory_up_to_twice_k_d(self):
+        # deep 1/8" 4130 slot: deflection between k*D and 2*k*D gives a warning, not a feed cut
+        r = run_cut(app.physics, req(0.125, 3, ST, "Slotting", coating="AlTiN", cut_depth=0.2, cut_width=0.125))
+        kd = 0.01 * 0.125
+        self.assertLessEqual(r.deflection, 2.0 * kd * 1.01)
+        if r.deflection > kd * 1.001:
+            self.assertTrue(any("exceeds k·D" in w for w in r.v2["warnings"]))
+            self.assertGreater(r.recommended_radial_stock_in, 1.5 * kd)
+        # the recommendation path keeps C3 = k*D hard
+        rec = run_cut(app.physics, req(0.125, 3, ST, "Slotting", coating="AlTiN"))
+        self.assertLessEqual(rec.deflection, kd * 1.01)
+
     def test_adaptive_call_is_fast_when_warm(self):
         import time
         import v2_bridge

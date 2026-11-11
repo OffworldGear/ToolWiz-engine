@@ -11,7 +11,8 @@ the material the family at the group's median hardness.
    group with the user's engagement at the group's median ap/D and ae/D. Pass when SFM is within [0.75 x group min,
    1.25 x group max] and fz within [0.60 x group min, 1.25 x group max], the min/max spanning every row's min, nominal and max
    values. When the group's minimum SFM needs more than the machine's 60,000 rpm at that diameter, SFM is compared against the
-   achievable value instead (reported as spindle-limited). Pass rate >= 90 % of groups overall, >= 85 % per operation and
+   achievable value instead (reported as spindle-limited). A group whose rows reach beyond the flutes without publishing a
+   neck diameter is excluded as "geometry incomplete" (listed in the report). Pass rate >= 90 % of groups overall, >= 85 % per operation and
    >= 85 % of the groups whose median diameter is at or below 1/16".
 2. Recommended engagement, per cell (family, operation, diameter band; >= 3 rows). The request carries no depth or width,
    on the cell's median geometry; the engine's ae/D must lie within [0.8 x cell min, 1.25 x cell max] (side, hem, rough) and
@@ -148,18 +149,21 @@ def span(rows, key):
 
 
 def median_tool(rows):
-    """Median geometry of the rows: (DC, LCF, flutes, helix, SFDM, stickout, neck, hardness HB, coating)."""
+    """Median geometry of the rows (DC, LCF, flutes, helix, SFDM, stickout = median LB or LCF + 0.5 x SFDM, median published
+    neck diameter, hardness HB, coating). `incomplete`: the reach is beyond the flutes but no row publishes a neck diameter."""
     D = med([float(r["tool"]["DC"]) for r in rows])
     lcf = med([float(r["tool"]["LCF"]) for r in rows])
     shank = med([float(r["tool"].get("SFDM") or r["tool"]["DC"]) for r in rows])
     lb = med([float(r["tool"]["LB"]) for r in rows if r["tool"].get("LB")])
     stick = max(lb if lb else lcf + 0.5 * shank, lcf)
     neck = bool(lb) and lb > lcf * 1.01
+    neck_d = med([float(r["tool"]["neck_diameter"]) for r in rows if r["tool"].get("neck_diameter")])
+    incomplete = neck and neck_d is None   # reach beyond the flutes but no published neck diameter
     flutes = int(round(med([int(r["tool"]["flutes"]) for r in rows])))
     helix = med([float(r["tool"].get("helix_deg") or 35.0) for r in rows])
     hb = med([pl.row_hb(r["material"].get("hardness")) for r in rows])
     coat = collections.Counter(r["tool"].get("coating") or "Uncoated" for r in rows).most_common(1)[0][0]
-    return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, flutes=flutes, helix=helix, hb=hb, coating=coat)
+    return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, neck_d=neck_d, incomplete=incomplete, flutes=flutes, helix=helix, hb=hb, coating=coat)
 
 
 def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
@@ -170,7 +174,7 @@ def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
         family=rows[0]["material"]["toolwiz_family"], alloy="vendor group", tool="HP Carbide Endmill",
         coating=g["coating"], geometry="Square", operation=OP_NAME[op], diameter=D, flutes=g["flutes"],
         flute_length=g["lcf"], shank_diameter=g["shank"], has_relieved_neck=g["neck"],
-        neck_diameter=D if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
+        neck_diameter=g["neck_d"] if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
         stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=0.0002,
         cut_depth=None if ap_over_d is None else min(ap_over_d * D, g["lcf"]),
         cut_width=None if ae_over_d is None else min(ae_over_d * D, D), model="v2", machine_profile=profile), g
@@ -269,10 +273,16 @@ def verdict(rows, out, d_override=None):
 def group_report(c):
     res = []
     for key, rows in sorted(c["groups"].items()):
+        if median_tool(rows)["incomplete"]:
+            continue
         ok, why, limited = verdict(rows, c["g_out"][key])
         res.append({"key": key, "n": len(rows), "ok": ok, "why": why, "limited": limited, "op": key[1],
                     "micro": median_tool(rows)["D"] <= MICRO_MAX_D})
     return res
+
+
+def incomplete_groups(c):
+    return [key for key, rows in sorted(c["groups"].items()) if median_tool(rows)["incomplete"]]
 
 
 def group_table(res, limit=70):
@@ -344,6 +354,10 @@ def test_conformance_summary(conformance, capsys):
               f"spindle-limited groups {sum(r['limited'] for r in res)}")
         print(f"  recommended engagement: {_rate([e['ok'] for e in cells]):.1%} of {len(cells)} cells")
         print(f"  diagnostic (not gated), per-row fixed engagement on {len(diag)} rows: {_rate([ok for _, ok in diag]):.1%}")
+        inc = incomplete_groups(conformance)
+        print(f"  geometry incomplete (reach beyond the flutes, no published neck diameter), excluded: {len(inc)} groups")
+        for k in inc:
+            print("    " + " | ".join(k))
         print(group_table(res))
         print(cell_table(cells))
 

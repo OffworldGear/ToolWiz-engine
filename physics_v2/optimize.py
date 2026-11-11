@@ -227,6 +227,8 @@ AE_ROUGH_MAX_OVER_D, AE_ADAPTIVE_MIN_OVER_D = 0.50, 0.05
 # Chip-load floor (check C14lo): fz ≥ this × the vendor-consensus median fz of the bucket, else 2 × the rubbing limit.
 CHIP_FLOOR_FRACTION, CHIP_FLOOR_RUBBING_FACTOR, CHIP_FLOOR_CEILING_FRACTION = 0.5, 2.0, 0.8
 FLOOR_HIRES_SCALE = 0.95
+# C3 in the user-engagement path is a quality limit, advisory up to this multiple of k·D (planner, round 3).
+USER_C3_FACTOR = 2.0
 # Search resolution (coarse-to-fine, V3 round 2): the grid and fz tolerances of the candidate search; the final cut is
 # re-checked at HIRES_THETA x HIRES_QUAD rotation and quadrature samples with fz placed to HIRES_FZ_TOL.
 SEARCH_FZ_TOL, SEARCH_LOWER_TOL, SEARCH_PHASES = 0.01, 0.05, 8
@@ -1310,7 +1312,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
                    "wall_metric": "ripple", "consensus": None, "envelope": None, "chip_floor": None,
-                   "user_engagement": False, "n_phases": None}
+                   "user_engagement": False, "n_phases": None, "ae_env_min": True}
 
 
 class _Context:
@@ -1411,9 +1413,15 @@ class _Context:
         else:
             from physics_v2 import params
             k_d = params.c3_k(margins.aggressiveness)
-            self.delta_allow = k_d * tool.D
+            self.delta_soft = k_d * tool.D
+            self.delta_allow = k_d * tool.D * (USER_C3_FACTOR if o["user_engagement"] else 1.0)
             self.delta_basis = (f"{k_d:.2%} of the diameter (k = 0.5 % + 1.0 % × aggressiveness; planner decision, "
-                                f"round 2: no fixed stock-to-leave term; true-to-size comes from the finishing pass)")
+                                f"round 2: no fixed stock-to-leave term; true-to-size comes from the finishing pass)"
+                                + (f"; the user's own engagement may deflect up to {USER_C3_FACTOR:g}×k·D "
+                                   f"(advisory up to there: a warning and more stock, fz reduced beyond)"
+                                   if o["user_engagement"] else ""))
+        if not hasattr(self, "delta_soft"):
+            self.delta_soft = self.delta_allow
         # C4
         fatigue = tool.fatigue_fraction * tool.trs_mpa
         if o["stress_limit"] is not None:
@@ -1444,6 +1452,7 @@ class _Context:
         self.env_bucket = None
         self.depth_cap_ratio = None
         self.width_cap_ratio = None
+        self.width_min_ratio = None
         self.user_engagement = bool(o["user_engagement"])
         if o["envelope"] is not None and operation != "finish":
             src = ENVELOPE_DEFAULT_PATH if o["envelope"] == "default" else o["envelope"]
@@ -1453,6 +1462,8 @@ class _Context:
                 self.depth_cap_ratio = depth_cap_over_D(self.env_bucket, margins.aggressiveness)
                 if operation in ("adaptive", "rough"):
                     self.width_cap_ratio = depth_cap_over_D(self.env_bucket, margins.aggressiveness, "ae_over_D")
+                    if o["ae_env_min"]:
+                        self.width_min_ratio = self.env_bucket["ae_over_D"].get("min")
             elif not self.env_bucket:
                 self.notes.append("no vendor engagement envelope for this material group, operation and diameter "
                                   "band; depth is limited by the physics (C3, C4, C6) only")
@@ -1921,6 +1932,10 @@ def _report(pt, fz_in, checks, f, beam, chips):
         warnings.append(f"chip near the rubbing limit: fz {fz_in:.6f}\" is under twice the minimum chip "
                         f"{cut['rubbing_limit_in']:.6f}\" (the vendor chip ceiling is below the floor and wins); a low-runout "
                         f"holder and/or a higher spindle speed would help")
+    if ctx.user_engagement and ctx.op != "finish" and beam["wall"]["max_in"] > ctx.delta_soft * (1 + 1e-6):
+        warnings.append(f"deflection {beam['wall']['max_in']:.5f}\" exceeds k·D = {ctx.delta_soft:.5f}\" (allowed up to "
+                        f"{USER_C3_FACTOR:g}× for your own engagement, fz is cut back beyond that): leave more stock for "
+                        f"the finish pass")
     if n_cut < n_flutes:
         warnings.append(f"reduced flutes: only {n_cut} of {n_flutes} flutes form a chip at fz {fz_in:.6f}\" with TIR "
                         f"{ctx.mach.tir_in:.5f}\" (the others rub); all flutes cut at TIR ≤ "
@@ -2135,6 +2150,16 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         kw.update(changes)
         return optimize(tool, material, machine, operation, aggressiveness, **kw, **call_opts)
 
+    if not cands and ctx_s.width_min_ratio:
+        # Nothing cuts as wide as the narrowest vendor cut: allow narrower, and say which limit forbids the vendor width.
+        out_n = again(ae_env_min=False)
+        if out_n.get("feasible"):
+            note = (f"ae is below the narrowest vendor cut ({ctx_s.width_min_ratio:.3f}·D): at that width every depth "
+                    f"fails {', '.join(sorted(elim))}")
+            out_n["warnings"].append(note)
+            out_n["provenance"].append(note)
+            out_n["ae_below_envelope_min"] = sorted(elim)
+            return out_n
     if not cands and ctx_s is not ctx:
         return again(select_tir_in=None)
     if not cands:
@@ -2385,6 +2410,8 @@ def ae_bounds(ctx, ae_max=AE_MAX, is_micro_rough=False):
         micro_lo = 0.25 if ctx.width_cap_ratio is None else AE_ADAPTIVE_MIN_OVER_D   # legacy micro roughing stepover
         lo = max(ctx.k_tir * tir, (micro_lo if is_micro_rough else 0.002) * D)
     hi = min(ae_max, hi_frac) * D
+    if ctx.width_min_ratio:
+        lo = max(lo, min(ctx.width_min_ratio * D, hi))   # not narrower than the narrowest vendor cut
     if ctx.width_cap_ratio:
         # The vendor width envelope (p25 → median → max by aggressiveness) bounds the engagement, never below k·TIR.
         hi = max(min(hi, ctx.width_cap_ratio * D), min(hi, lo))
