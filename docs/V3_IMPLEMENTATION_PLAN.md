@@ -149,6 +149,36 @@ Engine decisions made with this revision:
   TIR = 0.1 x fz.
 - An adaptive v2 call must take <= 2 s, because the master library builder makes thousands of calls.
 
+### Owner decisions, 2026-11-11 (later)
+
+**Conformance runout.** The vendor-range test runs at 0.0001" TIR (vendor conditions: precision
+holder), like the rigid test machine. Users' results always use their own runout (default 0.0002"
+or measured), so ER-collet micro tools keep reduced feeds and holder warnings.
+
+**Roughing objective.** Every non-finishing operation (adaptive, 2D/3D pocket clearing, slotting,
+high feed, roughing contours, T-slot) defaults to the maximum material removal rate that works
+reliably at 50%. Reliability = all hard limits and the vendor envelope at that aggressiveness.
+Selection: the highest-MRR candidate; prefer the cut closest to the vendor medians only among
+candidates within 3% of the best MRR (was 10%). The user can still override DOC/WOC.
+
+**Finishing objective: finish modes.** Request fields `finishMode`, `targetRa` (micro-inches,
+optional), `wallTolerance` (inches, optional):
+
+| Mode | Purpose | Default target |
+|---|---|---|
+| `cleanup` (default) | Decent finish on a wall or floor that isn't critical; maximize MRR | Ra 63 uin (1.6 um), wall error <= 0.001" |
+| `surface` | Best visible finish: limit feed marks and scallops | Ra 16-32 uin (0.4-0.8 um; default 32), user-settable |
+| `accuracy` | Size-critical walls/floors: limit deflection and springback | wall error <= 0.0002" (5 um), user-settable |
+
+Physics per mode (engine): peripheral wall finish from feed per tooth with runout (effective feed
+mark spacing becomes z x fz when one flute generates the wall), cusp h = f^2/(8R); floor finish
+from stepover and corner radius; ball/bull scallop h = ae^2/(8R_eff); Ra ~ h/4 (state the
+approximation); wall error from the deflection model plus springback. Each mode maximizes MRR
+subject to its targets and all hard limits. Response block `finish`: {mode,
+predicted_ra_uin, predicted_cusp_in, predicted_wall_error_in, target_ra_uin, wall_tolerance_in,
+limited_by, advice}. Advice includes spring-pass guidance (not in work-hardening alloys),
+climb vs conventional, and the stock to leave from roughing that the finish pass needs.
+
 ## Work packages
 
 ### Phase 1 (parallel)
