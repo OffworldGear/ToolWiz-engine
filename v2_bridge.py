@@ -469,7 +469,7 @@ def apply(physics, r, res, machine_profile=None):
         if "near the rubbing limit" in lw:
             res.tips.append({"title": "Chip near the rubbing limit", "message": w, "type": "warning", "fusion": True})
             continue
-        if "rub" in lw or "binds" in lw or "differs" in lw or "relaxed" in lw:
+        if "rub" in lw or "binds" in lw or "differs" in lw or "relaxed" in lw or "preferred minimum" in lw:
             if reduced_tip and "rub" in lw:
                 continue   # the reduced-flutes tip says it
             res.tips.append({"title": "v2 check", "message": w, "type": "warning", "fusion": True})

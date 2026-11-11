@@ -226,6 +226,7 @@ AE_ADAPTIVE_MAX_OVER_D, AE_ADAPTIVE_MAX_NONFERROUS_OVER_D = 0.30, 0.40
 AE_ROUGH_MAX_OVER_D, AE_ADAPTIVE_MIN_OVER_D = 0.50, 0.05
 # Chip-load floor (check C14lo): fz ≥ this × the vendor-consensus median fz of the bucket, else 2 × the rubbing limit.
 CHIP_FLOOR_FRACTION, CHIP_FLOOR_RUBBING_FACTOR, CHIP_FLOOR_CEILING_FRACTION = 0.5, 2.0, 0.8
+CHIP_FLOOR_HARD_FRACTION = 0.4   # soft band 0.40-0.50 x the vendor median (round 8)
 FLOOR_HIRES_SCALE = 0.95
 GAP_NODES = 2   # consecutive infeasible grid nodes that end the connected feasible interval
 # C3 in the user-engagement path is a quality limit, advisory up to this multiple of k·D (planner, round 3).
@@ -1703,25 +1704,38 @@ class CutPoint:
             return Check("C14lo", "chip-load floor", "min", fz_in, rub, "in", SRC["C14lo"],
                          detail=f"relaxed to the rubbing limit {rub:.6f}\" (fz·sin φe = h_min = "
                                 f"{ctx.h_min_mm / MM_PER_IN:.6f}\")")
-        floor = CHIP_FLOOR_RUBBING_FACTOR * rub
+        pref, hard, basis = self.floor_pair()
+        return Check("C14lo", "chip-load floor", "min", fz_in, hard, "in", SRC["C14lo"],
+                     detail=f"fz {fz_in:.6f}\" vs hard floor {hard:.6f}\" (preferred {pref:.6f}\"): {basis}")
+
+    def floor_pair(self):
+        """(preferred, hard) chip-load floors in inches. Preferred: 0.5 × the vendor-consensus median fz (and ≥ 2 × the
+        rubbing limit). Hard: 0.4 × the median, never below 2 × the rubbing limit. Between them a candidate is allowed with
+        its selection score scaled by fz / preferred and a warning (soft band). The ceiling wins: neither exceeds 80 % of
+        the vendor chip ceiling (C2 nominal chip, C14f)."""
+        ctx = self.ctx
+        rub = self.rubbing_fz_in()
+        rubfloor = CHIP_FLOOR_RUBBING_FACTOR * rub
+        pref = hard = rubfloor
         basis = f"2 × the rubbing limit {rub:.6f}\" (no vendor consensus for this cut)"
         if self.cons:
-            cons_floor = CHIP_FLOOR_FRACTION * self.cons["fz_over_D"] * ctx.tool.D * ctx.floor_scale
-            if cons_floor > floor:
-                floor, basis = cons_floor, (f"{CHIP_FLOOR_FRACTION:.0%} of the vendor-consensus median "
-                                            f"{self.cons['fz_over_D'] * ctx.tool.D:.6f}\" ({self.cons['key']})")
-        # The ceiling wins: the floor never rises above 80 % of the vendor chip ceiling (C2 nominal chip, C14f).
+            med = self.cons["fz_over_D"] * ctx.tool.D * ctx.floor_scale
+            if CHIP_FLOOR_FRACTION * med > rubfloor:
+                pref = CHIP_FLOOR_FRACTION * med
+                hard = max(CHIP_FLOOR_HARD_FRACTION * med, rubfloor)
+                basis = (f"{CHIP_FLOOR_HARD_FRACTION:.0%}–{CHIP_FLOOR_FRACTION:.0%} of the vendor-consensus median "
+                         f"{self.cons['fz_over_D'] * ctx.tool.D:.6f}\" ({self.cons['key']})")
         ceilings = []
         if ctx.c2_basis == "nominal":
             ceilings.append(ctx.h_nominal * ctx.mg.limit_scale / forces.max_chip_thickness(1.0, self.ae_mm, self.D_mm)
                             / MM_PER_IN)
         if self.cons:
             ceilings.append(ctx.mg.consensus_cap_scale * self.cons["fz_over_D"] * ctx.tool.D)
-        if ceilings and floor > CHIP_FLOOR_CEILING_FRACTION * min(ceilings):
-            floor = CHIP_FLOOR_CEILING_FRACTION * min(ceilings)
+        if ceilings and pref > CHIP_FLOOR_CEILING_FRACTION * min(ceilings):
+            cap = CHIP_FLOOR_CEILING_FRACTION * min(ceilings)
+            pref, hard = cap, min(hard, cap)
             basis = f"{CHIP_FLOOR_CEILING_FRACTION:.0%} of the vendor chip ceiling (the ceiling wins)"
-        return Check("C14lo", "chip-load floor", "min", fz_in, floor, "in", SRC["C14lo"],
-                     detail=f"fz {fz_in:.6f}\" vs floor {floor:.6f}\": {basis}")
+        return pref, hard, basis
 
     def flute_stats(self, fz_in, tir_in=None):
         """(flutes forming a chip, flutes) at fz: a flute cuts when its largest chip reaches h_min = λ·r_β. Counted at
@@ -1931,6 +1945,12 @@ def _report(pt, fz_in, checks, f, beam, chips):
         rub = sum(1 for h in chips["c1"] if h < h_min)
         warnings.append(f"WARNING: {rub} flute(s) rub (chip {min(chips['c1']) / MM_PER_IN:.6f}\" under h_min "
                         f"{h_min / MM_PER_IN:.6f}\"); C1 is checked on the {ctx.c1_flute} flute only")
+    if ctx.chip_floor == "vendor" and ctx.op != "finish" and not ctx.user_engagement:
+        pref = pt.floor_pair()[0]
+        if fz_in < pref * (1 - 1e-6) and pt.cons:
+            med = pt.cons["fz_over_D"] * ctx.tool.D
+            warnings.append(f"chip load below the preferred minimum ({fz_in / med:.0%} of vendor median) to stay within the "
+                            f"deflection limit at this depth")
     if cut["fz_in"] < CHIP_FLOOR_RUBBING_FACTOR * cut["rubbing_limit_in"] and ctx.op != "finish":
         warnings.append(f"chip near the rubbing limit: fz {fz_in:.6f}\" is under twice the minimum chip "
                         f"{cut['rubbing_limit_in']:.6f}\" (the vendor chip ceiling is below the floor and wins); a low-runout "
@@ -2252,7 +2272,7 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
         if ae_lo is not None:
             chosen = _refine(ctx_s, chosen, cands, selector, level_time_s, path_length_per_level_in, "ae",
                              (ae_lo, ae_hi))
-        for var, others_set, bound in ():
+        for var, others_set, bound in (("ap", apset if not depth else [], top),):
             if not others_set:
                 continue
             nxt = [v for v in others_set if v > chosen[var] * (1 + 1e-9)]
@@ -2475,6 +2495,10 @@ def _candidate(ctx, ap, ae, level_time_s=None, path_len=None):
     score = mrr
     if level_time_s and path_len:
         score = mrr / (1.0 + level_time_s * (fz * ctx.tool.z * pt.rpm / 60.0) / path_len)
+    if ctx.chip_floor == "vendor":
+        pref = pt.floor_pair()[0]
+        if fz < pref:
+            score *= fz / pref       # soft band: a smooth penalty for a chip under the preferred minimum
     return {"pt": pt, "ap": ap, "ae": ae, "fz": fz, "fz_lo": win[0], "mrr": mrr, "score": score,
             "capped": pt.fz_capped}, None, win, pt
 
