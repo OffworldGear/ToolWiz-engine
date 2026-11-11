@@ -282,6 +282,14 @@ def _normalize(req: CutRequest) -> CutRequest:
         else:
             r.has_relieved_neck = False
             r.neck_diameter, r.neck_length = r.diameter, r.flute_length
+        if prof.slot:
+            # Slot / keyseat / T-slot cutter: kerf = LCF, neck and reach from the shaft segments.
+            r.cutter_thickness = prof.slot["kerf"]
+            r.has_relieved_neck = True
+            r.neck_diameter, r.neck_length = prof.slot["neck_diameter"], prof.slot["reach"]
+            if "t-slot" not in r.geometry.lower() and "keyseat" not in r.geometry.lower() \
+                    and "woodruff" not in r.geometry.lower():
+                r.geometry = "T-Slot"
     else:
         if r.stickout is None or r.stickout <= 0:
             r.stickout = default_stickout(r.diameter, r.flute_length)
@@ -299,7 +307,8 @@ class _Ctx:
 
     def __init__(self, r: CutRequest, geo_lower_original: str):
         self.is_saw = (any(s in geo_lower_original for s in ["t-slot", "woodruff", "keyseat"])
-                       or any(s in r.tool.lower() for s in ["woodruff", "saw"]))
+                       or any(s in r.tool.lower() for s in ["woodruff", "saw"])
+                       or (r.profile is not None and r.profile.slot is not None))
         self.is_hole_tool = is_drilling_tool_type(r.tool, r.geometry)
         self.is_tapping = (
             is_tap_tool_type(r.tool) or is_tap_tool_type(r.operation)
