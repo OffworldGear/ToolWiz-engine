@@ -452,10 +452,10 @@ def test_tool_field_proposals_are_allow_listed_and_declinable(client):
     assert d["proposal"]["status"] == "declined" and fusion_bridge.pop_next_command() is None
 
 
-def test_runout_sensitivity_not_available_message_and_live_setup_states():
+def test_runout_sensitivity_needs_family_and_live_setup_states():
     ctx = tools.ToolContext()
     r = tools.run_tool(ctx, "runout_sensitivity", {"diameter": 0.25})["data"]
-    assert r["success"] is False and r["available"] is False
+    assert r["success"] is False and "family" in r["error"]
     live = tools.run_tool(ctx, "get_live_setup", {})["data"]
     assert live["connected"] and live["stale"] is False and live["operations_count"] == 4
     ctx.now = lambda: __import__("time").time() + 600
@@ -613,3 +613,21 @@ def test_bridge_validates_new_actions():
     assert fusion_bridge.execute_bridge_action("get_viewport_image", {"width": 99999})["success"] is False
     assert fusion_bridge.submit_command("update_tool_fields", {"tool_number": 3, "fields": {"coating": "AlTiN"}})["queued"]
     assert fusion_bridge.submit_command("update_tool_fields", {"fields": {"coating": "AlTiN"}})["success"] is False
+
+
+def test_runout_sensitivity_tool_sends_calculate_field_names(monkeypatch):
+    """Regression: the chat tool must send fluteLength/shankDiameter/stickout as /api/calculate reads them."""
+    from advisor_chat import tools as T
+    sent = {}
+
+    def fake_post(path, body):
+        sent["path"], sent["body"] = path, dict(body)
+        return {"success": True, "rows": []}
+
+    ctx = T.ToolContext(post=fake_post)
+    out = T.runout_sensitivity(ctx, {"family": "Titanium Alloy", "operation": "Adaptive Roughing", "diameter": 0.0625,
+                                     "flutes": 3, "flute_length": 0.1875, "shank_diameter": 0.125, "aggressiveness": 50})
+    assert sent["path"] == "/api/runout_sensitivity"
+    assert sent["body"]["fluteLength"] == 0.1875 and sent["body"]["shankDiameter"] == 0.125
+    assert "flute_length" not in sent["body"] and "runout" not in sent["body"]
+    assert any("stickout not given" in n for n in out["inputs_assumed"])

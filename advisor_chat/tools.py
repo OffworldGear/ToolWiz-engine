@@ -91,7 +91,7 @@ TOOLS: List[ToolSpec] = [
     ToolSpec("runout_sensitivity",
              "How the recommended numbers change with holder runout (calls ToolWiz's runout sensitivity analysis when this ToolWiz has it)." + NUMBERS_RULE,
              _obj({"family": _STR, "alloy": _STR, "operation": _STR, "tool_number": _INT, "diameter": _NUM, "flutes": _INT,
-                   "flute_length": _NUM, "shank_diameter": _NUM, "stickout": _NUM, "coating": _STR, "aggressiveness": _NUM})),
+                   "flute_length": _NUM, "shank_diameter": _NUM, "stickout": _d(_NUM, "inches from holder face; ask, the 1.5\" default is far too long for micro tools"), "coating": _STR, "aggressiveness": _NUM}, ["family", "diameter"])),
     ToolSpec("set_assumption",
              "Record something the owner told you that Fusion does not say, for every advisor / calculation run in this chat, without changing "
              "Fusion. Keys: " + "; ".join(f"{k} ({v})" for k, v in setup_advisor.ASSUMPTION_KEYS.items()) + ". With no scope it applies to all "
@@ -268,13 +268,13 @@ def run_setup_advisor(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
     return dict(_advisor_view(result), success=True)
 
 
-def toolwiz_calculate(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
-    a, notes = _apply_to_calc(ctx, _clean(args))
-    if not a.get("family"):
-        return {"success": False, "error": "family (the ToolWiz material family) is required: ask the owner or set_assumption key family."}
+def _calc_body(a: Dict[str, Any], notes: List[str]) -> tuple:
+    """Calculation request body in /api/calculate's field names (fluteLength, shankDiameter, ...): returns (body, assumed)."""
     assumed: List[str] = list(notes)
     if not a.get("coating"):
         assumed.append("coating not given: ToolWiz's default (AlTiN) was used")
+    if a.get("stickout") is None:
+        assumed.append("stickout not given: ToolWiz's default (1.5\") was used; micro tools are usually much shorter, ask the owner")
     body = {"family": a["family"], "alloy": a.get("alloy") or "", "operation": a.get("operation") or "Roughing", "diameter": a["diameter"],
             "flutes": a.get("flutes", 4), "coating": a.get("coating") or "AlTiN", "model": a.get("model") or _default_model()}
     for src, dst in (("flute_length", "fluteLength"), ("shank_diameter", "shankDiameter"), ("stickout", "stickout"),
@@ -286,6 +286,14 @@ def toolwiz_calculate(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
         body["aggressiveness"] = _pct(a["aggressiveness"])
     if a.get("tool_material") in ("hss", "cobalt"):
         body["isCarbide"] = False
+    return body, assumed
+
+
+def toolwiz_calculate(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
+    a, notes = _apply_to_calc(ctx, _clean(args))
+    if not a.get("family"):
+        return {"success": False, "error": "family (the ToolWiz material family) is required: ask the owner or set_assumption key family."}
+    body, assumed = _calc_body(a, notes)
     import mcp_server
     out = mcp_server.call_mcp_tool_by_name("toolwiz_calculate_cut", body)
     out["inputs_assumed"] = assumed
@@ -352,10 +360,14 @@ def runout_sensitivity(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]
                     "error": "Runout sensitivity is not available in this ToolWiz build (POST /api/runout_sensitivity does not exist yet). "
                              "Use toolwiz_calculate with different runout_in values and compare the results instead."}
     a, notes = _apply_to_calc(ctx, _clean(args))
-    out = ctx.call_endpoint("/api/runout_sensitivity", a)
+    if not a.get("family") or not a.get("diameter"):
+        return {"success": False, "error": "family and diameter are required: ask the owner or set_assumption key family."}
+    body, assumed = _calc_body(a, notes)
+    body.pop("runout", None)   # the analysis sweeps runout itself; the current value is the machine's
+    out = ctx.call_endpoint("/api/runout_sensitivity", body)
     if out.get("success") is False and "HTTP 404" in str(out.get("error", "")):
         return {"success": False, "available": False, "error": "Runout sensitivity is not available in this ToolWiz build."}
-    out["inputs_assumed"] = notes
+    out["inputs_assumed"] = assumed
     return out
 
 
