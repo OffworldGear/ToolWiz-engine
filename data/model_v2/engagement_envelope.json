@@ -1,0 +1,3704 @@
+{
+ "status": "V3 plan M3: vendor engagement envelope (ap/D, ae/D) per material group, operation and diameter band",
+ "generated_by": "tools/v2_invariants.py (engagement_envelope)",
+ "source": "tests/benchmarks/v2 square-end rows",
+ "min_rows": 3,
+ "groups": [
+  "non-ferrous",
+  "steel",
+  "stainless",
+  "Ti-Ni-Co",
+  "hardened"
+ ],
+ "operations": [
+  "slot",
+  "side",
+  "rough",
+  "hem",
+  "side_rough"
+ ],
+ "bands": [
+  {
+   "band": "<=1/32",
+   "d_min": 0.0,
+   "d_max": 0.03125
+  },
+  {
+   "band": "1/32-1/16",
+   "d_min": 0.03125,
+   "d_max": 0.0625
+  },
+  {
+   "band": "1/16-1/8",
+   "d_min": 0.0625,
+   "d_max": 0.125
+  },
+  {
+   "band": "1/8-1/4",
+   "d_min": 0.125,
+   "d_max": 0.25
+  },
+  {
+   "band": "1/4-1/2",
+   "d_min": 0.25,
+   "d_max": 0.5
+  },
+  {
+   "band": ">1/2",
+   "d_min": 0.5,
+   "d_max": 1000000000.0
+  }
+ ],
+ "hardened_hrc": 45.0,
+ "n_rows": 2424,
+ "buckets": {
+  "non-ferrous|slot|<=1/32": {
+   "n": 6,
+   "widening": "+ two bands either side",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 0.7,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "non-ferrous|slot|1/32-1/16": {
+   "n": 6,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 0.7,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "non-ferrous|slot|1/16-1/8": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "non-ferrous|slot|1/8-1/4": {
+   "n": 9,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "non-ferrous|slot|1/4-1/2": {
+   "n": 7,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 0.55,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "non-ferrous|slot|>1/2": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 0.575,
+    "median": 0.8,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "non-ferrous|side|<=1/32": {
+   "n": 3,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.11,
+    "median": 0.2,
+    "p75": 0.30000000000000004,
+    "max": 0.4,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side|1/32-1/16": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.11,
+    "median": 0.2,
+    "p75": 0.30000000000000004,
+    "max": 0.4,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side|1/16-1/8": {
+   "n": 6,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.25,
+    "p75": 1.5,
+    "max": 1.5,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.2,
+    "p75": 0.35000000000000003,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side|1/8-1/4": {
+   "n": 9,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 1.5,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.5,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side|1/4-1/2": {
+   "n": 8,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 1.5,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.17500000000000002,
+    "median": 0.30000000000000004,
+    "p75": 0.5,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side|>1/2": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.4,
+    "p75": 0.5,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|rough|<=1/32": {
+   "n": 5,
+   "widening": "every band of the group",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4",
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.625,
+    "median": 1.625,
+    "p75": 3.0,
+    "max": 3.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.25,
+    "median": 0.35,
+    "p75": 0.35,
+    "max": 0.5,
+    "min": 0.25
+   }
+  },
+  "non-ferrous|rough|1/32-1/16": {
+   "n": 3,
+   "widening": "+ two bands either side",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.3125,
+    "median": 3.0,
+    "p75": 3.0,
+    "max": 3.0,
+    "min": 1.625
+   },
+   "ae_over_D": {
+    "p25": 0.25,
+    "median": 0.25,
+    "p75": 0.3,
+    "max": 0.35,
+    "min": 0.25
+   }
+  },
+  "non-ferrous|rough|1/16-1/8": {
+   "n": 3,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.3125,
+    "median": 3.0,
+    "p75": 3.0,
+    "max": 3.0,
+    "min": 1.625
+   },
+   "ae_over_D": {
+    "p25": 0.25,
+    "median": 0.25,
+    "p75": 0.3,
+    "max": 0.35,
+    "min": 0.25
+   }
+  },
+  "non-ferrous|rough|1/8-1/4": {
+   "n": 5,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/16-1/8",
+    "1/8-1/4",
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.625,
+    "median": 1.625,
+    "p75": 3.0,
+    "max": 3.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.25,
+    "median": 0.35,
+    "p75": 0.35,
+    "max": 0.5,
+    "min": 0.25
+   }
+  },
+  "non-ferrous|rough|1/4-1/2": {
+   "n": 4,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/8-1/4",
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.46875,
+    "median": 1.625,
+    "p75": 1.96875,
+    "max": 3.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.32499999999999996,
+    "median": 0.35,
+    "p75": 0.38749999999999996,
+    "max": 0.5,
+    "min": 0.25
+   }
+  },
+  "non-ferrous|rough|>1/2": {
+   "n": 4,
+   "widening": "+ two bands either side",
+   "bands_used": [
+    "1/8-1/4",
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.46875,
+    "median": 1.625,
+    "p75": 1.96875,
+    "max": 3.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.32499999999999996,
+    "median": 0.35,
+    "p75": 0.38749999999999996,
+    "max": 0.5,
+    "min": 0.25
+   }
+  },
+  "non-ferrous|hem|<=1/32": {
+   "n": 13,
+   "widening": "every band of the group",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4",
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.6666666666666665,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.05,
+    "median": 0.09999999999999999,
+    "p75": 0.1,
+    "max": 0.4,
+    "min": 0.05
+   }
+  },
+  "non-ferrous|hem|1/32-1/16": {
+   "n": 6,
+   "widening": "+ two bands either side",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.5,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.062497883329099994,
+    "median": 0.09999576665819998,
+    "p75": 0.1,
+    "max": 0.1,
+    "min": 0.05
+   }
+  },
+  "non-ferrous|hem|1/16-1/8": {
+   "n": 6,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.5,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.062497883329099994,
+    "median": 0.09999576665819998,
+    "p75": 0.1,
+    "max": 0.1,
+    "min": 0.05
+   }
+  },
+  "non-ferrous|hem|1/8-1/4": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.333333333333333,
+    "p75": 2.8999978833291,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.08749364998729996,
+    "median": 0.09999576665819998,
+    "p75": 0.1,
+    "max": 0.1,
+    "min": 0.05
+   }
+  },
+  "non-ferrous|hem|1/4-1/2": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.5,
+    "p75": 2.6666666666666665,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999999999999999,
+    "p75": 0.1,
+    "max": 0.4,
+    "min": 0.05
+   }
+  },
+  "non-ferrous|hem|>1/2": {
+   "n": 7,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.1666666666666665,
+    "p75": 2.583333333333333,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.07499576665819999,
+    "median": 0.09999999999999999,
+    "p75": 0.1,
+    "max": 0.4,
+    "min": 0.05
+   }
+  },
+  "non-ferrous|side_rough|<=1/32": {
+   "n": 3,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.11,
+    "median": 0.2,
+    "p75": 0.30000000000000004,
+    "max": 0.4,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side_rough|1/32-1/16": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.11,
+    "median": 0.2,
+    "p75": 0.30000000000000004,
+    "max": 0.4,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side_rough|1/16-1/8": {
+   "n": 7,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 1.5,
+    "max": 3.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.15000000000000002,
+    "median": 0.2,
+    "p75": 0.325,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side_rough|1/8-1/4": {
+   "n": 11,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 1.5,
+    "max": 3.0,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.15000000000000002,
+    "median": 0.25,
+    "p75": 0.45,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side_rough|1/4-1/2": {
+   "n": 10,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 1.625,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.375,
+    "p75": 0.5,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "non-ferrous|side_rough|>1/2": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "non-ferrous"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.4,
+    "p75": 0.5,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|slot|<=1/32": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 0.14,
+    "median": 0.19999999999999998,
+    "p75": 0.2,
+    "max": 0.5,
+    "min": 0.13999999999999999
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "steel|slot|1/32-1/16": {
+   "n": 17,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.35000000000000003
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "steel|slot|1/16-1/8": {
+   "n": 24,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.25,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "steel|slot|1/8-1/4": {
+   "n": 34,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 0.50625,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "steel|slot|1/4-1/2": {
+   "n": 23,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.35
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "steel|slot|>1/2": {
+   "n": 12,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.25,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "steel|side|<=1/32": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.5031847133757963,
+    "max": 4.012738853503185,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.08296178343949046,
+    "median": 0.2,
+    "p75": 0.3,
+    "max": 0.3,
+    "min": 0.03184713375796179
+   }
+  },
+  "steel|side|1/32-1/16": {
+   "n": 18,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.9376,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.06219999999999999,
+    "median": 0.14992,
+    "p75": 0.2,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|side|1/16-1/8": {
+   "n": 29,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5000423334180002,
+    "min": 0.02
+   }
+  },
+  "steel|side|1/8-1/4": {
+   "n": 38,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.25,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.36250000000000004,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|side|1/4-1/2": {
+   "n": 36,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.625,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|side|>1/2": {
+   "n": 31,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.32499872999746005,
+    "max": 0.5000050800101601,
+    "min": 0.02
+   }
+  },
+  "steel|rough|<=1/32": {
+   "n": 6,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.25,
+    "median": 3.0,
+    "p75": 3.0,
+    "max": 3.0,
+    "min": 0.75
+   },
+   "ae_over_D": {
+    "p25": 0.15374,
+    "median": 0.23748,
+    "p75": 0.25,
+    "max": 0.5,
+    "min": 0.13
+   }
+  },
+  "steel|rough|1/32-1/16": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.6875,
+    "median": 2.5,
+    "p75": 3.0,
+    "max": 3.0,
+    "min": 0.75
+   },
+   "ae_over_D": {
+    "p25": 0.24374,
+    "median": 0.25,
+    "p75": 0.3125,
+    "max": 0.5,
+    "min": 0.22496
+   }
+  },
+  "steel|rough|1/16-1/8": {
+   "n": 14,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 3.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.12496,
+    "median": 0.22504,
+    "p75": 0.25,
+    "max": 0.5,
+    "min": 0.12496
+   }
+  },
+  "steel|rough|1/8-1/4": {
+   "n": 14,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 3.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.225,
+    "p75": 0.25,
+    "max": 0.5,
+    "min": 0.125
+   }
+  },
+  "steel|rough|1/4-1/2": {
+   "n": 7,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.5,
+    "median": 2.5,
+    "p75": 2.5,
+    "max": 3.0,
+    "min": 2.5
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.125,
+    "p75": 0.175,
+    "max": 0.25,
+    "min": 0.125
+   }
+  },
+  "steel|rough|>1/2": {
+   "n": 7,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.5,
+    "median": 2.5,
+    "p75": 2.5,
+    "max": 3.0,
+    "min": 2.5
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.125,
+    "p75": 0.175,
+    "max": 0.25,
+    "min": 0.125
+   }
+  },
+  "steel|hem|<=1/32": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.003205128205128,
+    "median": 2.003205128205128,
+    "p75": 2.003205128205128,
+    "max": 2.003205128205128,
+    "min": 2.003205128205128
+   },
+   "ae_over_D": {
+    "p25": 0.15000000000000002,
+    "median": 0.15000000000000002,
+    "p75": 0.15000000000000002,
+    "max": 0.15000000000000002,
+    "min": 0.15000000000000002
+   }
+  },
+  "steel|hem|1/32-1/16": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 2.0,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.14992,
+    "median": 0.14992,
+    "p75": 0.14992,
+    "max": 0.14992,
+    "min": 0.14992
+   }
+  },
+  "steel|hem|1/16-1/8": {
+   "n": 8,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.3750105833545,
+    "max": 3.500042333418,
+    "min": 1.504
+   },
+   "ae_over_D": {
+    "p25": 0.09250486834307003,
+    "median": 0.125,
+    "p75": 0.15,
+    "max": 0.3,
+    "min": 0.07001947337228007
+   }
+  },
+  "steel|hem|1/8-1/4": {
+   "n": 32,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.9999999999999996,
+    "max": 4.0,
+    "min": 1.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.15,
+    "p75": 0.15,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "steel|hem|1/4-1/2": {
+   "n": 35,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.9999999999999996,
+    "max": 4.0,
+    "min": 1.25
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.15,
+    "p75": 0.15000846668360002,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "steel|hem|>1/2": {
+   "n": 29,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 2.0,
+    "p75": 3.0,
+    "max": 4.0,
+    "min": 1.25
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.15,
+    "p75": 0.15000000000000002,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "steel|side_rough|<=1/32": {
+   "n": 6,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.25,
+    "median": 2.5,
+    "p75": 3.0,
+    "max": 4.012738853503185,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.10750000000000001,
+    "median": 0.13,
+    "p75": 0.25749999999999995,
+    "max": 0.3,
+    "min": 0.03184713375796179
+   }
+  },
+  "steel|side_rough|1/32-1/16": {
+   "n": 22,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.2504,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.75
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.17496,
+    "p75": 0.25,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|side_rough|1/16-1/8": {
+   "n": 43,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.12496,
+    "median": 0.2004264392324094,
+    "p75": 0.375,
+    "max": 0.5000423334180002,
+    "min": 0.02
+   }
+  },
+  "steel|side_rough|1/8-1/4": {
+   "n": 52,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.275,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|side_rough|1/4-1/2": {
+   "n": 43,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.25,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.25,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "steel|side_rough|>1/2": {
+   "n": 31,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "steel"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.32499872999746005,
+    "max": 0.5000050800101601,
+    "min": 0.02
+   }
+  },
+  "stainless|slot|<=1/32": {
+   "n": 30,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.21000000000000002,
+    "median": 0.28,
+    "p75": 0.28,
+    "max": 0.5,
+    "min": 0.13999999999999999
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "stainless|slot|1/32-1/16": {
+   "n": 41,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.28,
+    "median": 0.39999999999999997,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.18
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "stainless|slot|1/16-1/8": {
+   "n": 48,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.28,
+    "median": 0.5,
+    "p75": 1.0,
+    "max": 1.25,
+    "min": 0.2494669509594883
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "stainless|slot|1/8-1/4": {
+   "n": 63,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.45,
+    "median": 0.6,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.18
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "stainless|slot|1/4-1/2": {
+   "n": 52,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.24000931335196005
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "stainless|slot|>1/2": {
+   "n": 26,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.5437500000000001,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.25,
+    "min": 0.24992
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "stainless|side|<=1/32": {
+   "n": 9,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 2.0,
+    "max": 4.012738853503185,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.05015873015873016,
+    "median": 0.25,
+    "p75": 0.3,
+    "max": 0.3,
+    "min": 0.03184713375796179
+   }
+  },
+  "stainless|side|1/32-1/16": {
+   "n": 22,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.25,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.06219999999999999,
+    "median": 0.14992,
+    "p75": 0.2375,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "stainless|side|1/16-1/8": {
+   "n": 47,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.2494669509594885,
+    "median": 1.5,
+    "p75": 1.500640204865557,
+    "max": 4.0,
+    "min": 0.9000084666836
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.2004264392324094,
+    "p75": 0.5,
+    "max": 0.5000423334180002,
+    "min": 0.02
+   }
+  },
+  "stainless|side|1/8-1/4": {
+   "n": 78,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.4998,
+    "median": 1.5,
+    "p75": 2.1668077900084675,
+    "max": 4.0,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "stainless|side|1/4-1/2": {
+   "n": 77,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 1.5,
+    "p75": 2.1668077900084675,
+    "max": 4.0,
+    "min": 0.9
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4000084666836,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "stainless|side|>1/2": {
+   "n": 56,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.375,
+    "median": 1.5,
+    "p75": 1.9000508001016,
+    "max": 4.0,
+    "min": 0.89999491998984
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "stainless|rough|<=1/32": {
+   "n": 23,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 0.75,
+    "max": 3.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.26,
+    "median": 0.28,
+    "p75": 0.28,
+    "max": 0.5,
+    "min": 0.13
+   }
+  },
+  "stainless|rough|1/32-1/16": {
+   "n": 23,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 0.75,
+    "max": 3.0,
+    "min": 0.3
+   },
+   "ae_over_D": {
+    "p25": 0.26,
+    "median": 0.28,
+    "p75": 0.31496,
+    "max": 0.65,
+    "min": 0.21000000000000002
+   }
+  },
+  "stainless|rough|1/16-1/8": {
+   "n": 27,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 3.0,
+    "min": 0.45
+   },
+   "ae_over_D": {
+    "p25": 0.22500665955176094,
+    "median": 0.26,
+    "p75": 0.28,
+    "max": 0.65,
+    "min": 0.12496
+   }
+  },
+  "stainless|rough|1/8-1/4": {
+   "n": 25,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 3.0,
+    "min": 0.3
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.25,
+    "p75": 0.35,
+    "max": 0.55,
+    "min": 0.125
+   }
+  },
+  "stainless|rough|1/4-1/2": {
+   "n": 24,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 2.1668077900084675,
+    "median": 2.5,
+    "p75": 2.5,
+    "max": 3.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.18750000000000003,
+    "median": 0.3,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.125
+   }
+  },
+  "stainless|rough|>1/2": {
+   "n": 6,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.8125,
+    "median": 2.0,
+    "p75": 2.125,
+    "max": 2.625,
+    "min": 1.75
+   },
+   "ae_over_D": {
+    "p25": 0.26875,
+    "median": 0.39999999999999997,
+    "p75": 0.4,
+    "max": 0.4,
+    "min": 0.225
+   }
+  },
+  "stainless|hem|<=1/32": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 2.003205128205128,
+    "median": 2.003205128205128,
+    "p75": 2.003205128205128,
+    "max": 2.003205128205128,
+    "min": 2.003205128205128
+   },
+   "ae_over_D": {
+    "p25": 0.15000000000000002,
+    "median": 0.15000000000000002,
+    "p75": 0.15000000000000002,
+    "max": 0.15000000000000002,
+    "min": 0.15000000000000002
+   }
+  },
+  "stainless|hem|1/32-1/16": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 2.0,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.14992,
+    "median": 0.14992,
+    "p75": 0.14992,
+    "max": 0.14992,
+    "min": 0.14992
+   }
+  },
+  "stainless|hem|1/16-1/8": {
+   "n": 18,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.501,
+    "median": 2.0,
+    "p75": 2.0,
+    "max": 3.500042333418,
+    "min": 1.248
+   },
+   "ae_over_D": {
+    "p25": 0.07001947337228007,
+    "median": 0.1,
+    "p75": 0.15,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "stainless|hem|1/8-1/4": {
+   "n": 51,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 3.0,
+    "max": 4.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.09999576665819998,
+    "median": 0.14998729997459995,
+    "p75": 0.15,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "stainless|hem|1/4-1/2": {
+   "n": 65,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 2.0,
+    "p75": 2.9999999999999996,
+    "max": 4.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.09999999999999999,
+    "median": 0.15,
+    "p75": 0.15000846668360002,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "stainless|hem|>1/2": {
+   "n": 43,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 2.0,
+    "p75": 2.5,
+    "max": 4.0,
+    "min": 1.25
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.15,
+    "p75": 0.2,
+    "max": 0.3,
+    "min": 0.05
+   }
+  },
+  "stainless|side_rough|<=1/32": {
+   "n": 32,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.675,
+    "p75": 1.0,
+    "max": 4.012738853503185,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.21000000000000002,
+    "median": 0.28,
+    "p75": 0.28,
+    "max": 0.5,
+    "min": 0.03184713375796179
+   }
+  },
+  "stainless|side_rough|1/32-1/16": {
+   "n": 45,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 1.0,
+    "p75": 1.7504,
+    "max": 4.0,
+    "min": 0.3
+   },
+   "ae_over_D": {
+    "p25": 0.14992,
+    "median": 0.25,
+    "p75": 0.28,
+    "max": 0.65,
+    "min": 0.02
+   }
+  },
+  "stainless|side_rough|1/16-1/8": {
+   "n": 74,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.45
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.25001058335450005,
+    "p75": 0.4,
+    "max": 0.65,
+    "min": 0.02
+   }
+  },
+  "stainless|side_rough|1/8-1/4": {
+   "n": 103,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.3
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.55,
+    "min": 0.02
+   }
+  },
+  "stainless|side_rough|1/4-1/2": {
+   "n": 101,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 1.5,
+    "p75": 2.5,
+    "max": 4.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.225,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "stainless|side_rough|>1/2": {
+   "n": 62,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "stainless"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.89999491998984
+   },
+   "ae_over_D": {
+    "p25": 0.11250000000000002,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|slot|<=1/32": {
+   "n": 51,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.28,
+    "median": 0.3,
+    "p75": 0.39999999999999997,
+    "max": 0.4,
+    "min": 0.19999999999999998
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "Ti-Ni-Co|slot|1/32-1/16": {
+   "n": 42,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.28,
+    "median": 0.35000000000000003,
+    "p75": 0.39999999999999997,
+    "max": 1.5,
+    "min": 0.21000000000000002
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "Ti-Ni-Co|slot|1/16-1/8": {
+   "n": 37,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.2999745999491999,
+    "median": 0.4,
+    "p75": 0.5000423334180002,
+    "max": 1.25,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "Ti-Ni-Co|slot|1/8-1/4": {
+   "n": 46,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.38125,
+    "median": 0.5,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "Ti-Ni-Co|slot|1/4-1/2": {
+   "n": 38,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.42500000000000004,
+    "median": 0.874999,
+    "p75": 1.0,
+    "max": 1.5,
+    "min": 0.11999407332147996
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.9999979999999999
+   }
+  },
+  "Ti-Ni-Co|slot|>1/2": {
+   "n": 23,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 0.9999979999999999,
+    "p75": 1.0,
+    "max": 1.25,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.9999979999999999
+   }
+  },
+  "Ti-Ni-Co|side|<=1/32": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.3,
+    "median": 0.3,
+    "p75": 0.3,
+    "max": 0.3,
+    "min": 0.05015873015873016
+   }
+  },
+  "Ti-Ni-Co|side|1/32-1/16": {
+   "n": 17,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 1.500124,
+    "max": 2.0,
+    "min": 1.0
+   },
+   "ae_over_D": {
+    "p25": 0.050038,
+    "median": 0.14992,
+    "p75": 0.2,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side|1/16-1/8": {
+   "n": 30,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0625,
+    "median": 1.5,
+    "p75": 1.5,
+    "max": 3.0012706480304954,
+    "min": 0.5000423334180002
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.39999999999999997,
+    "p75": 0.5,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side|1/8-1/4": {
+   "n": 62,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0625,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side|1/4-1/2": {
+   "n": 69,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.25,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side|>1/2": {
+   "n": 48,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 1.7999973,
+    "max": 4.0,
+    "min": 0.49999491998984
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5000050800101601,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|rough|<=1/32": {
+   "n": 46,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 0.6,
+    "max": 0.75,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.28,
+    "median": 0.3,
+    "p75": 0.39999999999999997,
+    "max": 0.4,
+    "min": 0.21000000000000002
+   }
+  },
+  "Ti-Ni-Co|rough|1/32-1/16": {
+   "n": 32,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 0.6,
+    "max": 0.75,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.28,
+    "median": 0.3,
+    "p75": 0.39999999999999997,
+    "max": 0.39999999999999997,
+    "min": 0.21000000000000002
+   }
+  },
+  "Ti-Ni-Co|rough|1/16-1/8": {
+   "n": 25,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 0.6,
+    "max": 2.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.28,
+    "median": 0.3,
+    "p75": 0.4,
+    "max": 0.4,
+    "min": 0.12496
+   }
+  },
+  "Ti-Ni-Co|rough|1/8-1/4": {
+   "n": 18,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 2.0,
+    "max": 3.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.16874999999999998,
+    "median": 0.28,
+    "p75": 0.4,
+    "max": 0.4,
+    "min": 0.125
+   }
+  },
+  "Ti-Ni-Co|rough|1/4-1/2": {
+   "n": 10,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 2.5,
+    "median": 2.5,
+    "p75": 2.5,
+    "max": 2.6666666666666665,
+    "min": 2.1668077900084675
+   },
+   "ae_over_D": {
+    "p25": 0.125,
+    "median": 0.39999999999999997,
+    "p75": 0.39999999999999997,
+    "max": 0.4,
+    "min": 0.125
+   }
+  },
+  "Ti-Ni-Co|rough|>1/2": {
+   "n": 4,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.75,
+    "median": 1.875,
+    "p75": 2.0,
+    "max": 2.0,
+    "min": 1.75
+   },
+   "ae_over_D": {
+    "p25": 0.39999999999999997,
+    "median": 0.4,
+    "p75": 0.4,
+    "max": 0.4,
+    "min": 0.39999999999999997
+   }
+  },
+  "Ti-Ni-Co|hem|<=1/32": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 2.003205128205128,
+    "median": 2.003205128205128,
+    "p75": 2.003205128205128,
+    "max": 2.003205128205128,
+    "min": 2.003205128205128
+   },
+   "ae_over_D": {
+    "p25": 0.15000000000000002,
+    "median": 0.15000000000000002,
+    "p75": 0.15000000000000002,
+    "max": 0.15000000000000002,
+    "min": 0.15000000000000002
+   }
+  },
+  "Ti-Ni-Co|hem|1/32-1/16": {
+   "n": 9,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 3.0,
+    "p75": 3.0,
+    "max": 5.032258064516129,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.09999999999999999,
+    "median": 0.09999999999999999,
+    "p75": 0.14992,
+    "max": 0.14992,
+    "min": 0.09999999999999999
+   }
+  },
+  "Ti-Ni-Co|hem|1/16-1/8": {
+   "n": 26,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 3.0,
+    "max": 5.0,
+    "min": 1.248
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.1,
+    "p75": 0.1,
+    "max": 0.2,
+    "min": 0.04
+   }
+  },
+  "Ti-Ni-Co|hem|1/8-1/4": {
+   "n": 57,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 2.0,
+    "median": 2.0,
+    "p75": 3.0,
+    "max": 5.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.1,
+    "p75": 0.15,
+    "max": 0.25,
+    "min": 0.04
+   }
+  },
+  "Ti-Ni-Co|hem|1/4-1/2": {
+   "n": 67,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.5013333333333332,
+    "median": 2.0,
+    "p75": 2.6666666666666665,
+    "max": 4.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.07175783191532513,
+    "median": 0.1,
+    "p75": 0.15,
+    "max": 0.25,
+    "min": 0.04
+   }
+  },
+  "Ti-Ni-Co|hem|>1/2": {
+   "n": 37,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.5,
+    "median": 2.0,
+    "p75": 3.0,
+    "max": 4.0,
+    "min": 1.25
+   },
+   "ae_over_D": {
+    "p25": 0.05,
+    "median": 0.1,
+    "p75": 0.15,
+    "max": 0.25,
+    "min": 0.04
+   }
+  },
+  "Ti-Ni-Co|side_rough|<=1/32": {
+   "n": 51,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 0.6,
+    "max": 1.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.28,
+    "median": 0.3,
+    "p75": 0.39999999999999997,
+    "max": 0.4,
+    "min": 0.05015873015873016
+   }
+  },
+  "Ti-Ni-Co|side_rough|1/32-1/16": {
+   "n": 49,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 0.6,
+    "p75": 1.0,
+    "max": 2.0,
+    "min": 0.6
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.28,
+    "p75": 0.39999999999999997,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side_rough|1/16-1/8": {
+   "n": 55,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 0.6,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 3.0012706480304954,
+    "min": 0.5000423334180002
+   },
+   "ae_over_D": {
+    "p25": 0.23,
+    "median": 0.3999661332655998,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side_rough|1/8-1/4": {
+   "n": 80,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 2.0,
+    "max": 4.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.11875,
+    "median": 0.21250000000000002,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side_rough|1/4-1/2": {
+   "n": 79,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.4500042333418,
+    "median": 1.5,
+    "p75": 2.5,
+    "max": 4.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "Ti-Ni-Co|side_rough|>1/2": {
+   "n": 52,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "Ti-Ni-Co"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.5,
+    "p75": 1.8250127000254002,
+    "max": 4.0,
+    "min": 0.49999491998984
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5000050800101601,
+    "min": 0.02
+   }
+  },
+  "hardened|slot|<=1/32": {
+   "n": 16,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.14,
+    "median": 0.15,
+    "p75": 0.2,
+    "max": 0.5,
+    "min": 0.09999999999999999
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "hardened|slot|1/32-1/16": {
+   "n": 12,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.14,
+    "median": 0.15,
+    "p75": 0.35,
+    "max": 1.0,
+    "min": 0.09999999999999999
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "hardened|slot|1/16-1/8": {
+   "n": 18,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.15,
+    "median": 0.5999915333163999,
+    "p75": 0.9500042333418,
+    "max": 1.0,
+    "min": 0.1
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "hardened|slot|1/8-1/4": {
+   "n": 17,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.15,
+    "median": 0.5999915333163999,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.1
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "hardened|slot|1/4-1/2": {
+   "n": 16,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5499936499872999,
+    "median": 0.7749978833291,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.15
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "hardened|slot|>1/2": {
+   "n": 10,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.8,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 0.4
+   },
+   "ae_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.0,
+    "max": 1.0,
+    "min": 1.0
+   }
+  },
+  "hardened|side|<=1/32": {
+   "n": 17,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 0.5,
+    "p75": 0.5,
+    "max": 1.50016,
+    "min": 0.44
+   },
+   "ae_over_D": {
+    "p25": 0.09999999999999999,
+    "median": 0.14,
+    "p75": 0.15,
+    "max": 0.25,
+    "min": 0.05015873015873016
+   }
+  },
+  "hardened|side|1/32-1/16": {
+   "n": 20,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.25,
+    "max": 1.500124,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.050069499999999996,
+    "median": 0.14,
+    "p75": 0.21250000000000002,
+    "max": 0.4,
+    "min": 0.02
+   }
+  },
+  "hardened|side|1/16-1/8": {
+   "n": 32,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.7999745999492,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 3.0012706480304954,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.24998729997459992,
+    "p75": 0.39999999999999997,
+    "max": 0.5,
+    "min": 0.01
+   }
+  },
+  "hardened|side|1/8-1/4": {
+   "n": 30,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.8000169333672,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 3.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.2,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.009973333333333332
+   }
+  },
+  "hardened|side|1/4-1/2": {
+   "n": 27,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 3.0,
+    "min": 0.5
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.29999576665819994,
+    "p75": 0.4000042333418,
+    "max": 0.5,
+    "min": 0.01
+   }
+  },
+  "hardened|side|>1/2": {
+   "n": 17,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 1.9000508001016,
+    "min": 0.8
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.4,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  },
+  "hardened|rough|<=1/32": {
+   "n": 5,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.25,
+    "median": 0.25,
+    "p75": 0.25,
+    "max": 0.25,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.15,
+    "p75": 0.15,
+    "max": 0.15,
+    "min": 0.15
+   }
+  },
+  "hardened|rough|1/32-1/16": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.25,
+    "median": 0.25,
+    "p75": 0.25,
+    "max": 0.25,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.15,
+    "p75": 0.15,
+    "max": 0.15,
+    "min": 0.15
+   }
+  },
+  "hardened|rough|1/16-1/8": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.25,
+    "median": 0.25,
+    "p75": 0.25,
+    "max": 0.25,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.15,
+    "p75": 0.15,
+    "max": 0.15,
+    "min": 0.15
+   }
+  },
+  "hardened|rough|1/8-1/4": {
+   "n": 3,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.25,
+    "median": 0.25,
+    "p75": 0.25,
+    "max": 0.25,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.15,
+    "p75": 0.15,
+    "max": 0.15,
+    "min": 0.15
+   }
+  },
+  "hardened|rough|1/4-1/2": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.25,
+    "median": 2.1668077900084675,
+    "p75": 2.5,
+    "max": 2.6666666666666665,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.39999999999999997,
+    "p75": 0.39999999999999997,
+    "max": 0.4,
+    "min": 0.15
+   }
+  },
+  "hardened|rough|>1/2": {
+   "n": 7,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 2.0,
+    "p75": 2.333403895004234,
+    "max": 2.6666666666666665,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.27499999999999997,
+    "median": 0.39999999999999997,
+    "p75": 0.4,
+    "max": 0.4,
+    "min": 0.15
+   }
+  },
+  "hardened|hem|<=1/32": {
+   "n": 11,
+   "widening": "every band of the group",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4",
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 3.5999915333163997,
+    "median": 3.5999915333163997,
+    "p75": 3.5999915333163997,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999153331639996,
+    "p75": 0.09999153331639996,
+    "max": 0.09999153331639996,
+    "min": 0.04999576665819998
+   }
+  },
+  "hardened|hem|1/32-1/16": {
+   "n": 5,
+   "widening": "+ two bands either side",
+   "bands_used": [
+    "<=1/32",
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 3.5999915333163997,
+    "median": 3.5999915333163997,
+    "p75": 3.5999915333163997,
+    "max": 3.5999915333163997,
+    "min": 3.5999915333163997
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999153331639996,
+    "p75": 0.09999153331639996,
+    "max": 0.09999153331639996,
+    "min": 0.04999576665819998
+   }
+  },
+  "hardened|hem|1/16-1/8": {
+   "n": 5,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/32-1/16",
+    "1/16-1/8",
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 3.5999915333163997,
+    "median": 3.5999915333163997,
+    "p75": 3.5999915333163997,
+    "max": 3.5999915333163997,
+    "min": 3.5999915333163997
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999153331639996,
+    "p75": 0.09999153331639996,
+    "max": 0.09999153331639996,
+    "min": 0.04999576665819998
+   }
+  },
+  "hardened|hem|1/8-1/4": {
+   "n": 5,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 3.5999915333163997,
+    "median": 3.5999915333163997,
+    "p75": 3.5999915333163997,
+    "max": 3.5999915333163997,
+    "min": 3.5999915333163997
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999153331639996,
+    "p75": 0.09999153331639996,
+    "max": 0.09999153331639996,
+    "min": 0.04999576665819998
+   }
+  },
+  "hardened|hem|1/4-1/2": {
+   "n": 6,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 3.5999915333163997,
+    "median": 3.5999915333163997,
+    "p75": 3.5999915333163997,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999153331639996,
+    "p75": 0.09999153331639996,
+    "max": 0.09999153331639996,
+    "min": 0.04999576665819998
+   }
+  },
+  "hardened|hem|>1/2": {
+   "n": 6,
+   "widening": "+ neighbouring diameter bands",
+   "bands_used": [
+    "1/4-1/2",
+    ">1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 3.5999915333163997,
+    "median": 3.5999915333163997,
+    "p75": 3.5999915333163997,
+    "max": 3.5999915333163997,
+    "min": 2.0
+   },
+   "ae_over_D": {
+    "p25": 0.09999153331639996,
+    "median": 0.09999153331639996,
+    "p75": 0.09999153331639996,
+    "max": 0.09999153331639996,
+    "min": 0.04999576665819998
+   }
+  },
+  "hardened|side_rough|<=1/32": {
+   "n": 19,
+   "widening": "exact bucket",
+   "bands_used": [
+    "<=1/32"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 0.5,
+    "p75": 0.5,
+    "max": 1.50016,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.15,
+    "p75": 0.15,
+    "max": 0.25,
+    "min": 0.05015873015873016
+   }
+  },
+  "hardened|side_rough|1/32-1/16": {
+   "n": 23,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/32-1/16"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.25,
+    "max": 1.500124,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.07504,
+    "median": 0.15,
+    "p75": 0.175,
+    "max": 0.4,
+    "min": 0.02
+   }
+  },
+  "hardened|side_rough|1/16-1/8": {
+   "n": 37,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/16-1/8"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 3.0012706480304954,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.14,
+    "median": 0.15,
+    "p75": 0.39999999999999997,
+    "max": 0.5,
+    "min": 0.01
+   }
+  },
+  "hardened|side_rough|1/8-1/4": {
+   "n": 33,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/8-1/4"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.5,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 3.0,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.1,
+    "median": 0.15,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.009973333333333332
+   }
+  },
+  "hardened|side_rough|1/4-1/2": {
+   "n": 32,
+   "widening": "exact bucket",
+   "bands_used": [
+    "1/4-1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 0.975,
+    "median": 1.25,
+    "p75": 1.525156647088626,
+    "max": 3.0,
+    "min": 0.25
+   },
+   "ae_over_D": {
+    "p25": 0.15,
+    "median": 0.3499978833291,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.01
+   }
+  },
+  "hardened|side_rough|>1/2": {
+   "n": 19,
+   "widening": "exact bucket",
+   "bands_used": [
+    ">1/2"
+   ],
+   "groups_used": [
+    "hardened"
+   ],
+   "ap_over_D": {
+    "p25": 1.0,
+    "median": 1.0,
+    "p75": 1.5,
+    "max": 2.0,
+    "min": 0.8
+   },
+   "ae_over_D": {
+    "p25": 0.2,
+    "median": 0.4,
+    "p75": 0.4,
+    "max": 0.5,
+    "min": 0.02
+   }
+  }
+ }
+}

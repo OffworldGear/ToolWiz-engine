@@ -29,7 +29,7 @@ class TestModelSelection(unittest.TestCase):
 
     def test_precedence(self):
         with mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": ""}):
-            self.assertEqual(v2_bridge.resolve_model(None, path=self.path), ("v1", "default"))
+            self.assertEqual(v2_bridge.resolve_model(None, path=self.path), ("v2", "default"))
         with mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": "v2"}):
             self.assertEqual(v2_bridge.resolve_model(None, path=self.path), ("v2", "TOOLWIZ_MODEL"))
             v2_bridge.save_model("v1", self.path)
@@ -41,7 +41,7 @@ class TestModelSelection(unittest.TestCase):
         with self.assertRaises(ValueError):
             v2_bridge.save_model("v3", self.path)
         with mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": "nonsense"}):
-            self.assertEqual(v2_bridge.resolve_model("also bad", path=self.path)[0], "v1")
+            self.assertEqual(v2_bridge.resolve_model("also bad", path=self.path)[0], "v2")
 
 
 class TestPipeline(unittest.TestCase):
@@ -59,9 +59,10 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(r.model, "v2")
         self.assertTrue(r.feasible)
         self.assertEqual(r.v1["rpm"], v1.rpm)
-        self.assertGreater(r.rec_doc, 5 * v1.rec_doc)          # deep and narrow
+        # V3 round 3: ae stays at or above the narrowest vendor cut (0.15·D for 17-4 here), so C3 = k·D limits the depth
+        self.assertGreater(r.rec_doc, 1.5 * v1.rec_doc)
         self.assertLess(r.rec_woc / r.diameter, 0.5)
-        self.assertGreater(r.mrr, v1.mrr)
+        self.assertGreater(r.mrr, 0.3 * v1.mrr)   # v1 ignores deflection; v2 holds ae at the vendor minimum and C3 = k·D
         self.assertLessEqual(r.rpm, 16000.0)
         self.assertAlmostEqual(r.feed_ipm, r.rpm * r.adj_ipt * 4, delta=0.05)
         self.assertEqual(r.provenance, [])
@@ -90,9 +91,19 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(r.model, "v2")
         self.assertAlmostEqual(r.rec_woc, 0.05 / 25.4, places=6)
 
-    def test_infeasible_micro_tool_reports_runout(self):
+    def test_micro_tool_at_default_runout_cuts_with_reduced_flutes(self):
+        # V3 M1: runout alone no longer makes a micro tool infeasible (C1 on the wall flute); it cuts on fewer flutes.
         geo = {"DC": 0.0156, "NOF": 4, "LCF": 0.047, "SFDM": 0.125, "LB": 0.4}
         r = run_cut(app.physics, req(geo=geo, model="v2"))
+        self.assertEqual(r.model, "v2")
+        self.assertTrue(r.feasible)
+        self.assertEqual(r.runout_regime, "reduced_flutes")
+        self.assertLess(r.flutes_cutting, 4)
+        self.assertTrue(any(t["title"] == "Reduced flutes cutting" for t in r.tips))
+
+    def test_infeasible_micro_tool_reports_runout(self):
+        geo = {"DC": 0.0156, "NOF": 4, "LCF": 0.047, "SFDM": 0.125, "LB": 0.4}
+        r = run_cut(app.physics, req(geo=geo, model="v2", runout=0.003))   # C12: ae >= 2·TIR is past the adaptive limit
         self.assertEqual(r.model, "v2")
         self.assertFalse(r.feasible)
         self.assertEqual(r.tips[0]["type"], "critical")
@@ -157,15 +168,17 @@ class TestAddinMessage(unittest.TestCase):
             "v2: vendor-average chip load, vendor-average removal rate",
         )
 
-    def test_v2_t12_slotting_17_4_annealed_c14_vs_c1(self):
+    def test_v2_t12_slotting_17_4_annealed_vendor_depth_and_reduced_flutes(self):
+        # V3: the depth is the vendor envelope's (stainless 1/16-1/8" slots), not the old 0.35·D micro table, and the
+        # wall-flute C1 (M1) replaces the C14-versus-every-flute-C1 fallback this test used to pin.
         r = run_cut(app.physics, req(alloy="17-4 PH (Annealed)", operation="Slotting", aggressiveness=0.60, model="v2"))
         self.assertEqual(r.model, "v2")
         self.assertTrue(r.feasible)
         self.assertAlmostEqual(r.rec_woc, 0.0625, places=5)
-        self.assertAlmostEqual(r.rec_doc, 0.35 * 0.0625, places=4)
+        self.assertLess(r.rec_doc, 0.35 * 0.0625 + 1e-9)    # the cut here is deflection-limited, well under the cap
         self.assertLess(r.feed_ipm, 10.0)
-        self.assertTrue(any("C14 vendor-consensus chip load is below the every-flute C1 rubbing floor" in w
-                            for w in r.v2["warnings"]))
+        self.assertIn(r.runout_regime, ("all_flutes", "reduced_flutes"))   # all flutes cut since the hardness recalibration
+        self.assertEqual(any(w.startswith("reduced flutes:") for w in r.v2["warnings"]), r.runout_regime == "reduced_flutes")
 
     def test_addin_drilling_and_tapping_support(self):
         import json
@@ -256,3 +269,10 @@ class TestAddinMessage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestProductionDefault(unittest.TestCase):
+    def test_production_default_is_v2(self):
+        """With no request model, saved setting or TOOLWIZ_MODEL, both clients get the v2 physics model."""
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": ""}):
+            self.assertEqual(v2_bridge.resolve_model(None, path=os.path.join(d, "none.json")), ("v2", "default"))

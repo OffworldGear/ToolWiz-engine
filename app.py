@@ -31,6 +31,9 @@ fusion_bridge.register(app)
 from routes_advice import bp as advice_bp; app.register_blueprint(advice_bp)
 from routes_library import bp as library_bp; app.register_blueprint(library_bp)
 from routes_master_library import bp as master_library_bp; app.register_blueprint(master_library_bp)
+from routes_strategy import bp as strategy_bp; app.register_blueprint(strategy_bp)
+from routes_ui_support import bp as ui_support_bp; app.register_blueprint(ui_support_bp)
+from routes_setup_advisor import bp as setup_advisor_bp; app.register_blueprint(setup_advisor_bp)
 import machine_profiles
 
 # Initialize physics engine
@@ -499,6 +502,41 @@ def _model_fields(res):
     return {"model": res.model, "model_note": res.model_note, "v1": res.v1, "v2": res.v2}
 
 
+def _optional_length(data, *keys):
+    """The first of data[keys] that is a positive number (inches), else None (not given by the user)."""
+    for key in keys:
+        val = data.get(key)
+        if val is None or val == "":
+            continue
+        try:
+            val = float(val)
+        except (TypeError, ValueError):
+            continue
+        if val > 0:
+            return val
+    return None
+
+
+def _finish_args(data):
+    """finishMode / targetRa (micro-inches) / wallTolerance (inches) request fields as CutRequest keyword arguments."""
+    out = {"finish_mode": (str(data.get("finishMode")).strip().lower() if data.get("finishMode") else None)}
+    out["target_ra"] = _optional_length(data, "targetRa")
+    out["wall_tolerance"] = _optional_length(data, "wallTolerance")
+    return out
+
+
+def _runout_fields(res):
+    """V3 contract fields: flutes cutting, runout regime, the runout at which all flutes cut, runout ratio, and
+    whether rpm/feed were computed for the user's DOC/WOC or the recommendation."""
+    def r(x, n):
+        return None if x is None else round(x, n)
+    return {"flutes_cutting": res.flutes_cutting, "runout_regime": res.runout_regime,
+            "tir_all_flutes_in": r(res.tir_all_flutes_in, 6), "runout_ratio": r(res.runout_ratio, 4),
+            "engagement_source": res.engagement_source, "finish": res.finish,
+            "recommended_radial_stock_in": r(res.recommended_radial_stock_in, 5),
+            "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5)}
+
+
 @app.route("/api/model_settings", methods=["GET", "POST"])
 def api_model_settings():
     """GET the cutting model in effect and where it came from; POST {model: "v1"|"v2"} saves it for the
@@ -519,8 +557,12 @@ def calculate():
         data = _json_body()
         fusion_tool = _fusion_tool_arg(data)
         diameter = float(data.get("diameter", 0.5))
-        cut_depth = float(data.get("cutDepth", 0.25))
-        cut_width = float(data.get("cutWidth", 0.25))
+        # The user's own depth and width (the sliders). Absent: v1 keeps its historical 0.25" default; v2 uses the
+        # recommendation. rec_doc/rec_woc stay the recommendation either way.
+        model = _request_model(data)
+        absent = None if model == "v2" else 0.25
+        explicit_depth, explicit_width = _optional_length(data, "cutDepth"), _optional_length(data, "cutWidth")
+        cut_depth, cut_width = explicit_depth or absent, explicit_width or absent
         is_metric = bool(data.get("isMetric", False))
         shank_size = float(data.get("shankDiameter") or default_shank(diameter))
 
@@ -550,11 +592,13 @@ def calculate():
             runout=_runout_arg(data),
             cut_depth=cut_depth,
             cut_width=cut_width,
+            engagement_explicit=(explicit_depth is not None or explicit_width is not None),
+            **_finish_args(data),
             tap_type=data.get("tapType", ""),
             pitch=float(data.get("pitch", 0.05)),
             is_metric=is_metric,
             fusion_tool=fusion_tool,
-            model=_request_model(data),
+            model=model,
             machine_profile=active_machine(),
             feature_geometry=data.get("feature_geometry") if isinstance(data.get("feature_geometry"), dict) else None,
             **_tslot_args(data),
@@ -587,8 +631,8 @@ def calculate():
             "ramp_angle": round(res.ramp_angle, 1),
             "ramp_feed": round(res.ramp_feed, 2),
             "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
-            "rec_doc": round(res.rec_doc, 4),
-            "rec_woc": round(res.rec_woc, 4),
+            "rec_doc": round(res.rec_doc, 6),
+            "rec_woc": round(res.rec_woc, 6),
             "rec_limit": round(res.rec_limit, 7),
             "max_radial_reach": round(max_radial_reach, 5),
             "neck_diameter": round(neck_diameter, 5),
@@ -606,6 +650,9 @@ def calculate():
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
             **({"tslot": res.tslot} if res.tslot else {}),
             **_model_fields(res),
+            **_runout_fields(res),
+            "holder_advice": res.holder_advice,
+            "tool_advice": res.tool_advice,
         }
         if res.tap_drill:
             resp["tap_drill"] = res.tap_drill
@@ -628,7 +675,10 @@ def calculate_for_fusion():
         shank_size = float(data.get("shankDiameter") or default_shank(diameter))
         pitch = data.get("pitch")
 
-        # cut_depth / cut_width are left unset: the pipeline uses the recommended DOC/WOC
+        # The operation's own stepdown / stepover (inches) when the add-in sends them (stepdown/stepover, or
+        # cutDepth/cutWidth); otherwise cut_depth / cut_width stay unset and the pipeline uses the recommendation.
+        user_depth = _optional_length(data, "stepdown", "cutDepth")
+        user_width = _optional_length(data, "stepover", "cutWidth")
         req = CutRequest(
             family=data.get("family", ""),
             alloy=data.get("alloy", ""),
@@ -653,8 +703,9 @@ def calculate_for_fusion():
             max_rpm=float(data.get("maxRpm") or machine_limits()["max_rpm"]),
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
             runout=_runout_arg(data),
-            cut_depth=None,
-            cut_width=None,
+            cut_depth=user_depth,
+            cut_width=user_width,
+            **_finish_args(data),
             tap_type=data.get("tapType", ""),
             pitch=float(pitch) if pitch is not None else None,
             is_metric=bool(data.get("isMetric", False)),
@@ -675,8 +726,11 @@ def calculate_for_fusion():
             "effective_diameter": round(res.effective_diameter, 5),
             "contact_sfm": round(res.contact_sfm, 1),
             "ipt": round(res.adj_ipt, 6),
-            "doc": round(res.rec_doc, 5),
-            "woc": round(res.rec_woc, 5),
+            "doc": round(res.rec_doc, 6),
+            "woc": round(res.rec_woc, 6),
+            # the engagement rpm/feed were computed for (the user's stepdown/stepover, else the recommendation)
+            "engagement_doc": round(res.doc, 5),
+            "engagement_woc": round(res.woc, 5),
             "ramp_feed": round(res.ramp_feed, 2),
             "plunge_feed": max(round(res.plunge_feed, 4), 0.0001) if res.feed_ipm > 0.0 else 0.0,
             "ramp_angle": round(res.ramp_angle, 2),
@@ -691,7 +745,8 @@ def calculate_for_fusion():
             "limited_by": res.limited_by,
             "provenance": res.provenance,
             "profile": res.profile,
-            "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
+            "alerts": [{"title": t["title"], "message": t["message"], "type": t.get("type", "info")} for t in res.tips if t.get("fusion")],
+            **_runout_fields(res),
             **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
             **({"tslot": res.tslot} if res.tslot else {}),
@@ -704,6 +759,8 @@ def calculate_for_fusion():
                 feature_geometry=res.feature_geometry
             ).to_dict(),
             **_model_fields(res),
+            "holder_advice": res.holder_advice,
+            "tool_advice": res.tool_advice,
         })
 
     except Exception as e:

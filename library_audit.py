@@ -22,13 +22,12 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from master_library import GENERATOR, cached_cut, cut_request
 from toolwiz_common.geometry import ToolGeometry
 from toolwiz_common.tool_profile import ToolProfile
-from toolwiz_common.tool_strategy import (
-    END_MILL_STRATEGIES, FORM_KINDS, T_SLOT_AXIAL, T_SLOT_FULL, slot_faces,
-)
+from toolwiz_common.tool_strategy import END_MILL_STRATEGIES, FORM_KINDS, T_SLOT_AXIAL, T_SLOT_FULL
 from toolwiz_common.tool_types import ToolKind, classify, is_hole_kind, is_milling_kind
 from toolwiz_common.units import UnitError, tool_unit
 
@@ -67,10 +66,6 @@ _MATERIALS: List[Tuple[str, str]] = [
 _GENERIC_NAMES = ("default", "deburr")
 
 _ER_RE = re.compile(r"(?<![A-Za-z])ER(?![A-Za-z])")
-_COATING_RE = re.compile(r"(altin|tialn|alcrn|ticn|tin|nacro|diamond|zrn|crn)", re.I)
-_HSS_RE = re.compile(r"\b(hss|hss-e|hsse|hss-co|cobalt|high[\s-]?speed(?:\s+steel)?|powder\s+metal|pm)\b", re.I)
-_COATING_NAMES = {"altin": "AlTiN", "tialn": "AlTiN", "alcrn": "AlCrN", "ticn": "TiCN", "tin": "TiN",
-                  "nacro": "nACo", "diamond": "Diamond", "zrn": "ZrN", "crn": "CrN"}
 
 
 # ---------------------------------------------------------------- mapping helpers
@@ -97,7 +92,11 @@ def resolve_material(*texts: str, physics: Any = None) -> Optional[Dict[str, str
 
 
 def material_of_preset(preset: dict, physics: Any = None) -> Optional[Dict[str, str]]:
-    """Material of a preset: its ``material.query``, else its name without the operation suffix."""
+    """Material of a preset: the family and alloy row ToolWiz wrote in its ``toolwiz`` tag (the exact material the
+    preset was computed for), else its ``material.query``, else its name without the operation suffix."""
+    tag = preset.get("toolwiz")
+    if isinstance(tag, dict) and tag.get("generator") == GENERATOR and tag.get("family"):
+        return {"family": str(tag["family"]), "alloy": str(tag.get("alloy") or "")}
     mat = preset.get("material") or {}
     name = str(preset.get("name") or "")
     return resolve_material(str(mat.get("query") or ""), name.split(" - ")[0], name, physics=physics)
@@ -124,48 +123,6 @@ def classify_operation(preset: dict) -> Optional[str]:
     return None
 
 
-def _is_carbide(tool: dict) -> bool:
-    geo = tool.get("geometry") or {}
-    text = " ".join(str(p) for p in (tool.get("material"), geo.get("material"), tool.get("BMC"), geo.get("BMC"),
-                                      tool.get("grade"), tool.get("description")) if p)
-    return "carbide" in text.lower() or not _HSS_RE.search(text)
-
-
-def _coating(tool: dict) -> str:
-    m = _COATING_RE.search(f"{tool.get('description') or ''} {tool.get('BMC') or ''}")
-    return _COATING_NAMES.get(m.group(1).lower(), "AlTiN") if m else "AlTiN"
-
-
-def _db_tool_type(kind: ToolKind, tool: dict, carbide: bool) -> str:
-    if kind is ToolKind.TAP:
-        return "Tapping"
-    if kind is ToolKind.REAMER:
-        return "Carbide Reamer" if carbide else "HSS Reamer"
-    if is_hole_kind(kind):
-        return "HP Carbide Twist Drill" if carbide else "HSS Twist Drill"
-    if kind is ToolKind.SLOT and any(k in str(tool.get("description", "")).lower()
-                                     for k in ("saw", "slitting", "woodruff", "keyseat")):
-        return "Carbide Saws & Woodruff Cutters" if carbide else "HSS Saws & Woodruff Cutters"
-    return "Carbide Endmill" if carbide else "HSS Endmill"
-
-
-def _geometry_name(kind: ToolKind, corner_radius: float) -> str:
-    return {ToolKind.SLOT: "T-Slot", ToolKind.DOVETAIL: "Dovetail", ToolKind.LOLLIPOP: "Lollipop",
-            ToolKind.THREAD_MILL: "Thread Mill", ToolKind.CHAMFER: "Chamfer", ToolKind.BALL: "Ball Nose",
-            ToolKind.RADIUS: "Ball Nose", ToolKind.BULL: "Bull Nose"}.get(
-        kind, "Square" if corner_radius == 0 else "Radiused")
-
-
-def _fusion_payload(tool: dict) -> dict:
-    out = {"type": tool.get("type"), "unit": tool.get("unit"), "geometry": tool.get("geometry") or {}}
-    if tool.get("description"):
-        out["description"] = tool["description"]
-    shaft = tool.get("shaft")
-    if isinstance(shaft, dict) and shaft.get("segments"):
-        out["shaft"] = shaft
-    return out
-
-
 # ---------------------------------------------------------------- findings
 class _Report:
     def __init__(self) -> None:
@@ -185,52 +142,43 @@ def _fmt(v: float, unit: str) -> str:
 
 # ---------------------------------------------------------------- ToolWiz recommendation
 class _Recommender:
-    """Runs ``pipeline.run_cut`` for (tool, family, alloy, operation) and caches the result."""
+    """ToolWiz recommendation per (tool, family, alloy, operation), from the same ``CutRequest`` the build uses
+    (``master_library.cut_request``). ``cache`` is the build's cache (a dict of pipeline results keyed by request):
+    cuts the build already made are reused, and new ones are added to it. ``aggressiveness_for(tool)`` gives each
+    tool's aggressiveness (its own override, as in the build)."""
 
     def __init__(self, physics: Any, max_rpm: float, max_hp: float, runout_in: float, aggressiveness: float,
-                 model: Optional[str], machine_profile: Optional[dict]) -> None:
+                 model: Optional[str], machine_profile: Optional[dict], *, cache: Optional[dict] = None,
+                 aggressiveness_for: Optional[Callable[[dict], float]] = None) -> None:
         self.physics, self.max_rpm, self.max_hp = physics, max_rpm, max_hp
         self.runout, self.aggr, self.model, self.machine = runout_in, aggressiveness, model, machine_profile
-        self._cache: Dict[Tuple, Optional[Dict[str, float]]] = {}
+        self.cache = cache if cache is not None else {}
+        self.aggr_for = aggressiveness_for or (lambda tool: self.aggr)
+        self._memo: Dict[Tuple, Optional[Dict[str, float]]] = {}
 
     def get(self, idx: int, tool: dict, kind: ToolKind, family: str, alloy: str, op: str) -> Optional[Dict[str, float]]:
         key = (idx, family, alloy, op)
-        if key in self._cache:
-            return self._cache[key]
+        if key in self._memo:
+            return self._memo[key]
         out: Optional[Dict[str, float]] = None
         try:
-            from pipeline import CutRequest, run_cut
-            carbide = _is_carbide(tool)
-            geo = tool.get("geometry") or {}
-            tslot_op = "axial_step" if op == T_SLOT_AXIAL else ("full_slot" if op == T_SLOT_FULL else "")
-            extra: Dict[str, Any] = {}
-            if kind is ToolKind.SLOT:
-                form, faces = slot_faces(tool)
-                extra = {"tslot_operation": tslot_op or "full_slot", "tooth_form": form, "cutting_faces": faces}
-                if tslot_op == "axial_step":
-                    extra["slot_height"] = 2.0 * float(geo.get("LCF") or 0.0) * (1.0 if tool_unit(tool) == "inches" else 1 / MM)
-            hole = is_hole_kind(kind)
-            req_op = "Slotting" if op in (T_SLOT_FULL, T_SLOT_AXIAL) else op
-            g = ToolGeometry.from_fusion(tool)
-            r = run_cut(self.physics, CutRequest(
-                family=family, alloy=alloy, tool=_db_tool_type(kind, tool, carbide),
-                geometry=("Spot Drill" if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL)
-                          else ("Square" if hole else _geometry_name(kind, g.corner_radius))),
-                operation=req_op, coating=_coating(tool), diameter=g.diameter, flutes=g.flutes,
-                flute_length=g.flute_length, shank_diameter=g.shank_diameter, corner_radius=g.corner_radius,
-                stickout=g.stickout, cutter_thickness=g.flute_length, is_carbide=carbide,
-                aggressiveness=self.aggr, max_rpm=self.max_rpm, max_hp=self.max_hp, runout=self.runout,
-                fusion_tool=_fusion_payload(tool), model=self.model, machine_profile=self.machine,
-                apply_coating=not hole, **extra))
+            g = ToolGeometry.from_fusion(tool, stickout_override=tool.get("stickout"))
+            slot_op = op if op in (T_SLOT_FULL, T_SLOT_AXIAL) else ""
+            tslot = ("axial_step" if op == T_SLOT_AXIAL else "full_slot") if slot_op else ""
+            req = cut_request(tool, g, kind, {"family": family, "alloy": alloy},
+                              operation=("Slotting" if slot_op else op), tslot_operation=tslot,
+                              aggressiveness=self.aggr_for(tool), max_rpm=self.max_rpm, max_hp=self.max_hp,
+                              runout=self.runout, model=self.model, machine_profile=self.machine)
+            r = cached_cut(self.physics, req, self.cache)
             fz = r.adj_ipt
-            if tslot_op == "axial_step" and r.rpm > 0:
+            if tslot == "axial_step" and r.rpm > 0:
                 fz = r.feed_ipm / (r.rpm * g.flutes)      # the Z feed expressed as a per-tooth value
             if all(math.isfinite(x) for x in (fz, r.feed_ipm, r.rpm)) and fz > 0:
                 out = {"fz_in": fz, "feed_ipm": r.feed_ipm, "rpm": r.rpm, "doc_in": r.rec_doc, "woc_in": r.rec_woc,
                        "diameter_in": g.diameter, "flutes": g.flutes, "feasible": bool(r.feasible)}
         except Exception:
             out = None
-        self._cache[key] = out
+        self._memo[key] = out
         return out
 
 
@@ -402,19 +350,26 @@ def _duplicates(rep: _Report, idx: int, tool: dict, presets: List[dict], physics
 def audit_library(library: Dict[str, Any], physics: Any, *, material: Optional[str] = None,
                   max_rpm: float = MAX_RPM_DEFAULT, max_hp: float = 10.0, runout_in: float = 0.0002,
                   aggressiveness: float = 0.5, model: Optional[str] = None,
-                  machine_profile: Optional[dict] = None) -> Dict[str, Any]:
+                  machine_profile: Optional[dict] = None, cache: Optional[dict] = None,
+                  aggressiveness_for: Optional[Callable[[dict], float]] = None) -> Dict[str, Any]:
     """Audit every tool and preset of a Fusion library dict.
 
     ``material``: optional ToolWiz family (or free text such as "Ti-6Al-4V") the shop is cutting; tools with no
     preset for it get an INFO finding. ``runout_in``: runout assumed for the holder check. Returns
     ``{"summary": {"STOP", "CAUTION", "INFO", "tools", "presets"}, "findings": [...], "tools": [...]}`` where
     each finding has severity, code, message, tool_index, tool, type, preset, toolwiz_value, preset_value.
+
+    The recommendations must be made with the settings the presets were built with: ``model``, ``runout_in``,
+    ``machine_profile`` and ``max_rpm`` / ``max_hp``; ``aggressiveness_for(tool)`` returns a tool's own
+    aggressiveness (default: ``aggressiveness`` for every tool). ``cache`` is a dict of pipeline results shared with
+    the build (see ``master_library.cached_cut``); pass the build's cache so identical cuts are computed once.
     """
     tools = library.get("tools") if isinstance(library, dict) else None
     if not isinstance(tools, list):
         raise ValueError("library must be an object with a 'tools' list")
     rep = _Report()
-    rec = _Recommender(physics, max_rpm, max_hp, runout_in, aggressiveness, model, machine_profile)
+    rec = _Recommender(physics, max_rpm, max_hp, runout_in, aggressiveness, model, machine_profile,
+                       cache=cache, aggressiveness_for=aggressiveness_for)
     want = resolve_material(material or "", physics=physics) if material else None
     tool_rows, n_presets = [], 0
     for idx, t in enumerate(tools):

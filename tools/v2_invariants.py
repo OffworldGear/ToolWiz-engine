@@ -299,8 +299,96 @@ def write_chip_limits(rows=None):
     return out, path
 
 
+# ---------------------------------------------------------------------------
+# Engagement envelope (V3 plan M3): what depth and width vendors publish, by material group, operation and diameter
+# ---------------------------------------------------------------------------
+
+ENVELOPE_PATH = os.path.join(ROOT, "data", "model_v2", "engagement_envelope.json")
+ENVELOPE_MIN_ROWS = 3
+ENVELOPE_OPERATIONS = ("slot", "side", "rough", "hem", "side_rough")
+
+
+def _quartiles(vals):
+    v = sorted(vals)
+    if len(v) >= 2:
+        q1, med, q3 = statistics.quantiles(v, n=4, method="inclusive")
+    else:
+        q1 = med = q3 = v[0]
+    return {"p25": q1, "median": med, "p75": q3, "max": v[-1], "min": v[0]}
+
+
+def engagement_envelope(rows=None):
+    """Per (material group, operation, diameter band): p25 / median / p75 / max of ap/D and ae/D over the vendor
+    square-end carbide rows of that operation, with the row count.
+
+    Operations are the vendor labels slot, side, rough, hem plus side_rough (side and rough pooled; what the
+    optimizer's "rough" reads). A bucket with fewer than ENVELOPE_MIN_ROWS rows widens stepwise like the C14
+    consensus (physics_v2.optimize.consensus_lookup): the neighbouring diameter band, two bands either side, every
+    band of the group, then every material group in the neighbouring bands; `widening` names the step used and
+    `bands_used` / `groups_used` the pooled cells. A bucket still short of rows after the last step is null.
+    """
+    rows = rows if rows is not None else load_rows(("slot", "side", "rough", "hem"))
+    bands = [b for b, _, _ in o.DIAMETER_BANDS]
+    pool = {}
+    for r in rows:
+        t, c = r["tool"], r["cut"]
+        if not (t.get("DC") and c.get("ap") and c.get("ae")) or str(t.get("end", "")).lower() != "square" \
+                or t.get("corner_radius"):
+            continue
+        D = float(t["DC"])
+        grp = o.material_group(r["material"].get("toolwiz_family"), pl.row_hb(r["material"].get("hardness"), r["material"].get("toolwiz_family")))
+        band = o.diameter_band(D)
+        entry = (float(c["ap"]) / D, min(float(c["ae"]) / D, 1.0))
+        ops = [r["operation"]] + (["side_rough"] if r["operation"] in ("side", "rough") else [])
+        for op in ops:
+            pool.setdefault((grp, op, band), []).append(entry)
+
+    def pooled(groups, op, bset):
+        return [e for g in groups for b in bset for e in pool.get((g, op, b), [])]
+
+    steps = (("exact bucket", lambda g, i: ([g], bands[i:i + 1])),
+             ("+ neighbouring diameter bands", lambda g, i: ([g], bands[max(0, i - 1):i + 2])),
+             ("+ two bands either side", lambda g, i: ([g], bands[max(0, i - 2):i + 3])),
+             ("every band of the group", lambda g, i: ([g], bands)),
+             ("every group, neighbouring bands", lambda g, i: (list(o.MATERIAL_GROUPS), bands[max(0, i - 1):i + 2])))
+    buckets = {}
+    for g in o.MATERIAL_GROUPS:
+        for op in ENVELOPE_OPERATIONS:
+            for i, band in enumerate(bands):
+                key = "|".join((g, op, band))
+                buckets[key] = None
+                for label, pick in steps:
+                    gs, bs = pick(g, i)
+                    got = pooled(gs, op, bs)
+                    if len(got) >= ENVELOPE_MIN_ROWS:
+                        buckets[key] = {"n": len(got), "widening": label, "bands_used": bs, "groups_used": gs,
+                                        "ap_over_D": _quartiles([e[0] for e in got]),
+                                        "ae_over_D": _quartiles([e[1] for e in got])}
+                        break
+    return {"status": "V3 plan M3: vendor engagement envelope (ap/D, ae/D) per material group, operation and diameter band",
+            "generated_by": "tools/v2_invariants.py (engagement_envelope)", "source": "tests/benchmarks/v2 square-end rows",
+            "min_rows": ENVELOPE_MIN_ROWS, "groups": list(o.MATERIAL_GROUPS), "operations": list(ENVELOPE_OPERATIONS),
+            "bands": [{"band": b, "d_min": lo, "d_max": hi if hi != math.inf else 1e9} for b, lo, hi in o.DIAMETER_BANDS],
+            "hardened_hrc": o.HARDENED_HRC, "n_rows": sum(len(v) for k, v in pool.items() if k[1] != "side_rough"),
+            "buckets": buckets}
+
+
+def write_engagement_envelope(rows=None):
+    out = engagement_envelope(rows)
+    with open(ENVELOPE_PATH, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, indent=1, ensure_ascii=True)
+        fh.write("\n")
+    return out, ENVELOPE_PATH
+
+
 def main():
+    if "--envelope-only" in sys.argv:
+        out, path = write_engagement_envelope()
+        print(f"engagement envelope: {out['n_rows']} rows, {sum(1 for b in out['buckets'].values() if b)} of "
+              f"{len(out['buckets'])} buckets filled; wrote {path}")
+        return
     rows = load_rows()
+    write_engagement_envelope()
     chips, chip_path = write_chip_limits(rows)
     for key in ("bands", "slot_bands", "nominal_bands", "slot_nominal_bands"):
         print(f"C2 {key}:")

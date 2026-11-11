@@ -209,15 +209,18 @@ def _run_job(job: dict, p: dict, bm: Any, physics: Any) -> None:
     try:
         common = dict(max_rpm=p["max_rpm"], max_hp=p["max_hp"], runout=p["runout"], model=p["model"],
                       machine_profile=p["machine"])
+        cache: Dict[str, Any] = {}          # one cut per request, shared by the build and every audit of this job
         libs = ml.build_libraries(p["tools"], p["holders"], p["sets"], strategies=p["strategies"],
                                   aggressiveness=p["aggressiveness"], physics=physics,
-                                  use_tool_overrides=p["use_tool_overrides"], progress=progress, **common)
+                                  use_tool_overrides=p["use_tool_overrides"], progress=progress, cache=cache,
+                                  **common)
         t_gen = time.time() - t0
         out = []
         for lib in libs:
             job["phase"] = f"auditing {lib['name']}"
             audit = ml.audit_and_prune(lib, physics, aggressiveness=p["aggressiveness"],
-                                       include_owner_presets=p["audit_owner_presets"], **common)
+                                       include_owner_presets=p["audit_owner_presets"],
+                                       use_tool_overrides=p["use_tool_overrides"], cache=cache, **common)
             job["phase"] = f"saving {lib['name']}"
             tools_only = [t for t in lib["tools"] if str(t.get("type", "")).lower() != "holder"]
             n_presets = sum(len((t.get("start-values") or {}).get("presets") or []) for t in tools_only)

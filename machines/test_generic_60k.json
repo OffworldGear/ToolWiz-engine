@@ -1,0 +1,84 @@
+{
+  "machine": "Test generic 60k (not a real machine)",
+  "source": "Synthetic profile for tests/test_vendor_conformance.py: 60,000 rpm and 20 kW so vendor speeds are reachable; rigid holder (see holder_stiffness_status).",
+  "taper": "test",
+  "max_cutting_feed_mm_min": 100000,
+  "rapid_m_min": {
+    "x": 50,
+    "y": 50,
+    "z": 56
+  },
+  "spindle_options": {
+    "test_60k": {
+      "label": "Test generic 60k (ample power)",
+      "max_rpm": 60000,
+      "power_kw_10min": 26.0,
+      "power_kw_continuous": 25.0,
+      "max_torque_nm_momentary": 150.0,
+      "base_rpm": 1600,
+      "power_kw_peak": 26.0,
+      "torque_curve": {
+        "source": "Test-only synthetic curve: 150 N·m to 1,600 rpm then constant 25 kW to 60,000 rpm (a CAT40/HSK-A63-class spindle has 25-35 kW and 100+ N·m; ample, so the machine never limits the vendor cut). Not a real machine.",
+        "format": "Per duty rating: [rpm, torque N·m] points; power interpolated linearly in rpm.",
+        "ratings": {
+          "continuous": {
+            "power_kw": 25.0,
+            "points": [
+              [
+                0,
+                150.0
+              ],
+              [
+                1600,
+                150.0
+              ],
+              [
+                60000,
+                3.98
+              ]
+            ],
+            "derived": true,
+            "note": "Constant torque to 1600 rpm, constant 25 kW above."
+          },
+          "s3_15pct_10min": {
+            "power_kw": 26.0,
+            "points": [
+              [
+                0,
+                155.0
+              ],
+              [
+                1600,
+                155.0
+              ],
+              [
+                60000,
+                4.14
+              ]
+            ],
+            "derived": true,
+            "note": "Test only."
+          },
+          "momentary": {
+            "power_kw": 26.0,
+            "points": [
+              [
+                0,
+                155.0
+              ],
+              [
+                1600,
+                155.0
+              ]
+            ],
+            "derived": false,
+            "note": "Test only."
+          }
+        }
+      }
+    }
+  },
+  "active_spindle": "test_60k",
+  "notes": "Test-only. Used by tests/test_vendor_conformance.py and tests/test_v2_stability.py.",
+  "holder_stiffness_status": "RIGID (no holder compliance in series). Vendor speed and feed charts assume a rigid CAT40/HSK-A63-class machine with a shrink-fit or milling-chuck holder. No published radial stiffness at the holder face for such a spindle could be cited from the sources available to the engine, so the holder is modelled as rigid rather than with an invented value. The Speedio BT30 profile keeps its own PROVISIONAL stiffness."
+}

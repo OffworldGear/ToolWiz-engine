@@ -16,7 +16,7 @@ class FakeUI:
             def itemById(self, cid):
                 return ui.defs.get(cid)
 
-            def addButtonDefinition(self, cid, name, tooltip):
+            def addButtonDefinition(self, cid, name, tooltip, resource_folder=None):
                 d = MagicMock(name=cid)
                 d.created_handlers = []
                 d.commandCreated.add.side_effect = d.created_handlers.append
@@ -65,6 +65,9 @@ class TestAddinLifecycle(unittest.TestCase):
             self.assertEqual(len(self.fake_ui.defs[cid].created_handlers), 1, cid)
         self.assertEqual(len(self.fake_ui.controls), len(self.addin.COMMAND_SPECS))
         self.assertEqual(len(self.addin.handlers), len(self.addin.COMMAND_SPECS))
+        for cid, *_ in self.addin.HIDDEN_COMMAND_SPECS:
+            self.assertEqual(len(self.fake_ui.defs[cid].created_handlers), 1, cid)
+            self.assertNotIn(cid, self.fake_ui.controls)   # hidden dialogs are not on the panel
 
     def test_stop_removes_everything(self):
         self.addin.run(None)

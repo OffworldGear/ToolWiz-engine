@@ -51,6 +51,137 @@ class OversightReport:
         }
 
 
+def audit_issue_findings(setup_audit: Dict[str, Any]) -> List[OversightFinding]:
+    """Findings for the ``issues`` of a Fusion ``audit_setup_sequence`` report ({operation, severity, message})."""
+    out: List[OversightFinding] = []
+    sev_map = {"error": "STOP", "warning": "CAUTION", "info": "INFO"}
+    for issue in (setup_audit or {}).get("issues") or []:
+        out.append(OversightFinding(
+            category="sequence_brep",
+            severity=sev_map.get(str(issue.get("severity", "warning")).lower(), "CAUTION"),
+            title=f"Setup Sequence Issue ({issue.get('operation', 'Op')})",
+            detail=str(issue.get("message", "")),
+            recommendation="Enable Rest Machining in Fusion or adjust the preceding roughing operation's Stock to Leave."
+        ))
+    return out
+
+
+ROUGH_KINDS = ("adaptive", "pocket", "rough")
+FINISH_KINDS = ("finish",)
+
+
+def evaluate_setup_oversight(ops: List[Dict[str, Any]], setup_audit: Optional[Dict[str, Any]] = None) -> List[OversightFinding]:
+    """Setup-level sequence checks over an ordered list of operations (deterministic, no physics here).
+
+    Each op dict: ``op_id``, ``name``, ``setup``, ``kind`` ("adaptive", "pocket", "rough", "contour", "slot",
+    "finish", "tslot", ...), ``tool_number``, ``tool_diameter_in``, ``stock_radial_in`` (what the op leaves),
+    ``rest_machining`` (True / False / None), ``toolwiz_stock_radial_in`` and ``toolwiz_stock_axial_in`` (ToolWiz's
+    recommended stock to leave for that op, None when unknown). Lengths inches. Checks, per setup:
+    micro tool after a much larger rougher without a rest op, roughing without a later finishing op (stock never
+    removed, or no stock so the part comes off at the roughing size), finishing stock from the roughing op vs
+    ToolWiz's recommendation, finishing before roughing, tool used again after other tools (avoidable changes).
+    ``setup_audit`` issues from the add-in are appended."""
+    findings: List[OversightFinding] = []
+    by_setup: Dict[str, List[Dict[str, Any]]] = {}
+    for o in ops:
+        by_setup.setdefault(str(o.get("setup") or ""), []).append(o)
+
+    for sname, seq in by_setup.items():
+        label = f" in setup '{sname}'" if sname else ""
+        for i, o in enumerate(seq):
+            kind = o.get("kind")
+            d = o.get("tool_diameter_in") or 0.0
+            earlier = seq[:i]
+            # 1. micro tool after a much larger rougher with nothing in between and no rest machining
+            if d and d <= 0.125 and kind not in ("drill", "hole") and o.get("rest_machining") is not True:
+                big = [e for e in earlier if e.get("kind") in ROUGH_KINDS and (e.get("tool_diameter_in") or 0) >= 2.5 * d]
+                mids = [e for e in earlier if e.get("kind") in ROUGH_KINDS
+                        and d * 1.2 < (e.get("tool_diameter_in") or 0) < (big[-1].get("tool_diameter_in") or 0) * 0.8] if big else []
+                if big and not mids:
+                    findings.append(OversightFinding(
+                        category="setup_sequence", severity="CAUTION",
+                        title=f"{o.get('name')}: micro tool follows a much larger rougher{label}",
+                        detail=(f"{big[-1].get('name')} uses a {big[-1].get('tool_diameter_in'):.4f} in tool and {o.get('name')} a "
+                                f"{d:.4f} in tool with no intermediate tool and rest machining not confirmed, so the small tool may "
+                                f"see full-slot corners and uneven stock."),
+                        recommendation="Enable rest machining on the small tool's operation or add an intermediate semi-finishing tool."))
+            # 2/3. finishing ops: stock from the roughing that precedes them
+            if kind in FINISH_KINDS:
+                rough_before = [e for e in earlier if e.get("kind") in ROUGH_KINDS]
+                rough_after = [e for e in seq[i + 1:] if e.get("kind") in ROUGH_KINDS]
+                if rough_after and not rough_before:
+                    findings.append(OversightFinding(
+                        category="setup_sequence", severity="CAUTION",
+                        title=f"{o.get('name')}: finishing runs before roughing{label}",
+                        detail=f"Finishing operation {o.get('name')} is ahead of {rough_after[0].get('name')}, so the roughing pass will disturb the finished surface.",
+                        recommendation="Move the finishing operation after the roughing operations that feed it."))
+                if rough_before:
+                    r = rough_before[-1]
+                    have, want = r.get("stock_radial_in"), r.get("toolwiz_stock_radial_in")
+                    if have is not None and have <= 0.00005:
+                        findings.append(OversightFinding(
+                            category="setup_sequence", severity="CAUTION",
+                            title=f"{o.get('name')}: roughing leaves no stock for the finishing pass{label}",
+                            detail=(f"{r.get('name')} leaves {have:.4f} in radial stock, so {o.get('name')} has nothing to cut: the "
+                                    f"finishing tool rubs and the part keeps the roughing error."
+                                    + (f" ToolWiz recommends leaving {want:.4f} in." if want else "")),
+                            recommendation="Set the roughing stock to leave to ToolWiz's recommendation so the finishing pass makes a real cut."))
+                    elif have is not None and want is not None and have < want * 0.999:
+                        findings.append(OversightFinding(
+                            category="setup_sequence", severity="CAUTION",
+                            title=f"{o.get('name')}: finishing stock below ToolWiz's recommendation{label}",
+                            detail=(f"{r.get('name')} leaves {have:.4f} in radial stock; ToolWiz recommends {want:.4f} in so the finisher "
+                                    f"removes the roughing deflection and springback instead of rubbing."),
+                            recommendation=f"Raise the roughing stock to leave to {want:.4f} in."))
+        # roughing without a later finishing op
+        finishes = [e for e in seq if e.get("kind") in FINISH_KINDS]
+        for i, o in enumerate(seq):
+            if o.get("kind") not in ROUGH_KINDS:
+                continue
+            later_fin = [e for e in seq[i + 1:] if e.get("kind") in FINISH_KINDS]
+            later_cont = [e for e in seq[i + 1:] if e.get("kind") in ("contour", "slot")]
+            if later_fin or later_cont:
+                continue
+            have, want = o.get("stock_radial_in"), o.get("toolwiz_stock_radial_in")
+            if have is not None and have > 0.00005:
+                findings.append(OversightFinding(
+                    category="setup_sequence", severity="CAUTION",
+                    title=f"{o.get('name')}: stock is left but no finishing operation follows{label}",
+                    detail=f"{o.get('name')} leaves {have:.4f} in radial stock and nothing later in the setup removes it, so the part stays oversize.",
+                    recommendation="Add a finishing contour/parallel operation after it, or set the stock to leave to zero if rough-to-size is intended."))
+            elif not finishes:
+                findings.append(OversightFinding(
+                    category="setup_sequence", severity="CAUTION",
+                    title=f"{o.get('name')}: no finishing pass for a true-to-size part{label}",
+                    detail=(f"{o.get('name')} roughs to size with no stock left and no finishing operation, so tool deflection and springback go straight into the part."
+                            + (f" ToolWiz recommends leaving {want:.4f} in radially for a finishing pass." if want else "")),
+                    recommendation="Leave ToolWiz's stock to leave on the roughing operation and add a finishing pass."))
+        # tool changes: a tool used again after other tools
+        seen: Dict[Any, int] = {}
+        order: List[Any] = []
+        for o in seq:
+            key = o.get("tool_number") if o.get("tool_number") is not None else o.get("tool_key")
+            if key is None:
+                continue
+            if not order or order[-1] != key:
+                order.append(key)
+        extra = len(order) - len(set(order))
+        for k in order:
+            seen[k] = seen.get(k, 0) + 1
+        repeated = [k for k, n in seen.items() if n > 1]
+        if extra > 0:
+            findings.append(OversightFinding(
+                category="setup_sequence", severity="INFO",
+                title=f"Avoidable tool changes{label}",
+                detail=(f"Tool(s) {', '.join(str(k) for k in repeated)} are used again after other tools, giving {extra} avoidable tool "
+                        f"change(s) in this setup's order of operations."),
+                recommendation="Group operations by tool where the geometry allows (finish with the same tool in one go) to save tool changes."))
+
+    if isinstance(setup_audit, dict):
+        findings.extend(audit_issue_findings(setup_audit))
+    return findings
+
+
 def evaluate_holistic_oversight(
     cut_request: Dict[str, Any],
     cut_result: Dict[str, Any],
@@ -272,15 +403,7 @@ def evaluate_holistic_oversight(
         ))
 
     if isinstance(setup_audit, dict):
-        for issue in setup_audit.get("issues") or []:
-            sev_map = {"error": "STOP", "warning": "CAUTION", "info": "INFO"}
-            findings.append(OversightFinding(
-                category="sequence_brep",
-                severity=sev_map.get(str(issue.get("severity", "warning")).lower(), "CAUTION"),
-                title=f"Setup Sequence Issue ({issue.get('operation', 'Op')})",
-                detail=str(issue.get("message", "")),
-                recommendation="Enable Rest Machining in Fusion or adjust the preceding roughing operation's Stock to Leave."
-            ))
+        findings.extend(audit_issue_findings(setup_audit))
 
     # Compute overall verdict & confidence score
     n_stop = sum(1 for f in findings if f.severity == "STOP")

@@ -12,7 +12,7 @@ Every expected value below is worked out here from a stated formula:
   * Speedio 16k continuous rating: 5.1 kW flat above 4500 rpm; max cutting feed 30 m/min = 1181 IPM
     (machines/speedio_s500x2.json).
 
-Defaults under test (user, 2026-10-16): C1 on every flute, eccentric runout, provisional C3/C4 limits
+Defaults under test (user, 2026-10-16; C1 on the wall flute since V3 M1), eccentric runout, provisional C3/C4 limits
 from data/model_v2/provisional_limits.json, C11 feed caps, C12 ae ≥ 2·TIR.
 
 The user's tools: T1 1/8" 4FL, LCF 0.5, stickout 0.6, 1/8" shank; T12 1/16" 4FL, LCF 0.1875, 1/8" shank,
@@ -95,11 +95,11 @@ class TestConstraintsByHand(unittest.TestCase):
         self.assertAlmostEqual(c.margin, 0.2)
 
     def test_c3_c4_adopted_defaults(self):
-        ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
-        self.assertAlmostEqual(ctx.delta_allow, 0.5 * 0.05 / 25.4)            # 50 % of 0.05 mm stock
+        # V3 round 2: C3 = k·D only (k = 1.0 % at 50 %), whatever the diameter; no stock-to-leave term
+        for tool in (T12, T1, o.Tool.build(0.5, 4, 1.0, 1.5)):
+            ctx = o._Context(tool, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
+            self.assertAlmostEqual(ctx.delta_allow, 0.01 * tool.D)
         self.assertAlmostEqual(ctx.stress_limit, 0.375 * 3800.0)              # fatigue, 10⁷ cycles
-        ctx = o._Context(T12, M17_4, SPEEDIO, "slot", o.Margins(0.5), stock_to_leave_in=0.1 / 25.4)
-        self.assertAlmostEqual(ctx.delta_allow, 0.5 * 0.1 / 25.4)
         self.assertAlmostEqual(o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.0)).stress_limit,
                                0.7 * 1425.0)
 
@@ -381,7 +381,8 @@ class TestOptimizer(unittest.TestCase):
     def test_why_full_depth_must_be_narrow(self):
         # Every flute must cut: fz·sin φe ≥ 0.71·TIR + λ·r_β. At full flute length and 0.25·D that fz
         # already deflects T12 past C3, so no fz is feasible there; with C1 on the worst flute only it is.
-        ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5))
+        # (V3 M1 made the wall flute the default, so the every-flute rule is asked for explicitly.)
+        ctx = o._Context(T12, M17_4, SPEEDIO, "adaptive", o.Margins(0.5), c1_flute="thinnest")
         win = o.CutPoint(ctx, T12.lcf, 0.25 * T12.D).fz_window()
         self.assertIsNotNone(win)
         self.assertIsNone(win[1])
@@ -463,9 +464,10 @@ class TestOptimizer(unittest.TestCase):
         self.assertGreater(hi["cut"]["mrr_in3_min"], lo["cut"]["mrr_in3_min"])
 
     def test_infeasible_reports_why(self):
-        # A 1/32" tool with 0.002" runout cannot cut at all.
+        # A 1/32" tool with 0.005" runout cannot cut at all: C12 needs ae >= 2·TIR, above the adaptive limit.
+        # (At 0.002" it still cuts, on its wall flute: V3 M1.)
         tiny = o.Tool.build(0.03125, 4, 0.09375, 0.5, shank=0.125)
-        r = o.optimize(tiny, M17_4, o.speedio_16k(0.002), "adaptive", grid=(4, 4), robustness=False)
+        r = o.optimize(tiny, M17_4, o.speedio_16k(0.005), "adaptive", grid=(4, 4), robustness=False)
         self.assertFalse(r["feasible"])
         self.assertTrue(r["eliminated_by"])
         self.assertEqual(r["binding"], [max(r["eliminated_by"], key=r["eliminated_by"].get)])
@@ -632,7 +634,7 @@ class TestRound5ReviewFixes(unittest.TestCase):
 
     def test_b5_c2_takes_the_phase_where_the_worst_chip_peaks(self):
         t3 = o.Tool.build(0.25, 3, 0.75, 1.0)
-        pt = o.CutPoint(o._Context(t3, M17_4, SPEEDIO, "adaptive", o.Margins(0.5)), 0.25, 0.05)
+        pt = o.CutPoint(o._Context(t3, M17_4, SPEEDIO, "adaptive", o.Margins(0.5), c1_flute="thinnest"), 0.25, 0.05)
         geometric = pt.eng.max_chips(0.0005 * 25.4, o.runout_offsets_worst(0.0002 * 25.4, 3))
         self.assertGreater(max(pt.chips_c2(0.0005)[0]), 1.05 * max(geometric))
         for offs, ch in pt._phase_chips(0.0005):
@@ -689,11 +691,11 @@ class TestRound5MicroTools(unittest.TestCase):
                                f.max_chip_thickness(0.0004 * 25.4, 0.01 * 25.4, T12.D_mm))
 
     def test_infeasible_reports_the_largest_feasible_tir(self):
-        r = o.optimize(self.MICRO, M17_4, o.speedio_16k(0.0004), "adaptive", grid=(6, 6), robustness=False)
+        r = o.optimize(self.MICRO, M17_4, o.speedio_16k(0.005), "adaptive", grid=(6, 6), robustness=False)
         self.assertFalse(r["feasible"])
         t = r["max_feasible_tir_in"]
         self.assertIsNotNone(t)
-        self.assertLess(t, 0.0004)
+        self.assertLess(t, 0.005)
         ok = o.optimize(self.MICRO, M17_4, o.speedio_16k(t), "adaptive", grid=(8, 8), robust=False,
                         robustness=False, find_tir=False)
         self.assertTrue(ok["feasible"])

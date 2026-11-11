@@ -62,8 +62,12 @@ class TestModelSwitch(unittest.TestCase):
             self.assertIn(f'id="{eid}"', html, eid)
         for fn in PAGE_FUNCTIONS:
             self.assertIn(f"function {fn}(", html, fn)
-        self.assertIn('<option value="v1">v1 (GWizard tables + rules)</option>', html)
-        self.assertIn('<option value="v2"', html)
+        # Labels only: the page has no hardcoded default model, it follows GET /api/model_settings.
+        self.assertIn('<option value="v1">legacy tables</option>', html)
+        self.assertIn('<option value="v2">physics (default)</option>', html)
+        self.assertNotIn('value="v2" selected', html)
+        self.assertNotIn("beta", html.lower().replace("alphabet", ""))
+        self.assertIn("/api/model_settings", html)
         self.assertIn("v2 numbers: see the v2 panel", html)
 
     # -- /api/model_settings ---------------------------------------------------------------------

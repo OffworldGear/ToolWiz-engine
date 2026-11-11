@@ -4,9 +4,9 @@
 	"id":	"08ef12fc-9c60-4927-b080-6bc1ab0ea9a6",
 	"author":	"ToolWiz Engine",
 	"description":	{
-		"":	"ToolWiz Speeds & Feeds, Stock Compensation, and Digital Twin Tool Library Sync for Fusion 360"
+		"":	"ToolWiz trusted advisor for Fusion: Speeds & Feeds (v1/v2 model, runout, finish modes), Stock to Leave, Setup Advisor, Strategy Planner (tab milling, T-slots), Master Library Builder, Library Audit, Digital Twin Export/Import, Cut Log and Snapshot Compare"
 	},
-	"version":	"1.1.0",
+	"version":	"2.0.0",
 	"runOnStartup":	false,
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true
