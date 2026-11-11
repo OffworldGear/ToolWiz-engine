@@ -93,3 +93,22 @@ class TestModes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_finish_mode_keeps_base_ipt_and_mrr_model():
+    """A finish target that narrows the stepover must not overwrite base_ipt with the thinned chip load,
+    and must scale (not recompute) the engine's MRR so geometry corrections such as ball-nose survive."""
+    import json, os
+    from app import app as flask_app
+    c = flask_app.test_client()
+    c.environ_base["HTTP_X_TOOLWIZ_CLIENT"] = "test"
+    body = {"family": "Steel - Tool (H13)", "alloy": "", "tool": "Carbide Endmill", "coating": "AlTiN",
+            "geometry": "Ball", "operation": "3D Contouring / Scallop Finishing", "diameter": 0.125, "flutes": 2,
+            "cutDepth": 0.005, "cutWidth": 0.02, "stickout": 0.5, "fluteLength": 0.25, "shankDiameter": 0.125,
+            "model": "v1", "aggressiveness": 50, "runout": 0.0002}
+    base = c.post("/api/calculate", json=dict(body, finishMode="cleanup", targetRa=1000)).get_json()
+    tight = c.post("/api/calculate", json=dict(body, finishMode="surface", targetRa=8)).get_json()
+    assert base["success"] and tight["success"]
+    assert tight["base_ipt"] <= base["base_ipt"] + 1e-9          # never inflated by the finish step
+    assert tight["adj_ipt"] <= base["adj_ipt"] + 1e-9
+    assert tight["mrr"] <= base["mrr"] + 1e-9

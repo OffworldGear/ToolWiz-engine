@@ -124,13 +124,16 @@ def apply(physics, r, res):
             limited.append("wall error")
     new_fz, new_ae = fz * fz_scale, ae * ae_scale
     if fz_scale < 1.0 - 1e-9 or ae_scale < 1.0 - 1e-9:
-        res.adj_ipt = res.base_ipt = new_fz
+        # base_ipt is the chip load before chip thinning: scale it, don't replace it with the thinned value.
+        res.base_ipt *= fz_scale
+        res.adj_ipt = new_fz
         res.feed_ipm = rpm * z * new_fz
         res.ipr = new_fz * z
         res.woc = new_ae
         if abs(res.rec_woc - ae) < 1e-12:
             res.rec_woc = new_ae
-        res.mrr = res.doc * res.woc * res.feed_ipm
+        # Scale the MRR the engine already computed (keeps its geometry corrections, e.g. ball-nose).
+        res.mrr *= fz_scale * ae_scale
         force = (fz_scale ** FORCE_EXPONENT) * ae_scale
         res.deflection *= force
         res.springback *= force

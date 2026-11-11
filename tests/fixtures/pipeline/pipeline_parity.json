@@ -810,7 +810,7 @@
   "adj_ipt": 0.003066,
   "base_ipt": 0.001087,
   "contact_sfm": 214.2,
-  "deflection": 4e-05,
+  "deflection": 3.17e-05,
   "effective_diameter": 0.09798,
   "feasible": true,
   "feedrate": 102.44,
@@ -818,8 +818,8 @@
   "is_finishing": true,
   "is_floor_finish": false,
   "is_spindle_limited": false,
-  "limited_by": "deflection",
-  "mrr": 0.016083,
+  "limited_by": "deflection, Ra (stepover scallop)",
+  "mrr": 0.012766,
   "plunge_feed": 9.0767,
   "ramp_angle": 1.5,
   "ramp_feed": 18.15,
@@ -828,14 +828,15 @@
   "rec_woc": 0.00875,
   "rpm": 8352,
   "sfm": 546.6,
-  "springback": 0.00016,
+  "springback": 0.000127,
   "target_sfm": 214.2,
   "tips_titles": [
    "Ball Mill Effective Diameter & 3D Contouring Dynamics",
    "Extended Stickout Notice",
-   "Hard Milling Correction Applied"
+   "Hard Milling Correction Applied",
+   "Finish mode: cleanup"
   ],
-  "total_error": 0.0002,
+  "total_error": 0.000159,
   "wear_comp": -0.0002
  },
  "extra_bull_nose_ti": {
@@ -954,7 +955,8 @@
   "springback": 0.00018,
   "target_sfm": 1445.2,
   "tips_titles": [
-   "Tool Wear Compensation (Wall Deflection & Axial Springback)"
+   "Tool Wear Compensation (Wall Deflection & Axial Springback)",
+   "Finish mode: cleanup"
   ],
   "total_error": 0.000296,
   "wear_comp": -0.000296
