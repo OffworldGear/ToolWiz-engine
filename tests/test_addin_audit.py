@@ -294,6 +294,7 @@ class TestSideEffects(AuditBase):
         changed = {"ops": {"S > Op": {"preset_name": "B"}}}
         a.snapshot_document = self.snaps(base, changed)
         os.environ["APPDATA"], old = self._tmp.name, os.environ.get("APPDATA")
+        a.adsk.cam.CAMManager.get.side_effect = RuntimeError("no library API")   # forces the file fallback
         try:
             a.ToolWizImportExecuteHandler().notify(None)
         finally:

@@ -735,7 +735,7 @@ def calculate_for_fusion():
             "limited_by": res.limited_by,
             "provenance": res.provenance,
             "profile": res.profile,
-            "alerts": [{"title": t["title"], "message": t["message"]} for t in res.tips if t.get("fusion")],
+            "alerts": [{"title": t["title"], "message": t["message"], "type": t.get("type", "info")} for t in res.tips if t.get("fusion")],
             **_runout_fields(res),
             **({"feature_geometry": res.feature_geometry} if res.feature_geometry else {}),
             **({"corner_feed": res.corner_feed_ipm} if res.corner_feed_ipm is not None else {}),
