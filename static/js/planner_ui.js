@@ -31,10 +31,15 @@
 
     window.plannerFeatureChanged = function () {
         const f = feature();
-        const map = { profile_cutout: 'profile', slot: 'slot', tslot: 'tslot' };
+        const map = { profile_cutout: 'profile', slot: 'slot', tslot: 'tslot', pocket: 'pocket' };
         document.querySelectorAll('#plannerView [class*="pl-f-"]').forEach(el => {
             el.style.display = el.classList.contains('pl-f-' + map[f]) ? '' : 'none';
         });
+        if (f === 'pocket') {
+            const by = ($('plPocketBy') || {}).value || 'rect';
+            document.querySelectorAll('#plannerView .pl-pk-rect').forEach(el => { el.style.display = by === 'rect' ? '' : 'none'; });
+            document.querySelectorAll('#plannerView .pl-pk-area').forEach(el => { el.style.display = by === 'area' ? '' : 'none'; });
+        }
         $('plLengthLbl').textContent = f === 'profile_cutout' ? 'Perimeter (cut path length)' : 'Slot length';
         $('plAddManual').style.display = f === 'tslot' ? 'none' : '';
         $('plLibPick').style.display = f === 'tslot' ? 'none' : '';
@@ -103,12 +108,20 @@
     function request() {
         const f = feature();
         const len = id => T.toIn($(id).value);
-        const feat = { type: f, length: len('plLength') };
+        const feat = { type: f };
+        if (f !== 'pocket') feat.length = len('plLength');
         if (f === 'profile_cutout') {
             feat.depth = len('plDepth');
             const n = parseInt($('plTabCount').value) || 0;
             if (n > 0) feat.tabs = { count: n, width: len('plTabWidth'), height: len('plTabHeight'), style: $('plTabStyle').value };
             const ch = len('plChannel'); if (ch > 0) feat.channel_width = ch;
+        } else if (f === 'pocket') {
+            feat.depth = len('plDepth');
+            if (($('plPocketBy') || {}).value === 'area') { feat.area = (parseFloat($('plPocketArea').value) || 0) / (T.metric() ? T.MM * T.MM : 1); feat.perimeter = len('plPocketPerim'); }
+            else { feat.length = len('plPocketL'); feat.width = len('plPocketW'); }
+            const cr = len('plCorner'); if (cr >= 0) feat.corner_radius = cr;
+            const ia = parseFloat($('plIsland').value); if (ia > 0) feat.island_area = T.metric() ? ia / (T.MM * T.MM) : ia;
+            const fm = $('plFinishMode').value; if (fm) feat.finish_mode = fm;
         } else if (f === 'slot') { feat.depth = len('plDepth'); feat.width = len('plWidth'); }
         else { feat.slot_height = len('plSlotHeight'); feat.radial_depth = len('plRadial'); }
         const body = { family: $('plFamily').value, alloy: $('plAlloy').value, aggressiveness: (parseFloat($('plAggr').value) || 50) / 100, runout: T.toIn($('plRunout').value), feature: feat };
@@ -172,6 +185,8 @@
         const s = h.stock_to_leave;
         if (s && s.toolwiz_recommendation_in) add('Stock to leave', `${T.len(s.radial_in)} radial / ${T.len(s.axial_in)} axial in this operation. ToolWiz recommends ${T.len(s.toolwiz_recommendation_in.radial)} radial, ${T.len(s.toolwiz_recommendation_in.axial)} axial for a true-to-size finish. ${s.note || ''}`);
         add('Finishing', h.finishing_pass);
+        if (h.rest_machining && h.rest_machining.needed) add('Rest machining', h.rest_machining.note);
+        if (h.corner_feed && h.corner_feed.scale < 0.999) add('Corner feed', `Feed Optimization at ${Math.round(h.corner_feed.scale * 100)}% of feed in tight corners (engagement rises to ${T.len(h.corner_feed.effective_ae_in)})`);
         return L.length ? `<ul class="v2-list">${L.join('')}</ul>` : '';
     }
     function detailBlock(o) {
@@ -187,9 +202,13 @@
     }
     window.plannerUnitChanged = function () {
         // Typed values are in the display unit: convert them when the unit toggle flips (isMetric is already the new state).
-        ['plDepth', 'plLength', 'plWidth', 'plChannel', 'plSlotHeight', 'plRadial', 'plTabWidth', 'plTabHeight', 'plRunout'].forEach(id => {
+        ['plDepth', 'plLength', 'plWidth', 'plChannel', 'plSlotHeight', 'plRadial', 'plTabWidth', 'plTabHeight', 'plRunout', 'plPocketL', 'plPocketW', 'plPocketPerim', 'plCorner'].forEach(id => {
             const el = $(id); const v = el ? parseFloat(el.value) : NaN;
             if (Number.isFinite(v)) el.value = +(T.metric() ? v * T.MM : v / T.MM).toFixed(T.metric() ? 4 : 5);
+        });
+        ['plPocketArea', 'plIsland'].forEach(id => {     // areas scale with the square of the unit
+            const el = $(id); const v = el ? parseFloat(el.value) : NaN;
+            if (Number.isFinite(v)) el.value = +(T.metric() ? v * T.MM * T.MM : v / (T.MM * T.MM)).toFixed(T.metric() ? 2 : 4);
         });
         renderRows(); if (lastResult) renderResult(lastResult);
     };

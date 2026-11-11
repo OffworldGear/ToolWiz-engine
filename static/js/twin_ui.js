@@ -697,3 +697,20 @@
             }
         }
 
+
+
+/* Shop T-slot cutters from the working library: POST /api/shop_tools/refresh (shop_tool_builder). */
+async function refreshShopCutters() {
+    const st = document.getElementById('twinShopStatus'), btn = document.getElementById('twinShopBtn');
+    if (!st) return;
+    btn.disabled = true; st.className = 'v3-status'; st.textContent = 'Reading the slot mills of the working library…';
+    const r = await window.TW.api('/api/shop_tools/refresh', { library: 'working' });
+    btn.disabled = false;
+    if (!r.ok) { st.className = 'v3-status err'; st.textContent = 'Could not refresh the shop cutters: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)); return; }
+    const ids = r.data.library_added || [];
+    const prov = (r.data.tools || []).filter(t => ids.includes(t.id) && (t.provisional || []).length).length;
+    st.className = 'v3-status ok-text';
+    st.textContent = ids.length
+        ? `Shop T-slot cutters updated from ${r.data.library}: ${ids.length} slot mill${ids.length === 1 ? '' : 's'} read from Fusion${prov ? ` (${prov} still need a tooth form: see the add-in guide)` : ''}.`
+        : `No slot mills / keyseat cutters found in ${r.data.library}; the shop cutter list was not changed.`;
+}

@@ -24,7 +24,8 @@ except (ImportError, ValueError):
     import twlogic
 
 try:
-    from .toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind
+    from .toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind, \
+        contour_effective_width_in, measure_op_widths
 except (ImportError, ValueError):
     if (not os.path.isdir(os.path.join(_ADDIN_DIR, 'toolwiz_common'))
             and os.path.isdir(os.path.join(_REPO_ROOT, 'toolwiz_common'))
@@ -32,7 +33,8 @@ except (ImportError, ValueError):
         sys.path.insert(0, _REPO_ROOT)
     if _ADDIN_DIR not in sys.path:
         sys.path.insert(0, _ADDIN_DIR)
-    from toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind
+    from toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind, \
+        contour_effective_width_in, measure_op_widths
 
 # Single server base URL used by every request.
 SERVER_BASE_URL = "http://127.0.0.1:5000"
@@ -2916,10 +2918,30 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     fg = None if is_hole_mode else _inspect_op_feature_geometry(target_op, geo_payload)
     doc_unit = get_cam_document_units()
     engagement = {}
+    op_doc0 = op_woc0 = 0.0
     if not is_hole_mode and use_op_engagement:
         _, _, op_doc0, op_woc0 = get_op_cut_params(target_op, doc_unit, strategy=strategy)
         engagement = twlogic.engagement_fields(op_doc0, op_woc0, True)
-    payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw,
+    # 2D Contour with multiple stepovers: the first pass is a full-width slot (ae = D), the others are side passes (ae = stepover).
+    # One feed serves the whole op, so ToolWiz runs the limiting pass: the full slot at the op's stepdown (calc strategy
+    # "Slotting", stepover = D). The op's own stepover is kept (never overwritten by D below).
+    ms = None
+    calc_strategy = strategy
+    if not is_hole_mode and not twlogic.is_finishing_strategy(strategy, op_name):
+        ms = read_multi_stepover(target_op, doc_unit)
+        if ms and ms.get("enabled") and (ms.get("count") or 0) >= 2:
+            d_tool = twlogic.num((geo_payload or {}).get("diameter"), 0.0)
+            if d_tool:
+                engagement = dict(twlogic.engagement_fields(op_doc0, d_tool, True)) if use_op_engagement else {"stepover": round(d_tool, 6)}
+                if not use_op_engagement:
+                    engagement.pop("stepdown", None)
+                calc_strategy = "Slotting"
+                _log(f"Auto-setter: {op_name!r} has {ms['count']} stepovers of {ms.get('stepover_in')} in: using the full-slot pass (ae = D) numbers")
+            else:
+                ms = None
+        else:
+            ms = None
+    payload = build_calc_payload(geo_payload, family, alloy, calc_strategy, aggressiveness, selected_grade, selected_coating_raw,
                                  feature_geometry=fg, runout_in=runout_in, model=model or _model_cache.get("model"),
                                  engagement=engagement)
     payload["isMetric"] = twlogic.is_metric(doc_unit)
@@ -2964,6 +2986,10 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         # unchanged), never the recommendation, so the feed still matches the engagement it was made for.
         doc = calc_result.get("engagement_doc") or doc
         woc = calc_result.get("engagement_woc") or woc
+    ms_note = None
+    if ms:
+        woc = ms.get("stepover_in") or woc      # keep the op's own stepover; the calculation's ae = D is the slot pass only
+        ms_note = multi_stepover_note(ms, geo_payload, calc_result, payload, aggressiveness, doc)
     if is_hole_mode:
         ramp_feed = feed
         plunge_feed = feed
@@ -3105,6 +3131,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     )
     if passes_notes:
         msg += "\n\nPasses Tab: " + "; ".join(passes_notes) + "."
+    if ms_note:
+        msg += "\n\n" + ms_note
     for w in tool_profile_warnings(calc_result):
         msg += "\n\nCheck: " + w
     if ramp_expr is not None:
@@ -5537,6 +5565,96 @@ def _tab_geometry(op, length_in, doc_unit):
     return {"count": count, "width_in": width, "height_in": height}
 
 
+# 2D Contour "Roughing passes" / multiple stepovers. The Autodesk 2D Contour reference names the Passes-tab fields "Roughing
+# Passes" (toggle), "Maximum Stepover" and "Number of Stepovers"
+# (https://help.autodesk.com/cloudhelp/ENU/Fusion-CAM/files/GUID75B6821B-DE26-4E3B-AF10-4A54131CD9E4.htm) but lists no parameter
+# ids. The ids below are the ones this add-in already writes for those fields (apply_passes_tab_params) plus plausible aliases;
+# each is read guarded. VERIFY on your Fusion: right-click the field > Edit Expression, or read `stepover_params_seen` in the
+# Setup Advisor snapshot (every parameter whose id contains "step", "pass" or "rough").
+MULTI_STEPOVER_FLAGS = ('doMultiplePasses', 'useRoughingPasses', 'doMultipleStepovers', 'useMultipleStepovers')
+MULTI_STEPOVER_COUNTS = ('maximumRoughingSteps', 'numberOfStepovers', 'numberOfRoughingSteps', 'roughingStepCount')
+MULTI_STEPOVER_SIZES = ('maximumStepover', 'roughingStepover', 'stepover')
+
+
+def read_multi_stepover(op, doc_unit="in"):
+    """{"enabled", "count", "stepover_in", "params": {...ids found}, "source": "measured"} for an operation that has a roughing
+    passes / multiple stepovers toggle (2D Contour, Pocket), else None. `count` is the Number of Stepovers (None when unreadable),
+    `stepover_in` the Maximum Stepover in inches."""
+    params = getattr(op, 'parameters', None)
+    if params is None:
+        return None
+    flag_name = next((n for n in MULTI_STEPOVER_FLAGS if _param(params, n) is not None), None)
+    if flag_name is None:
+        return None
+    enabled = bool(_is_bool_param_true(_param(params, flag_name)))
+    count, count_name = None, None
+    for n in MULTI_STEPOVER_COUNTS:
+        p = _param(params, n)
+        if p is None:
+            continue
+        v = twlogic.num(_safe(lambda: p.value.value))
+        if v is None:
+            v = _expr_number(_safe(lambda: p.expression))
+        if v is not None:
+            count, count_name = int(round(v)), n
+            break
+    so, so_name = None, None
+    for n in MULTI_STEPOVER_SIZES:
+        p = _param(params, n)
+        if p is not None and _safe(lambda: p.isEnabled, True) is not False:
+            v = _signed_len_in(p, doc_unit)
+            if v and v > 0:
+                so, so_name = v, n
+                break
+    return {"enabled": enabled, "count": count, "stepover_in": so, "source": "measured",
+            "params": {"flag": flag_name, "count": count_name, "stepover": so_name}}
+
+
+def multi_stepover_note(ms, geo_payload, calc_result, payload, aggressiveness, doc_in):
+    """Text for the Auto-Setter result when the op has multiple stepovers: the feed written is the full-slot pass's (ae = D, the
+    limiting pass); a second server call gives the side passes' feed (ae = stepover) so the owner sees what is left on the table."""
+    n, so = ms.get("count"), ms.get("stepover_in")
+    d = twlogic.num((geo_payload or {}).get("diameter"), 0.0)
+    feed_slot, rpm_slot = calc_result.get("feed"), calc_result.get("rpm")
+    side = None
+    try:
+        p2 = dict(payload)
+        p2["operation"] = "Roughing"
+        p2["stepover"] = round(float(so), 6)
+        if doc_in:
+            p2["stepdown"] = round(float(doc_in), 6)
+        side = _http_json('/api/calculate_for_fusion', p2, timeout=10.0)
+        if not side.get("success"):
+            side = None
+    except Exception as ex:
+        _log("Multiple stepovers: side-pass calculation failed", ex)
+    lines = [f"Multiple stepovers ({n} stepovers of {so:.4f} in on a {d:.4f} in tool): the first pass is a FULL SLOT (ae = D = {d:.4f} in), "
+             f"the other {n - 1} are side passes (ae = {so:.4f} in). One feed serves the whole operation, so ToolWiz's limiting pass, "
+             f"the full slot, sets it: {rpm_slot} rpm, {feed_slot:.2f} IPM."]
+    if side and side.get("feed"):
+        lines.append(f"The side passes alone could run {side['feed']:.2f} IPM at {side.get('rpm')} rpm. For the shortest cycle, "
+                     "split the operation: a full-slot contour at the slot feed plus a side-pass contour at the side feed, or use "
+                     "2D Adaptive Clearing (open the Setup Advisor for the times).")
+    lines.append("Slotting means full radial width (ae = D). A wider cut against one wall is side milling: traditional roughing at "
+                 "30-60% D, or adaptive at 5-30% D.")
+    return " ".join(lines)
+
+
+def stepover_params_seen(op, limit=40):
+    """{id: expression} of the op's parameters whose id contains "step", "pass" or "rough" (diagnostic for read_multi_stepover)."""
+    out = {}
+    try:
+        for p in _iter_params(op.parameters):
+            nm = str(_safe(lambda: p.name) or "")
+            if nm and any(k in nm.lower() for k in ('step', 'pass', 'rough')):
+                out[nm] = _safe(lambda: p.expression)
+                if len(out) >= limit:
+                    break
+    except Exception as ex:
+        _log("stepover_params_seen failed", ex)
+    return out
+
+
 def op_geometry(op, geo, kind, doc_unit="in"):
     """Feature geometry the advisor's strategy comparison needs (docs/SETUP_ADVISOR.md `geometry`), inches.
     Reliable: top_height_in, bottom_height_in, depth_in (heights), toolpath_length_in (needs a generated
@@ -5555,6 +5673,45 @@ def op_geometry(op, geo, kind, doc_unit="in"):
         g["tabs"] = tabs
     if kind == "slot" and geo and geo.get("fluteLength"):
         g["slot_height_in"] = geo["fluteLength"]
+    # Widths. Each value carries its provenance in g["sources"]: "measured" (read from Fusion: op parameters or the op's selected
+    # B-Rep geometry) -- anything the advisor needs and cannot find here it assumes itself and labels "assumed".
+    src = {}
+    dia = twlogic.num((geo or {}).get("diameter")) if geo else None
+    try:
+        ms = read_multi_stepover(op, doc_unit)
+        if ms:
+            g["multi_stepover"] = ms
+            if ms["enabled"] and (ms["count"] or 0) >= 2 and ms["stepover_in"]:
+                w = contour_effective_width_in(dia, ms["count"], ms["stepover_in"])
+                if w:
+                    g["effective_cut_width_in"] = w
+                    src["effective_cut_width_in"] = "measured"
+        seen = stepover_params_seen(op)
+        if seen:
+            g["stepover_params_seen"] = seen
+    except Exception as ex:
+        _log("Multiple stepover read failed", ex)
+    try:
+        # Selected-geometry measurements: https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/CAMParameters_UM.htm
+        meas = measure_op_widths(op, dia, (geo or {}).get("fluteLength") if kind == "slot" else None,
+                                 "tslot" if kind == "slot" else None)
+        for k, v in meas.items():
+            g[k] = v
+            if k.endswith("_in") or k.endswith("_in2"):
+                src[k] = "measured"
+        if kind == "slot":
+            stock = _stock_values_in(op, doc_unit)
+            rad = stock.get("radial") if stock.get("active") else None
+            if rad is not None and rad < 0:
+                g["radial_depth_in"] = -rad          # a negative radial stock to leave pushes the cutter into the wall
+                src["radial_depth_in"] = "measured"
+            elif meas.get("radial_depth_brep_in") and meas.get("radial_depth_grooves") == 1:
+                g["radial_depth_in"] = meas["radial_depth_brep_in"]
+                src["radial_depth_in"] = "measured"
+    except Exception as ex:
+        _log("B-Rep width measurement failed", ex)
+    if src:
+        g["sources"] = src
     return {k: v for k, v in g.items() if v is not None}
 
 

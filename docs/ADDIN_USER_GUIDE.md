@@ -55,10 +55,45 @@ for your current engagement); the box below lists **exactly which parameters cha
 The live setup is also pushed to the server (`/api/fusion_bridge/state`) each time the advisor or the MCP `get_setup_summary` runs.
 
 ### Strategy Planner
-For a contour cut-out with tabs, a slot, or a T-slot job: prefill from an operation (depth from its heights, length from its toolpath) or
+For a contour cut-out with tabs, a slot, a closed pocket (adaptive vs offset roughing, helical entry, rest machining of corners, wall and floor finish; see `docs/STRATEGY_PLANNER.md`), or a T-slot job: prefill from an operation (depth from its heights, length from its toolpath) or
 type the job, tick the candidate tools (document tools, or the shop's T-slot cutters from `/api/shop_tools`) and compare. The result
 table gives levels, ap, ae, rpm, feed, minutes per part, relative tool life and wear, the recommendation with the reasoning, and Fusion
 settings (tabs, stepdown, optimal load, ramp, stock to leave).
+
+### Multiple stepovers, measured widths
+- **2D Contour with multiple stepovers** ("Roughing Passes" with "Maximum Stepover" and "Number of Stepovers" on the Passes tab): the first pass is a
+  full-width slot (ae = D), the others are side passes (ae = stepover), so **one feed cannot suit both**. The Setup Advisor reads the toggle, count and
+  stepover, shows the effective cut width `D + (N - 1) x stepover`, computes ToolWiz for the slot pass (the limiting one, and the safe numbers for the op) and for the side
+  passes, and compares a split into a slot op + a side-pass op, and adaptive. The **Auto-Setter** writes the slot-pass speed and feed for such an op (stepdown as set,
+  your stepovers kept) and tells you what the side passes could run. Slotting means full radial width (ae = D); a wider cut against one wall is side milling
+  (traditional roughing at 30-60 % D, or adaptive at 5-30 % D).
+- **Measured widths.** The snapshot carries, per field, whether it was `measured` (read from Fusion) and the advisor lists them ("Widths and geometry used"):
+  effective cut width (from the op's parameters), slot / channel width (smallest gap between opposing parallel walls or concentric cylinders bounding the op's selected
+  geometry), T-slot radial depth (a negative radial stock to leave, else the groove found in the B-Rep), pocket area / outer perimeter / smallest corner radius (from the selected
+  floor face). Anything missing is `assumed` or skipped. When a width is measured the advisor runs the strategy comparison by itself.
+- **What to check once in Fusion (the parameter ids are not in Autodesk's published API docs).** Open an op with multiple stepovers, run *Setup Advisor*, then look at
+  `%APPDATA%/ToolWiz/addin.log` or `GET /api/fusion_bridge/state` > the op's `geometry.stepover_params_seen` (every parameter id containing "step", "pass" or "rough"). The add-in
+  reads `doMultiplePasses` / `useRoughingPasses` (toggle), `maximumRoughingSteps` (count) and `maximumStepover`; if yours are named differently the op is
+  analysed as an ordinary contour (no effective width): send that list so the names can be added. Selected geometry is read through
+  `CadContours2dParameterValue.getCurveSelections()` and each selection's `inputGeometry`
+  ([Autodesk: CAM parameters](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/CAMParameters_UM.htm)); confirm that a measured slot width appears for a contour
+  whose chain you picked in the UI, and that the pocket area matches the pocket.
+
+### Modelling a T-slot / keyseat cutter in Fusion so ToolWiz reads it
+ToolWiz builds the shop T-slot cutter list (`data/shop_tools.json`) from your Fusion library: in the Digital Twin tab press **Refresh shop T-slot cutters** (or run
+`python shop_tool_builder.py <library file name>`; `GET /api/shop_tools?library=<name>` previews). Create the cutter as a **Slot mill** (Fusion type "slot mill") and fill:
+1. **Diameter** (DC) = head diameter; **Flute length** (LCF) = the head thickness (the kerf / slot height cut); **Number of flutes** (NOF) = the number of teeth on the head.
+2. **Shaft** tab (the neck): add segments listed from the head upward. Segment 1: height = the neck length below the head (the reach), **lower diameter = the neck diameter**,
+   upper diameter = the neck diameter (or the shank diameter if the neck tapers up). Add a last segment at the **shank diameter** up to the holder. Example (Klot 6 x 0.5 mm): 10 mm
+   at 3 mm, then 10 mm at 3 mm tapering to 6 mm. ToolWiz reads neck diameter = first segment's lower diameter, reach = up to where the diameter has grown 5 %, shank = the widest segment.
+   Without shaft segments ToolWiz falls back to the shoulder fields, then to the shank, and marks neck and reach provisional.
+3. **Tooth form.** Put the word **"staggered"** in the description for a staggered-tooth cutter (teeth alternate faces, half the teeth per face), or **"double"** / **"up down"** for a
+   double-sided straight-tooth cutter (every tooth cuts both faces). For anything else add a `toolwiz` block to the tool JSON:
+   `"toolwiz": {"tooth_form": "staggered" | "straight", "cutting_faces": ["periphery", "top", "bottom"], "teeth_per_face": 4}`. With neither, the tooth form is unknown and treated as staggered
+   (the conservative case) and stays flagged provisional.
+4. Optional: vendor, product id, coating (BMC / description such as "ti coated" gives Titanium) and overall length.
+Library-derived cutters are marked `source: "fusion library"` and are regenerated on every refresh: correct the tool in Fusion, never in `shop_tools.json`. Planned (not owned)
+cutters such as the Harvey 867330 stay as they are.
 
 ### Master Library Builder
 Choose sources (every library found: local, cloud, hub, open documents; optionally the documents of hub projects), a tool filter (types,

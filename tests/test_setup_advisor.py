@@ -47,7 +47,7 @@ def make_setup():
          "geometry": {"slot_width_in": 0.25, "depth_in": 0.25, "toolpath_length_in": 8}},
         {"setup": "Setup1", "name": "T-slot", "path": "Setup1 > T-slot", "strategy": "contour2d", "tool": slot,
          "params": {"tool_spindleSpeed": "3000 rpm", "tool_feedCutting": "4 in/min", "maximumStepdown": "2 mm", "optimalLoad": "3 mm"},
-         "geometry": {"slot_height_mm": 1, "radial_depth_mm": 3, "toolpath_length_mm": 40}},
+         "geometry": {"slot_height_mm": 1, "radial_depth_mm": 1.4, "toolpath_length_mm": 40}},
         {"setup": "Setup1", "name": "Finish walls", "path": "Setup1 > Finish walls", "strategy": "contour2d", "tool": t38,
          "params": {"tool_spindleSpeed": "3000 rpm", "tool_feedCutting": "12 in/min", "stockToLeave": "0 in"}},
     ]}
@@ -154,7 +154,7 @@ def test_tslot_stepdown_beyond_kerf_is_stop(result):
     tw = o["toolwiz"]["tslot"]
     assert tw["kerf_in"] == pytest.approx(1 / 25.4, rel=1e-3)
     assert o["current"]["stepdown_in"] == pytest.approx(2 / 25.4, rel=1e-6)           # "2 mm" parsed to inches
-    assert "tslot_provisional" in codes(o, "CAUTION")                                  # neck/reach/tooth form are assumed
+    assert "tslot_provisional" in codes(o, "CAUTION")                                  # the library gives neck and reach; the tooth form is unknown
     sug = next(s for s in result["strategy_suggestions"] if s["name"] == "T-slot")
     assert sug["feature"]["type"] == "tslot"
     assert any("klot_" in x["name"] for x in sug["options"])                           # the owner's shop cutters are compared

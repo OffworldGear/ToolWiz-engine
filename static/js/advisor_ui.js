@@ -108,6 +108,49 @@
             : E('Could not apply: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
     };
 
+    // ---- measured widths (geometry_sources) and the multiple-stepover analysis ------------------------------------------------
+    const WIDTH_ROWS = [
+        ['effective_cut_width_in', 'Effective cut width (D + (N - 1) x stepover)', g => g.effective_cut_width_in],
+        ['slot_width_in', 'Slot / channel width', g => g.slot_width_in != null ? g.slot_width_in : g.channel_width_in],
+        ['radial_depth_in', 'Radial depth (T-slot)', g => g.radial_depth_in],
+        ['slot_height_in', 'Slot height (T-slot)', g => g.slot_height_in],
+        ['pocket_area_in2', 'Pocket area', g => g.pocket && g.pocket.area_in2],
+        ['pocket_perimeter_in', 'Pocket perimeter', g => g.pocket && g.pocket.perimeter_in],
+        ['pocket_min_corner_radius_in', 'Smallest corner radius', g => g.pocket && g.pocket.min_corner_radius_in],
+        ['depth_in', 'Depth', g => g.depth_in],
+        ['toolpath_length_in', 'Toolpath length', g => g.toolpath_length_in]];
+    const area = v => T.metric() ? (v * T.MM * T.MM).toFixed(1) + ' mm²' : v.toFixed(3) + ' in²';
+    function widthsBlock(o) {
+        const gs = o.geometry_sources || {}, g = o.geometry || {};
+        const rows = WIDTH_ROWS.filter(r => r[0] in gs).map(r => {
+            const v = r[2](g), src = gs[r[0]];
+            const val = v == null ? '—' : (r[0] === 'pocket_area_in2' ? area(v) : T.len(v));
+            return `<tr><td>${E(r[1])}</td><td class="v2-num">${E(val)}</td><td><span class="v3-pill ${src === 'measured' ? 'ok' : 'warn'}">${E(src)}</span></td></tr>`;
+        }).join('');
+        if (!rows) return '';
+        return `<details class="v3-more adv-widths"><summary>Widths and geometry used (${Object.values(gs).filter(x => x === 'measured').length} measured, ${Object.values(gs).filter(x => x !== 'measured').length} assumed)</summary>
+            <div class="why-table-wrap"><table class="why-table"><caption class="sr-only">Geometry fields and where they came from</caption><thead><tr><th>Field</th><th class="v2-num">Value</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table></div>
+            <div class="v3-sub">Measured = read from Fusion (operation parameters or the selected geometry); assumed = missing, so the advisor used a default or skipped the check.</div></details>`;
+    }
+    function multiBlock(o) {
+        const m = o.multi_stepover;
+        if (!m) return '';
+        const sp = m.slot_pass || {}, sd = m.side_passes || {}, t = m.times || {}, alt = m.alternatives || {};
+        const cell = (v, f) => v == null ? '—' : f(v);
+        const row = (name, p, ae) => `<tr><td><strong>${name}</strong></td><td class="v2-num">${T.len(ae, { unit: false })}</td><td class="v2-num">${cell(p.rpm, v => Math.round(v))}</td><td class="v2-num">${cell(p.feed_ipm, v => T.feed(v, 1))}</td><td class="v2-num">${cell(p.chip_load_ipt, T.ipt)}</td></tr>`;
+        const altRow = (label, a) => a ? `<tr><td>${E(label)}</td><td class="v2-num">${T.num(a.cycle_time_excl_wall_finish_min, 2)} min</td><td class="v2-num">${T.num(a.cycle_time_min, 2)} min</td></tr>` : '';
+        const times = t.single_op_at_slot_feed_min != null ? `<div class="why-table-wrap"><table class="why-table"><caption class="sr-only">Times for the multiple stepover cut</caption><thead><tr><th>Approach</th><th class="v2-num">Without wall finish</th><th class="v2-num">With wall finish</th></tr></thead><tbody>
+            ${t.as_programmed_min != null ? `<tr><td>As programmed (current feed)</td><td class="v2-num">${T.num(t.as_programmed_min, 2)} min</td><td class="v2-num">—</td></tr>` : ''}
+            <tr><td>One operation at the slot-pass feed</td><td class="v2-num">${T.num(t.single_op_at_slot_feed_min, 2)} min</td><td class="v2-num">—</td></tr>
+            ${altRow('Split: full-slot op + side-pass op', alt.split_slot_plus_side_passes)}${altRow('2D Adaptive Clearing', alt.adaptive)}</tbody></table></div>
+            <div class="v3-sub">Slot length ${T.len(t.length_in)} (${E(t.length_source || '')}). ${E(t.note || '')}</div>` : (m.times_note ? `<div class="v3-sub">${E(m.times_note)}</div>` : '');
+        return `<div class="adv-multi"><h5 class="v3-h5">Multiple stepovers: ${m.count} stepovers of ${T.len(m.stepover_in)}, effective width ${T.len(m.effective_cut_width_in)} <span class="v3-pill ${m.effective_cut_width_source === 'measured' ? 'ok' : 'warn'}">${E(m.effective_cut_width_source || '')}</span></h5>
+            <ul class="v2-list">${(m.explanation || []).map(t => `<li>${E(t)}</li>`).join('')}</ul>
+            <div class="why-table-wrap"><table class="why-table"><caption class="sr-only">Full-slot pass and side passes</caption><thead><tr><th>Pass</th><th class="v2-num">ae</th><th class="v2-num">RPM</th><th class="v2-num">Feed</th><th class="v2-num">Chip load</th></tr></thead><tbody>
+            ${row('First pass: full slot', sp, sp.ae_in)}${row('Side passes (' + sd.count + ')', sd, sd.ae_in)}</tbody></table></div>
+            <div class="v3-sub">Safe numbers for this operation (the slot pass limits it): <strong>${m.safe_numbers.rpm} rpm, ${T.feed(m.safe_numbers.feed_ipm, 1)}, stepdown ${T.len(m.safe_numbers.stepdown_in)}</strong>.</div>${times}</div>`;
+    }
+
     function strategyHtml(sg) {
         if (typeof sg === 'string') return `<li>${E(sg)}</li>`;
         const cur = sg.current_option && sg.current_option.name, rec = sg.recommended_option && sg.recommended_option.name || sg.recommended;
@@ -148,7 +191,7 @@
                 <div class="adv-cols adv-cols3"><div><h5 class="v3-h5">In the setup now</h5>${kvTable(o.current, ['rpm', 'feed_ipm', 'stepdown_in', 'stepover_in', 'chip_load_ipt', 'mrr_in3_min', 'stock_radial_in', 'stock_axial_in'])}</div>
                     ${cur ? `<div><h5 class="v3-h5">ToolWiz at your depth and width</h5>${kvTable(cur, TW_KEYS)}</div>` : ''}
                     <div><h5 class="v3-h5">ToolWiz recommends</h5>${kvTable(rec, TW_KEYS)}</div></div>
-                ${fs.map(findingHtml).join('')}${applyBlock(o, idx)}${notes ? `<details class="v3-more"><summary>Assumptions</summary><ul>${notes}</ul></details>` : ''}</details>`;
+                ${fs.map(findingHtml).join('')}${multiBlock(o)}${widthsBlock(o)}${applyBlock(o, idx)}${notes ? `<details class="v3-more"><summary>Assumptions</summary><ul>${notes}</ul></details>` : ''}</details>`;
         }).join('');
         $('advBody').innerHTML = summary + narr +
             (setupF ? `<div class="glass-panel"><h3 class="v3-h3">Setup-level findings</h3>${setupF}</div>` : '') +
