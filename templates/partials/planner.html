@@ -1,0 +1,71 @@
+<!-- VIEW 4: STRATEGY PLANNER -->
+<div id="plannerView" style="display: none;">
+    <div class="glass-panel v3-intro">
+        <h2 class="v3-h2">Strategy Planner</h2>
+        <p class="v3-lead">Which strategy cuts this feature fastest without wearing the tool out much faster? ToolWiz compares a full-width contour slot, a smaller tool and adaptive clearing for a cutout or slot, or compares T-slot cutters, using its own speeds, feeds and depths for every option.</p>
+        <details class="v3-more" id="wearRuleBox">
+            <summary>How the recommendation is chosen (wear-ratio rule)</summary>
+            <p>Every option gets a <strong>wear per part</strong> number: minutes the edge is in the cut divided by the tool life at the speed ToolWiz chose (Taylor law, relative to the 50&nbsp;% baseline speed). Wear is scaled so the option that wears the tool least is <strong>1.00</strong>; only the ratios mean anything.</p>
+            <p>The recommendation is the <strong>fastest option whose wear is within a limit of the least-wear option</strong>. The limit rises with aggressiveness: <strong>1.1&times;</strong> at 0&nbsp;%, <strong>1.3&times;</strong> at 50&nbsp;%, <strong>2.0&times;</strong> at 100&nbsp;%. So at 50&nbsp;% you accept up to 30&nbsp;% more tool wear per part to save cycle time, but not a tool that wears several times faster. Tool life rests on a placeholder Taylor exponent: treat big wear ratios as direction, not as a prediction.</p>
+        </details>
+    </div>
+
+    <main class="planner-layout">
+        <section class="glass-panel planner-inputs" aria-label="Job and candidate tools">
+            <h3 class="v3-h3">Job</h3>
+            <div class="input-group">
+                <label for="plFeature">Feature type</label>
+                <select id="plFeature" onchange="plannerFeatureChanged()">
+                    <option value="profile_cutout">Profile cut-out (contour around a part, with tabs)</option>
+                    <option value="slot">Slot (fixed width)</option>
+                    <option value="tslot">T-slot job (T-slot / keyseat cutters)</option>
+                </select>
+            </div>
+
+            <div class="grid-layout pl-grid" id="plDims">
+                <div class="input-group pl-f-profile pl-f-slot"><label for="plDepth">Depth / part thickness (<span class="unit-lbl">in</span>)</label><input type="number" id="plDepth" class="tool-dialog-input" step="any" min="0" value="0.25"></div>
+                <div class="input-group pl-f-profile pl-f-slot pl-f-tslot"><label for="plLength"><span id="plLengthLbl">Path length / perimeter</span> (<span class="unit-lbl">in</span>)</label><input type="number" id="plLength" class="tool-dialog-input" step="any" min="0" value="12"></div>
+                <div class="input-group pl-f-slot"><label for="plWidth">Slot width (<span class="unit-lbl">in</span>)</label><input type="number" id="plWidth" class="tool-dialog-input" step="any" min="0" value="0.25"></div>
+                <div class="input-group pl-f-profile"><label for="plChannel">Adaptive channel width, optional (<span class="unit-lbl">in</span>)</label><input type="number" id="plChannel" class="tool-dialog-input" step="any" min="0" placeholder="auto"></div>
+                <div class="input-group pl-f-tslot"><label for="plSlotHeight">Slot height, Z extent (<span class="unit-lbl">in</span>)</label><input type="number" id="plSlotHeight" class="tool-dialog-input" step="any" min="0" value="0.0787"></div>
+                <div class="input-group pl-f-tslot"><label for="plRadial">Total radial depth (<span class="unit-lbl">in</span>)</label><input type="number" id="plRadial" class="tool-dialog-input" step="any" min="0" value="0.03"></div>
+            </div>
+
+            <fieldset class="pl-tabs pl-f-profile" id="plTabsBox">
+                <legend>Tabs (hold the part in place)</legend>
+                <div class="grid-layout pl-grid">
+                    <div class="input-group"><label for="plTabCount">Number of tabs</label><input type="number" id="plTabCount" class="tool-dialog-input" min="0" step="1" value="4"></div>
+                    <div class="input-group"><label for="plTabStyle">Tab style</label><select id="plTabStyle"><option value="3d">3D (tool lifts over)</option><option value="2d">2D (retract at each tab)</option></select></div>
+                    <div class="input-group"><label for="plTabWidth">Tab width (<span class="unit-lbl">in</span>)</label><input type="number" id="plTabWidth" class="tool-dialog-input" step="any" min="0" value="0.1"></div>
+                    <div class="input-group"><label for="plTabHeight">Tab height (<span class="unit-lbl">in</span>)</label><input type="number" id="plTabHeight" class="tool-dialog-input" step="any" min="0" value="0.04"></div>
+                </div>
+            </fieldset>
+
+            <h3 class="v3-h3">Material and settings</h3>
+            <div class="input-group"><label for="plFamily">Material family</label><select id="plFamily"></select></div>
+            <div class="input-group"><label for="plAlloy">Specific alloy</label><select id="plAlloy"></select></div>
+            <div class="slider-group">
+                <div class="slider-header"><label for="plAggr">Aggressiveness</label><span id="plAggrVal">50%</span></div>
+                <input type="range" id="plAggr" min="0" max="100" step="1" value="50" oninput="document.getElementById('plAggrVal').textContent = this.value + '%'">
+            </div>
+            <div class="grid-layout pl-grid">
+                <div class="input-group"><label for="plRunout">Runout TIR (<span class="unit-lbl">in</span>)</label><input type="number" id="plRunout" class="tool-dialog-input" step="any" min="0"></div>
+                <div class="input-group"><label for="plModel">Cutting model</label><select id="plModel"><option value="">server default</option><option value="v2">physics</option><option value="v1">legacy tables</option></select></div>
+            </div>
+
+            <h3 class="v3-h3">Candidate tools</h3>
+            <div class="pl-addbar" id="plAddBar">
+                <button type="button" class="btn-ratio" onclick="plannerAddManual()" id="plAddManual">+ Manual tool</button>
+                <select id="plLibPick" aria-label="Add a tool from the working library" onchange="plannerAddFromLibrary(this)"><option value="">+ From working library&hellip;</option></select>
+                <select id="plShopPick" aria-label="Add a shop T-slot cutter" onchange="plannerAddShop(this)"><option value="">+ Shop cutter&hellip;</option></select>
+            </div>
+            <div id="plTools" class="pl-tools"></div>
+            <button type="button" class="btn-primary" id="plRun" onclick="runStrategyCompare()">Compare strategies</button>
+            <div id="plStatus" class="v3-status" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="planner-results" aria-label="Comparison results">
+            <div id="plResults" class="glass-panel"><div class="v3-empty">Describe the job, add one or more candidate tools and press <strong>Compare strategies</strong>.</div></div>
+        </section>
+    </main>
+</div>

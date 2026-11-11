@@ -1,0 +1,49 @@
+<!-- T-slot / keyseat inputs (shown for T-Slot, Keyseat and Woodruff geometry) -->
+<div id="tslotInputs" class="tslot-inputs" style="display:none;">
+    <h4 class="tslot-heading">T-slot / keyseat cutter</h4>
+    <div class="input-group">
+        <label for="shopToolSelect">Shop cutter</label>
+        <select id="shopToolSelect" onchange="onShopToolPick()"><option value="">Pick one of your cutters&hellip;</option></select>
+        <div id="shopToolNote" class="tslot-note" aria-live="polite"></div>
+    </div>
+    <div class="grid-layout tslot-grid">
+        <div class="input-group" style="margin:0;">
+            <label for="toothForm">Tooth form</label>
+            <select id="toothForm" onchange="calculate()">
+                <option value="">Unknown (treated as staggered)</option>
+                <option value="staggered">Staggered (teeth alternate faces)</option>
+                <option value="straight">Straight (every tooth on both faces)</option>
+            </select>
+        </div>
+        <div class="input-group" style="margin:0;">
+            <label for="teethPerFace">Teeth per face</label>
+            <input type="number" id="teethPerFace" class="tool-dialog-input" min="1" max="40" step="1" placeholder="auto" oninput="calculate()">
+        </div>
+        <div class="input-group" style="margin:0; grid-column: 1 / -1;">
+            <label id="cuttingFacesLabel">Cutting faces</label>
+            <div class="tslot-faces" role="group" aria-labelledby="cuttingFacesLabel">
+                <label class="check-inline"><input type="checkbox" id="faceperiphery" checked onchange="calculate()"> Periphery</label>
+                <label class="check-inline"><input type="checkbox" id="facetop" checked onchange="calculate()"> Top face</label>
+                <label class="check-inline"><input type="checkbox" id="facebottom" checked onchange="calculate()"> Bottom face</label>
+            </div>
+        </div>
+        <div class="input-group" style="margin:0; grid-column: 1 / -1;">
+            <label for="tslotOperation">T-slot operation</label>
+            <select id="tslotOperation" onchange="calculate()">
+                <option value="full_slot">Full slot (cutter width, one radial entry)</option>
+                <option value="side_cut">One side (cut on one face only)</option>
+                <option value="both_sides">Both sides (both faces engaged)</option>
+                <option value="axial_step">Up / down axial step (cut with the faces)</option>
+            </select>
+        </div>
+        <div class="input-group" style="margin:0;">
+            <label for="slotHeight">Slot height (<span class="unit-lbl">in</span>)</label>
+            <input type="number" id="slotHeight" class="tool-dialog-input" step="any" min="0" placeholder="= cutter width" oninput="calculate()">
+        </div>
+        <div class="input-group" style="margin:0;">
+            <label for="radialDepthTotal">Total radial depth (<span class="unit-lbl">in</span>)</label>
+            <input type="number" id="radialDepthTotal" class="tool-dialog-input" step="any" min="0" placeholder="one pass" oninput="calculate()">
+        </div>
+    </div>
+    <div class="tslot-note">Cutter width is the &ldquo;Cutter thickness&rdquo; field above; neck diameter and reach are the shoulder fields. Slot height taller than the cutter width needs several Z cuts.</div>
+</div>
