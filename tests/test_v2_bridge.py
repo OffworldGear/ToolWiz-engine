@@ -90,9 +90,19 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(r.model, "v2")
         self.assertAlmostEqual(r.rec_woc, 0.05 / 25.4, places=6)
 
-    def test_infeasible_micro_tool_reports_runout(self):
+    def test_micro_tool_at_default_runout_cuts_with_reduced_flutes(self):
+        # V3 M1: runout alone no longer makes a micro tool infeasible (C1 on the wall flute); it cuts on fewer flutes.
         geo = {"DC": 0.0156, "NOF": 4, "LCF": 0.047, "SFDM": 0.125, "LB": 0.4}
         r = run_cut(app.physics, req(geo=geo, model="v2"))
+        self.assertEqual(r.model, "v2")
+        self.assertTrue(r.feasible)
+        self.assertEqual(r.runout_regime, "reduced_flutes")
+        self.assertLess(r.flutes_cutting, 4)
+        self.assertTrue(any(t["title"] == "Reduced flutes cutting" for t in r.tips))
+
+    def test_infeasible_micro_tool_reports_runout(self):
+        geo = {"DC": 0.0156, "NOF": 4, "LCF": 0.047, "SFDM": 0.125, "LB": 0.4}
+        r = run_cut(app.physics, req(geo=geo, model="v2", runout=0.003))   # C12: ae >= 2·TIR is past the adaptive limit
         self.assertEqual(r.model, "v2")
         self.assertFalse(r.feasible)
         self.assertEqual(r.tips[0]["type"], "critical")
@@ -157,15 +167,17 @@ class TestAddinMessage(unittest.TestCase):
             "v2: vendor-average chip load, vendor-average removal rate",
         )
 
-    def test_v2_t12_slotting_17_4_annealed_c14_vs_c1(self):
+    def test_v2_t12_slotting_17_4_annealed_vendor_depth_and_reduced_flutes(self):
+        # V3: the depth is the vendor envelope's (stainless 1/16-1/8" slots), not the old 0.35·D micro table, and the
+        # wall-flute C1 (M1) replaces the C14-versus-every-flute-C1 fallback this test used to pin.
         r = run_cut(app.physics, req(alloy="17-4 PH (Annealed)", operation="Slotting", aggressiveness=0.60, model="v2"))
         self.assertEqual(r.model, "v2")
         self.assertTrue(r.feasible)
         self.assertAlmostEqual(r.rec_woc, 0.0625, places=5)
-        self.assertAlmostEqual(r.rec_doc, 0.35 * 0.0625, places=4)
+        self.assertLess(r.rec_doc, 0.35 * 0.0625 + 1e-9)    # the cut here is deflection-limited, well under the cap
         self.assertLess(r.feed_ipm, 10.0)
-        self.assertTrue(any("C14 vendor-consensus chip load is below the every-flute C1 rubbing floor" in w
-                            for w in r.v2["warnings"]))
+        self.assertEqual(r.runout_regime, "reduced_flutes")
+        self.assertTrue(any(w.startswith("reduced flutes:") for w in r.v2["warnings"]))
 
     def test_addin_drilling_and_tapping_support(self):
         import json

@@ -123,6 +123,13 @@ class CutResult:
     ramp_diameter: Optional[float] = None       # tool-centre helix diameter (in)
     ramp_min_diameter: Optional[float] = None   # smallest helix diameter the model allows (in)
     ramp_rpm: Optional[float] = None            # spindle speed the ramp feed is computed at
+    # Runout regime and engagement source (v2; V3 plan "API contracts"). flutes_cutting / runout_regime /
+    # tir_all_flutes_in / runout_ratio stay None under v1.
+    flutes_cutting: Optional[int] = None        # flutes that form a chip at the chosen feed under the given runout
+    runout_regime: Optional[str] = None         # "all_flutes" | "reduced_flutes"
+    tir_all_flutes_in: Optional[float] = None   # largest runout (in) at which every flute would cut at this feed
+    runout_ratio: Optional[float] = None        # tooth-to-tooth radial offset / feed per tooth
+    engagement_source: str = "recommended"      # "user": rpm/feed computed for the request's DOC/WOC
     mrr: float = 0.0
     deflection: float = 0.0
     springback: float = 0.0
@@ -672,6 +679,7 @@ def run_cut(physics, req: CutRequest) -> CutResult:
         tap_type=r.tap_type, tap_drill=tap_drill_info, flute_length=r.flute_length,
         shank_diameter=r.shank_diameter, neck_diameter=r.neck_diameter,
         profile=r.profile.to_dict() if r.profile is not None else None,
+        engagement_source="user" if (r.cut_depth is not None or r.cut_width is not None) else "recommended",
     )
     if req.model == "v2":
         import v2_bridge

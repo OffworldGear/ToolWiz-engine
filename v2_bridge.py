@@ -11,6 +11,7 @@ the web page and used by the Fusion add-in through the server); the TOOLWIZ_MODE
 """
 import copy
 import json
+import math
 import os
 import threading
 from collections import OrderedDict
@@ -161,8 +162,8 @@ _CACHE_LOCK = threading.Lock()
 _CACHE_SIZE = 128
 
 
-def _optimize(physics, r, op, machine_profile):
-    from physics_v2 import params
+def _setup(physics, r, op, machine_profile):
+    """(hb, tool, machine, notes, finish kwargs) shared by the recommendation and the user-engagement calls."""
     from physics_v2 import optimize as o
     hb = None
     try:
@@ -176,24 +177,53 @@ def _optimize(physics, r, op, machine_profile):
         kw["stock"] = float(r.cut_width) if r.cut_width else o.STOCK_TO_LEAVE_IN
         if r.cut_depth:
             kw["wall_height"] = min(float(r.cut_depth), tool.lcf)
-    key = json.dumps({
+    return hb, tool, machine, notes, kw
+
+
+def _cache_key(r, op, hb, machine, kw, extra=None):
+    return json.dumps({
         "fam": r.family, "hb": hb, "coat": r.coating, "op": op, "a": round(float(r.aggressiveness), 4),
-        "prof": r.profile.to_dict(), "helix": r.helix_angle, "kw": kw,
+        "prof": r.profile.to_dict(), "helix": r.helix_angle, "kw": kw, "extra": extra,
         "m": [machine.label, machine.max_rpm, machine.tir_in, machine.spindle.get("power_kw_continuous"),
               machine.holder_k_n_um, machine.holder_ktheta_nm_urad, machine.max_feed_ipm],
     }, sort_keys=True, default=str)
+
+
+def _cached(key, compute):
     with _CACHE_LOCK:
         if key in _CACHE:
             _CACHE.move_to_end(key)
-            return _CACHE[key], hb, notes
-    material = params.material(r.family, hb=hb, coating=r.coating)
-    out = params.optimize(tool, material, op, float(r.aggressiveness), machine_=machine, **kw)
-    out = dict(out, ramp=_ramp(tool, material, machine, r, out))
+            return _CACHE[key]
+    out = compute()
     with _CACHE_LOCK:
         _CACHE[key] = out
         while len(_CACHE) > _CACHE_SIZE:
             _CACHE.popitem(last=False)
-    return out, hb, notes
+    return out
+
+
+def _optimize(physics, r, op, machine_profile):
+    """The optimizer's recommendation (ap, ae, rpm, fz) for this tool, material and machine, with its ramp."""
+    from physics_v2 import params
+    hb, tool, machine, notes, kw = _setup(physics, r, op, machine_profile)
+
+    def compute():
+        material = params.material(r.family, hb=hb, coating=r.coating)
+        out = params.optimize(tool, material, op, float(r.aggressiveness), machine_=machine, **kw)
+        return dict(out, ramp=_ramp(tool, material, machine, r, out))
+    return _cached(_cache_key(r, op, hb, machine, kw), compute), hb, notes
+
+
+def _optimize_user(physics, r, op, machine_profile, ap, ae):
+    """rpm and feed for the user's own ap and ae (physics_v2.optimize.evaluate_user_engagement), with its ramp."""
+    from physics_v2 import params
+    hb, tool, machine, notes, kw = _setup(physics, r, op, machine_profile)
+
+    def compute():
+        material = params.material(r.family, hb=hb, coating=r.coating)
+        out = params.evaluate_user_engagement(tool, material, op, ap, ae, float(r.aggressiveness), machine_=machine)
+        return dict(out, ramp=_ramp(tool, material, machine, r, out))
+    return _cached(_cache_key(r, op, hb, machine, kw, ("user", round(ap, 7), round(ae, 7))), compute), hb, notes
 
 
 def _ramp(tool, material, machine, r, out):
@@ -226,20 +256,32 @@ def _check_summary(c):
     return {k: c.get(k) for k in ("id", "name", "value", "limit", "units", "ok", "margin", "detail")}
 
 
-def _v2_details(out, hb, notes):
+def _cut_summary(out):
+    cut = (out or {}).get("cut")
+    if not cut:
+        return None
+    return {k: cut.get(k) for k in ("ap_in", "ae_in", "ap_over_D", "ae_over_D", "rpm", "sfm", "fz_in", "feed_ipm",
+                                    "mrr_in3_min")}
+
+
+def _v2_details(out, hb, notes, recommended=None):
     checks = out.get("checks") or {}
     binding = list(out.get("binding") or [])
-    shown = [k for k in binding] + [k for k in ("C14v", "C14f", "C14m") if k in checks and k not in binding]
+    shown = [k for k in binding] + [k for k in ("C14v", "C14f", "C14m", "C14lo") if k in checks and k not in binding]
     return {
         "operation": out.get("operation"),
         "feasible": bool(out.get("feasible")),
+        "engagement_source": out.get("engagement_source", "recommended"),
         "binding": binding,
         "checks": {k: _check_summary(checks[k]) for k in shown if k in checks},
         "violated": list(out.get("violated") or []),
+        "violations": list(out.get("violations") or []),
         "eliminated_by": out.get("eliminated_by"),
         "warnings": list(out.get("warnings") or []) + notes,
         "provenance": list(out.get("provenance") or []),
         "cut": out.get("cut"),
+        "recommended": recommended if recommended is not None else _cut_summary(out),
+        "chip_floor_relaxed": bool(out.get("chip_floor_relaxed")),
         "max_feasible_tir_in": out.get("max_feasible_tir_in"),
         "hardness_hb": hb,
         "ramp": _ramp_details(out.get("ramp")),
@@ -276,16 +318,57 @@ def _apply_ramp(res, rp, ratio):
                      "type": "warning", "fusion": True})
 
 
+def _pos(x):
+    return float(x) if x is not None and float(x) > 0 else None
+
+
+def _fmt_violation(v):
+    over = v.get("over_by")
+    amount = f" ({over:+.0%} against the limit)" if over is not None and math.isfinite(over) else ""
+    return (f"{v['id']} {v['name']}: {v['value']:.5g} {v['units']} against {v['limit']:.5g} {v['units']}"
+            if v.get("limit") is not None else f"{v['id']} {v['name']}") + amount
+
+
+def _runout_tips(res, cut, tir_in, z):
+    """The reduced-flutes warning (names the runout at which every flute cuts)."""
+    n = cut.get("flutes_cutting")
+    if n is None or not z or n >= z:
+        return
+    t_all = cut.get("tir_all_flutes_in")
+    need = (f"All flutes cut at runout of {t_all:.5f}\" or less" if t_all and t_all > 0
+            else "No runout is low enough for every flute to cut at this feed")
+    ratio = cut.get("runout_ratio")
+    res.tips.append({
+        "title": "Reduced flutes cutting",
+        "message": (f"Only {n} of {z} flutes form a chip at {cut['fz_in']:.5f}\" per tooth with {tir_in:.5f}\" runout"
+                    + (f" (tooth-to-tooth offset is {ratio:.0%} of the chip load)" if ratio else "")
+                    + f"; the other flute(s) rub, which shortens tool life and roughens the wall. {need}: "
+                      f"use a lower-runout holder or tool, or accept the reduced-flute cut."),
+        "type": "warning", "fusion": True})
+
+
 def apply(physics, r, res, machine_profile=None):
     """Replace the v1 result's core numbers with v2's when v2 covers the cut. Never raises: a v2 error
-    leaves v1 in place with the error in model_note."""
+    leaves v1 in place with the error in model_note.
+
+    With an explicit depth and width (r.cut_depth / r.cut_width) rpm and feed are computed for that engagement
+    (engagement_source "user") while rec_doc / rec_woc stay the optimizer's recommendation."""
     op, why = scope(r, res)
     if op is None:
         res.model_note = f"v2 selected; v1 used because {why}."
         res.tips.insert(0, {"title": "Cutting model: v1", "message": res.model_note, "type": "info"})
         return res
     try:
-        out, hb, notes = _optimize(physics, r, op, machine_profile)
+        out_rec, hb, notes = _optimize(physics, r, op, machine_profile)
+        out, recommended = out_rec, None
+        user_given = _pos(r.cut_depth) is not None or _pos(r.cut_width) is not None
+        if op != "finish" and user_given:
+            rc = out_rec.get("cut") if out_rec.get("feasible") else None
+            ap_u = _pos(r.cut_depth) or (rc["ap_in"] if rc else None)
+            ae_u = _pos(r.cut_width) or (rc["ae_in"] if rc else None)
+            if ap_u and ae_u:
+                out, hb, notes = _optimize_user(physics, r, op, machine_profile, ap_u, ae_u)
+                recommended = _cut_summary(out_rec) if rc else None
     except Exception as ex:   # keep v1 rather than fail the whole calculation
         res.model_note = f"v2 selected; v1 used because the v2 calculation failed: {ex}"
         res.tips.insert(0, {"title": "Cutting model: v1 (v2 error)", "message": res.model_note,
@@ -295,18 +378,24 @@ def apply(physics, r, res, machine_profile=None):
     v1 = {"rpm": res.rpm, "sfm": res.sfm, "feed_ipm": res.feed_ipm, "ipt": res.adj_ipt,
           "doc": res.rec_doc, "woc": res.rec_woc, "mrr": res.mrr, "deflection": res.deflection,
           "feasible": res.feasible, "limited_by": res.limited_by}
-    details = _v2_details(out, hb, notes)
+    details = _v2_details(out, hb, notes, recommended)
     res.model, res.v1, res.v2 = "v2", v1, details
+    res.engagement_source = out.get("engagement_source", "recommended")
+    if op == "finish" and user_given:
+        res.engagement_source = "user"
 
     if not out.get("feasible") or not out.get("cut"):
         res.feasible = False
         reason = ", ".join(details["binding"] or details["violated"] or ["no feasible cut"])
         tir = out.get("max_feasible_tir_in")
         extra = f" It becomes feasible at runout ≤ {tir:.5f}\"." if tir else ""
-        res.limited_by = f"v2: {reason}"
-        res.model_note = f"v2 found no safe cut ({reason}).{extra} The numbers shown are v1's and should NOT be run as-is."
-        res.tips.insert(0, {"title": "v2: no safe cut", "message": res.model_note, "type": "critical", "fusion": True})
-        return res
+        if out.get("engagement_source") != "user":
+            res.limited_by = f"v2: {reason}"
+            res.model_note = (f"v2 found no safe cut ({reason}).{extra} The numbers shown are v1's and should NOT be "
+                              f"run as-is.")
+            res.tips.insert(0, {"title": "v2: no safe cut", "message": res.model_note, "type": "critical",
+                                "fusion": True})
+            return res
 
     cut = out["cut"]
     rpm, fz, feed = float(cut["rpm"]), float(cut["fz_in"]), float(cut["feed_ipm"])
@@ -320,23 +409,47 @@ def apply(physics, r, res, machine_profile=None):
     res.base_ipt = res.adj_ipt = fz
     res.feed_ipm = feed
     res.ipr = fz * r.flutes
-    res.doc = res.rec_doc = float(cut["ap_in"])
-    res.woc = res.rec_woc = float(cut["ae_in"])
+    res.doc = float(cut["ap_in"])
+    res.woc = float(cut["ae_in"])
+    rec = recommended if recommended is not None else _cut_summary(out)
+    if out.get("engagement_source") != "user" or recommended is not None:
+        res.rec_doc, res.rec_woc = float(rec["ap_in"]), float(rec["ae_in"])
     res.mrr = float(cut["mrr_in3_min"])
     c3 = (out.get("checks") or {}).get("C3") or {}
     if c3.get("value") is not None:
         res.deflection = float(c3["value"])
         res.rec_limit = float(c3.get("limit") or res.rec_limit)
     res.total_error = res.deflection + res.springback
+    res.flutes_cutting = cut.get("flutes_cutting")
+    res.runout_regime = cut.get("runout_regime")
+    res.tir_all_flutes_in = cut.get("tir_all_flutes_in")
+    res.runout_ratio = cut.get("runout_ratio")
     _apply_ramp(res, out.get("ramp"), ratio)
-    res.feasible = True
+    res.feasible = bool(out.get("feasible"))
     res.limited_by = ", ".join(details["binding"]) or None
     res.provenance = []   # v1's multiplier chain no longer describes these numbers; see res.v2["provenance"]
-    res.model_note = (f"v2 physics model ({op}): limited by {res.limited_by or 'none'}; "
+    src = "your depth and width" if res.engagement_source == "user" else "the recommended depth and width"
+    res.model_note = (f"v2 physics model ({op}, {src}): limited by {res.limited_by or 'none'}; "
                       f"v1 would give {v1['rpm']:.0f} rpm, {v1['feed_ipm']:.2f} IPM, DOC {v1['doc']:.4f}\", "
                       f"WOC {v1['woc']:.4f}\".")
     res.tips.insert(0, {"title": "Cutting model: v2", "message": res.model_note, "type": "info"})
+    if out.get("engagement_source") == "user" and not out.get("feasible"):
+        bad = "; ".join(_fmt_violation(v) for v in details["violations"]) or "a limit"
+        rec_txt = (f" The recommended cut is DOC {rec['ap_in']:.4f}\", WOC {rec['ae_in']:.4f}\"." if recommended
+                   else "")
+        res.limited_by = f"v2: {', '.join(details['violated'])}"
+        res.tips.insert(0, {"title": "Your depth and width exceed a limit",
+                            "message": (f"At DOC {cut['ap_in']:.4f}\" and WOC {cut['ae_in']:.4f}\" the cut exceeds: "
+                                        f"{bad}. The feed shown is the best this engagement allows and is NOT safe "
+                                        f"as it stands.{rec_txt}"),
+                            "type": "critical", "fusion": True})
+    n_tips = len(res.tips)
+    _runout_tips(res, cut, float(cut.get("tir_in") or r.runout or 0.0), r.flutes)
+    reduced_tip = len(res.tips) > n_tips
     for w in details["warnings"]:
-        if "rub" in w.lower() or "binds" in w.lower() or "differs" in w.lower():
+        lw = w.lower()
+        if "rub" in lw or "binds" in lw or "differs" in lw or "relaxed" in lw:
+            if reduced_tip and "rub" in lw:
+                continue   # the reduced-flutes tip says it
             res.tips.append({"title": "v2 check", "message": w, "type": "warning", "fusion": True})
     return res
