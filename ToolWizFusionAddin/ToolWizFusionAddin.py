@@ -1,6 +1,6 @@
 import adsk.core, adsk.cam, adsk.fusion, traceback
 import urllib.request, urllib.error, urllib.parse, json
-import os, re, sys, math, time, datetime, uuid, collections
+import os, re, sys, math, time, datetime, uuid, collections, threading
 
 # ---------------------------------------------------------------------------
 # Imports of sibling modules. Installed layout: json_mutator.py and toolwiz_common/
@@ -15,6 +15,13 @@ except (ImportError, ValueError):
     if _ADDIN_DIR not in sys.path:
         sys.path.insert(0, _ADDIN_DIR)
     import json_mutator
+
+try:
+    from . import twlogic
+except (ImportError, ValueError):
+    if _ADDIN_DIR not in sys.path:
+        sys.path.insert(0, _ADDIN_DIR)
+    import twlogic
 
 try:
     from .toolwiz_common import ToolGeometry, UnitError, safe_eval_length, inspect_operation_geometry, is_hole_kind, is_tap_kind
@@ -43,6 +50,13 @@ stockCommandId = 'ToolWizStockToLeaveCmd'
 logCutCommandId = 'ToolWizLogCutCmd'
 cleanupCommandId = 'ToolWizCleanupDuplicatesCmd'
 snapshotCommandId = 'ToolWizSnapshotCompareCmd'
+advisorCommandId = 'ToolWizSetupAdvisorCmd'
+strategyCommandId = 'ToolWizStrategyPlannerCmd'
+masterLibCommandId = 'ToolWizMasterLibraryCmd'
+libAuditCommandId = 'ToolWizLibraryAuditCmd'
+# Hidden (not on the panel) result dialogs, opened from the main thread when a background request finishes.
+advisorResultCommandId = 'ToolWizSetupAdvisorResultCmd'
+textResultCommandId = 'ToolWizTextResultCmd'
 
 workspaceToUse = 'CAMEnvironment'
 panelToUse = 'CAMManagePanel'
@@ -55,6 +69,9 @@ stock_setups_cache = {}
 stock_table_input = None
 _is_updating_ui = False
 _stock_last_error = None
+# Finish mode chosen per operation this session ({op path: {"mode", "ra_uin", "wall_in"}}). The add-in stores no
+# ToolWiz data in operation attributes, so the choice is remembered per session (and reused by Setup Advisor).
+_finish_prefs = {}
 
 # Shared material state, filled by load_materials() for BOTH the Speeds & Feeds
 # and the Stock to Leave commands.
@@ -752,7 +769,7 @@ def compare_with_last_snapshot(current=None):
 # HTTP
 # ==============================================================================
 
-def _http_json(path, payload=None, timeout=5.0, retries=0):
+def _http_json(path, payload=None, timeout=5.0, retries=0, log_errors=True):
     """GET (payload None) or POST JSON to the ToolWiz server and return the decoded JSON.
 
     Always sends the X-ToolWiz-Client header. An HTTP error that carries a JSON body
@@ -791,7 +808,8 @@ def _http_json(path, payload=None, timeout=5.0, retries=0):
             last_exc = e
         except (urllib.error.URLError, OSError, ValueError) as e:
             last_exc = e
-        _log(f"HTTP {'POST' if data is not None else 'GET'} {path} failed (attempt {attempt + 1}/{retries + 1})", last_exc)
+        if log_errors:
+            _log(f"HTTP {'POST' if data is not None else 'GET'} {path} failed (attempt {attempt + 1}/{retries + 1})", last_exc)
         if attempt < retries:
             time.sleep(0.3)
     raise last_exc
@@ -806,6 +824,133 @@ def _offline_message(action):
         "2. Run: py app.py (or click your Tool Wizard desktop shortcut).\n"
         "3. Re-run this command once the server is started."
     )
+
+
+# ==============================================================================
+# CUTTING MODEL (same setting as the web page) AND BACKGROUND REQUESTS
+# ==============================================================================
+
+_model_cache = {"model": None, "source": None, "models": []}
+
+
+def load_model_setting():
+    """The cutting model in effect on the server (GET /api/model_settings): "v1" or "v2", or the last known
+    value when the server cannot be reached, or None when never known (then requests carry no "model" and
+    the server decides). Never hard-codes a model."""
+    try:
+        res = _http_json('/api/model_settings', timeout=4.0, log_errors=False)
+        if isinstance(res, dict) and res.get("success") and res.get("model") in ("v1", "v2"):
+            _model_cache.update(model=res["model"], source=res.get("source"), models=list(res.get("models") or []))
+    except Exception as e:
+        _log("Could not read /api/model_settings (using the last known model)", e)
+    return _model_cache["model"]
+
+
+def model_label(model=None):
+    m = model or _model_cache.get("model")
+    return {"v2": "v2 (physics)", "v1": "v1 (GWizard tables + rules)"}.get(m, "server default")
+
+
+ASYNC_EVENT_ID = 'ToolWizAsyncEvent'
+_async_event = None
+_async_handlers = []
+_async_pending = {}
+_async_lock = threading.Lock()
+
+
+def run_async(work, on_done):
+    """Run `work()` (HTTP and other work that never touches adsk) on a worker thread, then call
+    `on_done(result, error)` on Fusion's main thread via a custom event (Fusion's threading rule). Falls back to
+    running both inline when the custom event is not registered. Returns immediately when asynchronous."""
+    if _async_event is None or app is None or not hasattr(app, 'fireCustomEvent'):
+        try:
+            res, err = work(), None
+        except Exception as ex:
+            res, err = None, ex
+        on_done(res, err)
+        return None
+    job_id = uuid.uuid4().hex
+
+    def runner():
+        try:
+            res, err = work(), None
+        except Exception as ex:
+            res, err = None, ex
+        with _async_lock:
+            _async_pending[job_id] = (on_done, res, err)
+        try:
+            # https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/core_Application_fireCustomEvent.htm
+            app.fireCustomEvent(ASYNC_EVENT_ID, job_id)
+        except Exception as ex:
+            _log("Could not fire the async custom event", ex)
+
+    threading.Thread(target=runner, name="ToolWizAsync", daemon=True).start()
+    return job_id
+
+
+_AsyncEventBase = (
+    adsk.core.CustomEventHandler
+    if isinstance(getattr(adsk.core, 'CustomEventHandler', None), type)
+    else object
+)
+
+
+class ToolWizAsyncCustomEventHandler(_AsyncEventBase):
+    """Main-thread end of run_async: hands a finished background result to its callback."""
+    def __init__(self):
+        super().__init__()
+
+    def notify(self, args):
+        try:
+            job_id = getattr(args, 'additionalInfo', None)
+            with _async_lock:
+                item = _async_pending.pop(job_id, None)
+            if item is None:
+                return
+            on_done, res, err = item
+            on_done(res, err)
+        except Exception as ex:
+            _report_error("A background ToolWiz request failed to finish.", ex)
+
+
+# Background poller for bridge commands queued on the server (/api/fusion_bridge/next). It only does HTTP and
+# fires the bridge custom event; every adsk call runs in ToolWizBridgeCustomEventHandler on the main thread.
+_bridge_poll_stop = threading.Event()
+_bridge_poll_thread = None
+BRIDGE_POLL_SECONDS = 1.0
+
+
+def _bridge_poll_loop():
+    delay, warned = BRIDGE_POLL_SECONDS, False
+    while not _bridge_poll_stop.is_set():
+        try:
+            res = _http_json('/api/fusion_bridge/next', timeout=3.0, log_errors=False)
+            cmd = res.get("command") if isinstance(res, dict) else None
+            delay, warned = BRIDGE_POLL_SECONDS, False
+            if isinstance(cmd, dict) and cmd.get("action") and app is not None:
+                app.fireCustomEvent(BRIDGE_CUSTOM_EVENT_ID, json.dumps(cmd))
+                continue          # more may be queued: ask again at once
+        except Exception as ex:
+            if not warned:
+                _log("Bridge poller: server not reachable (will keep retrying quietly)", ex)
+                warned = True
+            delay = min(15.0, delay * 2)
+        _bridge_poll_stop.wait(delay)
+
+
+def start_bridge_poller():
+    global _bridge_poll_thread
+    if _bridge_poll_thread is not None and _bridge_poll_thread.is_alive():
+        return
+    _bridge_poll_stop.clear()
+    _bridge_poll_thread = threading.Thread(target=_bridge_poll_loop, name="ToolWizBridgePoll", daemon=True)
+    _bridge_poll_thread.start()
+
+
+def stop_bridge_poller():
+    global _bridge_poll_thread
+    _bridge_poll_stop.set()
+    _bridge_poll_thread = None
 
 
 # ==============================================================================
@@ -1509,8 +1654,8 @@ def get_op_tool_info(op):
         grade_lower = str(t_dict.get("GRADE") or t_dict.get("grade") or geo_dict.get("grade") or "").lower()
         text_all = f"{desc_lower} {bmc_lower} {grade_lower}"
 
-        has_hss = bool(re.search(r"\b(hss|hss-e|hsse|hss-co|cobalt|high[\s-]?speed|m2|m35|m42)\b", text_all))
-        is_carbide = ("carbide" in text_all) or (not has_hss)
+        is_carbide = twlogic.tool_is_carbide(t_dict)
+        runout_in, runout_source = twlogic.tool_runout_in(t_dict)
 
         detected_coating = "AlTiN" if is_carbide else "Uncoated"
         if "altin" in text_all:
@@ -1560,7 +1705,10 @@ def get_op_tool_info(op):
             "threadPitch": geo.thread_pitch,
             "desc": desc,
             "number": t_num,
+            "guid": t_dict.get("guid"),
             "tool_type": cutter_type,
+            "runout_in": runout_in,
+            "runout_source": runout_source,
             "raw_json": raw_json
         }
 
@@ -2062,14 +2210,29 @@ def _log_calc_exchange(payload, res):
 
 
 def confirm_feasibility(calc_result):
-    """Return True if it is OK to apply the result. When the server reports
-    "feasible": false, ask the user (Yes/No). A missing field counts as feasible."""
-    if not isinstance(calc_result, dict) or calc_result.get("feasible", True) is not False:
+    """Return True if it is OK to apply the result. Asks the user (Yes/No) when the server reports
+    "feasible": false OR raised any CRITICAL warning (no safe cut, holder collision, neck clearance,
+    holistic-oversight STOP ...): nothing is written before an explicit Yes. A missing field counts as
+    feasible and a result with only warnings/notes needs no confirmation."""
+    if not isinstance(calc_result, dict):
         return True
-    limited = _limited_by_text(calc_result.get("limited_by")) or "an unspecified limit"
+    others = [f for f in twlogic.critical_findings(calc_result) if f.get("source") != "engine"]
+    infeasible = calc_result.get("feasible", True) is False
+    if not infeasible and not others:
+        return True
+    lines = []
+    if infeasible:
+        limited = _limited_by_text(calc_result.get("limited_by")) or "an unspecified limit"
+        lines.append(f"No safe cut found \u2014 limited by {limited}.")
+    if others:
+        lines.append("CRITICAL warnings from ToolWiz:" if not infeasible else "Also critical:")
+        for f in others:
+            lines.append(f"- {f['title']}" + (f": {f['message']}" if f["message"] else ""))
+    lines.append("")
+    lines.append("Apply anyway?")
     res = ui.messageBox(
-        f"No safe cut found — limited by {limited}. Apply anyway?",
-        "ToolWiz — No Safe Cut Found",
+        "\n".join(lines),
+        "ToolWiz \u2014 Critical Warning" if others else "ToolWiz \u2014 No Safe Cut Found",
         adsk.core.MessageBoxButtonTypes.YesNoButtonType,
         adsk.core.MessageBoxIconTypes.WarningIconType
     )
@@ -2077,19 +2240,15 @@ def confirm_feasibility(calc_result):
 
 
 def fusion_tool_payload(geo_payload):
-    """Canonical {"type","unit","geometry"} slice of the op's raw Fusion tool JSON, or None when
-    the raw JSON is unavailable/unparseable. The server builds ONE tool profile from it."""
+    """Canonical Fusion tool slice ({"type","unit","geometry","description","shaft","holder"}) of the op's raw
+    tool JSON, or None when the raw JSON is unavailable/unparseable. The server builds ONE tool profile from
+    it: shaft segments give slot / T-slot necks and stickout, the description identifies T-slot cutters."""
     try:
         raw = (geo_payload or {}).get("raw_json")
         t = json.loads(raw) if isinstance(raw, str) else raw
-        if isinstance(t, dict) and isinstance(t.get("geometry"), dict):
-            out = {"type": t.get("type"), "unit": t.get("unit"), "geometry": t["geometry"]}
-            if isinstance(t.get("shaft"), dict) and t["shaft"].get("segments"):
-                out["shaft"] = t["shaft"]
-            return out
+        return twlogic.fusion_tool_for_server(t)
     except Exception:
-        pass
-    return None
+        return None
 
 
 def _inspect_op_feature_geometry(op, geo_payload=None, woc_in=None):
@@ -2121,8 +2280,12 @@ def _is_hole_or_tap_mode(geo_payload, strategy):
 
 
 def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw,
-                       feature_geometry=None):
-    """Build the /api/calculate_for_fusion request body (all lengths in inches)."""
+                       feature_geometry=None, runout_in=None, model=None, engagement=None):
+    """Build the /api/calculate_for_fusion request body (all lengths in inches).
+
+    `runout_in`: tool runout (TIR, inches); defaults to the tool's own value, else 0.0002 in. `model`: the
+    cutting model to use ("v1"/"v2"), sent explicitly when known. `engagement`: {"stepdown", "stepover"} in
+    inches, the operation's own values (the server then computes rpm/feed for that engagement)."""
     coat = selected_coating_raw.lower()
     coating_code = "AlTiN"
     if "tialn" in coat:
@@ -2192,9 +2355,16 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
             tool_category = "Carbide Endmill"
 
     ft = fusion_tool_payload(geo_payload)
+    if runout_in is None:
+        runout_in = (geo_payload or {}).get("runout_in")
+    if runout_in is None:
+        runout_in = twlogic.DEFAULT_RUNOUT_IN
     return {
         "family": family, "alloy": alloy, "operation": strategy, "aggressiveness": aggressiveness,
         "tool": tool_category, "coating": coating_code, "isCarbide": is_carbide,
+        "runout": float(runout_in),
+        **({"model": model} if model else {}),
+        **(engagement or {}),
         **({"fusion_tool": ft} if ft else {}),
         "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
         "shankDiameter": geo_payload["shankDiameter"], "cornerRadius": geo_payload["cornerRadius"],
@@ -2480,8 +2650,17 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
 
 
 def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
-                target_preset_to_replace, selected_grade, selected_coating_raw):
-    """Calculate cutting data on the server and write it to the operation's tool preset."""
+                target_preset_to_replace, selected_grade, selected_coating_raw,
+                runout_in=None, use_op_engagement=True, apply_rec_stock=False, model=None, tslot_opts=None,
+                finish_opts=None):
+    """Calculate cutting data on the server and write it to the operation's tool preset.
+
+    `runout_in`: runout from the dialog (inches), else the tool's own toolwiz.runout_*, else 0.0002 in.
+    `use_op_engagement`: send the operation's own stepdown/stepover so rpm/feed are computed for them.
+    `apply_rec_stock`: also write ToolWiz's recommended stock to leave to the operation (otherwise the result
+    dialog offers it). `model`: cutting model to send (None: the server's setting). `tslot_opts`: T-slot
+    request fields (tslotOperation, slotHeight, radialDepthTotal). `finish_opts`: {"mode", "ra_uin", "wall_in"}
+    for finishing operations (sent as finishMode / targetRa / wallTolerance)."""
     geo_payload, summary_str, existing_presets = get_op_tool_info(target_op)
     if not geo_payload:
         _log(f"Auto-setter: tool geometry unreadable for {op_name}: {summary_str}")
@@ -2512,8 +2691,20 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         return False
 
     fg = None if is_hole_mode else _inspect_op_feature_geometry(target_op, geo_payload)
+    doc_unit = get_cam_document_units()
+    engagement = {}
+    if not is_hole_mode and use_op_engagement:
+        _, _, op_doc0, op_woc0 = get_op_cut_params(target_op, doc_unit, strategy=strategy)
+        engagement = twlogic.engagement_fields(op_doc0, op_woc0, True)
     payload = build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, selected_grade, selected_coating_raw,
-                                 feature_geometry=fg)
+                                 feature_geometry=fg, runout_in=runout_in, model=model or _model_cache.get("model"),
+                                 engagement=engagement)
+    payload["isMetric"] = twlogic.is_metric(doc_unit)
+    if isinstance(payload, dict):
+        payload.update(tslot_opts or {})
+        if finish_opts and not is_hole_mode and twlogic.is_finishing_strategy(strategy, op_name):
+            payload.update(twlogic.finish_fields(finish_opts.get("mode"), finish_opts.get("ra_uin"), finish_opts.get("wall_in")))
+            _finish_prefs[op_name] = dict(finish_opts)
     tools_at_start = _doc_tool_count()
     _log_custom_diff(target_op, label="BEFORE auto-set")
     _log_op_motion_params(target_op, "BEFORE")
@@ -2545,6 +2736,11 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     feed = calc_result.get("feed", 30.0)
     doc = calc_result.get("doc", 0.25)
     woc = calc_result.get("woc", 0.05)
+    if calc_result.get("engagement_source") == "user":
+        # rpm/feed were computed for the operation's own stepdown/stepover: write those back (they are
+        # unchanged), never the recommendation, so the feed still matches the engagement it was made for.
+        doc = calc_result.get("engagement_doc") or doc
+        woc = calc_result.get("engagement_woc") or woc
     if is_hole_mode:
         ramp_feed = feed
         plunge_feed = feed
@@ -2612,7 +2808,6 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     # 3. Write the operation's own feed/speed only if the linked preset did not deliver the
     #    calculated values. Writing them unconditionally is what made Fusion show a second
     #    'Preset (custom)' entry next to the real preset.
-    doc_unit = get_cam_document_units()
     op_rpm, op_feed, _, _ = get_op_cut_params(target_op, doc_unit, strategy=strategy)
     if preset_linked and not (_close(op_rpm, rpm, 0.01) and _close(op_feed, feed, 0.01)):
         # The preset may already hold the new values (nothing to write back) while the operation
@@ -2700,9 +2895,38 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                 "(Fusion's default of 10% made very large programs).")
     elif fine_note == 'kept':
         msg += "\n\nFine stepdown: your own value was kept."
+    extra = twlogic.format_advisor_sections(calc_result, flutes_total=geo_payload.get("flutes"), unit=doc_unit)
+    if extra:
+        msg += "\n\n" + extra
+    rec_rad, rec_ax = twlogic.stock_recommendation(calc_result)
+    stock_msg, offer_stock = "", False
+    if not is_hole_mode and (rec_rad is not None or rec_ax is not None) and op_supports_stock_to_leave(target_op):
+        rad_expr = twlogic.fmt_len(rec_rad or 0.0, doc_unit)
+        ax_expr = twlogic.fmt_len(rec_ax or 0.0, doc_unit)
+        if apply_rec_stock:
+            failed = apply_stock_to_op(target_op, rad_expr, ax_expr)
+            stock_msg = (f"Stock to leave written: radial {rad_expr}, axial {ax_expr}." if not failed
+                         else f"Stock to leave could not be written: {', '.join(failed)}.")
+        else:
+            offer_stock = True
     note = _finish_active_command('ok')
     if note:
         msg += "\n\n" + note
+    if stock_msg:
+        msg += "\n\n" + stock_msg
+    if offer_stock:
+        res = ui.messageBox(
+            msg + f"\n\nApply the recommended stock to leave (radial {rad_expr}, axial {ax_expr}) to this operation now?",
+            'ToolWiz CAM Auto-Setter', adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+            adsk.core.MessageBoxIconTypes.QuestionIconType)
+        if res == adsk.core.DialogResults.DialogYes:
+            ac2 = AuditedCommand('autoset_stock', target=op_name, targets=[op_name]).begin()
+            failed = apply_stock_to_op(target_op, rad_expr, ax_expr)
+            note2 = ac2.finish("ok" if not failed else f"failed: {failed}")
+            ui.messageBox((f"Stock to leave written: radial {rad_expr}, axial {ax_expr}." if not failed
+                           else f"Stock to leave could not be written: {', '.join(failed)}.")
+                          + (("\n\n" + note2) if note2 else ""), 'ToolWiz CAM Auto-Setter')
+        return True
     ui.messageBox(msg, 'ToolWiz CAM Auto-Setter')
     return True
 
@@ -2811,17 +3035,64 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
 
             save_prefs(family=family, alloy=alloy, aggressiveness=aggressiveness, strategy=strategy)
 
+            ro_input = inputs.itemById('runout')
+            try:
+                runout_in = twlogic.parse_runout_text(ro_input.value if ro_input else '', None)
+            except ValueError as ve:
+                ui.messageBox(str(ve), 'ToolWiz CAM Auto-Setter')
+                return
+            eng_input = inputs.itemById('useOpEngagement')
+            stock_input = inputs.itemById('applyRecStock')
+            tslot_opts = {}
+            tdd = inputs.itemById('tslotOp')
+            if tdd and getattr(tdd, 'isVisible', False) and tdd.selectedItem:
+                code = dict(TSLOT_OPERATIONS).get(tdd.selectedItem.name)
+                tslot_opts['tslotOperation'] = code or 'full_slot'
+                for in_id, key in (('slotHeight', 'slotHeight'), ('radialDepthTotal', 'radialDepthTotal')):
+                    bx = inputs.itemById(in_id)
+                    txt = (bx.value or '').strip() if bx else ''
+                    if txt:
+                        try:
+                            tslot_opts[key] = parse_length_expr_to_inches(txt, get_cam_document_units())
+                        except Exception:
+                            ui.messageBox(f"Cannot read {txt!r} as a length (e.g. 0.08 in or 2 mm).", 'ToolWiz CAM Auto-Setter')
+                            return
+
+            finish_opts = None
+            fm_in = inputs.itemById('finishMode')
+            if fm_in and getattr(fm_in, 'isVisible', False) and fm_in.selectedItem:
+                try:
+                    du = get_cam_document_units()
+                    ra_box, tol_box = inputs.itemById('targetRa'), inputs.itemById('wallTolerance')
+                    finish_opts = {
+                        "mode": twlogic.finish_mode_code(fm_in.selectedItem.name),
+                        "ra_uin": twlogic.parse_ra_text(ra_box.value if ra_box else '', du),
+                        "wall_in": (parse_length_expr_to_inches(tol_box.value, du) if (tol_box and tol_box.value.strip())
+                                    else twlogic.DEFAULT_WALL_TOL_IN),
+                    }
+                except (ValueError, ArithmeticError) as ve:
+                    ui.messageBox(str(ve), 'ToolWiz CAM Auto-Setter')
+                    return
+
             ac = AuditedCommand('autoset', target=op_name, targets=[op_name]).begin()
             result = 'error'
             try:
                 done = run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
-                                   target_preset_to_replace, selected_grade, selected_coating_raw)
+                                   target_preset_to_replace, selected_grade, selected_coating_raw,
+                                   runout_in=runout_in,
+                                   use_op_engagement=bool(eng_input.value) if eng_input else True,
+                                   apply_rec_stock=bool(stock_input.value) if stock_input else False,
+                                   model=load_model_setting(), tslot_opts=tslot_opts,
+                                   finish_opts=finish_opts)
                 result = 'ok' if done else 'not applied'
             finally:
                 ac.finish(result)
 
         except Exception as e:
             _report_error("Auto-Setter failed.", e)
+
+TSLOT_OPERATIONS = [('Full slot', 'full_slot'), ('Side cut (one side)', 'side_cut'),
+                    ('Both sides', 'both_sides'), ('Axial step (up/down cutting)', 'axial_step')]
 
 STRATEGY_OPTIONS = [
     'Adaptive Roughing',
@@ -2890,6 +3161,22 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
     if saved_strategy:
         return pick_saved(saved_strategy, STRATEGY_OPTIONS, 'Adaptive Roughing')
     return 'Adaptive Roughing'
+def _sync_strategy_inputs(inputs, strategy, reset_engagement=True):
+    """Show the finish-mode inputs only for finishing strategies and make roughing default to ToolWiz's own
+    (maximum-removal) stepdown/stepover while finishing keeps the operation's engagement."""
+    try:
+        fin = twlogic.is_finishing_strategy(strategy)
+        for tid in ('finishMode', 'targetRa', 'wallTolerance'):
+            ti = inputs.itemById(tid)
+            if ti:
+                ti.isVisible = fin
+        eng = inputs.itemById('useOpEngagement')
+        if eng is not None and reset_engagement:
+            eng.value = not twlogic.is_roughing_strategy(strategy)
+    except Exception as ex:
+        _log("Syncing strategy inputs failed", ex)
+
+
 class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
     def __init__(self):
         super().__init__()
@@ -2933,7 +3220,21 @@ class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
                             if itm.name == inferred:
                                 itm.isSelected = True
                                 break
+                    _sync_strategy_inputs(inputs, _selected_name(strat_input) if strat_input else "", reset_engagement=True)
+                    is_slot = bool(g_payload) and str(g_payload.get('kind', '')) == 'slot'
+                    for tid in ('tslotOp', 'slotHeight', 'radialDepthTotal'):
+                        ti = inputs.itemById(tid)
+                        if ti:
+                            ti.isVisible = is_slot
+                    ro_box = inputs.itemById('runout')
+                    if ro_box and g_payload and g_payload.get('runout_source') == 'tool':
+                        du = get_cam_document_units()
+                        ro_box.value = twlogic.fmt_len(g_payload.get('runout_in'), du, 5 if du != 'mm' else 4)
                             
+            elif cmdInput.id == 'strategy':
+                st = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
+                _sync_strategy_inputs(inputs, st)
+
             elif cmdInput.id == 'matFamily':
                 family = cmdInput.selectedItem.name if cmdInput.selectedItem else ""
                 alloy_input = inputs.itemById('matAlloy')
@@ -3043,6 +3344,54 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
             agg_input.valueOne = prefs.get('aggressiveness', 50)
+            agg_input.tooltip = ('50% = relatively safe starting data (about 0.92 x the vendor median chip load); '
+                                 '75% = vendor median; 100% = about 1.10 x with deeper engagement and faster wear.')
+
+            # Runout (TIR): the tool's own toolwiz.runout_* value, else 0.0002 in. Editable.
+            doc_u = get_cam_document_units()
+            ro_in = (initial_geo or {}).get('runout_in') or twlogic.DEFAULT_RUNOUT_IN
+            ro_src = 'from the tool' if (initial_geo or {}).get('runout_source') == 'tool' else 'default'
+            runout_input = inputs.addStringValueInput('runout', f'Runout / TIR ({ro_src})', twlogic.fmt_len(ro_in, doc_u, 5 if doc_u != 'mm' else 4))
+            runout_input.tooltip = ('Total indicator runout at the tool tip. Small tools need a low-runout holder; '
+                                    'enter your measured value, e.g. 0.0002 in or 0.005 mm.')
+            init_strategy = infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy'))
+            rough0 = twlogic.is_roughing_strategy(init_strategy)
+            eng_input = inputs.addBoolValueInput('useOpEngagement', "Keep the operation's own stepdown / stepover", True, '', not rough0)
+            eng_input.tooltip = ("Ticked: compute rpm and feed for the engagement already set on the operation and keep it. "
+                                 "Unticked: write ToolWiz's own stepdown / stepover (for roughing, the maximum removal "
+                                 "rate that works reliably at this aggressiveness).")
+            fin0 = _finish_prefs.get(_op_path(initial_op), {})
+            fm = inputs.addDropDownCommandInput('finishMode', 'Finish mode', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for label, code in twlogic.FINISH_MODES:
+                fm.listItems.add(label, code == fin0.get('mode', 'cleanup'))
+            fm.tooltip = ('Clean-up: decent finish, maximize removal. Surface finish: limit feed marks and scallops to the '
+                          'target Ra. Accuracy: limit deflection and springback to the wall tolerance.')
+            ra_in = inputs.addStringValueInput('targetRa', 'Target surface finish (Ra)',
+                                               twlogic.ra_uin_to_text(fin0.get('ra_uin', twlogic.DEFAULT_RA_UIN), doc_u))
+            tol_in = inputs.addStringValueInput('wallTolerance', 'Wall tolerance',
+                                                twlogic.fmt_len(fin0.get('wall_in', twlogic.DEFAULT_WALL_TOL_IN), doc_u, 5 if doc_u != 'mm' else 4))
+            fin_vis = twlogic.is_finishing_strategy(init_strategy)
+            for fi in (fm, ra_in, tol_in):
+                fi.isVisible = fin_vis
+            stock_input = inputs.addBoolValueInput('applyRecStock', "Also apply ToolWiz's recommended stock to leave", True, '', False)
+            stock_input.tooltip = "Writes the recommended radial / axial stock to leave (true-to-size parts) to this operation."
+
+            # T-slot / keyseat cutters: what the cut is (only shown for slot mills).
+            is_slot = str((initial_geo or {}).get('kind', '')) == 'slot'
+            tslot_dd = inputs.addDropDownCommandInput('tslotOp', 'T-slot cut', adsk.core.DropDownStyles.TextListDropDownStyle)
+            for label, code in TSLOT_OPERATIONS:
+                tslot_dd.listItems.add(label, code == 'full_slot')
+            tslot_h = inputs.addStringValueInput('slotHeight', 'Slot height (Z)', '')
+            tslot_h.tooltip = 'Finished slot height along Z; blank = the cutter width. Used for the Z-step plan.'
+            tslot_r = inputs.addStringValueInput('radialDepthTotal', 'Total radial depth', '')
+            tslot_r.tooltip = 'Total radial depth of the slot; blank = one pass at ToolWiz depth.'
+            for ti in (tslot_dd, tslot_h, tslot_r):
+                ti.isVisible = is_slot
+
+            model_txt = model_label(load_model_setting())
+            mbox = inputs.addTextBoxCommandInput('modelInfo', 'Cutting model',
+                                                 f'{model_txt} - same setting as the ToolWiz web page.', 2, True)
+            mbox.isFullWidth = True
 
         except Exception as e:
             _report_error("Command Created failed.", e)
@@ -3460,6 +3809,10 @@ def build_stock_ops_payload(ops_cache, doc_unit="in"):
         ft = fusion_tool_payload(geo)
         if ft:
             ops_payload[-1]["fusion_tool"] = ft
+        ops_payload[-1]["runout"] = geo.get("runout_in") or twlogic.DEFAULT_RUNOUT_IN
+        ops_payload[-1]["isCarbide"] = bool(geo.get("is_carbide", True))
+        if geo.get("guid"):
+            ops_payload[-1]["tool_guid"] = geo["guid"]
         fg = op_info.get("feature_geometry") or _inspect_op_feature_geometry(op_info.get("op"), geo, woc_in=op_info.get("woc"))
         if fg:
             ops_payload[-1]["feature_geometry"] = fg
@@ -3487,6 +3840,8 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
         }
         if comp_adjust_pct is not None:
             payload["comp_adjust_pct"] = comp_adjust_pct
+        if _model_cache.get("model"):
+            payload["model"] = _model_cache["model"]
         res_data = _http_json('/api/stock_compensation', payload, timeout=8.0)
         if res_data.get("success"):
             results = res_data.get("results", [])
@@ -3498,6 +3853,69 @@ def query_toolwiz_stock_compensation(family, alloy, aggressiveness, mode, custom
         _stock_last_error = str(e)
         _log("stock_compensation request failed", e)
     return []
+
+_rough_stock_cache = {}
+
+
+def query_roughing_stock(family, alloy, aggressiveness, doc_unit="in", model=None):
+    """ToolWiz's recommended radial/axial stock to leave for every ROUGHING operation in stock_ops_cache.
+    One /api/calculate_for_fusion call per operation (its own tool, runout, stepdown/stepover, the same
+    cutting model as the web page); results are cached per input set. Returns
+    {op_id: {"radial_in", "axial_in", "calc"}}; operations that failed are left out (reason logged)."""
+    out = {}
+    model = model or _model_cache.get("model")
+    for op_id, info in stock_ops_cache.items():
+        geo = info.get("geo")
+        if info.get("is_finishing") or not geo or _is_hole_or_tap_mode(geo, info.get("strategy")):
+            continue
+        key = (op_id, family, alloy, aggressiveness, model, geo.get("runout_in"), info.get("doc"), info.get("woc"))
+        if key not in _rough_stock_cache:
+            try:
+                strat = infer_strategy_for_op(info.get("op"), geo)
+                payload = build_calc_payload(
+                    geo, family, alloy, strat, aggressiveness,
+                    "Carbide (Standard)" if geo.get("is_carbide", True) else "High Speed Steel (HSS)",
+                    geo.get("coating", "Uncoated"), runout_in=geo.get("runout_in"), model=model,
+                    engagement=twlogic.engagement_fields(info.get("doc"), info.get("woc"), True))
+                payload["isMetric"] = twlogic.is_metric(doc_unit)
+                res = _http_json('/api/calculate_for_fusion', payload, timeout=20.0)
+                if not isinstance(res, dict) or not res.get("success"):
+                    raise ValueError((res or {}).get("error") or "server reported failure")
+                rad, ax = twlogic.stock_recommendation(res)
+                _rough_stock_cache[key] = {"radial_in": rad, "axial_in": ax, "calc": res}
+            except Exception as e:
+                _log(f"Recommended stock for roughing op {info.get('label')!r} failed", e)
+                continue
+        out[op_id] = _rough_stock_cache[key]
+    return out
+
+
+def refresh_stock_consistency(doc_unit="in"):
+    """Finishing-op wall tolerance check across each setup, using the numbers now in the dialog: warns in the
+    finishing row's advisory when the roughing op before it leaves too little (or less than the finishing
+    engagement)."""
+    for s_data in stock_setups_cache.values():
+        seq = []
+        for op_id in s_data.get("ops", []):
+            info = stock_ops_cache.get(op_id) or {}
+            inp = info.get("inp_rad")
+            val = _safe(lambda: parse_length_expr_to_inches(inp.value, info.get("unit", doc_unit))) if inp else None
+            seq.append({"label": op_id, "is_finishing": bool(info.get("is_finishing")), "rad_in": val,
+                        "woc_in": info.get("woc")})
+        notes = twlogic.stock_consistency_notes(seq)
+        for op_id in s_data.get("ops", []):
+            info = stock_ops_cache.get(op_id) or {}
+            box = info.get("lbl_adv")
+            if not box or not info.get("is_finishing"):
+                continue
+            base = str(info.get("adv_base") or "")
+            extra = "\n".join("Check: " + n for n in notes.get(op_id, []))
+            try:
+                box.formattedText = format_cell_html((base + ("\n" + extra if extra else "")).replace("\n", "<br>"),
+                                                    info.get("bg_color", "#ffffff"))
+            except Exception:
+                pass
+
 
 def _log_stock_results(results, radial_pct, axial_pct):
     """One line per finishing op: the inputs the calculation used and what it recommends."""
@@ -3792,7 +4210,7 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                 
             # 4. Handle Material / Compensation Trim / Mode changes
             if cmdInput.id in ['stockMatFamily', 'stockMatAlloy', 'stockCompAdjust', 'stockAggressiveness', 'stockBatchMode', 'customRadOffset', 'customAxOffset',
-                               'stockRadialPct', 'stockAxialPct']:
+                               'stockRadialPct', 'stockAxialPct', 'stockIncludeRoughing']:
                 if not (mat_family_input and mat_family_input.selectedItem) or not materials_ready():
                     return
                 family = mat_family_input.selectedItem.name
@@ -3864,6 +4282,8 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                                 inp_r.value = clean_and_eval_stock_expr(str(rad_val), doc_u)
                             if inp_a and ax_val is not None:
                                 inp_a.value = clean_and_eval_stock_expr(str(ax_val), doc_u)
+                            if adv_text:
+                                op_info["adv_base"] = str(adv_text)
                             if lbl_adv and adv_text:
                                 adv_html = str(adv_text).replace('\n', '<br>')
                                 bg_col = op_info.get("bg_color", "#ffffff")
@@ -3881,7 +4301,42 @@ class ToolWizStockInputChangedHandler(adsk.core.InputChangedEventHandler):
                                 chk.value = is_fin
                     finally:
                         _is_updating_ui = False
-                        
+
+                    # Roughing ops: ToolWiz's recommended stock to leave (positive), when asked for.
+                    inc_rough = inputs.itemById('stockIncludeRoughing')
+                    rough_on = bool(inc_rough.value) if inc_rough else False
+                    _is_updating_ui = True
+                    try:
+                        rough = query_roughing_stock(family, alloy, agg, doc_u) if rough_on else {}
+                        for op_id, op_info in stock_ops_cache.items():
+                            if op_info.get("is_finishing"):
+                                continue
+                            chk = op_info.get("chk")
+                            r = rough.get(op_id)
+                            if r:
+                                if op_info.get("inp_rad") and r.get("radial_in") is not None:
+                                    op_info["inp_rad"].value = twlogic.fmt_len(r["radial_in"], doc_u)
+                                if op_info.get("inp_ax") and r.get("axial_in") is not None:
+                                    op_info["inp_ax"].value = twlogic.fmt_len(r["axial_in"], doc_u)
+                                text = (f"Roughing: ToolWiz recommends leaving radial {twlogic.fmt_len(r.get('radial_in'), doc_u)}, "
+                                        f"axial {twlogic.fmt_len(r.get('axial_in'), doc_u)} "
+                                        "(1.5 x predicted deflection + springback) so the finishing pass makes the part true to size.")
+                                op_info["adv_base"] = text
+                                try:
+                                    op_info["lbl_adv"].formattedText = format_cell_html(text, op_info.get("bg_color", "#ffffff"))
+                                except Exception:
+                                    pass
+                                if chk and getattr(chk, 'isVisible', True):
+                                    chk.value = True
+                            elif chk and cmdInput.id == 'stockIncludeRoughing' and not rough_on:
+                                chk.value = False
+                        if rough_on and not rough:
+                            ui.messageBox("ToolWiz could not calculate recommended stock for the roughing operations. "
+                                          f"Details: {_log_path()}", "ToolWiz Stock to Leave Manager")
+                        refresh_stock_consistency(doc_u)
+                    finally:
+                        _is_updating_ui = False
+
         except Exception as e:
             _log(f"Stock Manager input-changed error on {getattr(cmdInput, 'id', 'unknown')}", e)
 
@@ -4037,6 +4492,10 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
             mode_input.listItems.add('Auto-Compensate Finishing (Negative Stock)', True)
             mode_input.listItems.add('Zero-Out Finishing (0.0000")', False)
             mode_input.listItems.add('Batch Apply Custom Offset', False)
+            rough_chk = inputs.addBoolValueInput('stockIncludeRoughing', "Include roughing ops: set ToolWiz's recommended stock to leave", True, '', False)
+            rough_chk.tooltip = ("Calculates, per roughing operation, the radial and axial stock to leave that lets the "
+                                 "finishing pass bring the part true to size (1.5 x predicted deflection + springback, "
+                                 "at least 0.05 mm). One server calculation per roughing op, so it takes a few seconds.")
             
             zero_str = "0.000 mm" if doc_unit == "mm" else "0.0000 in"
             custom_rad = inputs.addStringValueInput('customRadOffset', 'Custom Radial Stock', zero_str)
@@ -4169,6 +4628,7 @@ class ToolWizStockCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 table.addCommandInput(inp_ax, row_idx, 5)
                 
                 # Col 6: Multi-line Advisory (Formatted 2-line wrapped text with row background contrast)
+                op_info["adv_base"] = str(init_adv)
                 adv_html = str(init_adv).replace('\n', '<br>')
                 lbl_adv = add_cell_text(table.commandInputs, f'lbl_adv_{op_id}', adv_html, 2, True, bg_color)
                 table.addCommandInput(lbl_adv, row_idx, 6)
@@ -4223,6 +4683,7 @@ def build_single_op_compensation_payload(family, alloy, aggressiveness, op_name,
         "family": family, "alloy": alloy, "aggressiveness": aggressiveness,
         "mode": "auto_compensate", "unit": "in",
         "custom_radial_offset": "0.0000 in", "custom_axial_offset": "0.0000 in",
+        **({"model": _model_cache["model"]} if _model_cache.get("model") else {}),
         "operations": build_stock_ops_payload(cache, "in"),
     }
 
@@ -4269,7 +4730,7 @@ def build_cutlog_payload(family, alloy, op_name, geo, cut, prediction, measured_
         "spindle_load_pct": load,
         "chatter": bool(chatter),
         "surface_ok": bool(surface_ok),
-        "notes": ((notes or "").strip()[:2000] or None),
+        "notes": (((notes or "").strip() + (f"\n[tool guid {geo['guid']}]" if geo.get("guid") else "")).strip()[:2000] or None),
         "source": "fusion",
     }
     return payload
