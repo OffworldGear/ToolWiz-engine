@@ -23,6 +23,20 @@ SERVER_INFO = {
     "version": "2.0.0",
 }
 
+#: Server instructions returned by ``initialize`` (the client shows them to the model).
+SERVER_INSTRUCTIONS = (
+    "ToolWiz is the only source of machining numbers. NEVER invent, estimate, recall from memory, convert by guesswork or "
+    "round-to-typical any speed, feed, chip load, rpm, SFM, depth of cut, stepdown, stepover, stock to leave, tool life or "
+    "cycle time. Every such number you tell the user MUST come from a toolwiz_* tool result in this conversation and be "
+    "quoted exactly with its units. If a number you need is not in a result, call the matching toolwiz_* tool "
+    "(toolwiz_calculate_cut, toolwiz_strategy_compare, toolwiz_setup_advisor, toolwiz_holder_advice, toolwiz_tool_advice) or tell "
+    "the user it is unavailable. Use your own knowledge only to explain, prioritise and suggest toolpath strategy in words. "
+    "Changes to a Fusion 360 operation may only use values ToolWiz recommended; the add-in asks the user to confirm them. "
+    "Lengths are inches, feeds inches per minute unless a result says otherwise.")
+
+NO_NUMBERS_NOTE = (" Rule: every speed, feed, depth, width, stock or time you report from this tool's result must be quoted "
+                   "exactly from it; never invent or estimate numbers (all numbers must come from toolwiz_* calls).")
+
 MCP_TOOLS: List[Dict[str, Any]] = [
     {
         "name": "toolwiz_calculate_cut",
@@ -207,12 +221,162 @@ MCP_TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+
+    {
+        "name": "toolwiz_strategy_compare",
+        "description": (
+            "Compare machining strategies for a feature with ToolWiz: contour slot vs smaller-tool slot vs adaptive for a "
+            "profile cutout (with tabs) or slot, and T-slot / keyseat cutters (including the owner's shop cutters). Returns options with "
+            "ap, ae, rpm, feed, cycle time, relative tool life, the recommended option and the reasoning."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "family": {"type": "string", "description": "ToolWiz material family"},
+                "alloy": {"type": "string", "description": "Alloy / condition"},
+                "aggressiveness": {"type": "number", "description": "0..1 (0.5 = relatively safe)"},
+                "runout": {"type": "number", "description": "Holder runout (in)"},
+                "model": {"type": "string", "enum": ["v1", "v2"]},
+                "feature": {"type": "object", "description": "{type: profile_cutout|slot|tslot, depth, length, width?, tabs?{count,width,height,style}, channel_width?, slot_height?, radial_depth?} in inches"},
+                "candidate_tools": {"type": "array", "items": {"type": "object"}, "description": "End mills {diameter, flutes, flute_length, shank_diameter, stickout, coating, geometry} or T-slot cutters {id} / {geometry:{diameter,kerf,neck_diameter,reach,...}}"},
+            },
+            "required": ["family", "feature", "candidate_tools"],
+        },
+    },
+    {
+        "name": "toolwiz_holder_advice",
+        "description": (
+            "Toolholder advice from the runout a cut needs: required tip runout, holder class (standard / precision / ultra), "
+            "recommended, acceptable and avoided holder types (ER, precision ER, SK/SKC, hydraulic, shrink fit, powRgrip, milling chuck)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "diameter": {"type": "number", "description": "Tool diameter (in)"},
+                "fz_in": {"type": "number", "description": "Chip load per tooth (in), from a toolwiz_calculate_cut result"},
+                "flutes": {"type": "integer"},
+                "runout_in": {"type": "number", "description": "Measured or assumed TIR (in)"},
+                "rpm": {"type": "number"},
+                "operation": {"type": "string", "description": "slot, side, hem, rough, finish"},
+                "stickout": {"type": "number"},
+                "taper": {"type": "string", "description": "Spindle taper, e.g. BT30"},
+            },
+            "required": ["diameter", "fz_in"],
+        },
+    },
+    {
+        "name": "toolwiz_tool_advice",
+        "description": (
+            "Tool-series recommendations (vendor series that beat the bucket's consensus material removal rate, plus curated cited "
+            "application notes) for a material family, diameter and operation."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "family": {"type": "string"},
+                "diameter": {"type": "number", "description": "Tool diameter (in)"},
+                "operation": {"type": "string", "description": "slot, side, hem, rough, finish"},
+                "flutes": {"type": "integer"},
+                "coating": {"type": "string"},
+            },
+            "required": ["family", "diameter", "operation"],
+        },
+    },
+    {
+        "name": "toolwiz_setup_advisor",
+        "description": (
+            "Audit a Fusion 360 CAM setup against ToolWiz: per operation STOP / CAUTION / INFO findings (chip load, rpm, stepdown, "
+            "stepover, stock to leave, holder runout, strategy), setup-level sequence findings (rest machining, finishing passes, tool "
+            "changes) and strategy suggestions with time saved. Omit 'setup' to use the live setup from the Fusion add-in "
+            "(fusion_get_setup_summary). Set use_llm for a plain-language narrative that has been checked so it contains only ToolWiz numbers."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "setup": {"type": "object", "description": "Setup snapshot {document, ops:[{name, setup, strategy, tool, params, geometry}]} (see docs/SETUP_ADVISOR.md); omit to use the live Fusion state"},
+                "family": {"type": "string", "description": "ToolWiz material family"},
+                "alloy": {"type": "string"},
+                "aggressiveness": {"type": "number", "description": "Fraction 0-1 (0.5 = relatively safe) or a percentage above 1 (50); default 0.5"},
+                "runout": {"type": "number", "description": "Holder runout (in)"},
+                "model": {"type": "string", "enum": ["v1", "v2"]},
+                "use_llm": {"type": "boolean", "description": "Add the numeric-guarded LLM narrative (needs an API key on the server)"},
+            },
+            "required": ["family"],
+        },
+    },
+    {
+        "name": "toolwiz_library_audit",
+        "description": (
+            "Audit a Fusion tool library against ToolWiz: STOP / CAUTION / INFO per tool and preset (speeds, feeds, geometry, duplicates). "
+            "Pass 'library' / 'tools', or nothing to audit the working library."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "library": {"type": "object", "description": "Fusion library JSON {tools:[...]}"},
+                "tools": {"type": "array", "items": {"type": "object"}},
+                "material": {"type": "string"},
+                "aggressiveness": {"type": "number", "description": "Percent (default 50)"},
+                "runout": {"type": "number"},
+            },
+        },
+    },
+    {
+        "name": "toolwiz_master_library_build",
+        "description": (
+            "Build the master library (one library per material set, ToolWiz presets per material and strategy) as a background job. "
+            "action 'start' begins a build and returns a job_id; action 'status' with job_id returns progress and, when done, the result and audit."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["start", "status"], "description": "Default 'start'"},
+                "job_id": {"type": "string", "description": "Required for action 'status'"},
+                "sets": {"type": "array", "items": {"type": "string"}, "description": "Material set ids (data/material_sets.json)"},
+                "materials": {"type": "array", "items": {"type": "string"}},
+                "strategies": {"type": "array", "items": {"type": "string"}},
+                "filter": {"type": "object", "description": "{types, diameter_min, diameter_max, diameter_unit, libraries, sources, tool_ids}"},
+                "aggressiveness": {"type": "number", "description": "Percent (default 50)"},
+                "use_working_library": {"type": "boolean"},
+                "libraries": {"type": "array", "items": {"type": "object"}},
+            },
+        },
+    },
 ]
 
 
 def list_mcp_tools() -> List[Dict[str, Any]]:
-    """Return the list of registered MCP tool definitions."""
-    return list(MCP_TOOLS)
+    """Return the registered MCP tool definitions; every description carries the no-invented-numbers rule."""
+    out = []
+    for t in MCP_TOOLS:
+        d = dict(t)
+        if NO_NUMBERS_NOTE not in d["description"]:
+            d["description"] = d["description"] + NO_NUMBERS_NOTE
+        out.append(d)
+    return out
+
+
+# tool name -> (HTTP method, path) of the endpoint that implements it
+_ENDPOINT_TOOLS = {
+    "toolwiz_strategy_compare": ("POST", "/api/strategy/compare"),
+    "toolwiz_holder_advice": ("POST", "/api/advice/holder"),
+    "toolwiz_tool_advice": ("POST", "/api/advice/tools"),
+    "toolwiz_setup_advisor": ("POST", "/api/setup_advisor"),
+    "toolwiz_library_audit": ("POST", "/api/twin/audit"),
+}
+
+
+def _call_endpoint(method: str, path: str, args: Dict[str, Any]) -> Dict[str, Any]:
+    """Call a ToolWiz HTTP endpoint in-process; the JSON body (or an error dict) is the tool result."""
+    with app.test_client() as client:
+        headers = {"X-ToolWiz-Client": "mcp-server"}
+        resp = client.get(path, headers=headers) if method == "GET" else client.post(path, json=args, headers=headers)
+        data = resp.get_json(silent=True)
+        if not isinstance(data, dict):
+            return {"success": False, "error": f"HTTP {resp.status_code}"}
+        if resp.status_code >= 400:
+            data.setdefault("success", False)
+        return data
 
 
 def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -315,6 +479,22 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
             },
         )
 
+    if name in _ENDPOINT_TOOLS:
+        method, path = _ENDPOINT_TOOLS[name]
+        return _call_endpoint(method, path, args)
+
+    if name == "toolwiz_master_library_build":
+        action = str(args.pop("action", "start") or "start").lower()
+        if action == "status":
+            job_id = str(args.get("job_id") or "").strip()
+            if not job_id:
+                return {"success": False, "error": "job_id is required for action 'status'"}
+            return _call_endpoint("GET", f"/api/twin/build_sets/{job_id}", {})
+        if action != "start":
+            return {"success": False, "error": "action must be 'start' or 'status'"}
+        args.pop("job_id", None)
+        return _call_endpoint("POST", "/api/twin/build_sets", args)
+
     if name == "toolwiz_holistic_oversight":
         with app.test_client() as client:
             resp = client.post(
@@ -361,6 +541,7 @@ def handle_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "protocolVersion": MCP_PROTOCOL_VERSION,
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": SERVER_INFO,
+                "instructions": SERVER_INSTRUCTIONS,
             },
         }
 
