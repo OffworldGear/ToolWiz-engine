@@ -1,0 +1,412 @@
+{
+  "description": "Toolholder types with total indicated runout (TIR) at the tool tip, as published by manufacturers or taken from DIN 6499. Used by toolwiz_common/tooling_advisor.py. Lengths: tir_mm / tir_in are the published maximum TIR at the stated measuring distance; where the source publishes a range by clamping diameter it is kept in tir_by_clamp_mm. Nothing here is measured by ToolWiz.",
+  "schema_notes": {
+    "tir_mm": "Largest published TIR at the tool tip (mm). Used as the holder's worst case by the advisor.",
+    "tir_in": "Same value in inches (tir_mm / 25.4, rounded to 0.00001).",
+    "measured_at": "Distance from the holder/collet nose at which the manufacturer measures TIR (D = test-bar diameter).",
+    "capability_class": "ultra: published TIR <= 0.00015 in. precision: <= 0.0003 in. standard: larger.",
+    "rigidity": "stiff = reinforced body, suited to heavy side load; medium; light = slim/micro body, finishing and small tools.",
+    "bt30": "Availability of a BT30 interface from the cited manufacturer, as evidenced by the cited page.",
+    "clamp_mm": "[min, max] shank diameter in mm from the cited clamping range (SK: 0.028-1 in; micro chuck: Mega New Baby 0.25-20 mm). Used only to check that the tool shank fits.",
+    "label": "Display name used in holder_advice lists."
+  },
+  "sources": {
+    "REGOFIX_ER": {
+      "label": "Rego-Fix, ER System catalog COL1125 01/2015, page 2 'Concentricity T.I.R. DIN 6499 / ISO 15488' (table of T.I.R. max. by clamping range)",
+      "url": "https://www.productivity.com/wp-content/uploads/2020/04/Rego-Fix-_ER_System-3-25-20-Interactive.pdf"
+    },
+    "REGOFIX_CAT": {
+      "label": "Rego-Fix, ER System / Product catalog, page 4: powRgrip total system TIR <= 3 um at 3 x D; ER standard collets <= 10 um at 3 x D; ER-UP <= 5 um at 3 x D; micRun total system TIR <= 3 um at 3 x D",
+      "url": "https://cdn.dgisupply.ca/img/product-images/Asset_URL/REGO_FIX_7118_11000_Catalog.pdf"
+    },
+    "REGOFIX_PG": {
+      "label": "Rego-Fix, powRgrip system overview (total system runout <= 3 um at 3 x D; guarantee TIR <= 0.0001 in)",
+      "url": "https://us.rego-fix.com/en/press-fit-tooling"
+    },
+    "HAIMER_TH": {
+      "label": "HAIMER Tool Holders catalog (US), 'Overview of tool holder technology' table: runout at 3xD, max rpm, balancing grade, clamping range for shrink-fit, power collet, hydraulic, milling, Weldon and ER chucks",
+      "url": "https://haimer.com/shop/catalog/downloads/files/Tool-holders/Tool-holders_US.pdf"
+    },
+    "HAIMER_TOP10": {
+      "label": "HAIMER, Top 10 reasons to use shrink fit technology: '< 3 um run-out at 3xD', balance G2.5 @ 25,000 rpm",
+      "url": "https://www.haimer.com/shop/catalog/downloads/files/top-10-power-clamp/top-10-power-clamp-us.pdf"
+    },
+    "HAIMER_BT30_SHRINK": {
+      "label": "HAIMER Shrink Fit Chuck, JIS B 6339-2 BT30 (product page)",
+      "url": "https://shop.haimer.com/en/Shrink-Fit-Chuck-Standard-Version-JIS-B-6339-2-BT30/30.645.14"
+    },
+    "HAIMER_BT30_HYD": {
+      "label": "HAIMER Power Hydraulic Chuck, JIS B 6339, BT30 (product page)",
+      "url": "https://shop.haimer.com/en/Power-hydraulic-chuck-JIS-B-6339-BT30/30.6H10.20.3"
+    },
+    "SCHUNK_TENDO": {
+      "label": "SCHUNK TENDO E compact: runout < 0.003 mm (0.0001 in) at 2.5 x D (trade-press release quoting the manufacturer)",
+      "url": "https://www.airframer.com/news/release/precision-toolholder-without-compromise"
+    },
+    "BIGK_V6": {
+      "label": "BIG KAISER Vol. 6 Product Guide, pages 19-21: Mega Micro / Mega New Baby collets guaranteed max runout .00004 in at collet nose and .00012 in (3 um) at 4xD; Air Power Spindle RBX5/RBX7/RBX12",
+      "url": "https://static.machinetools.com/uploads/2683399/BIG_KAISER_Vol._6_Product_Guide.pdf"
+    },
+    "BIGK_MEGA_MICRO": {
+      "label": "BIG DAISHOWA, Mega Micro Chuck product page (BIG-PLUS BT30 variants listed)",
+      "url": "https://www.bigdaishowa.com/en/products/tool-holders/collet-chucks/mega-micro-chuck"
+    },
+    "BIGK_TIPS_MILL": {
+      "label": "BIG DAISHOWA tips: correct clamping of mechanical milling chucks ('greater clamping force at the expense of greater runout')",
+      "url": "https://www.bigdaishowa.com/en/tips-tricks/correct-clamping-mechanical-milling-chucks"
+    },
+    "LYNDEX_SK": {
+      "label": "Lyndex-Nikken SK collet chuck article: 5 um runout tolerance for precision collets; 8-degree collet",
+      "url": "https://moldmakingtechnology.com/products/collet-chuck-design-optimizes-machine-tool-performance"
+    },
+    "NAKANISHI_HES510": {
+      "label": "Nakanishi HES510-BT30 motor spindle: 5,000-50,000 rpm, 340 W, collet 0.5-6.35 mm, spindle accuracy within 1 um",
+      "url": "https://en.nakanishi-spindle.com/product/hes510-bt30/"
+    },
+    "INGERSOLL_TYPHOON": {
+      "label": "Ingersoll Typhoon spindle brochure (BT30 among adaptions; coolant-driven, GJET 290-580 psi)",
+      "url": "https://ssl.ingersoll-imc.com/resources/pdf/bro-064-1_typhoon_spindle_brochure.pdf"
+    },
+    "INGERSOLL_JET_OPS": {
+      "label": "Ingersoll Typhoon HSM Jet Spindle operating conditions (20-40 bar coolant through spindle, 12 L/min, main spindle locked, finishing/semi-finishing, tools to 4.0 mm)",
+      "url": "https://ssl.ingersoll-imc.com/resources/pdf/bus-020_typhoonhsmjetspindle_operatingconditions.pdf"
+    }
+  },
+  "holders": [
+    {
+      "id": "er_standard",
+      "name": "standard ER collet",
+      "label": "standard ER collet",
+      "clamp_mm": [
+        0.2,
+        34.0
+      ],
+      "aliases": [
+        "standard ER collet",
+        "ER collet (DIN 6499)"
+      ],
+      "tir_mm": 0.015,
+      "tir_in": 0.00059,
+      "tir_by_clamp_mm": [
+        {
+          "d_max_mm": 10,
+          "tir_mm": 0.015,
+          "tir_in": 0.0006
+        },
+        {
+          "d_max_mm": 26,
+          "tir_mm": 0.02,
+          "tir_in": 0.0008
+        },
+        {
+          "d_max_mm": 34,
+          "tir_mm": 0.025,
+          "tir_in": 0.001
+        }
+      ],
+      "measured_at": "length L from collet face per DIN 6499 / ISO 15488 Form B table (L = 6 to 60 mm by collet size)",
+      "capability_class": "standard",
+      "clamping_range": "ER8 to ER50, shank 0.2 to 36 mm (Rego-Fix)",
+      "rigidity": "medium",
+      "rigidity_notes": "Mechanical collet and nut; adequate for general milling. Rego-Fix's own ER collets are rated tighter than DIN (<= 10 um at 3 x D).",
+      "balance_notes": "Collet and nut add imbalance at the nose; HAIMER lists its ER chuck at G2.5 @ 25,000 rpm and a rating up to 15,000 rpm. Use balanced nuts above about 8,000 rpm.",
+      "bt30": true,
+      "bt30_evidence": "ER holders are offered in BT30 by multiple makers (e.g. Rego-Fix BT30 range via distributors, BIG Kaiser BBT30 ER chucks).",
+      "sources": [
+        "REGOFIX_ER",
+        "REGOFIX_CAT",
+        "HAIMER_TH"
+      ]
+    },
+    {
+      "id": "er_ultra_precision",
+      "name": "ultra-precision ER collet (ER-UP)",
+      "label": "ultra-precision ER collet (ER-UP)",
+      "clamp_mm": [
+        0.2,
+        34.0
+      ],
+      "aliases": [
+        "ER-UP collet",
+        "ultra-precision ER collet",
+        "UP collet"
+      ],
+      "tir_mm": 0.005,
+      "tir_in": 0.0002,
+      "tir_by_clamp_mm": [
+        {
+          "d_max_mm": 26,
+          "tir_mm": 0.005,
+          "tir_in": 0.0002
+        },
+        {
+          "d_max_mm": 34,
+          "tir_mm": 0.01,
+          "tir_in": 0.0004
+        }
+      ],
+      "measured_at": "length L from collet face per table (<= 5 um at 3 x D per Rego-Fix catalog p.4)",
+      "capability_class": "precision",
+      "clamping_range": "same as standard ER (ER8 to ER50)",
+      "rigidity": "medium",
+      "rigidity_notes": "Same body and nut as a standard ER holder; only the collet is tighter, so total runout still depends on the nut, holder and cleanliness.",
+      "balance_notes": "As standard ER; use a balanced (Hi-Q or equivalent) nut at speed.",
+      "bt30": true,
+      "bt30_evidence": "Fits any BT30 ER holder.",
+      "sources": [
+        "REGOFIX_ER",
+        "REGOFIX_CAT"
+      ]
+    },
+    {
+      "id": "sk_collet_chuck",
+      "name": "SK/SKC precision collet chuck",
+      "label": "SK/SKC precision collet",
+      "clamp_mm": [
+        0.7,
+        25.4
+      ],
+      "aliases": [
+        "SK/SKC precision collet",
+        "SK collet chuck"
+      ],
+      "tir_mm": 0.005,
+      "tir_in": 0.0002,
+      "measured_at": "not stated in the cited article",
+      "capability_class": "precision",
+      "clamping_range": "0.028 to 1 in (Lyndex-Nikken SK line)",
+      "rigidity": "stiff",
+      "rigidity_notes": "8-degree collet sits deeper in the body than a 16-degree ER collet, giving a slimmer, stiffer nose (manufacturer statement). The 'SKC' designation was not found in a manufacturer source and is not relied on.",
+      "balance_notes": "Not stated in the cited article.",
+      "bt30": true,
+      "bt30_evidence": "Lyndex-Nikken sells SK collet chucks on steep-taper and BT interfaces (SK chuck product page lists BT shanks; page returned 403 to the fetcher, so BT30 is the least certain entry).",
+      "sources": [
+        "LYNDEX_SK"
+      ]
+    },
+    {
+      "id": "milling_chuck",
+      "name": "milling chuck (needle-bearing mechanical chuck)",
+      "label": "milling chuck",
+      "clamp_mm": [
+        6.0,
+        50.0
+      ],
+      "aliases": [
+        "milling chuck"
+      ],
+      "tir_mm": 0.01,
+      "tir_in": 0.00039,
+      "measured_at": "3 x D (HAIMER overview table)",
+      "capability_class": "standard",
+      "clamping_range": "6 to 50 mm",
+      "rigidity": "stiff",
+      "rigidity_notes": "High clamping force and large body for heavy roughing; manufacturers note mechanical milling chucks trade some runout for clamping force.",
+      "balance_notes": "HAIMER lists milling chucks as 'partially fine balanced' with a 15,000 rpm rating; check the balance grade of the specific holder before running near 16,000 rpm.",
+      "bt30": true,
+      "bt30_evidence": "Mechanical milling chucks are sold in BT30 by several makers; HAIMER does not deliver them.",
+      "sources": [
+        "HAIMER_TH",
+        "BIGK_TIPS_MILL"
+      ]
+    },
+    {
+      "id": "weldon",
+      "name": "Weldon / side-lock holder",
+      "label": "Weldon/side-lock holder",
+      "clamp_mm": [
+        6.0,
+        40.0
+      ],
+      "aliases": [
+        "Weldon",
+        "side-lock holder"
+      ],
+      "tir_mm": 0.03,
+      "tir_in": 0.00118,
+      "measured_at": "3 x D (HAIMER overview table)",
+      "capability_class": "standard",
+      "clamping_range": "6 to 40 mm",
+      "rigidity": "stiff",
+      "rigidity_notes": "Set-screw on a flat prevents pull-out but pushes the tool off centre, so runout is poor. Not suited to anything that needs low TIR.",
+      "balance_notes": "HAIMER lists G2.5 @ 22,000 rpm for Weldon and G6.3 @ 8,000 rpm for whistle-notch holders.",
+      "bt30": true,
+      "bt30_evidence": "Standard BT30 side-lock holders exist.",
+      "sources": [
+        "HAIMER_TH"
+      ]
+    },
+    {
+      "id": "hydraulic",
+      "name": "hydraulic chuck",
+      "label": "hydraulic",
+      "clamp_mm": [
+        3.0,
+        25.0
+      ],
+      "aliases": [
+        "hydraulic",
+        "hydraulic expansion chuck"
+      ],
+      "tir_mm": 0.003,
+      "tir_in": 0.00012,
+      "measured_at": "2.5 x D (SCHUNK TENDO E compact), 3 x D (HAIMER table)",
+      "capability_class": "ultra",
+      "clamping_range": "3 to 25 mm (HAIMER table)",
+      "rigidity": "medium",
+      "rigidity_notes": "Good vibration damping and very easy to use. Manufacturers of shrink-fit and mechanical chucks report that hydraulic chucks could not prevent tool pull-out in heavy titanium and aluminum roughing tests (HAIMER catalog, Safe-Lock case study, a competing-vendor claim). Prefer shrink fit, powRgrip or a milling chuck for heavy side-load roughing; hydraulic suits finishing, drilling, reaming and light milling.",
+      "balance_notes": "HAIMER table: G2.5 @ 25,000 rpm, rated to 40,000 rpm. Needs periodic membrane check and leak test.",
+      "bt30": true,
+      "bt30_evidence": "HAIMER and BIG Kaiser list hydraulic chucks in BT30 (JIS B 6339).",
+      "sources": [
+        "HAIMER_TH",
+        "SCHUNK_TENDO",
+        "HAIMER_BT30_HYD"
+      ]
+    },
+    {
+      "id": "shrink_fit",
+      "name": "shrink fit",
+      "label": "shrink fit",
+      "clamp_mm": [
+        3.0,
+        32.0
+      ],
+      "aliases": [
+        "shrink fit",
+        "shrink-fit chuck",
+        "heat shrink"
+      ],
+      "tir_mm": 0.003,
+      "tir_in": 0.00012,
+      "measured_at": "3 x D",
+      "capability_class": "ultra",
+      "clamping_range": "3 to 32 mm standard; 6 to 32 mm Power Shrink; 3 to 16 mm Power Mini (HAIMER)",
+      "rigidity": "stiff",
+      "rigidity_notes": "Slim, no moving parts, high gripping torque; HAIMER lists the Power and Heavy Duty shrink chucks for roughing. Needs a shrink machine (induction heater) and one shank-diameter bore per tool size.",
+      "balance_notes": "G2.5 @ 25,000 rpm with the best balance repeatability of any holder type (HAIMER); rated to 50,000 rpm.",
+      "bt30": true,
+      "bt30_evidence": "HAIMER lists shrink-fit chucks in JIS B 6339-2 BT30.",
+      "sources": [
+        "HAIMER_TH",
+        "HAIMER_TOP10",
+        "HAIMER_BT30_SHRINK"
+      ]
+    },
+    {
+      "id": "powrgrip",
+      "name": "Rego-Fix powRgrip",
+      "label": "powRgrip",
+      "clamp_mm": [
+        0.2,
+        25.4
+      ],
+      "aliases": [
+        "powRgrip",
+        "Rego-Fix powRgrip"
+      ],
+      "tir_mm": 0.003,
+      "tir_in": 0.00012,
+      "measured_at": "3 x D, total system (holder + collet)",
+      "capability_class": "ultra",
+      "clamping_range": "0.2 to 25.4 mm shank, h6 tolerance (PG collets)",
+      "rigidity": "stiff",
+      "rigidity_notes": "Press-fit system with torque transfer up to 1,100 Nm and vibration damping (Rego-Fix). Requires the powRgrip press unit.",
+      "balance_notes": "Rego-Fix quotes balanced colletholders; check the grade of the specific BT30 holder.",
+      "bt30": true,
+      "bt30_evidence": "Distributor listings show BT30 x PG15 and BT30 x PG25 powRgrip holders (secondary source).",
+      "sources": [
+        "REGOFIX_CAT",
+        "REGOFIX_PG"
+      ]
+    },
+    {
+      "id": "micro_collet_chuck",
+      "name": "micro collet chuck (BIG Kaiser Mega Micro / Mega New Baby, Rego-Fix micRun)",
+      "label": "micro collet chuck (Mega Micro)",
+      "clamp_mm": [
+        0.25,
+        20.0
+      ],
+      "aliases": [
+        "micro chuck",
+        "Mega Micro",
+        "micRun"
+      ],
+      "tir_mm": 0.003,
+      "tir_in": 0.00012,
+      "measured_at": "BIG Kaiser: 1 um (.00004 in) at collet nose and 3 um (.00012 in) at 4 x D; Rego-Fix micRun: 3 um at 3 x D total system",
+      "capability_class": "ultra",
+      "clamping_range": "Mega Micro collets 0.5 to 8 mm (0.018 to 0.317 in); micRun 1 to 20 mm",
+      "rigidity": "light",
+      "rigidity_notes": "Super-slim nose for micro tools and tight clearance; not meant for heavy side load or tools above about 8 mm.",
+      "balance_notes": "BIG Kaiser states chucks are balanced on a dynamic balancing machine and pairs them with air spindles up to 80,000 rpm; no numeric balance grade found.",
+      "bt30": true,
+      "bt30_evidence": "BIG-PLUS BT30 variants (e.g. BBT30-MEGA3S) are listed on the Mega Micro page.",
+      "sources": [
+        "BIGK_V6",
+        "BIGK_MEGA_MICRO",
+        "REGOFIX_CAT"
+      ]
+    }
+  ],
+  "speed_attachments": [
+    {
+      "id": "bigkaiser_air_power_spindle",
+      "vendor": "BIG KAISER (BIG DAISHOWA)",
+      "name": "Air Power Spindle RBX5 / RBX7 / RBX12",
+      "max_rpm": {
+        "RBX5": 50000,
+        "RBX7": 80000,
+        "RBX12": 120000
+      },
+      "tool_range_in": [
+        0.018,
+        0.159
+      ],
+      "drive": "air turbine fed through a stop block or the machine spindle; main spindle need not rotate",
+      "bt30": "BBT30 (BIG-PLUS) listed in the BIG DAISHOWA BBT30 catalog; confirm BIG-PLUS vs standard BT30 spindle before ordering",
+      "caveats": "Small air-turbine power: micro finishing and light cuts only.",
+      "sources": [
+        "BIGK_V6"
+      ]
+    },
+    {
+      "id": "nakanishi_hes510_bt30",
+      "vendor": "NSK / Nakanishi",
+      "name": "HES510-BT30 motor spindle",
+      "max_rpm": {
+        "HES510": 50000
+      },
+      "tool_range_in": [
+        0.02,
+        0.25
+      ],
+      "drive": "electric motor spindle with its own controller; 340 W",
+      "bt30": "BT30 shank version listed",
+      "caveats": "Separate controller and cable; the page does not describe automatic tool change compatibility, so verify against the machine.",
+      "sources": [
+        "NAKANISHI_HES510"
+      ]
+    },
+    {
+      "id": "colibri_typhoon_jet",
+      "vendor": "Colibri Spindles / Ingersoll Typhoon (coolant-driven)",
+      "name": "Typhoon HSM jet spindle (BT30 adaption)",
+      "max_rpm": {
+        "jet": 55000
+      },
+      "tool_range_in": [
+        0.004,
+        0.125
+      ],
+      "drive": "driven by through-spindle coolant: 20 to 40 bar (290 to 580 psi), 12 L/min or more, main spindle locked",
+      "bt30": "BT30 listed among adaptions",
+      "caveats": "Finishing and semi-finishing only, tools to 4 mm (5/32 in) per the operating conditions sheet; needs through-spindle coolant at 20 bar minimum at the spindle outlet; keep working rpm within 10 percent of idle rpm.",
+      "sources": [
+        "INGERSOLL_TYPHOON",
+        "INGERSOLL_JET_OPS"
+      ]
+    }
+  ]
+}
