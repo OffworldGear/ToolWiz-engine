@@ -2,7 +2,7 @@
  "version": "2026-10-17.1",
  "status": "PROPOSED (calibration step 4)",
  "generated_by": "tools/calibrate_v2.py",
- "date": "2026-10-17",
+ "date": "2026-11-11",
  "carbide": {
   "E_mpa": {
    "value": 570000.0,
@@ -92,18 +92,18 @@
   "vendor_spread_check": {
    "value": {
     "sfm": {
-     "p10": 0.63709,
-     "p25": 0.82051,
-     "p75": 1.0927,
-     "p90": 1.3787,
-     "n_group_medians": 333
+     "p10": 0.65116,
+     "p25": 0.87804,
+     "p75": 1.0972,
+     "p90": 1.2929,
+     "n_group_medians": 498
     },
     "fz_over_D": {
-     "p10": 0.70343,
-     "p25": 0.88889,
-     "p75": 1.1514,
-     "p90": 1.4516,
-     "n_group_medians": 333
+     "p10": 0.73333,
+     "p25": 0.88156,
+     "p75": 1.1505,
+     "p90": 1.4805,
+     "n_group_medians": 498
     }
    },
    "source": "vendor-group median / bucket vendor median over L1 buckets with \u2265 3 groups"

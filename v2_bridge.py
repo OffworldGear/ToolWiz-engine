@@ -23,13 +23,17 @@ KW_TO_HP = 1.341
 
 # Operation names (web page / Fusion strategy) -> v2 operation. Others stay on v1 for now.
 OPERATION_MAP = {
-    "adaptive roughing": "adaptive",
-    "standard roughing": "rough",
-    "roughing": "rough",
-    "slotting / tab milling": "slot",
-    "slotting": "slot",
-    "wall finishing (deep doc)": "finish",
-    "finishing": "finish",
+    # clearing: constant-engagement toolpaths
+    "adaptive roughing": "adaptive", "adaptive clearing": "adaptive", "2d adaptive clearing": "adaptive",
+    "3d adaptive clearing": "adaptive", "adaptive": "adaptive", "trochoidal": "adaptive",
+    "pocket clearing": "adaptive", "pocket": "adaptive", "2d pocket": "adaptive", "3d pocket": "adaptive",
+    # roughing contours
+    "standard roughing": "rough", "roughing": "rough", "contour (roughing)": "rough", "2d contour (roughing)": "rough",
+    "roughing contour": "rough", "contour roughing": "rough", "3d roughing": "rough", "rest roughing": "rough",
+    # slots
+    "slotting / tab milling": "slot", "slotting": "slot", "slot": "slot", "slot milling": "slot",
+    # finishing
+    "wall finishing (deep doc)": "finish", "wall finishing": "finish", "finishing": "finish",
 }
 NOT_SQUARE = ("ball", "bull", "radius", "chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
               "t-slot", "keyseat", "woodruff", "thread", "drill", "ream", "tap", "saw", "face", "form")
@@ -174,6 +178,8 @@ def _setup(physics, r, op, machine_profile):
     machine, notes = machine_for(r, machine_profile)
     kw = {}
     if op == "finish":
+        import finish_modes
+        kw["wall_tolerance_in"] = finish_modes.resolve(r)[2]
         kw["stock"] = float(r.cut_width) if r.cut_width else o.STOCK_TO_LEAVE_IN
         if r.cut_depth:
             kw["wall_height"] = min(float(r.cut_depth), tool.lcf)
@@ -438,7 +444,7 @@ def apply(physics, r, res, machine_profile=None):
     res.runout_ratio = cut.get("runout_ratio")
     _apply_ramp(res, out.get("ramp"), ratio)
     res.feasible = bool(out.get("feasible"))
-    res.limited_by = ", ".join(details["binding"]) or None
+    res.limited_by = ", ".join(details["binding"] + list(out.get("ae_below_envelope_min") or [])) or None
     res.provenance = []   # v1's multiplier chain no longer describes these numbers; see res.v2["provenance"]
     src = "your depth and width" if res.engagement_source == "user" else "the recommended depth and width"
     res.model_note = (f"v2 physics model ({op}, {src}): limited by {res.limited_by or 'none'}; "
@@ -463,7 +469,7 @@ def apply(physics, r, res, machine_profile=None):
         if "near the rubbing limit" in lw:
             res.tips.append({"title": "Chip near the rubbing limit", "message": w, "type": "warning", "fusion": True})
             continue
-        if "rub" in lw or "binds" in lw or "differs" in lw or "relaxed" in lw:
+        if "rub" in lw or "binds" in lw or "differs" in lw or "relaxed" in lw or "preferred minimum" in lw:
             if reduced_tip and "rub" in lw:
                 continue   # the reduced-flutes tip says it
             res.tips.append({"title": "v2 check", "message": w, "type": "warning", "fusion": True})

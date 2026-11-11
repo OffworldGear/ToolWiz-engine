@@ -227,6 +227,28 @@ class TestRound2(unittest.TestCase):
         self.assertEqual(r["engagement_source"], "user")
         self.assertIn("recommended_radial_stock_in", r)
 
+    def test_user_engagement_c3_is_advisory_up_to_twice_k_d(self):
+        # deep 1/8" 4130 slot: deflection between k*D and 2*k*D gives a warning, not a feed cut
+        r = run_cut(app.physics, req(0.125, 3, ST, "Slotting", coating="AlTiN", cut_depth=0.2, cut_width=0.125))
+        kd = 0.01 * 0.125
+        self.assertLessEqual(r.deflection, 2.0 * kd * 1.01)
+        if r.deflection > kd * 1.001:
+            self.assertTrue(any("exceeds k·D" in w for w in r.v2["warnings"]))
+            self.assertGreater(r.recommended_radial_stock_in, 1.5 * kd)
+        # the recommendation path keeps C3 = k*D hard
+        rec = run_cut(app.physics, req(0.125, 3, ST, "Slotting", coating="AlTiN"))
+        self.assertLessEqual(rec.deflection, kd * 1.01)
+
+    def test_vendor_ae_minimum_relaxes_above_75_percent(self):
+        tool, mat = tool_material(0.25, 4, ST)
+        lo = {}
+        for a in (0.5, 0.75, 0.875, 1.0):
+            ctx = o._Context(tool, mat, params.machine(), "adaptive", params.margins(a), envelope="default")
+            lo[a] = ctx.width_min_ratio
+        self.assertAlmostEqual(lo[0.5], lo[0.75])
+        self.assertAlmostEqual(lo[0.875], 0.75 * lo[0.75])
+        self.assertAlmostEqual(lo[1.0], 0.5 * lo[0.75])
+
     def test_adaptive_call_is_fast_when_warm(self):
         import time
         import v2_bridge

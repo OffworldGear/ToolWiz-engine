@@ -2,7 +2,7 @@
 as redefined by the planner in round 2).
 
 Data: every tests/benchmarks/v2/*.json file (rows added later are picked up). Machine: machines/test_generic_60k.json
-(60,000 rpm, ample power, the Speedio's holder stiffness), runout 0.0002", model v2, aggressiveness 0.5. The tool is the
+(60,000 rpm, ample power, the Speedio's holder stiffness), runout 0.0001" (vendor conditions: precision holder; owner decision 2026-11-11), model v2, aggressiveness 0.5. The tool is the
 group's median geometry (median DC, LCF, flutes, helix, SFDM; stickout = median LB when published, else LCF + 0.5 x SFDM),
 the material the family at the group's median hardness.
 
@@ -11,7 +11,8 @@ the material the family at the group's median hardness.
    group with the user's engagement at the group's median ap/D and ae/D. Pass when SFM is within [0.75 x group min,
    1.25 x group max] and fz within [0.60 x group min, 1.25 x group max], the min/max spanning every row's min, nominal and max
    values. When the group's minimum SFM needs more than the machine's 60,000 rpm at that diameter, SFM is compared against the
-   achievable value instead (reported as spindle-limited). Pass rate >= 90 % of groups overall, >= 85 % per operation and
+   achievable value instead (reported as spindle-limited). A group whose rows reach beyond the flutes without publishing a
+   neck diameter is excluded as "geometry incomplete" (listed in the report). Pass rate >= 90 % of groups overall, >= 85 % per operation and
    >= 85 % of the groups whose median diameter is at or below 1/16".
 2. Recommended engagement, per cell (family, operation, diameter band; >= 3 rows). The request carries no depth or width,
    on the cell's median geometry; the engine's ae/D must lie within [0.8 x cell min, 1.25 x cell max] (side, hem, rough) and
@@ -117,6 +118,8 @@ def rng(v):
 ENGAGEMENT_CLASSES = (("slot", 0.99, 1e9), ("<=0.10", 0.0, 0.10), ("0.10-0.30", 0.10, 0.30), ("0.30-0.60", 0.30, 0.60),
                        (">0.60", 0.60, 0.99))
 MAX_RPM = 60000.0
+GATED_TIR = 0.0001        # the gated runs; the 0.0002 in summary shows what an ER-collet holder costs
+SUMMARY_TIR = 0.0002
 MIN_GROUP_ROWS, MIN_CELL_ROWS = 2, 3
 
 
@@ -148,21 +151,30 @@ def span(rows, key):
 
 
 def median_tool(rows):
-    """Median geometry of the rows: (DC, LCF, flutes, helix, SFDM, stickout, neck, hardness HB, coating)."""
+    """Median geometry of the rows (DC, LCF, flutes, helix, SFDM, stickout = median LB or LCF + 0.5 x SFDM, median published
+    neck/D ratio times the median D, hardness HB, coating). `incomplete`: the reach is beyond the flutes but no row publishes a neck diameter."""
     D = med([float(r["tool"]["DC"]) for r in rows])
     lcf = med([float(r["tool"]["LCF"]) for r in rows])
     shank = med([float(r["tool"].get("SFDM") or r["tool"]["DC"]) for r in rows])
-    lb = med([float(r["tool"]["LB"]) for r in rows if r["tool"].get("LB")])
-    stick = max(lb if lb else lcf + 0.5 * shank, lcf)
-    neck = bool(lb) and lb > lcf * 1.01
+    def stickout(r):
+        t_ = r["tool"]
+        sh = float(t_.get("SFDM") or t_["DC"])
+        return max(float(t_["LB"]) if t_.get("LB") else float(t_["LCF"]) + 0.5 * sh, float(t_["LCF"]))
+    stick = med([stickout(r) for r in rows])   # each row's own reach (LB, else LCF + 0.5 x SFDM), then the median
+    reach_rows = [r for r in rows if r["tool"].get("LB") and float(r["tool"]["LB"]) > 1.01 * float(r["tool"]["LCF"])]
+    neck = len(reach_rows) * 2 > len(rows)     # necked only when most rows reach beyond the flutes
+    neck_ratio = med([float(r["tool"]["neck_diameter"]) / float(r["tool"]["DC"]) for r in reach_rows
+                      if r["tool"].get("neck_diameter")])
+    neck_d = neck_ratio * D if neck_ratio else None   # median neck/D of the rows, on the median diameter
+    incomplete = neck and neck_d is None   # reach beyond the flutes but no published neck diameter
     flutes = int(round(med([int(r["tool"]["flutes"]) for r in rows])))
     helix = med([float(r["tool"].get("helix_deg") or 35.0) for r in rows])
-    hb = med([pl.row_hb(r["material"].get("hardness")) for r in rows])
+    hb = med([pl.row_hb(r["material"].get("hardness"), r["material"].get("toolwiz_family")) for r in rows])
     coat = collections.Counter(r["tool"].get("coating") or "Uncoated" for r in rows).most_common(1)[0][0]
-    return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, flutes=flutes, helix=helix, hb=hb, coating=coat)
+    return dict(D=D, lcf=lcf, shank=shank, stick=stick, neck=neck, neck_d=neck_d, incomplete=incomplete, flutes=flutes, helix=helix, hb=hb, coating=coat)
 
 
-def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
+def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None, runout=None):
     """A v2 request on the rows' median tool; ap_over_d / ae_over_d None: the engine recommends the engagement."""
     g = median_tool(rows)
     D = g["D"]
@@ -170,15 +182,16 @@ def request_for(rows, op, profile, ap_over_d=None, ae_over_d=None):
         family=rows[0]["material"]["toolwiz_family"], alloy="vendor group", tool="HP Carbide Endmill",
         coating=g["coating"], geometry="Square", operation=OP_NAME[op], diameter=D, flutes=g["flutes"],
         flute_length=g["lcf"], shank_diameter=g["shank"], has_relieved_neck=g["neck"],
-        neck_diameter=D if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
-        stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=0.0002,
+        neck_diameter=g["neck_d"] if g["neck"] else None, neck_length=g["stick"] if g["neck"] else 0.5, helix_angle=g["helix"],
+        stickout=g["stick"], aggressiveness=0.5, max_rpm=MAX_RPM, max_hp=50.0, runout=GATED_TIR if runout is None else runout,
         cut_depth=None if ap_over_d is None else min(ap_over_d * D, g["lcf"]),
         cut_width=None if ae_over_d is None else min(ae_over_d * D, D), model="v2", machine_profile=profile), g
 
 
 def run_job(args):
     """Worker: ("engage"|"recommend", rows) -> a small result dict (picklable)."""
-    kind, rows = args
+    kind, rows = args[0], args[1]
+    tir = args[2] if len(args) > 2 else None
     with open(PROFILE_PATH, encoding="utf-8") as fh:
         profile = json.load(fh)
     g = median_tool(rows)
@@ -189,9 +202,9 @@ def run_job(args):
         if kind == "engage":
             ap = med([float(r["cut"]["ap"]) / float(r["tool"]["DC"]) for r in rows])
             ae = med([min(float(r["cut"]["ae"]) / float(r["tool"]["DC"]), 1.0) for r in rows])
-            req, _ = request_for(rows, op, profile, ap, ae)
+            req, _ = request_for(rows, op, profile, ap, ae, tir)
         else:
-            req, _ = request_for(rows, op, profile)
+            req, _ = request_for(rows, op, profile, runout=tir)
         res = run_cut(app.physics, req)
     except Exception as ex:   # a crash is a failed job, not a crashed run
         return {"error": f"{type(ex).__name__}: {ex}"}
@@ -200,7 +213,7 @@ def run_job(args):
     D = g["D"]
     return {"model": res.model, "feasible": bool(res.feasible), "sfm": res.sfm, "fz": res.adj_ipt, "rpm": res.rpm,
             "ap_over_D": res.rec_doc / D, "ae_over_D": res.rec_woc / D, "limited_by": res.limited_by,
-            "rec_ok": bool((res.v2 or {}).get("recommended")), "source": res.engagement_source}
+            "feed": res.feed_ipm, "rec_ok": bool((res.v2 or {}).get("recommended")), "source": res.engagement_source}
 
 
 def _pool_map(items):
@@ -229,8 +242,9 @@ def conformance():
 
     gkeys, ckeys = sorted(groups), sorted(cells)
     jobs = ([("engage", groups[k]) for k in gkeys] + [("recommend", cells[k]) for k in ckeys]
-            + [("engage", [r]) for r in diag])
+            + [("engage", [r]) for r in diag] + [("engage", groups[k], SUMMARY_TIR) for k in gkeys])
     out = _pool_map(jobs)
+    s_out = dict(zip(gkeys, out[len(gkeys) + len(ckeys) + len(diag):]))
     g_out = dict(zip(gkeys, out[:len(gkeys)]))
     c_out = dict(zip(ckeys, out[len(gkeys):len(gkeys) + len(ckeys)]))
     r_out = {r["id"]: o for r, o in zip(diag, out[len(gkeys) + len(ckeys):])}
@@ -241,7 +255,7 @@ def conformance():
                        "cells": {"|".join(k): v for k, v in c_out.items()}, "rows": r_out}, fh)
     info = {"rows_total": len(load_rows()), "rows_in_scope": len(rows), "groups": len(groups), "cells": len(cells),
             "diag_rows": len(diag), "mode": "full" if FULL else "median-geometry groups", "seconds": time.time() - t0}
-    return {"groups": groups, "g_out": g_out, "cells": cells, "c_out": c_out, "rows": {r["id"]: r for r in diag},
+    return {"s_out": s_out, "groups": groups, "g_out": g_out, "cells": cells, "c_out": c_out, "rows": {r["id"]: r for r in diag},
             "r_out": r_out, "info": info}
 
 
@@ -269,10 +283,16 @@ def verdict(rows, out, d_override=None):
 def group_report(c):
     res = []
     for key, rows in sorted(c["groups"].items()):
+        if median_tool(rows)["incomplete"]:
+            continue
         ok, why, limited = verdict(rows, c["g_out"][key])
         res.append({"key": key, "n": len(rows), "ok": ok, "why": why, "limited": limited, "op": key[1],
                     "micro": median_tool(rows)["D"] <= MICRO_MAX_D})
     return res
+
+
+def incomplete_groups(c):
+    return [key for key, rows in sorted(c["groups"].items()) if median_tool(rows)["incomplete"]]
 
 
 def group_table(res, limit=70):
@@ -322,6 +342,16 @@ def cell_table(report):
     return "\n".join(lines)
 
 
+def holder_cost(c):
+    """Per diameter band: median over groups of (feed at 0.0002") / (feed at 0.0001") and how many groups, not gated."""
+    by = collections.defaultdict(list)
+    for key, rows in c["groups"].items():
+        a, b = c["g_out"].get(key), c["s_out"].get(key)
+        if a and b and "error" not in a and "error" not in b and a.get("feasible") and b.get("feasible") and a["feed"] > 0:
+            by[key[2]].append(b["feed"] / a["feed"])
+    return {band: (statistics.median(v), len(v)) for band, v in by.items()}
+
+
 def row_diagnostic(c):
     res = []
     for rid, row in c["rows"].items():
@@ -344,6 +374,21 @@ def test_conformance_summary(conformance, capsys):
               f"spindle-limited groups {sum(r['limited'] for r in res)}")
         print(f"  recommended engagement: {_rate([e['ok'] for e in cells]):.1%} of {len(cells)} cells")
         print(f"  diagnostic (not gated), per-row fixed engagement on {len(diag)} rows: {_rate([ok for _, ok in diag]):.1%}")
+        inc = incomplete_groups(conformance)
+        print(f"  geometry incomplete (reach beyond the flutes, no published neck diameter), excluded: {len(inc)} groups")
+        for k in inc:
+            print("    " + " | ".join(k))
+        res2 = []
+        for key, rows in sorted(conformance["groups"].items()):
+            if median_tool(rows)["incomplete"]:
+                continue
+            ok2, _, _ = verdict(rows, conformance["s_out"][key])
+            res2.append({"ok": ok2, "op": key[1], "micro": median_tool(rows)["D"] <= MICRO_MAX_D})
+        print(f"  at 0.0002\" (not gated): groups overall {_rate([r['ok'] for r in res2]):.1%}; "
+              + ", ".join(f"{op} {_rate([r['ok'] for r in res2 if r['op'] == op]):.1%}" for op in OPERATIONS)
+              + f"; micro {_rate([r['ok'] for r in res2 if r['micro']]):.1%}")
+        print("  feed at 0.0002\" relative to 0.0001\" (median over groups, not gated): "
+              + ", ".join(f"{b} {v:.0%} (n{n})" for b, (v, n) in sorted(holder_cost(conformance).items(), key=lambda kv: [x[0] for x in BANDS].index(kv[0]))))
         print(group_table(res))
         print(cell_table(cells))
 

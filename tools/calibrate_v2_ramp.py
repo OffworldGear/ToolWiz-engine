@@ -118,7 +118,7 @@ def features(row, slots):
     """Everything calibration uses from one ramp row."""
     rp, t = row["ramp"], row["tool"]
     D = float(t["DC"])
-    hb = cv.row_hb(row["material"].get("hardness"))
+    hb = cv.row_hb(row["material"].get("hardness"), row["material"].get("toolwiz_family"))
     a_hi = upper(rp, "angle_deg")
     plunge_capable = bool(a_hi and a_hi >= PLUNGE_CAPABLE_DEG)
     e = {"id": row["id"], "vendor_group": row["_vendor_group"], "doc": row["source"]["doc_id"],

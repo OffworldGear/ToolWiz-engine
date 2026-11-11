@@ -336,7 +336,7 @@ def engagement_envelope(rows=None):
                 or t.get("corner_radius"):
             continue
         D = float(t["DC"])
-        grp = o.material_group(r["material"].get("toolwiz_family"), pl.row_hb(r["material"].get("hardness")))
+        grp = o.material_group(r["material"].get("toolwiz_family"), pl.row_hb(r["material"].get("hardness"), r["material"].get("toolwiz_family")))
         band = o.diameter_band(D)
         entry = (float(c["ap"]) / D, min(float(c["ae"]) / D, 1.0))
         ops = [r["operation"]] + (["side_rough"] if r["operation"] in ("side", "rough") else [])

@@ -517,6 +517,14 @@ def _optional_length(data, *keys):
     return None
 
 
+def _finish_args(data):
+    """finishMode / targetRa (micro-inches) / wallTolerance (inches) request fields as CutRequest keyword arguments."""
+    out = {"finish_mode": (str(data.get("finishMode")).strip().lower() if data.get("finishMode") else None)}
+    out["target_ra"] = _optional_length(data, "targetRa")
+    out["wall_tolerance"] = _optional_length(data, "wallTolerance")
+    return out
+
+
 def _runout_fields(res):
     """V3 contract fields: flutes cutting, runout regime, the runout at which all flutes cut, runout ratio, and
     whether rpm/feed were computed for the user's DOC/WOC or the recommendation."""
@@ -524,7 +532,7 @@ def _runout_fields(res):
         return None if x is None else round(x, n)
     return {"flutes_cutting": res.flutes_cutting, "runout_regime": res.runout_regime,
             "tir_all_flutes_in": r(res.tir_all_flutes_in, 6), "runout_ratio": r(res.runout_ratio, 4),
-            "engagement_source": res.engagement_source,
+            "engagement_source": res.engagement_source, "finish": res.finish,
             "recommended_radial_stock_in": r(res.recommended_radial_stock_in, 5),
             "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5)}
 
@@ -585,6 +593,7 @@ def calculate():
             cut_depth=cut_depth,
             cut_width=cut_width,
             engagement_explicit=(explicit_depth is not None or explicit_width is not None),
+            **_finish_args(data),
             tap_type=data.get("tapType", ""),
             pitch=float(data.get("pitch", 0.05)),
             is_metric=is_metric,
@@ -696,6 +705,7 @@ def calculate_for_fusion():
             runout=_runout_arg(data),
             cut_depth=user_depth,
             cut_width=user_width,
+            **_finish_args(data),
             tap_type=data.get("tapType", ""),
             pitch=float(pitch) if pitch is not None else None,
             is_metric=bool(data.get("isMetric", False)),

@@ -26,6 +26,9 @@ ENVELOPE_PATH = o.ENVELOPE_DEFAULT_PATH
 # worst-flute chip ≤ the vendor p90, C2o) keeps the feed from collapsing at the first microns of runout on micro
 # tools; "worst" (worst-flute chip ≤ the median) is optimize.py's own default. See docs/V3_IMPLEMENTATION_PLAN.md M1.
 C2_BASIS = "nominal"
+# Roughing objective (owner, 2026-11-11): the highest-MRR cut that meets every hard limit and the vendor envelope; the cut closest
+# to the vendor medians is chosen only among candidates within this fraction of the best MRR.
+MRR_TIE_BAND = 0.03
 _CACHE = {}
 
 
@@ -35,6 +38,20 @@ def load(path=None):
         with open(path, encoding="utf-8") as fh:
             _CACHE[path] = json.load(fh)
     return _CACHE[path]
+
+
+SPEED_BY_FAMILY_PATH = os.path.join(ROOT, "data", "model_v2", "speed_by_family.json")
+
+
+def speed_by_family():
+    """The per-family refit of the C7 law (families -> parameters), {} when the file is absent."""
+    if SPEED_BY_FAMILY_PATH not in _CACHE:
+        try:
+            with open(SPEED_BY_FAMILY_PATH, encoding="utf-8") as fh:
+                _CACHE[SPEED_BY_FAMILY_PATH] = json.load(fh).get("families", {})
+        except OSError:
+            _CACHE[SPEED_BY_FAMILY_PATH] = {}
+    return _CACHE[SPEED_BY_FAMILY_PATH]
 
 
 def coating_class(label):
@@ -88,6 +105,12 @@ def material(family, hb=None, coating=None, path=None, **overrides):
         dia = p.get("speed_diameter")
         if dia:
             kw.update(vc_diameter_exp=float(dia["m"]["value"]), vc_d_knee_in=float(dia["knee_in"]["value"]))
+    ov = speed_by_family().get(family)
+    if ov and ov.get("applied") and sp:
+        # V3 round 4: per-family level, engagement exponent and diameter term (tools/fit_speed_by_family.py), applied
+        # only where the refit did not do worse on the hold-out groups.
+        kw.update(vc_ref_sfm=float(ov["vc_ref_sfm"]) * float(cf), vc_engagement_exp=float(ov["engagement_k"]),
+                  vc_diameter_exp=float(ov["diameter_m"]), vc_d_knee_in=float(ov["diameter_knee_in"]))
     off = p.get("consensus_offsets")
     if off:
         kw["c2_scale"] = float(off["c2"]["value"])
@@ -117,6 +140,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     kw.setdefault("envelope", ENVELOPE_PATH)
     kw.setdefault("chip_floor", "vendor")
     kw.setdefault("c2_basis", C2_BASIS)
+    kw.setdefault("depth_trade", MRR_TIE_BAND)
     kw.setdefault("select_tir_in", o.REFERENCE_TIR_IN)
     return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)
 

@@ -69,8 +69,13 @@ def missing_geometry(row):
     return miss
 
 
-def row_hb(hardness):
+def row_hb(hardness, family=None):
     """Brinell for a row's hardness range: the middle, else the one bound given; None when unpublished."""
+    if family and hardness and hardness.get("min") is None and hardness.get("max") is not None:
+        import family_hardness   # an upper bound alone is a class limit: the family's representative hardness, capped
+        rep = family_hardness.row_hb(hardness, family)
+        if rep:
+            return rep
     if not hardness:
         return None
     lo, hi, scale = hardness.get("min"), hardness.get("max"), (hardness.get("scale") or "").upper()
@@ -98,7 +103,7 @@ def row_material(row):
     if spec is None:
         return None, f"no Kienzle mapping with mc for {fam}"
     codes, p, basis = spec
-    hb = row_hb(row["material"].get("hardness"))
+    hb = row_hb(row["material"].get("hardness"), fam)
     groups = [(c, forces.load_kienzle(c)) for c in codes]
     groups = [(c, k, group_hb(k)) for c, k in groups]
     code, k, ref = min(groups, key=lambda g: abs(g[2] - hb)) if hb else groups[0]
@@ -153,7 +158,7 @@ def evaluate_row(row, machine):
         "deflection_in": r["loads"]["deflection_tip_in"],
         "deflection_over_D": r["loads"]["deflection_tip_in"] / tool.D,
         "sigma1_mpa": top["sigma1_mpa"], "section": top["kind"],
-        "hardness_published": bool(row["material"].get("hardness") and row_hb(row["material"]["hardness"])),
+        "hardness_published": bool(row["material"].get("hardness") and row_hb(row["material"]["hardness"], row["material"].get("toolwiz_family"))),
     }
 
 
