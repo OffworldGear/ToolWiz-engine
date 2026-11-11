@@ -213,12 +213,25 @@ _FIN = ("finish", "scallop", "parallel", "pencil", "spiral", "flat", "horizontal
 _HOLE = ("drill", "bore", "tap", "thread", "ream", "spot", "circular")
 
 
+_PROBE_STRATEGIES = ("probe", "probing", "inspect")
+_NON_CUTTING = ("probe", "hole")   # kinds the advisor never runs the cutting model on
+
+
+def is_probe(tool: Dict[str, Any]) -> bool:
+    """True for a touch probe / tool setter: Fusion tool type "probe", or a probe named in the description.
+    A probe never cuts: it gets no speeds, feeds, chip load, strategy or holder advice."""
+    t, d = (tool.get("type") or "").lower(), (tool.get("description") or "").lower()
+    return "probe" in t or any(k in d for k in ("touch probe", "probe", "renishaw", "blum tc", "stylus"))
+
+
 def classify_op(strategy: str, name: str, tool: Dict[str, Any], geometry: Dict[str, Any],
                 stock_radial: Optional[float]) -> str:
     """Operation kind: ``tslot`` (slot mill / keyseat cutter), ``adaptive``, ``slot``, ``contour`` (2D contour
-    roughing), ``finish``, ``pocket``, ``face``, ``hole`` (not analysed) or ``rough``."""
+    roughing), ``finish``, ``pocket``, ``face``, ``hole`` (not analysed), ``probe`` (never cuts, not analysed) or ``rough``."""
     s, n = (strategy or "").lower(), (name or "").lower()
     ttype = (tool.get("type") or "").lower() + " " + (tool.get("description") or "").lower()
+    if is_probe(tool) or any(k in s for k in _PROBE_STRATEGIES):
+        return "probe"
     if any(k in ttype for k in ("slot mill", "keyseat", "t-slot", "tslot", "t slot", "woodruff")):
         return "tslot"
     if any(k in s for k in _HOLE) or any(k in ttype for k in ("drill", "tap ", " tap")) and "mill" not in ttype:
@@ -974,7 +987,7 @@ def _strategy_request(op: Dict[str, Any], tool: Dict[str, Any], others: List[Dic
         cands, seen = [_spec(tool)], {(round(D, 5), tool["flutes"])}
         for o in others:
             t = o["tool"]
-            if o["kind"] in ("tslot", "hole", "face") or not t.get("diameter_in"):
+            if o["kind"] in ("tslot", "hole", "probe", "face") or not t.get("diameter_in"):
                 continue
             key = (round(t["diameter_in"], 5), t.get("flutes"))
             if key in seen or (t.get("type") and "mill" not in (t.get("type") or "")):
@@ -1005,7 +1018,7 @@ def _strategy_request(op: Dict[str, Any], tool: Dict[str, Any], others: List[Dic
     cands, seen = [_spec(tool)], {(round(D, 5), tool["flutes"])}
     for o in others:
         t = o["tool"]
-        if o["kind"] in ("tslot", "hole", "face") or not t.get("diameter_in") or "mill" not in (t.get("type") or "end mill") and t.get("type"):
+        if o["kind"] in ("tslot", "hole", "probe", "face") or not t.get("diameter_in") or "mill" not in (t.get("type") or "end mill") and t.get("type"):
             continue
         if width is not None and t["diameter_in"] > width * 1.0001:
             continue
@@ -1238,7 +1251,7 @@ def _multi_times(block, op, tool, ctx, physics, machine_profile, others, strateg
     cands, seen = [_spec(tool)], {(round(D_in, 5), tool["flutes"])}
     for o in others:
         ot = o["tool"]
-        if o["kind"] in ("tslot", "hole", "face") or not ot.get("diameter_in") or ot["diameter_in"] > W * 1.0001:
+        if o["kind"] in ("tslot", "hole", "probe", "face") or not ot.get("diameter_in") or ot["diameter_in"] > W * 1.0001:
             continue
         k = (round(ot["diameter_in"], 5), ot.get("flutes"))
         if k in seen:
@@ -1573,7 +1586,10 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
         rec_res = usr_res = None
         tool = tool0
         try:
-            if kind == "hole":
+            if kind == "probe":
+                entry["current"]["chip_load_ipt"] = entry["current"]["mrr_in3_min"] = None
+                entry["notes"].append("Probe: it does not cut, so no speeds, feeds or strategy are checked.")
+            elif kind == "hole":
                 entry["findings"].append(_f("INFO", "not_analysed", "Hole-making operation not analysed",
                                             "The setup advisor checks milling operations; use the drilling / tapping calculator for this one.",
                                             "Run the ToolWiz calculator for this tool."))
@@ -1605,7 +1621,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     entry["notes"].append("ToolWiz fell back to the v1 model for this tool: " + str(rec_res.model_note)[:200])
                 depth = cur["stepdown_in"]
                 width = tool["diameter_in"] if kind == "slot" else cur["stepover_in"]
-                if (depth or (width and kind != "slot")) and kind not in ("hole",):
+                if (depth or (width and kind != "slot")) and kind not in _NON_CUTTING:
                     key_u = key_r[:-2] + (depth, width)
                     usr_res = cache.get(key_u) or _run_endmill(physics, machine, ctx, tool, opn, depth, width)
                     cache[key_u] = usr_res
@@ -1626,7 +1642,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
         except Exception as e:      # ToolWiz could not be run for this op: report, keep going
             entry["findings"].append(_f("INFO", "toolwiz_error", "ToolWiz could not be run for this operation",
                                         f"{type(e).__name__}: {e}"[:300], "Check the tool geometry and material in the snapshot."))
-        entry["apply_plan"] = _apply_plans(op, rec, usr, tsl) if kind != "hole" else None
+        entry["apply_plan"] = _apply_plans(op, rec, usr, tsl) if kind not in _NON_CUTTING else None
         if entry.get("multi_stepover") and entry["multi_stepover"]["slot_pass"]["feasible"]:
             sn = entry["multi_stepover"]["safe_numbers"]       # keep the op's stepovers: only speed, feed and stepdown change
             plan = {"tool_spindleSpeed": _expr("rpm", sn["rpm"]), "tool_feedCutting": _expr("feed", sn["feed_ipm"]),

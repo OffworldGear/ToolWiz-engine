@@ -504,3 +504,24 @@ def test_guard_accepts_numbers_from_the_real_result(result):
     ok = f"ToolWiz recommends {rec['rpm']} rpm, {rec['feed_ipm']} IPM, which is {rec['feed_ipm'] * 25.4:.0f} mm/min."
     assert numeric_guard.check_numbers(ok, view)["ok"]
     assert not numeric_guard.check_numbers("ToolWiz recommends 0.003 IPT.", view)["ok"]
+
+
+def test_probe_is_never_treated_as_a_cutter():
+    """A probe never cuts: no ToolWiz numbers, findings, apply plan or strategy, and it is never a candidate tool."""
+    setup = make_setup()
+    probe = {"type": "probe", "unit": "millimeters", "description": "Blum TC52 touch probe",
+             "geometry": {"DC": 6.0, "NOF": 1, "LCF": 5.0, "SFDM": 6.0, "LB": 50.0}, "post-process": {"number": 99}}
+    setup["ops"].insert(0, {"setup": "Setup1", "name": "WCS Probe", "path": "Setup1 > WCS Probe", "strategy": "probe", "tool": probe,
+                            "params": {"tool_spindleSpeed": "5000 rpm", "tool_feedCutting": "40 in/min"}})
+    # an end-mill-typed tool on a probing strategy is still a probe operation
+    setup["ops"].append({"setup": "Setup1", "name": "Inspect bore", "path": "Setup1 > Inspect bore", "strategy": "probe_geometry",
+                         "tool": dict(probe, type="flat end mill", description="6mm stylus")})
+    res = advise(setup)
+    for name in ("WCS Probe", "Inspect bore"):
+        o = op(res, name)
+        assert o["kind"] == "probe" and o["findings"] == [] and o["apply_plan"] is None
+        assert o["toolwiz"] == {"recommended": None, "at_current_engagement": None, "tslot": None}
+        assert o["current"]["chip_load_ipt"] is None and o["current"]["mrr_in3_min"] is None
+        assert any("does not cut" in n for n in o["notes"])
+    text = __import__("json").dumps(res.get("strategies") or [])
+    assert "Blum" not in text and "stylus" not in text
