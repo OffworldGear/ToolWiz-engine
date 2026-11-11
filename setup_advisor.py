@@ -1071,7 +1071,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
     norm = normalize_setup(setup)
     fam = (family or norm["family"] or "").strip()
     alo = (alloy if alloy is not None else norm["alloy"]) or ""
-    if not fam and not all(o.get("family") for o in norm["ops"]):
+    if not fam and (not norm["ops"] or not all(o.get("family") for o in norm["ops"])):
         raise ValueError("'family' (the ToolWiz material family, e.g. 'Titanium Alloy') is required")
     agg = float(aggressiveness)
     agg = agg / 100.0 if agg > 1.0 else agg

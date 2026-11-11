@@ -62,6 +62,15 @@ def test_rejects(text, bad):
     assert any(x.startswith(bad) for x in r["rejected_numbers"]), r
 
 
+def test_units_must_match_the_quantity():
+    g = {"stock_to_leave_in": 0.003, "note": "leave 0.003 in of stock", "chip_load_ipt": 0.0012}
+    assert ng.check_numbers("leave 0.003 in", g)["ok"]
+    assert ng.check_numbers("leave 0.003", g)["ok"]                    # no unit: any grounded number
+    r = ng.check_numbers("feed 0.003 IPT", g)                          # a length is not a chip load
+    assert not r["ok"] and r["rejected_numbers"] == ["0.003 IPT"]
+    assert ng.check_numbers("feed 0.0012 in/tooth", g)["ok"]
+
+
 def test_unit_conversion_is_directional():
     # 0.1875 in grounds 4.7625 mm, not 4.7625 in
     assert ok("depth 4.76 mm")["ok"]

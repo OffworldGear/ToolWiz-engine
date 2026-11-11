@@ -12,6 +12,9 @@ Matching (see ``_factors``):
     SFM <-> m/min, in/tooth <-> mm/tooth, % <-> a 0..1 ratio, min <-> s;
   * a bare number (no unit) must equal a grounded number (small counts such as "3 operations" therefore need
     the 3 to appear in the grounding);
+  * a number with a unit only matches grounded numbers of the same quantity class (length, chip load, feed, speed,
+    rpm, time, percent, angle), judged from the JSON key suffix (``feed_ipm``) or the unit written next to the number
+    in a string, so "0.003 IPT" is not satisfied by a 0.003 in stock to leave;
   * signs are ignored (``-0.0005`` matches ``0.0005``).
 Not numbers for this purpose: identifiers glued to letters (``2D``, ``3D``, ``T6``, ``V2``, ``1st``), markdown list
 markers at the start of a line, and digits inside URLs.
@@ -32,6 +35,7 @@ _NUM = r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+"
 
 # unit text (lower case) -> canonical unit. Longest alternatives first.
 _UNITS = {
+    "in^3/min": "mrr", "in\u00b3/min": "mrr", "in3/min": "mrr", "cm^3/min": "mrr", "cm\u00b3/min": "mrr", "cm3/min": "mrr",
     "in/min": "ipm", "in./min": "ipm", "ipm": "ipm", "inches/min": "ipm", "inch/min": "ipm",
     "mm/min": "mm/min", "m/min": "m/min", "sfm": "sfm", "smm": "m/min", "rpm": "rpm",
     "ipt": "ipt", "in/tooth": "ipt", "mm/tooth": "mm/tooth", "ipr": "ipt", "in/rev": "ipt", "mm/rev": "mm/tooth",
@@ -125,25 +129,63 @@ def raw_numbers(text: str) -> List[float]:
     return vals
 
 
-def collect_numbers(obj: Any, out: Optional[List[float]] = None, _depth: int = 0) -> List[float]:
-    """Absolute values of every number in a JSON-able object, including digits inside its string values."""
-    if out is None:
-        out = []
-    if _depth > 40:
-        return out
-    if isinstance(obj, bool) or obj is None:
-        return out
+#: quantity class of a unit (None: matches any grounded number). A printed number with a unit only matches grounded
+#: numbers of the same class (or with no class), so "0.003 IPT" cannot be satisfied by a 0.003 in stock to leave.
+_UNIT_DIM = {"in": "length", "mm": "length", "cm": "length", "um": "length", "thou": "length", "ipt": "chip",
+             "mm/tooth": "chip", "ipm": "feed", "mm/min": "feed", "sfm": "speed", "m/min": "speed", "rpm": "rpm",
+             "min": "time", "s": "time", "%": "percent", "deg": "angle", "mrr": "mrr"}
+
+
+def dim_of_key(key: str) -> Optional[str]:
+    """Quantity class implied by a JSON key suffix (``chip_load_ipt`` chip, ``feed_ipm`` feed, ``rpm``, ``sfm``,
+    ``*_in`` / ``*_mm`` length, ``*_pct`` percent, ``*_deg`` angle, ``*_min`` time); None when the key says nothing."""
+    k = str(key).lower()
+    if k.endswith("in3_min") or "mrr" in k:
+        return "mrr"
+    for suffix, dim in (("_ipt", "chip"), ("_ipm", "feed"), ("rpm", "rpm"), ("sfm", "speed"), ("_in", "length"),
+                        ("_mm", "length"), ("_pct", "percent"), ("_deg", "angle"), ("_min", "time")):
+        if k.endswith(suffix):
+            return dim
+    return None
+
+
+def _typed_numbers(text: str) -> List[tuple]:
+    """(value, class) for every number of a string: numbers with a unit carry its class, the rest (identifier digits,
+    bare numbers) carry None."""
+    typed = [(t.value, _UNIT_DIM.get(t.unit)) for t in extract_numbers(text)]
+    left = list(raw_numbers(text))
+    for v, _ in typed:
+        for i, r in enumerate(left):
+            if abs(r - v) <= 1e-9 * max(1.0, abs(v)):
+                del left[i]
+                break
+    return typed + [(r, None) for r in left]
+
+
+def _collect(obj: Any, out: List[tuple], dim: Optional[str], depth: int = 0) -> None:
+    if depth > 40 or obj is None or isinstance(obj, bool):
+        return
     if isinstance(obj, (int, float)):
         if obj == obj and obj not in (float("inf"), float("-inf")):
-            out.append(abs(float(obj)))
+            out.append((abs(float(obj)), dim))
     elif isinstance(obj, str):
-        out.extend(raw_numbers(obj))
+        out.extend(_typed_numbers(obj))
     elif isinstance(obj, dict):
-        for v in obj.values():
-            collect_numbers(v, out, _depth + 1)
+        for k, v in obj.items():
+            _collect(v, out, dim_of_key(k) or None, depth + 1)
     elif isinstance(obj, (list, tuple, set)):
         for v in obj:
-            collect_numbers(v, out, _depth + 1)
+            _collect(v, out, dim, depth + 1)
+
+
+def collect_numbers(obj: Any, out: Optional[List[float]] = None, _depth: int = 0) -> List[float]:
+    """Absolute values of every number in a JSON-able object, including digits inside its string values."""
+    pairs: List[tuple] = []
+    _collect(obj, pairs, None)
+    vals = [v for v, _ in pairs]
+    if out is None:
+        return vals
+    out.extend(vals)
     return out
 
 
@@ -165,6 +207,8 @@ def _factors(unit: Optional[str]) -> Sequence[float]:
         return (1.0, 1.0 / 60.0)
     if unit == "s":
         return (1.0, 60.0)
+    if unit == "mrr":
+        return (1.0, 16.387064, 1.0 / 16.387064)   # in^3/min <-> cm^3/min
     if unit == "thou":
         return (1.0, 1000.0)                     # 0.001 in written as 1 thou
     if unit == "um":
@@ -173,19 +217,24 @@ def _factors(unit: Optional[str]) -> Sequence[float]:
 
 
 class Grounding:
-    """Sorted pool of the numbers a text is allowed to contain."""
+    """Sorted pool of the numbers a text is allowed to contain: ``(value, quantity class or None)`` pairs."""
 
-    def __init__(self, values: Iterable[float]):
-        self.values = sorted(v for v in values if v == v)
+    def __init__(self, pairs: Iterable[Any]):
+        norm = [(p if isinstance(p, tuple) else (float(p), None)) for p in pairs]
+        self.pairs = sorted((p for p in norm if p[0] == p[0]), key=lambda p: p[0])
+        self.values = [p[0] for p in self.pairs]
 
     def matches(self, tok: NumberToken) -> bool:
         v = tok.value
+        want = _UNIT_DIM.get(tok.unit)
         tol = max(0.005 * v, 0.5 * 10.0 ** (-tok.decimals) if tok.decimals < 6 else 0.0005 * v + 1e-12)
         for f in _factors(tok.unit):
             lo, hi = (v - tol) / f, (v + tol) / f
             i = bisect.bisect_left(self.values, lo - 1e-12)
-            if i < len(self.values) and self.values[i] <= hi + 1e-12:
-                return True
+            while i < len(self.pairs) and self.values[i] <= hi + 1e-12:
+                if want is None or self.pairs[i][1] is None or self.pairs[i][1] == want:
+                    return True
+                i += 1
         return False
 
 
@@ -194,9 +243,10 @@ def check_numbers(text: str, grounding: Any, extra_texts: Iterable[str] = ()) ->
 
     Returns ``{"ok": bool, "rejected_numbers": [str, ...], "checked": int}``; ``rejected_numbers`` lists each
     offending number as printed (de-duplicated, in order of appearance)."""
-    pool = collect_numbers(grounding)
+    pool: List[tuple] = []
+    _collect(grounding, pool, None)
     for t in extra_texts or ():
-        pool.extend(raw_numbers(t))
+        pool.extend(_typed_numbers(str(t)))
     g = Grounding(pool)
     rejected: List[str] = []
     toks = extract_numbers(text)
