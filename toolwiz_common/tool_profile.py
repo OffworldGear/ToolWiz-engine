@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from .geometry import ToolGeometry, default_shank, shank_looks_wrong
 
+from .tool_types import ToolKind
 from .units import to_inches, tool_unit
 
 
@@ -45,6 +46,52 @@ HOLDER_TAPER_MARGIN_IN = HOLDER_TAPER_MARGIN_MM / 25.4
 
 
 _EPS = 1e-9
+
+SLOT_WORDS = ("keyseat", "woodruff", "t-slot", "t slot", "tslot", "slot mill", "undercut")
+# A shaft step wider than the neck by more than this ends the neck (the start of the shank transition).
+_NECK_STEP = 1.05
+
+
+def is_slot_head(tool_dict: dict, kind: ToolKind) -> bool:
+    """True for a head-on-a-neck cutter: Fusion type "slot mill", or a keyseat / Woodruff / T-slot
+    description on a slot, form or unclassified tool."""
+    if kind is ToolKind.SLOT:
+        return True
+    if kind in (ToolKind.FORM, ToolKind.UNKNOWN):
+        text = str(tool_dict.get("description") or "").lower()
+        return any(w in text for w in SLOT_WORDS)
+    return False
+
+
+def slot_neck(shaft_segments: List[dict], unit: str) -> Optional[Dict[str, float]]:
+    """Neck of a slot / keyseat cutter from its Fusion shaft segments (inches).
+
+    Fusion lists shaft segments from the cutting head upward, each as height, lower-diameter (toward the
+    tip) and upper-diameter (toward the holder); the first segment starts at the top face of the head
+    (LCF). Verified on three real cutters: the Haas 3/8 x 1/32 keyseat cutter lists 0.25" at 0.187"
+    then 0.3125" tapering 0.187" -> 0.375", which is its catalog 9/16" neck length (0.25 + 0.3125) and
+    ends at the 3/8" shank. Returns neck diameter (the first segment's lower diameter), reach (head top
+    face to where the neck has grown past 5%, i.e. the end of the neck / transition) and the shank
+    diameter at the holder end (last segment's upper diameter), or None without usable segments.
+    """
+    rows = []
+    for sd in shaft_segments or []:
+        if not isinstance(sd, dict):
+            continue
+        h = to_inches(sd.get("height"), unit) if sd.get("height") not in (None, "") else 0.0
+        lo = to_inches(sd.get("lower-diameter"), unit) if sd.get("lower-diameter") not in (None, "") else 0.0
+        up = to_inches(sd.get("upper-diameter"), unit) if sd.get("upper-diameter") not in (None, "") else lo
+        if h and h > _EPS and lo and lo > 0.0:
+            rows.append((h, lo, up if up and up > 0.0 else lo))
+    if not rows:
+        return None
+    neck_d = rows[0][1]
+    reach = 0.0
+    for h, lo, up in rows:
+        reach += h
+        if up > neck_d * _NECK_STEP or lo > neck_d * _NECK_STEP:
+            break
+    return {"neck_diameter": neck_d, "reach": reach, "shank_diameter": rows[-1][2]}
 
 
 
@@ -101,6 +148,12 @@ class ToolProfile:
     warnings: List[str] = field(default_factory=list)
 
     shaft_source: str = "plain"   # "plain" | "step" | "explicit_shaft" | "assumed_taper"
+    # Slot / keyseat / T-slot cutters only (None otherwise): kerf = LCF (head thickness), neck diameter and
+    # reach below the head (inches), where the neck was read from ("shaft_segments" | "shoulder" | "shank").
+    slot: Optional[Dict[str, Any]] = None
+    # Slot / keyseat / T-slot cutters only (None otherwise): kerf = LCF (head thickness), neck diameter and
+    # reach below the head (inches), where the neck was read from ("shaft_segments" | "shoulder" | "shank").
+    slot: Optional[Dict[str, Any]] = None
 
 
 
@@ -123,6 +176,56 @@ class ToolProfile:
         sl = g.shoulder_length or 0.0
 
         warnings: List[str] = []
+
+
+
+        slot_info: Optional[Dict[str, Any]] = None
+
+        shaft_node0 = (tool_dict.get("shaft") if isinstance(tool_dict, dict) else None) or {}
+
+        shaft_raw0 = (shaft_node0.get("segments") if isinstance(shaft_node0, dict) else None) or []
+
+        if is_slot_head(tool_dict, g.kind):
+
+            sn = slot_neck(shaft_raw0, unit)
+
+            if sn is not None:
+
+                sn["source"] = "shaft_segments"
+
+            elif g.shoulder_diameter and g.shoulder_diameter < dc * 0.999 and sl > lcf * 1.01:
+
+                sn = {"neck_diameter": g.shoulder_diameter, "reach": sl - lcf,
+
+                      "shank_diameter": g.shank_diameter, "source": "shoulder"}
+
+            else:
+
+                sn = {"neck_diameter": g.shank_diameter, "reach": max(lb - lcf, 0.0),
+
+                      "shank_diameter": g.shank_diameter,
+
+                      "source": "shank" if g.shank_diameter < dc * 0.999 else "assumed"}
+
+            if sn is not None:
+
+                sn["kerf"] = lcf
+
+                sn["teeth"] = g.flutes
+
+                slot_info = sn
+
+                if sn["source"] == "shaft_segments":
+
+                    g.shank_diameter = sn["shank_diameter"]
+
+                    sl = 0.0   # the shoulder fields of a slot mill are not a neck (the shaft segments are)
+
+                    g.shoulder_length = None
+
+                    g.shoulder_diameter = None
+
+                    g.neck_length = g.neck_diameter = None
 
 
 
@@ -314,7 +417,7 @@ class ToolProfile:
 
                    stickout_source=g.stickout_source, warnings=warnings,
 
-                   shaft_source=shaft_source)
+                   shaft_source=shaft_source, slot=slot_info)
 
 
 

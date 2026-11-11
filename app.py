@@ -203,8 +203,14 @@ def _fusion_tool_arg(obj):
 
 def _fusion_payload(tool_dict):
     """The canonical {"type","unit","geometry"} slice of a raw Fusion tool dict."""
-    return {"type": tool_dict.get("type"), "unit": tool_dict.get("unit"),
-            "geometry": tool_dict.get("geometry") or {}}
+    out = {"type": tool_dict.get("type"), "unit": tool_dict.get("unit"),
+           "geometry": tool_dict.get("geometry") or {}}
+    if tool_dict.get("description"):
+        out["description"] = tool_dict["description"]
+    shaft = tool_dict.get("shaft")
+    if isinstance(shaft, dict) and shaft.get("segments"):
+        out["shaft"] = shaft   # slot / keyseat necks are read from the shaft segments
+    return out
 
 
 def _stickout_arg(data, fusion_tool, default=1.5):
