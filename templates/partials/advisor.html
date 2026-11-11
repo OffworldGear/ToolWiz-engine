@@ -1,1 +1,17 @@
-<div id="advisorView" style="display:none;"></div>
+<!-- VIEW 5: SETUP ADVISOR (what the Fusion add-in pushed last) -->
+<div id="advisorView" style="display: none;">
+    <div class="glass-panel v3-intro">
+        <div class="v3-row">
+            <div style="flex:1; min-width: 16rem;">
+                <h2 class="v3-h2">Setup Advisor</h2>
+                <p class="v3-lead">The last setup the Fusion add-in sent to ToolWiz, checked operation by operation: what is wrong or risky, what to change, and which strategy to consider. Every number comes from ToolWiz calculations.</p>
+            </div>
+            <div class="adv-actions">
+                <button type="button" class="btn-ratio v3-btn" id="advRefresh" onclick="loadSetupAdvisor()">Refresh</button>
+                <label class="check-inline"><input type="checkbox" id="advAuto" onchange="advisorAutoToggle()"> Auto-refresh (10 s)</label>
+            </div>
+        </div>
+        <div id="advMeta" class="v3-sub" role="status" aria-live="polite"></div>
+    </div>
+    <div id="advBody"></div>
+</div>

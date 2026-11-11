@@ -38,6 +38,7 @@
         return words.join('; ');
     }
 
+    const isRoughing = () => /rough|adaptive|slot|high feed|pocket/i.test((($('operation') || {}).value) || '');
     function engagementCard(res) {
         const src = res.engagement_source;
         if (!src || res.tslot) return '';   // the T-slot model sets its own radial depth per pass (see the T-slot plan card)
@@ -52,12 +53,12 @@
         if (src === 'user') {
             return `<div class="v3-row"><div>
                 <div class="v3-title">Feeds are computed for your sliders</div>
-                <div class="v3-sub">Speed and feed above are for <strong>${userTxt}</strong> (axial &times; radial). ${same ? 'That matches the ToolWiz recommendation.' : `ToolWiz recommends <strong>${recTxt}</strong> for this tool and material.`}</div></div>
+                <div class="v3-sub">Speed and feed above are for <strong>${userTxt}</strong> (axial &times; radial). ${same ? (isRoughing() ? 'That is the maximum-MRR cut at this aggressiveness.' : 'That matches the ToolWiz recommendation.') : `ToolWiz recommends <strong>${recTxt}</strong> for this tool and material.`}</div></div>
                 ${same ? '' : '<button type="button" class="btn-ratio v3-btn" id="applyRecBtn" onclick="applyRecommendations()" title="Set the DOC and WOC sliders to the recommendation; speed and feed are recalculated for it">Apply recommendation</button>'}</div>`;
         }
         return `<div class="v3-row"><div>
             <div class="v3-title">Feeds are computed for the ToolWiz recommendation</div>
-            <div class="v3-sub">Speed and feed above are for <strong>${recTxt}</strong>. Your sliders do not drive the result in this case.</div></div>
+            <div class="v3-sub">Speed and feed above are for <strong>${recTxt}</strong>${isRoughing() ? ' (max MRR at this aggressiveness)' : ''}. Your sliders do not drive the result in this case.</div></div>
             <button type="button" class="btn-ratio v3-btn" onclick="applyRecommendations()">Show it on the sliders</button></div>`;
     }
 
@@ -158,6 +159,7 @@
         const lw = limitedWords(res);
         set('limitedByLine', lw ? `<span class="v3-limited-label">Limited by</span> ${T.esc(lw)}` : '');
         set('runoutCard', runoutCard(res));
+        set('finishCard', typeof finishCardHtml === 'function' ? finishCardHtml(res) : '');
         set('stockCard', stockCard(res));
         set('tslotCard', tslotCard(res));
         set('holderCard', holderCard(res));
@@ -218,3 +220,73 @@ function fmtEngagement(rangeEl) {
     const dec = Math.max(3, Math.min(6, Math.ceil(-Math.log10(step))));
     return v.toFixed(dec);
 }
+
+/* --- Finish modes (finishing operations only): cleanup | surface | accuracy ------------------------------------- */
+(function () {
+    'use strict';
+    const T = window.TW;
+    const $ = id => document.getElementById(id);
+    const finish = { mode: 'cleanup', raUin: 32, tolIn: 0.0002 };   // canonical units: micro-inches, inches
+    const isFinishOp = () => /finish|contour|scallop/i.test((($('operation') || {}).value) || '');
+
+    function showTargets() {
+        const m = finish.mode;
+        $('targetRaGroup').style.display = m === 'surface' ? '' : 'none';
+        $('wallTolGroup').style.display = m === 'accuracy' ? '' : 'none';
+        const metric = T.metric();
+        $('targetRaUnit').textContent = metric ? 'µm' : 'µin';
+        $('wallTolUnit').textContent = metric ? 'µm' : 'in';
+        $('targetRa').value = metric ? +(finish.raUin * 0.0254).toFixed(2) : finish.raUin;
+        $('wallTolerance').value = metric ? +(finish.tolIn * 25400).toFixed(1) : finish.tolIn;
+    }
+    window.updateFinishModeVisibility = function () {
+        const box = $('finishModeBox'); if (!box) return;
+        box.style.display = isFinishOp() ? '' : 'none';
+        showTargets();
+    };
+    window.onFinishModeChange = function () {
+        const r = document.querySelector('input[name="finishMode"]:checked');
+        finish.mode = r ? r.value : 'cleanup';
+        showTargets();
+        if (typeof calculate === 'function') calculate();
+    };
+    window.onFinishTargetInput = function () {
+        const metric = T.metric();
+        const ra = parseFloat($('targetRa').value), tol = parseFloat($('wallTolerance').value);
+        if (ra > 0) finish.raUin = metric ? ra / 0.0254 : ra;
+        if (tol > 0) finish.tolIn = metric ? tol / 25400 : tol;
+        if (typeof calculate === 'function') calculate();
+    };
+    window.finishUnitChanged = function () { showTargets(); };
+    /** Request fields: finishMode, targetRa (micro-inches), wallTolerance (inches). Only sent for finishing operations. */
+    window.finishPayload = function () {
+        if (!isFinishOp()) return {};
+        const out = { finishMode: finish.mode };
+        if (finish.mode === 'surface') out.targetRa = +finish.raUin.toFixed(3);
+        if (finish.mode === 'accuracy') out.wallTolerance = finish.tolIn;
+        return out;
+    };
+    const fmtRa = uin => !T.finite(uin) ? '—' : (T.metric() ? (uin * 0.0254).toFixed(2) + ' µm' : Number(uin).toFixed(1) + ' µin');
+    const fmtErr = inch => !T.finite(inch) ? '—' : (T.metric() ? (inch * 25400).toFixed(1) + ' µm' : Number(inch).toFixed(5) + ' in');
+    const NAMES = { cleanup: 'Clean-up', surface: 'Surface finish', accuracy: 'Accuracy' };
+    /** HTML for the response `finish` block (empty when the server did not send one). */
+    window.finishCardHtml = function (res) {
+        const f = res && res.finish;
+        if (!f || typeof f !== 'object') return '';
+        const okRa = T.finite(f.predicted_ra_uin) && T.finite(f.target_ra_uin) ? f.predicted_ra_uin <= f.target_ra_uin * 1.001 : null;
+        const okWall = T.finite(f.predicted_wall_error_in) && T.finite(f.wall_tolerance_in) ? f.predicted_wall_error_in <= f.wall_tolerance_in * 1.001 : null;
+        const mark = ok => ok === null ? '' : `<span class="v3-pill ${ok ? 'ok' : 'bad'}">${ok ? 'meets target' : 'misses target'}</span>`;
+        const kv = (k, v, extra) => `<div><span>${k}</span><strong>${v}</strong>${extra || ''}</div>`;
+        const adv = Array.isArray(f.advice) ? f.advice : (f.advice ? [f.advice] : []);
+        const lim = f.limited_by ? String(f.limited_by).replace(/_/g, ' ') : '';
+        return `<div class="v3-title">Finish: ${T.esc(NAMES[f.mode] || f.mode || '')}</div>
+            <div class="v3-kv">
+                ${kv('Predicted Ra', fmtRa(f.predicted_ra_uin), `<small>target ${fmtRa(f.target_ra_uin)} ${mark(okRa)}</small>`)}
+                ${kv('Cusp height', T.len(f.predicted_cusp_in))}
+                ${kv('Predicted wall error', fmtErr(f.predicted_wall_error_in), `<small>tolerance ${fmtErr(f.wall_tolerance_in)} ${mark(okWall)}</small>`)}
+            </div>
+            ${lim ? `<div class="v3-sub">Limited by: ${T.esc(lim)}.</div>` : ''}
+            ${adv.length ? `<ul class="v2-list">${adv.map(a => `<li>${T.esc(a)}</li>`).join('')}</ul>` : ''}
+            <div class="v3-sub">Ra is estimated as cusp height / 4, an approximation; measure the first part.</div>`;
+    };
+})();

@@ -1,0 +1,89 @@
+<!-- DIGITAL TWIN sub-panels: Master Library builder and Library Audit -->
+<div data-subpanel="master" id="masterPanel" hidden>
+    <div class="glass-panel v3-intro">
+        <h2 class="v3-h2">Master Library builder</h2>
+        <p class="v3-lead">Merge every tool library you have into one master tool list, then build one Fusion-importable library per material set: the same tools, each with ToolWiz presets for the materials and strategies you pick. ToolWiz presets are tagged, so a rebuild replaces only them and never your own presets. Every built library is audited and presets with a STOP finding are dropped.</p>
+    </div>
+    <div class="master-grid">
+        <div class="master-col">
+            <section class="glass-panel" aria-labelledby="mlSourcesTitle">
+                <h3 class="v3-h3" id="mlSourcesTitle">1. Sources</h3>
+                <label class="check-inline"><input type="checkbox" id="mlUseWorking" checked onchange="masterSourcesChanged()"> Working library (<span id="mlWorkingName">loading&hellip;</span>)</label>
+                <div class="input-group" style="margin-top:0.6rem;">
+                    <label for="mlFiles">Add library files (.json or .tools) from Fusion, hub or cloud exports</label>
+                    <input type="file" id="mlFiles" accept=".json,.tools" multiple onchange="masterFilesChosen(this.files)">
+                </div>
+                <div id="mlFileList" class="v3-sub"></div>
+                <div class="ml-opts">
+                    <label class="check-inline"><input type="checkbox" id="mlDedup" checked> Merge duplicate cutters (same geometry and stickout within 10 %)</label>
+                    <label class="check-inline"><input type="checkbox" id="mlRepair" checked> Repair safe geometry gaps (shank, LCF, OAL)</label>
+                </div>
+                <button type="button" class="btn-ratio v3-btn" id="mlPreviewBtn" onclick="masterPreview()">Preview sources</button>
+                <div id="mlPreview" class="ml-preview" aria-live="polite"></div>
+            </section>
+
+            <section class="glass-panel" aria-labelledby="mlFilterTitle">
+                <h3 class="v3-h3" id="mlFilterTitle">2. Tool filter</h3>
+                <p class="v3-sub">Leave everything unchecked to build for every cutting tool.</p>
+                <div class="input-group"><label id="mlTypesLabel">Tool types</label>
+                    <div class="ml-checks" role="group" aria-labelledby="mlTypesLabel" id="mlTypes"></div></div>
+                <div class="grid-layout pl-grid">
+                    <div class="input-group"><label for="mlDiaMin">Diameter from (<span class="unit-lbl">in</span>)</label><input type="number" id="mlDiaMin" class="tool-dialog-input" step="any" min="0" placeholder="any"></div>
+                    <div class="input-group"><label for="mlDiaMax">Diameter to (<span class="unit-lbl">in</span>)</label><input type="number" id="mlDiaMax" class="tool-dialog-input" step="any" min="0" placeholder="any"></div>
+                </div>
+                <div class="input-group" id="mlLibsGroup" style="display:none;"><label id="mlLibsLabel">Source libraries</label>
+                    <div class="ml-checks" role="group" aria-labelledby="mlLibsLabel" id="mlLibs"></div></div>
+            </section>
+        </div>
+
+        <div class="master-col">
+            <section class="glass-panel" aria-labelledby="mlMatTitle">
+                <div class="v3-row"><h3 class="v3-h3" id="mlMatTitle" style="flex:1;">3. Material sets and materials</h3>
+                    <button type="button" class="btn-ratio" onclick="masterToggleEditor()" id="mlEditBtn" aria-expanded="false" aria-controls="mlEditor">Edit sets&hellip;</button></div>
+                <div id="mlSets" class="ml-sets"></div>
+                <div id="mlEditor" class="ml-editor" hidden></div>
+            </section>
+
+            <section class="glass-panel" aria-labelledby="mlBuildTitle">
+                <h3 class="v3-h3" id="mlBuildTitle">4. Strategy and aggressiveness</h3>
+                <div class="input-group"><label id="mlStratLabel">Strategies</label>
+                    <div class="ml-checks" role="group" aria-labelledby="mlStratLabel" id="mlStrats">
+                        <label class="check-inline"><input type="checkbox" value="Adaptive Roughing" checked> Adaptive roughing</label>
+                        <label class="check-inline"><input type="checkbox" value="Roughing" checked> Roughing</label>
+                        <label class="check-inline"><input type="checkbox" value="Finishing" checked> Finishing</label>
+                        <label class="check-inline"><input type="checkbox" value="Slotting" checked> Slotting</label>
+                    </div></div>
+                <div class="slider-group">
+                    <div class="slider-header"><label for="mlAggr">Aggressiveness</label><span id="mlAggrVal">50%</span></div>
+                    <input type="range" id="mlAggr" min="5" max="100" step="1" value="50" oninput="document.getElementById('mlAggrVal').textContent = this.value + '%'">
+                    <div class="aggr-ticks"><span><b>50%</b>relatively safe</span><span><b>75%</b>vendor median</span><span><b>100%</b>fast, more wear</span></div>
+                </div>
+                <div class="grid-layout pl-grid">
+                    <div class="input-group"><label for="mlRunout">Runout TIR (<span class="unit-lbl">in</span>)</label><input type="number" id="mlRunout" class="tool-dialog-input" step="any" min="0"></div>
+                    <div class="input-group"><label for="mlModel">Cutting model</label><select id="mlModel"><option value="">server default</option><option value="v2">physics</option><option value="v1">legacy tables</option></select></div>
+                </div>
+                <label class="check-inline"><input type="checkbox" id="mlOverrides" checked> Honor per-tool aggressiveness overrides</label>
+                <div class="v3-sub" id="mlSlowNote">The physics model takes minutes for a large library (about 7 s per tool for two sets); the legacy tables take seconds.</div>
+                <button type="button" class="btn-primary" id="mlStart" onclick="masterStart()">Build libraries</button>
+                <div id="mlStatus" class="v3-status" role="status" aria-live="polite"></div>
+                <div id="mlProgress" class="ml-progress" hidden><div class="ml-progress-bar" id="mlProgressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+            </section>
+        </div>
+    </div>
+    <div id="mlResults" class="ml-results" aria-live="polite"></div>
+</div>
+
+<div data-subpanel="audit" id="auditPanel" hidden>
+    <div class="glass-panel v3-intro">
+        <h2 class="v3-h2">Library audit</h2>
+        <p class="v3-lead">Checks every tool and preset of the working library against ToolWiz: chip loads against the physics, stepdown and stepover against the cutter, speeds against the machine, holders against the runout the tool needs. Nothing is changed.</p>
+        <div class="grid-layout pl-grid audit-form">
+            <div class="input-group"><label for="auAggr">Compare at aggressiveness</label><select id="auAggr"><option value="50" selected>50 % (relatively safe)</option><option value="75">75 % (vendor median)</option><option value="100">100 %</option></select></div>
+            <div class="input-group"><label for="auMaterial">Material the shop is cutting (optional)</label><input type="text" id="auMaterial" class="tool-dialog-input" placeholder="e.g. Ti-6Al-4V" list="auMaterialList"><datalist id="auMaterialList"></datalist></div>
+            <div class="input-group"><label for="auRunout">Runout TIR (<span class="unit-lbl">in</span>)</label><input type="number" id="auRunout" class="tool-dialog-input" step="any" min="0"></div>
+            <div class="input-group" style="align-self:end;"><button type="button" class="btn-primary" id="auRun" onclick="runLibraryAudit()">Run audit</button></div>
+        </div>
+        <div id="auStatus" class="v3-status" role="status" aria-live="polite"></div>
+    </div>
+    <div id="auResults"></div>
+</div>

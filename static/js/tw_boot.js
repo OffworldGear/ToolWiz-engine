@@ -2,7 +2,8 @@
 (function () {
     'use strict';
     window.onUnitToggled = function () {
-        ['plannerUnitChanged', 'masterUnitChanged', 'advisorUnitChanged'].forEach(fn => { if (typeof window[fn] === 'function') window[fn](); });
+        ['plannerUnitChanged', 'masterUnitChanged', 'advisorUnitChanged', 'finishUnitChanged'].forEach(fn => { if (typeof window[fn] === 'function') window[fn](); });
+        if (typeof renderTwinTools === 'function' && typeof activeTwinTools !== 'undefined' && activeTwinTools.length) renderTwinTools();
         if (typeof window.onShopToolUnit === 'function') window.onShopToolUnit();
     };
     const tab = (location.hash || '').replace('#', '');

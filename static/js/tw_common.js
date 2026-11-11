@@ -92,7 +92,15 @@
         return null;
     }
 
-    window.TW = { len, feed, sfm, ipt, num, pct, toIn, fromIn, unitName, api, sevBadge, chips, callout, subTabs, safeStore, finite, esc: E, metric, MM };
+    /** Small non-blocking message (replaces alert for confirmations). */
+    function toast(msg, isError) {
+        let box = document.getElementById('twToast');
+        if (!box) { box = document.createElement('div'); box.id = 'twToast'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
+        box.textContent = msg; box.className = 'tw-toast show' + (isError ? ' err' : '');
+        clearTimeout(box._t); box._t = setTimeout(() => { box.className = 'tw-toast'; }, 3500);
+    }
+
+    window.TW = { toast, len, feed, sfm, ipt, num, pct, toIn, fromIn, unitName, api, sevBadge, chips, callout, subTabs, safeStore, finite, esc: E, metric, MM };
 })();
 
 /* Material family / alloy pickers filled from the page's /api/data lists (allFamilies, fullAlloys). */
