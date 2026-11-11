@@ -175,6 +175,21 @@ narrative is optional, grounded on tool results, and checked by a numeric guard 
 number not present in the tool results. MCP tools for strategy compare, holder and tool advice and
 the setup advisor, with MCP instructions that forbid inventing numbers.
 
+### Owner's T-slot cutters (2026-11-11)
+
+| Tool | Status | Jobs |
+|---|---|---|
+| Klot/Harfington 6 mm x 2 mm, 4 flute, carbide, up/down cutting | in use | T-slots |
+| Klot/Harfington 4 mm x 0.5 mm, carbide | in use | T-slots in 17-4 PH and titanium |
+| Klot/Harfington 8 mm x 0.5 mm, carbide | in use | one-depth T-slot in titanium |
+| Harvey Tool 3/8" x 0.0625" keyseat | planned replacement for the 8 x 0.5 | same titanium job |
+| Klot/Harfington 8 mm x 1.6 mm | fallback if the Harvey is not worth it | same titanium job |
+
+WP-B2 adds them to `data/shop_tools.json`. WP-B1's strategy planner must be able to compare
+these cutters on the same job (cycle time, chip load, deflection, relative tool life) so the owner
+can judge whether the Harvey cutter is worth it, and the advisor should flag when a premium
+cutter's benefit comes from published vendor data versus physics alone.
+
 ### Phase 3 (after Phase 2 merges)
 
 **WP-C1 Fusion add-in (owner: `ToolWizFusionAddin/`).** Every command: auto-setter, stock to
