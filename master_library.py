@@ -13,6 +13,7 @@ removes exactly the presets that have one and keeps every other preset untouched
 from __future__ import annotations
 
 import copy
+import dataclasses
 import datetime as _dt
 import hashlib
 import json
@@ -270,12 +271,57 @@ def effective_aggressiveness(tool: dict, base: Any, use_tool_overrides: bool = T
     return normalize_aggressiveness(base)
 
 
-def _cache_key(tool: dict, g: ToolGeometry, material: dict, label: str, aggr: float, model, runout, max_rpm,
-               max_hp, coating, extra) -> Tuple:
-    blob = hashlib.md5(json.dumps([fusion_payload(tool), tool_is_carbide(tool)], sort_keys=True,
-                                  default=str).encode()).hexdigest()
-    return (blob, round(g.stickout, 5), material["family"], material.get("alloy", ""), label, round(aggr, 4),
-            model or "v1", round(runout, 6), max_rpm, max_hp, coating, extra)
+def _tap_type(tool: dict) -> str:
+    return ("form" if any(k in str(tool.get("description", "")).lower() for k in ("form", "roll"))
+            else "spiral_flute")
+
+
+def cut_request(tool: dict, g: ToolGeometry, kind: ToolKind, material: Dict[str, Any], *, operation: str,
+                tslot_operation: str = "", coating: Optional[str] = None, aggressiveness: float, max_rpm: float,
+                max_hp: float, runout: float, model: Optional[str] = None,
+                machine_profile: Optional[dict] = None) -> CutRequest:
+    """The one ``CutRequest`` behind a ToolWiz preset for ``tool`` in ``material`` (``{"family", "alloy"}``).
+
+    ``generate_presets`` and ``library_audit`` both build their requests here, so an audit recomputes exactly the
+    cut the build used. ``operation`` is the milling operation ("Roughing", "Slotting", ...); for drills, taps and
+    reamers it is derived from the tool kind. ``tslot_operation`` ("full_slot" / "axial_step") applies to slot
+    mills only. ``coating`` None reads it from the tool."""
+    carbide = tool_is_carbide(tool)
+    kw: Dict[str, Any] = {"tool": db_tool_type(kind, tool, carbide), "coating": coating or tool_coating(tool)}
+    if is_hole_kind(kind):
+        is_tap = is_tap_kind(kind)
+        kw.update(
+            operation=("Tapping" if is_tap else ("Precision Reaming" if kind is ToolKind.REAMER else "Drilling")),
+            geometry=("Reamer" if kind is ToolKind.REAMER
+                      else ("Spot Drill" if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL) else "Square")),
+            tap_type=_tap_type(tool), pitch=g.thread_pitch if is_tap else None, apply_coating=False)
+    else:
+        kw.update(operation=operation, geometry=_cut_geometry_name(kind, g.corner_radius),
+                  cutter_thickness=g.flute_length)
+        if tslot_operation:
+            form, faces = slot_faces(tool)
+            kw.update(tslot_operation=tslot_operation, tooth_form=form, cutting_faces=faces,
+                      # the Z step does not depend on the slot height, but is 0 for a one-level slot
+                      slot_height=2.0 * g.flute_length if tslot_operation == "axial_step" else None)
+    return CutRequest(
+        family=material["family"], alloy=material.get("alloy", ""), diameter=g.diameter, flutes=g.flutes,
+        flute_length=g.flute_length, shank_diameter=g.shank_diameter, corner_radius=g.corner_radius,
+        stickout=g.stickout, is_carbide=carbide, aggressiveness=aggressiveness, max_rpm=max_rpm, max_hp=max_hp,
+        runout=runout, fusion_tool=fusion_payload(tool), model=model, machine_profile=machine_profile, **kw)
+
+
+def cut_request_key(req: CutRequest) -> str:
+    """Cache key of a pipeline request: a digest of every field ``run_cut`` reads, so equal requests share a result
+    whichever caller made them."""
+    return hashlib.md5(json.dumps(dataclasses.asdict(req), sort_keys=True, default=str).encode()).hexdigest()
+
+
+def cached_cut(physics: Any, req: CutRequest, cache: Dict[str, Any]) -> Any:
+    """``run_cut(physics, req)`` memoised in ``cache`` (one dict per build job, shared with the audit)."""
+    key = cut_request_key(req)
+    if key not in cache:
+        cache[key] = run_cut(physics, req)
+    return cache[key]
 
 
 def generate_presets(tool: dict, materials: List[dict], strategies: List[str], aggressiveness: float, *,
@@ -321,24 +367,16 @@ def generate_presets(tool: dict, materials: List[dict], strategies: List[str], a
         return tool_skip("tap has no thread pitch (TP); refusing to assume one")
 
     cache = cache if cache is not None else {}
-    carbide = tool_is_carbide(tool)
     hole = is_hole_kind(kind)
-    coat = coating or tool_coating(tool)
-    payload = fusion_payload(tool)
     pct = int(round(aggressiveness * 100.0))
     assumptions = (f"Aggressiveness: {pct}%, stickout {_fmt_len(g.stickout, unit)}, "
                    f"runout {_fmt_len(runout, unit, 3)}, model {model or 'v1'}")
 
-    def cut(material: dict, label: str, req_kwargs: dict, key_extra) -> Any:
-        key = _cache_key(tool, g, material, label, aggressiveness, model, runout, max_rpm, max_hp, coat, key_extra)
-        if key not in cache:
-            cache[key] = run_cut(physics, CutRequest(
-                family=material["family"], alloy=material.get("alloy", ""), diameter=g.diameter, flutes=g.flutes,
-                flute_length=g.flute_length, shank_diameter=g.shank_diameter, corner_radius=g.corner_radius,
-                stickout=g.stickout, is_carbide=carbide, aggressiveness=aggressiveness, max_rpm=max_rpm,
-                max_hp=max_hp, runout=runout, fusion_tool=payload, model=model, machine_profile=machine_profile,
-                **req_kwargs))
-        return cache[key]
+    def cut(material: dict, operation: str, tslot_operation: str = "") -> Any:
+        req = cut_request(tool, g, kind, material, operation=operation, tslot_operation=tslot_operation,
+                          coating=coating, aggressiveness=aggressiveness, max_rpm=max_rpm, max_hp=max_hp,
+                          runout=runout, model=model, machine_profile=machine_profile)
+        return cached_cut(physics, req, cache)
 
     def common(material: dict, name: str, desc: str) -> dict:
         p = {"guid": str(uuid.uuid4()), "name": name, "description": desc,
@@ -347,17 +385,9 @@ def generate_presets(tool: dict, materials: List[dict], strategies: List[str], a
 
     if hole:
         is_tap = is_tap_kind(kind)
-        hole_op = "Tapping" if is_tap else ("Precision Reaming" if kind is ToolKind.REAMER else "Drilling")
-        hole_geo = ("Reamer" if kind is ToolKind.REAMER
-                    else ("Spot Drill" if kind in (ToolKind.SPOT_DRILL, ToolKind.CENTER_DRILL) else "Square"))
         suffix = "Tapping" if is_tap else ("Reaming" if kind is ToolKind.REAMER else "Drilling")
-        tap_type = ("form" if any(k in str(tool.get("description", "")).lower() for k in ("form", "roll"))
-                    else "spiral_flute")
         for m in materials:
-            res = cut(m, hole_op, dict(
-                tool=db_tool_type(kind, tool, carbide), geometry=hole_geo, operation=hole_op, coating=coat,
-                tap_type=tap_type, pitch=g.thread_pitch if is_tap else None,
-                apply_coating=False), (hole_op, tap_type, g.thread_pitch))
+            res = cut(m, "Tapping" if is_tap else ("Precision Reaming" if kind is ToolKind.REAMER else "Drilling"))
             v_c, f_z, v_f = _preset_units(unit, sfm=res.sfm, ipt=res.adj_ipt, ipm=res.feed_ipm)
             name = name_prefix if name_prefix else f"{m['label']} - {suffix}"
             p = common(m, name, f"{name} ({assumptions})")
@@ -377,19 +407,11 @@ def generate_presets(tool: dict, materials: List[dict], strategies: List[str], a
         skipped.append({"material": None, "strategy": None, "reason": why})
     if not jobs:
         return presets, skipped
-    geometry = _cut_geometry_name(kind, g.corner_radius)
-    mill_db = db_tool_type(kind, tool, carbide)
-    tooth_form, cut_faces = slot_faces(tool) if kind is ToolKind.SLOT else (None, None)
     for m in materials:
         for job in jobs:
             strat = job["label"]
             is_axial = job["tslot_operation"] == "axial_step"
-            extra = ({"tslot_operation": job["tslot_operation"], "tooth_form": tooth_form, "cutting_faces": cut_faces,
-                      # the Z step does not depend on the slot height, but is 0 for a one-level slot
-                      "slot_height": 2.0 * g.flute_length if is_axial else None} if job["tslot_operation"] else {})
-            res = cut(m, strat, dict(tool=mill_db, geometry=geometry, operation=job["operation"], coating=coat,
-                                     cutter_thickness=g.flute_length, **extra),
-                      (job["operation"], job["tslot_operation"], tooth_form, tuple(cut_faces or ())))
+            res = cut(m, job["operation"], job["tslot_operation"])
             if not res.feasible:
                 skipped.append({"material": m["label"], "strategy": strat,
                                 "reason": f"infeasible strategy {strat!r}: no safe cut (limited by "
@@ -712,15 +734,21 @@ def build_libraries(tools: List[dict], holders: List[dict], sets: List[dict], *,
 
 def audit_and_prune(lib: dict, physics: Any, *, aggressiveness: Any, max_rpm: float, max_hp: float, runout: float,
                     model: Optional[str] = None, machine_profile: Optional[dict] = None,
-                    include_owner_presets: bool = False) -> Dict[str, Any]:
+                    include_owner_presets: bool = False, use_tool_overrides: bool = True,
+                    cache: Optional[dict] = None) -> Dict[str, Any]:
     """Audit a built library with ``library_audit`` and drop every ToolWiz-generated preset that has a STOP finding
     (the library dict is edited in place). Returns {"summary": {STOP, CAUTION, INFO, tools, presets} after the
     drops, "dropped": [{"tool","preset","code","message"}], "owner_stop": [...STOP findings on the owner's own
     presets, untouched], "cautions_by_code": {...}}. The summary counts the findings that remain; it is not re-audited.
     By default only the ToolWiz presets are audited (the owner's presets are not ours to fix and auditing them
     roughly doubles the time); ``include_owner_presets`` audits every preset and lists STOP findings on the
-    owner's own ones in ``owner_stop``."""
+    owner's own ones in ``owner_stop``.
+
+    The audit recomputes each preset's cut with the build's settings: the same model, runout, machine, and each
+    tool's own aggressiveness (``use_tool_overrides``, as in ``build_libraries``). ``cache`` is the build job's
+    cache, so cuts the build already computed are not computed again."""
     import library_audit
+    base_aggr = normalize_aggressiveness(aggressiveness)
     view = lib["tools"]
     if not include_owner_presets:
         view = []
@@ -731,7 +759,8 @@ def audit_and_prune(lib: dict, physics: Any, *, aggressiveness: Any, max_rpm: fl
             view.append(t)
     report = library_audit.audit_library(
         {"tools": view}, physics, max_rpm=max_rpm, max_hp=max_hp, runout_in=runout,
-        aggressiveness=normalize_aggressiveness(aggressiveness), model=model, machine_profile=machine_profile)
+        aggressiveness=base_aggr, model=model, machine_profile=machine_profile, cache=cache,
+        aggressiveness_for=lambda t: effective_aggressiveness(t, base_aggr, use_tool_overrides))
     drop: Dict[Tuple[int, str], dict] = {}
     owner_stop: List[dict] = []
     for f in report["findings"]:
