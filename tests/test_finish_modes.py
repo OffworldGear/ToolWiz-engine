@@ -112,3 +112,43 @@ def test_finish_mode_keeps_base_ipt_and_mrr_model():
     assert tight["base_ipt"] <= base["base_ipt"] + 1e-9          # never inflated by the finish step
     assert tight["adj_ipt"] <= base["adj_ipt"] + 1e-9
     assert tight["mrr"] <= base["mrr"] + 1e-9
+
+
+def _face(extra=None, **kw):
+    """The owner's Face1 case: 5/16" 4-flute, 0.015" corner radius, a 0.1 mm skim at half-diameter stepover."""
+    import app as A
+    body = {"family": "Aluminum - Wrought (6061)", "operation": "Facing", "diameter": 0.3125, "flutes": 4, "fluteLength": 0.75,
+            "shankDiameter": 0.3125, "stickout": 1.0, "cornerRadius": 0.015, "geometry": "Radiused", "aggressiveness": 50,
+            "cutDepth": 0.003937, "cutWidth": 0.15625, "coating": "AlTiN"}
+    body.update(kw)
+    body.update(extra or {})
+    return A.app.test_client().post("/api/calculate", json=body, headers={"X-ToolWiz-Client": "t"}).get_json()
+
+
+def test_facing_defaults_to_no_finish_target_and_keeps_the_stepover():
+    """Regression: a bull-nose tool on a facing pass was cut to a 0.0055" stepover by the Ra scallop limit."""
+    r = _face()
+    assert r["success"] and r["finish"]["mode"] == "none" and r["finish"]["limited_by"] is None
+    assert r["finish"]["target_ra_uin"] is None and r["finish"]["surface_kind"] == "floor"
+    assert abs(r["rec_woc"] - 0.15625) < 1e-6
+
+
+def test_flat_bottom_tools_leave_no_floor_scallop_inside_their_flat():
+    import finish_modes as fm
+    D, r = 0.3125, 0.015
+    flat = D - 2 * r
+    assert fm.stepover_scallop("floor", "bull", 0.15625, D, r)[0] == 0.0
+    assert fm.stepover_scallop("floor", "flat", 0.30, D, None) == (0.0, None)
+    h, ae_max = fm.stepover_scallop("floor", "bull", flat + 0.01, D, r)
+    assert abs(h - 0.01 ** 2 / (8 * r)) < 1e-12 and abs(ae_max(h) - (flat + 0.01)) < 1e-9
+    assert fm.stepover_scallop("floor", "ball", 0.02, 0.25, 0.125)[0] > 0      # a ball still scallops a floor
+    assert fm.stepover_scallop("surface3d", "bull", 0.02, D, r)[0] > 0          # and a bull nose a 3D surface
+    # even an explicit finish mode does not shrink a facing stepover that stays on the tool's flat
+    for mode in ("cleanup", "surface"):
+        res = _face({"finishMode": mode})
+        assert res["finish"]["mode"] == mode and abs(res["rec_woc"] - 0.15625) < 1e-6
+        assert "stepover scallop" not in (res["finish"]["limited_by"] or "")
+
+
+def test_finish_named_facing_still_gets_the_cleanup_mode():
+    assert _face(operation="Finish Facing")["finish"]["mode"] == "cleanup"

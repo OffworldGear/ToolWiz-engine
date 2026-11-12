@@ -321,6 +321,7 @@
                         <fieldset id="finishModeBox" class="finish-box" style="display:none;">
                             <legend>Finish mode</legend>
                             <label class="check-inline"><input type="radio" name="finishMode" value="cleanup" checked onchange="onFinishModeChange()"> Clean-up <span class="finish-hint">decent finish, fastest (default)</span></label>
+                            <label class="check-inline"><input type="radio" name="finishMode" value="none" onchange="onFinishModeChange()"> No finish target <span class="finish-hint">stock prep and facing: widest stepover</span></label>
                             <label class="check-inline"><input type="radio" name="finishMode" value="surface" onchange="onFinishModeChange()"> Surface finish <span class="finish-hint">limit feed marks and scallops</span></label>
                             <label class="check-inline"><input type="radio" name="finishMode" value="accuracy" onchange="onFinishModeChange()"> Accuracy <span class="finish-hint">size-critical walls and floors</span></label>
                             <div class="input-group" id="targetRaGroup" style="display:none;">

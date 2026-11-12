@@ -66,10 +66,13 @@ TOOLS: List[ToolSpec] = [
     ToolSpec("toolwiz_calculate",
              "ToolWiz speeds and feeds for one cut (rpm, feed, SFM, chip load, depth, width, deflection, ramp and plunge feeds, feasibility). "
              "Assumptions for the tool (coating, runout, material) are applied." + NUMBERS_RULE,
-             _obj({"family": _STR, "alloy": _STR, "operation": _d(_STR, "Roughing, Finishing, Slotting, Adaptive Roughing, ..."),
+             _obj({"family": _STR, "alloy": _STR, "operation": _d(_STR, "Roughing, Finishing, Facing, Slotting, Adaptive Roughing, ..."),
                    "tool_number": _INT, "diameter": _d(_NUM, "inches"), "flutes": _INT, "flute_length": _NUM, "shank_diameter": _NUM,
                    "stickout": _NUM, "corner_radius": _NUM, "coating": _STR, "geometry": _STR, "aggressiveness": _NUM,
                    "runout_in": _NUM, "cut_depth": _d(_NUM, "inches"), "cut_width": _d(_NUM, "inches"),
+                   "finish_mode": {"type": "string", "enum": ["none", "cleanup", "surface", "accuracy"],
+                                   "description": "finishing and facing only: none = stock prep, no finish target (default for Facing)"},
+                   "target_ra_uin": _d(_NUM, "target Ra in micro-inches, with finish_mode surface"),
                    "model": {"type": "string", "enum": ["v1", "v2"]}}, ["diameter"])),
     ToolSpec("strategy_compare",
              "Compare machining strategies with ToolWiz for a feature (profile cutout with tabs, slot, T-slot, pocket): options with ap, ae, rpm, feed, "
@@ -272,14 +275,14 @@ def _calc_body(a: Dict[str, Any], notes: List[str]) -> tuple:
     """Calculation request body in /api/calculate's field names (fluteLength, shankDiameter, ...): returns (body, assumed)."""
     assumed: List[str] = list(notes)
     if not a.get("coating"):
-        assumed.append("coating not given: ToolWiz's default (AlTiN) was used")
+        assumed.append("coating not given: no coating factor was applied (Uncoated), as the Setup Advisor does")
     if a.get("stickout") is None:
         assumed.append("stickout not given: ToolWiz's default (1.5\") was used; micro tools are usually much shorter, ask the owner")
     body = {"family": a["family"], "alloy": a.get("alloy") or "", "operation": a.get("operation") or "Roughing", "diameter": a["diameter"],
-            "flutes": a.get("flutes", 4), "coating": a.get("coating") or "AlTiN", "model": a.get("model") or _default_model()}
+            "flutes": a.get("flutes", 4), "coating": a.get("coating") or "Uncoated", "model": a.get("model") or _default_model()}
     for src, dst in (("flute_length", "fluteLength"), ("shank_diameter", "shankDiameter"), ("stickout", "stickout"),
                      ("corner_radius", "cornerRadius"), ("geometry", "geometry"), ("cut_depth", "cutDepth"), ("cut_width", "cutWidth"),
-                     ("runout_in", "runout")):
+                     ("runout_in", "runout"), ("finish_mode", "finishMode"), ("target_ra_uin", "targetRa")):
         if a.get(src) is not None:
             body[dst] = a[src]
     if a.get("aggressiveness") is not None:

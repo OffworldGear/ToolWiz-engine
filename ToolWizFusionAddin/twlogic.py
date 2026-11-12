@@ -375,6 +375,7 @@ def is_roughing_strategy(strategy, op_name=""):
 # ==============================================================================
 
 FINISH_MODES = (("Clean-up (maximize removal, decent finish)", "cleanup"),
+                ("No finish target (stock prep, facing)", "none"),
                 ("Surface finish (target Ra)", "surface"),
                 ("Accuracy (wall tolerance)", "accuracy"))
 DEFAULT_RA_UIN = 32.0

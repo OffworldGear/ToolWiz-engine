@@ -233,7 +233,10 @@ function fmtEngagement(rangeEl) {
     const T = window.TW;
     const $ = id => document.getElementById(id);
     const finish = { mode: 'cleanup', raUin: 32, tolIn: 0.0002 };   // canonical units: micro-inches, inches
-    const isFinishOp = () => /finish|contour|scallop/i.test((($('operation') || {}).value) || '');
+    const opName = () => (($('operation') || {}).value) || '';
+    const isFinishOp = () => /finish|contour|scallop|fac/i.test(opName());
+    const isFacingOp = () => /fac/i.test(opName()) && !/finish/i.test(opName());
+    let finishTouched = false;   // facing sends no mode until the user picks one: the server then uses 'none' (stock prep)
 
     function showTargets() {
         const m = finish.mode;
@@ -253,6 +256,7 @@ function fmtEngagement(rangeEl) {
     window.onFinishModeChange = function () {
         const r = document.querySelector('input[name="finishMode"]:checked');
         finish.mode = r ? r.value : 'cleanup';
+        finishTouched = true;
         showTargets();
         if (typeof calculate === 'function') calculate();
     };
@@ -266,7 +270,7 @@ function fmtEngagement(rangeEl) {
     window.finishUnitChanged = function () { showTargets(); };
     /** Request fields: finishMode, targetRa (micro-inches), wallTolerance (inches). Only sent for finishing operations. */
     window.finishPayload = function () {
-        if (!isFinishOp()) return {};
+        if (!isFinishOp() || (isFacingOp() && !finishTouched)) return {};
         const out = { finishMode: finish.mode };
         if (finish.mode === 'surface') out.targetRa = +finish.raUin.toFixed(3);
         if (finish.mode === 'accuracy') out.wallTolerance = finish.tolIn;
@@ -274,7 +278,7 @@ function fmtEngagement(rangeEl) {
     };
     const fmtRa = uin => !T.finite(uin) ? '—' : (T.metric() ? (uin * 0.0254).toFixed(2) + ' µm' : Number(uin).toFixed(1) + ' µin');
     const fmtErr = inch => !T.finite(inch) ? '—' : (T.metric() ? (inch * 25400).toFixed(1) + ' µm' : Number(inch).toFixed(5) + ' in');
-    const NAMES = { cleanup: 'Clean-up', surface: 'Surface finish', accuracy: 'Accuracy' };
+    const NAMES = { none: 'No finish target (stock prep)', cleanup: 'Clean-up', surface: 'Surface finish', accuracy: 'Accuracy' };
     /** HTML for the response `finish` block (empty when the server did not send one). */
     window.finishCardHtml = function (res) {
         const f = res && res.finish;
@@ -287,9 +291,9 @@ function fmtEngagement(rangeEl) {
         const lim = f.limited_by ? String(f.limited_by).replace(/_/g, ' ') : '';
         return `<div class="v3-title">Finish: ${T.esc(NAMES[f.mode] || f.mode || '')}</div>
             <div class="v3-kv">
-                ${kv('Predicted Ra', fmtRa(f.predicted_ra_uin), `<small>target ${fmtRa(f.target_ra_uin)} ${mark(okRa)}</small>`)}
+                ${kv('Predicted Ra', fmtRa(f.predicted_ra_uin), T.finite(f.target_ra_uin) ? `<small>target ${fmtRa(f.target_ra_uin)} ${mark(okRa)}</small>` : '')}
                 ${kv('Cusp height', T.len(f.predicted_cusp_in))}
-                ${kv('Predicted wall error', fmtErr(f.predicted_wall_error_in), `<small>tolerance ${fmtErr(f.wall_tolerance_in)} ${mark(okWall)}</small>`)}
+                ${kv('Predicted wall error', fmtErr(f.predicted_wall_error_in), T.finite(f.wall_tolerance_in) ? `<small>tolerance ${fmtErr(f.wall_tolerance_in)} ${mark(okWall)}</small>` : '')}
             </div>
             ${lim ? `<div class="v3-sub">Limited by: ${T.esc(lim)}.</div>` : ''}
             ${adv.length ? `<ul class="v2-list">${adv.map(a => `<li>${T.esc(a)}</li>`).join('')}</ul>` : ''}

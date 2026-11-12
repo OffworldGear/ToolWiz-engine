@@ -848,7 +848,9 @@ def _apply_plans(op: Dict[str, Any], rec: Optional[Dict[str, Any]], usr: Optiona
                                     "stepover": _expr("len", tslot["radial_depth_per_pass_in"])}
     elif rec is not None and rec["feasible"]:
         p = {"tool_spindleSpeed": _expr("rpm", rec["rpm"]), "tool_feedCutting": _expr("feed", rec["feed_ipm"])}
-        if kind != "finish":
+        if kind == "face":
+            p["stepover"] = _expr("len", rec["ae_in"])     # the depth of a facing pass comes from the stock: not written
+        elif kind != "finish":
             p["maximumStepdown"] = _expr("len", rec["ap_in"])
             if kind == "adaptive":
                 p["optimalLoad"] = _expr("len", rec["ae_in"])
@@ -1341,14 +1343,14 @@ ASSUMPTION_KEYS = {
     "alloy": "ToolWiz alloy / condition",
     "aggressiveness": "0..1 fraction (0.5 = relatively safe) or a percentage above 1",
     "runout": "holder total indicated runout (inches by default, or {value, unit: 'mm'})",
-    "finish_mode": "finishing mode: cleanup, surface or accuracy (finishing operations only)",
+    "finish_mode": "finishing mode: none (stock prep, no finish target), cleanup, surface or accuracy (finishing and facing operations)",
     "holder_type": "holder type text (shrink fit, hydraulic, ER collet, ...); fills in operations whose holder the snapshot does not know",
 }
 _COATING_NAMES = {n.lower(): n for _, n in _COATINGS}
 _COATING_NAMES.update({"none": "Uncoated", "bright": "Uncoated", "no coating": "Uncoated", "dlc": "DLC", "diamond": "Diamond"})
 _MATERIAL_ALIASES = {"carbide": "carbide", "solid carbide": "carbide", "hss": "hss", "high speed steel": "hss", "hss-e": "hss",
                      "cobalt": "cobalt", "hss-co": "cobalt", "m42": "cobalt", "m35": "cobalt"}
-FINISH_MODES = ("cleanup", "surface", "accuracy")
+FINISH_MODES = ("none", "cleanup", "surface", "accuracy")
 
 
 def normalize_assumption(rec: Any) -> Dict[str, Any]:
@@ -1613,8 +1615,12 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 if tool0.get("coating") is None:
                     entry["notes"].append("coating unknown (generic or missing): ToolWiz applied no coating factor")
                 opn = _KIND_OPERATION.get(kind, "Roughing")
-                key_r = (opn, tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), ctx["family"], ctx["alloy"], None, None)
-                rec_res = cache.get(key_r) or _run_endmill(physics, machine, ctx, tool, opn, None, None)
+                # Facing: the depth is set by the stock on top, not chosen, so the recommendation is made at the op's own depth.
+                rec_depth = cur["stepdown_in"] if kind == "face" else None
+                key_r = (opn, tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), ctx["family"], ctx["alloy"], rec_depth, None)
+                rec_res = cache.get(key_r) or _run_endmill(physics, machine, ctx, tool, opn, rec_depth, None)
+                if rec_depth:
+                    entry["notes"].append("facing: ToolWiz's recommendation is for this operation's own depth of cut")
                 cache[key_r] = rec_res
                 rec = _cut_dict(rec_res, tool["flutes"])
                 if ctx["model"] == "v2" and rec["model"] != "v2":

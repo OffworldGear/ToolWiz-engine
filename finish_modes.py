@@ -1,9 +1,10 @@
-"""Finish modes: cleanup | surface | accuracy (V3 plan, "Owner decisions, 2026-11-11 (later)").
+"""Finish modes: none | cleanup | surface | accuracy (V3 plan, "Owner decisions, 2026-11-11 (later)"; "none" 2026-11-12).
 
 A finishing result (v2 or v1) is checked against the mode's targets and, where it misses, fz and/or the stepover are reduced
 until it meets them; each mode keeps the highest MRR that satisfies its targets.
 
     mode      purpose                                   default targets
+    none      stock prep / facing with no finish need   no targets: nothing is reduced, the predicted Ra is only reported
     cleanup   decent, non-critical wall or floor        Ra 63 uin, wall error <= 0.001"
     surface   best visible finish (feed marks, scallops) Ra 32 uin (user-settable), wall error <= 0.001"
     accuracy  size-critical walls and floors            wall error <= 0.0002", Ra 63 uin
@@ -13,8 +14,13 @@ Physics (inches; all approximations are stated in the result's `approximation`):
     large enough that one flute generates the wall (tooth-to-tooth offset TIR*sin(pi/z) over fz above 0.5). Cusp
     h = s^2 / (8 R) with R = D/2 (circle sagitta; Boothroyd & Knight, Fundamentals of Machining and Machine Tools, the
     f^2/(8 r) nose-radius cusp, here with the cutter radius).
-  * Floor or 3D surface with a ball or bull nose: scallop between passes h = ae^2 / (8 R_eff), R_eff = D/2 (ball) or the
-    corner radius (bull); a flat end mill with no corner radius leaves no stepover scallop, only the feed marks.
+  * 3D surface with a ball or bull nose: scallop between passes h = ae^2 / (8 R_eff), R_eff = D/2 (ball) or the corner
+    radius (bull).
+  * Flat floor (facing, floor finishing): a ball leaves the same scallop. A flat-bottomed tool (flat or bull nose) leaves
+    none while the stepover is within its flat, D - 2r; beyond that the corner radii overlap and leave
+    h = (ae - (D - 2r))^2 / (8 r). A flat end mill with no corner radius leaves no stepover scallop, only the feed marks.
+  * Facing defaults to mode "none" unless the operation name says "finish" or a mode / target was requested: stock prep
+    needs no finish, and a finish target there only shortens the stepover.
   * Ra ~ h / 4 for a triangular/circular-arc cusp profile (same references; an approximation, the real Ra also depends on edge
     sharpness, built-up edge and vibration).
   * Wall error = predicted deflection + springback; it scales as ae * fz^(1 - mc) with mc ~ 0.25 (Kienzle), so fz is cut back
@@ -22,8 +28,9 @@ Physics (inches; all approximations are stated in the result's `approximation`):
 """
 import math
 
-MODES = ("cleanup", "surface", "accuracy")
-DEFAULTS = {"cleanup": {"ra": 63.0, "wall": 0.001}, "surface": {"ra": 32.0, "wall": 0.001},
+MODES = ("none", "cleanup", "surface", "accuracy")
+NO_TARGET = 1e9      # "none": a target no cut can miss
+DEFAULTS = {"none": {"ra": NO_TARGET, "wall": NO_TARGET}, "cleanup": {"ra": 63.0, "wall": 0.001}, "surface": {"ra": 32.0, "wall": 0.001},
             "accuracy": {"ra": 63.0, "wall": 0.0002}}
 FORCE_EXPONENT = 0.75          # force ~ fz^(1 - mc), mc ~ 0.25
 MIN_FZ_SCALE = 0.4
@@ -44,12 +51,16 @@ def sagitta(spacing, radius):
 
 def resolve(r):
     """(mode, Ra target uin, wall tolerance in) of a request: the mode's defaults unless the user set them."""
-    mode = str(getattr(r, "finish_mode", None) or "cleanup").strip().lower()
-    if mode not in MODES:
-        mode = "cleanup"
-    d = DEFAULTS[mode]
     ra = getattr(r, "target_ra", None)
     wall = getattr(r, "wall_tolerance", None)
+    mode = str(getattr(r, "finish_mode", None) or "").strip().lower()
+    if mode not in MODES:
+        op = str(getattr(r, "operation", "") or "").lower()
+        facing = ("face" in op or "facing" in op) and "finish" not in op
+        mode = "none" if facing and not (ra and ra > 0) and not (wall and wall > 0) else "cleanup"
+    d = DEFAULTS[mode]
+    if mode == "none":
+        return mode, d["ra"], d["wall"]
     return mode, float(ra) if ra and ra > 0 else d["ra"], float(wall) if wall and wall > 0 else d["wall"]
 
 
@@ -65,11 +76,26 @@ def _tool_kind(r, res):
 
 def _surface_kind(r, res, tool_kind):
     op = str(res.operation or r.operation).lower()
-    if tool_kind in ("ball", "bull") or any(k in op for k in ("3d", "scallop", "contouring")):
+    if any(k in op for k in ("3d", "scallop", "contouring", "parallel", "pencil", "morph", "spiral", "radial", "steep", "blend")):
         return "surface3d"
     if res.is_floor_finish:
-        return "floor"
+        return "floor"       # flat floor: a flat or bull-nose tool cuts it with its flat bottom
+    if tool_kind in ("ball", "bull"):
+        return "surface3d"
     return "wall"
+
+
+def stepover_scallop(kind, tool_kind, ae, D, r_eff):
+    """(cusp height, largest stepover for cusp h_max as a function) of the stepover scallop; (0, None) when there is none."""
+    if kind == "surface3d" and r_eff:
+        return cusp(ae, r_eff), (lambda h: math.sqrt(8.0 * r_eff * h))
+    if kind == "floor":
+        if tool_kind == "ball":
+            return cusp(ae, r_eff), (lambda h: math.sqrt(8.0 * r_eff * h))
+        if tool_kind == "bull":
+            flat = max(D - 2.0 * r_eff, 0.0)
+            return (cusp(ae - flat, r_eff) if ae > flat else 0.0), (lambda h: flat + math.sqrt(8.0 * r_eff * h))
+    return 0.0, None
 
 
 def _work_hardens(physics, r):
@@ -108,10 +134,10 @@ def apply(physics, r, res):
             fz_scale = min(fz_scale, s_max / z_eff / fz)
             limited.append("Ra (feed marks)")
         # stepover scallop (floor and 3D)
-        if kind in ("surface3d", "floor") and r_eff:
-            if cusp(ae, r_eff) > h_max:
-                ae_scale = min(ae_scale, math.sqrt(8.0 * r_eff * h_max) / ae)
-                limited.append("Ra (stepover scallop)")
+        h_so, ae_max = stepover_scallop(kind, tool_kind, ae, D, r_eff)
+        if ae_max is not None and h_so > h_max and ae > 0:
+            ae_scale = min(ae_scale, ae_max(h_max) / ae)
+            limited.append("Ra (stepover scallop)")
         # wall error
         err = res.deflection + res.springback
         if err > wall_tol > 0:
@@ -142,7 +168,7 @@ def apply(physics, r, res):
     s_marks = z_eff * new_fz
     r_marks = R if kind != "surface3d" else (r_eff or R)
     h_marks = cusp(s_marks, r_marks)
-    h_step = cusp(new_ae, r_eff) if (kind in ("surface3d", "floor") and r_eff) else 0.0
+    h_step = stepover_scallop(kind, tool_kind, new_ae, D, r_eff)[0]
     h = max(h_marks, h_step)
     advice = []
     hardens = _work_hardens(physics, r)
@@ -157,13 +183,21 @@ def apply(physics, r, res):
     if one_flute:
         advice.append("Runout makes one flute generate the surface: feed marks are z x fz apart. A low-runout holder lets "
                       "the feed rise at the same Ra.")
+    no_target = mode == "none"
     block = {"mode": mode, "surface_kind": kind, "tool_kind": tool_kind,
              "predicted_ra_uin": round(h / 4.0 * 1e6, 2), "predicted_cusp_in": h,
-             "predicted_wall_error_in": res.deflection + res.springback, "target_ra_uin": ra_target,
-             "wall_tolerance_in": wall_tol, "limited_by": ", ".join(limited) if limited else None,
+             "predicted_wall_error_in": res.deflection + res.springback, "target_ra_uin": None if no_target else ra_target,
+             "wall_tolerance_in": None if no_target else wall_tol, "limited_by": ", ".join(limited) if limited else None,
              "effective_mark_spacing_in": s_marks, "stepover_in": new_ae, "advice": advice,
              "approximation": APPROXIMATION}
     res.finish = block
+    if no_target:
+        block["advice"] = ["No finish target (stock prep): the stepover and feed are not reduced for surface finish. Choose a "
+                           "finish mode if this face must look good or hold size."]
+        res.tips.append({"title": "Finish mode: none (stock prep)",
+                         "message": f"No finish target. Predicted Ra about {block['predicted_ra_uin']:.0f} uin at these numbers.",
+                         "type": "info", "fusion": True})
+        return block
     res.tips.append({"title": f"Finish mode: {mode}",
                      "message": (f"Predicted Ra about {block['predicted_ra_uin']:.0f} uin (target {ra_target:.0f}), wall error "
                                  f"{block['predicted_wall_error_in']:.5f}\" (tolerance {wall_tol:.4f}\")"
