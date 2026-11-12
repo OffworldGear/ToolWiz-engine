@@ -14,7 +14,7 @@ V2_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2")
 # tools/v2_invariants.py) must be regenerated before a file moves from v2_staged to v2.
 V2_STAGED_DIR = os.path.join(ROOT, "tests", "benchmarks", "v2_staged")
 OPERATIONS = {"slot", "side", "rough", "hem", "finish", "ramp"}
-END_TYPES = {"square", "ball", "corner_radius"}
+END_TYPES = {"square", "ball", "corner_radius", "high_feed"}
 RAMP_KINDS = {"helical", "linear", "plunge", "any"}
 RAMP_RANGES = ("angle_deg", "hole_diameter_over_D", "pitch_over_D", "ramp_feed_factor", "plunge_feed_factor")
 TOOL_FIELDS = ("part_number", "series", "tool_material", "coating", "flutes", "end", "corner_radius",
@@ -110,6 +110,9 @@ class TestV2BenchmarkDataset(unittest.TestCase):
                 if end == "square":
                     # Square rows may carry a catalog edge-break radius; it must be small next to DC/2.
                     self.assertTrue(cr is None or 0 <= cr < dc / 2, "square end mill corner radius must be below DC/2")
+                elif end == "high_feed":
+                    # High-feed mills publish a programming radius (tool.programming_radius), not a corner radius.
+                    self.assertTrue(cr is None or 0 < cr < dc / 2, "high-feed corner radius must be below DC/2")
                 elif end == "ball":
                     self.assertTrue(positive(cr), "ball rows carry corner_radius = DC/2")
                     self.assertAlmostEqual(cr, dc / 2, delta=dc * 0.01 + 1e-4)
