@@ -242,6 +242,12 @@ def _runout_arg(data):
     return float(limits["runout"]) if limits.get("runout_set") else None
 
 
+def _brand_arg(data):
+    """The tool brand sent with a request ("brand": "Helical", blank = none); toolwiz_common.brand maps it to a vendor."""
+    b = data.get("brand")
+    return str(b).strip() if b is not None and str(b).strip() else None
+
+
 def _holder_arg(data):
     """The holder description sent with a request ("holder": "Lyndex SK10" or {"description": ...}), or None."""
     h = data.get("holder")
@@ -566,7 +572,8 @@ def _runout_fields(res):
             "engagement_source": res.engagement_source, "finish": res.finish,
             "runout_in": r(res.runout_in, 6), "runout_source": res.runout_source,
             "recommended_radial_stock_in": r(res.recommended_radial_stock_in, 5),
-            "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5)}
+            "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5),
+            "vendor_basis": res.vendor_basis}
 
 
 @app.route("/api/model_settings", methods=["GET", "POST"])
@@ -623,6 +630,7 @@ def calculate():
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
             runout=_runout_arg(data),
             holder=_holder_arg(data),
+            brand=_brand_arg(data),
             cut_depth=cut_depth,
             cut_width=cut_width,
             engagement_explicit=(explicit_depth is not None or explicit_width is not None),
@@ -739,6 +747,7 @@ def calculate_for_fusion():
             max_hp=float(data.get("maxHp") or machine_limits()["max_hp"]),
             runout=_runout_arg(data),
             holder=_holder_arg(data),
+            brand=_brand_arg(data),
             cut_depth=user_depth,
             cut_width=user_width,
             **_finish_args(data),

@@ -72,3 +72,120 @@ are one vendor group (Harvey) against a cross-vendor cap.
 
 The 3D finish rows are spindle-capped (C7): at ap 0.010" the 1/8" ball's effective diameter is 0.068", so 16,000 rpm is only 284 SFM at the
 cutting edge. The finish pass then meets the finish mode's Ra target through `finish_modes` (scallop h = ae^2/(8 R), 32 uin at 0.008" stepover).
+
+## Brand first (owner decisions 2026-11-12, branch `v4/g1-brand`)
+
+Decisions (full text in `docs/V3_IMPLEMENTATION_PLAN.md`, "Owner decisions, 2026-11-12"): the vendor guardrail C14 uses the
+tool brand's own charts; no brand (or an uncharted brand) uses Helical HEM / Harvey + Helical charts, then the cross-vendor
+consensus; 50 % = the middle of the chart's range, 0 % its bottom, 100 % its top; HEM and traditional roughing never share a
+bucket.
+
+**Implementation.**
+* `toolwiz_common/brand.py`: free text to a vendor key (harvey, helical, kennametal, kyocera_sgs, osg, sandvik, seco, emuge,
+  garr, yg1, titan) by aliases; unknown text gives no brand and is kept for the note. Sources, in order: request field
+  `brand` (`/api/calculate`, `/api/calculate_for_fusion`, MCP `toolwiz_calculate_cut`, advisor chat `toolwiz_calculate` and
+  `runout_sensitivity`, setup-advisor assumption key `brand`), then the Fusion tool dict's `vendor`.
+* `data/model_v2/consensus_by_vendor.json` (`tools/build_vendor_consensus.py`): per vendor and bucket (family, 50-HB bin,
+  diameter band, chart class hem | rough | side | slot | finish, engagement class) every row's [lo, nominal, hi] of SFM, fz/D
+  and feed per flute (C14m), plus its ae/D; and the cross-vendor section, which reproduces `consensus.json` exactly
+  (`--check`: 0 mismatches). A single published value spans 0.76-1.10x of it (the former 0 % / 100 % anchors). Square end
+  only; ball and bull-nose tools keep `consensus_shaped.json` with the old scale x median caps (mode "consensus", no range).
+  Titan has no square-end rows (all its rows are corner-radius tools), so brand Titan uses the default.
+* `physics_v2/optimize.vendor_lookup`: brand (its own chart class; a roughing cut reads the vendor's roughing chart, else its
+  side-milling chart, and when it has both, the one whose rows' ae/D is closest to the cut's; widened within the vendor by
+  band, engagement, hardness up to 200 HB, then any engagement class) -> default (adaptive: Helical HEM, then Harvey HEM;
+  rough, slot, finish: Harvey + Helical pooled) -> cross-vendor consensus (>= 2 vendor groups) -> none (physics only).
+  `range_at` maps aggressiveness linearly lo (0) -> mid (0.5) -> hi (1); `c14_cap` applies it to C14v, C14f and C14m. The
+  chip-load floor C14lo stays 40-50 % of the middle chip load of the source in use. C2 and C7 keep their aggressiveness
+  scales (`CONSENSUS_SCALE_POINTS`): they are physics limits and are not relaxed.
+* `v2_bridge.OPERATION_MAP`: pockets ("pocket", "2d pocket", "3d pocket", "pocket clearing") are traditional roughing now (they
+  were mapped to adaptive); "dynamic", "hem", "trochoidal milling" are HEM. `setup_advisor._KIND_OPERATION` and the add-in's
+  `infer_strategy_for_op` already sent pockets as "Roughing".
+* Result field `vendor_basis` {mode, vendor, vendor_name, brand_text, brand_key, brand_source, chart_class, rows,
+  sfm_range [lo, mid, hi], fz_range, bucket, widening, note} on every endpoint; one line "Vendor basis: ..." in the web result
+  panel; a Brand box (text + list of charted vendors) in the web tool form; the Fusion add-in sends the tool's vendor.
+
+**The 741 SFM jump (1/4" 4FL 17-4, Adaptive Roughing, stickout 0.75", Speedio 16k).** Before: 80 % gave 463 SFM, 90-100 %
+gave 731-741 SFM with C14v not listed. Cause: the 17-4 default hardness (230 HB, bin 4) and the wider engagement the optimizer
+picks at 90-100 % (ae/D 0.25 -> "heavy") had vendor HEM rows only at bins 6-7; the consensus lookup widened hardness by one bin
+only, found no bucket, and C14 switched off, so the speed jumped to the C7 value. Fix: widening steps up to 100 HB and 200 HB
+and then any engagement class (`WIDENING_STEPS`), for the vendor sources and the consensus alike. After: 228 / 455 / 554 / 620
+SFM at 0 / 50 / 80 / 100 %, the 100 % value being the top of the range (cross-vendor HEM consensus 228-455-620; Helical and
+Harvey have no 17-4 HEM rows). Regression test: `tests/test_vendor_brand.py::test_17_4_adaptive_never_exceeds_the_top_of_the_vendor_range`.
+
+**The Seco 17-4 groups at 31-53 SFM.** A test-harness problem, not the engine: Seco publishes hardness as tensile strength
+("N/mm2 (Rm)", 500-1200 and 1200-1650); `tools/v2_provisional_limits.row_hb` reads it as Brinell, so the conformance run cut
+those groups as 850 HB and 1425 HB material (C2 / C4 limited, no vendor bucket). `tools/calibrate_v2.row_hb` already converts
+(HB ~ Rm / 3.38) and so did the consensus tables; the conformance harness now does too (`tests/test_vendor_conformance.row_hb`).
+After the fix 5 of Seco's 13 branded 17-4 groups still miss (C7 / C2 limited, listed below; e.g. HEM 1/8-1/4 at
+289 SFM against 0.75 x 460). `tools/v2_provisional_limits.row_hb` (used to build the engagement
+envelope and the provisional limits) still reads Rm as HB; those data files were not rebuilt here.
+
+### Conformance at 50 % (gated groups, runout 0.0001", test machine 60k)
+
+| Run | Overall (gate 90 %) | slot | side | hem | rough | micro <= 1/16" |
+|---|---|---|---|---|---|---|
+| Branded, each vendor's own groups and ranges (526 groups) | **89.9 % (xfail)** | 94.1 % | **82.2 % (xfail)** | 91.4 % | 100.0 % | 86.5 % |
+| Unbranded, Helical HEM + Harvey/Helical roughing groups (48) | 95.8 % | | | **80.0 % (xfail, n 10)** | 100.0 % | 100.0 % |
+| Cross-vendor (part 1, reported; 297 groups) before -> after | 92.4 % -> **84.1 % (xfail)** | 95.8 % -> 95.8 % | 94.3 % -> **74.8 % (xfail)** | 93.0 % -> 88.7 % | 83.0 % -> 89.4 % | 78.0 % -> 79.7 % (xfail) |
+| Recommended engagement cells (157) | 97.5 % -> 96.8 % | | | | | |
+
+(The "before" cross-vendor column is the V4 table above; it was measured with the Rm hardness misread.)
+
+Branded per vendor: Emuge 68.8 % (n 64), Garr 100 % (66), Harvey 89.3 % (56), Helical 94.9 % (39), Kennametal 98.7 % (78),
+Kyocera SGS 100 % (64), OSG 89.0 % (73), Sandvik 64.5 % (31), Seco 87.2 % (39), YG-1 100 % (16). Every branded group ran on its
+own vendor's chart (mode "brand"; `test_branded_runs_use_the_brand`).
+
+Missed gates and why (strict xfails in `tests/test_vendor_conformance.py`):
+* Branded overall 89.9 % (53 of 526 fail; 1 group short). Branded side 82.2 % (31 of 174). Nearly all are physics-limited
+  below the vendor's minimum: Emuge H13 side and slot, 20 groups at 225-362 SFM against 0.75 x Emuge's minimum 270-379 (C7
+  tool-life speed at 50 %); Sandvik HEM / side (C7: 316, 4130, Ti, Inconel, H13); OSG Inconel side (C7); Seco 17-4 micro
+  (C2 floor); OSG 6061 slot fz (C2). Six groups are above a vendor's range: five Harvey H13 Profiling (side) groups run on
+  Harvey's Roughing chart (its rows' ae/D was closer to the group's) and their fz is above the Profiling chip load (0.00016
+  against <= 0.00015, etc.); one Kennametal 17-4 HEM > 1/2" group read a widened bucket (fz 0.00402 against <= 0.00395).
+  Raising C7 or C2 to meet a vendor would relax a physics limit, which the owner ruled out.
+* Unbranded HEM 80.0 % (2 of 10): Helical 6061 HEM 1/8-1/4 and 1/4-1/2, fz 0.00109 / 0.00218 against 0.6 x Helical's
+  minimum 0.00138 / 0.00270 (C2 chip limit).
+* Cross-vendor gates (part 1): built for the single cross-vendor average; the unbranded engine now follows the conservative
+  Harvey/Helical charts on purpose, so against the pooled ranges of every vendor it sits under the faster ones (side 74.8 %).
+  Kept as strict xfails with the measured numbers; the per-vendor gates carry the acceptance. Rough (89.4 %) now passes, so its
+  old xfail mark was removed.
+
+Stability (`tests/test_v2_stability.py`): 113 passed, 7 xfailed, unchanged. Pipeline parity snapshot: unchanged (the parity
+payloads run on v1).
+
+### Engine / vendor median ratio per vendor at 50 % (`tools/vendor_compare.py`, groups of each vendor's own rows)
+
+SFM ratio / fz ratio; "above max" = groups with engine SFM above the vendor's published maximum. Before = `toolwiz/v4-advisor`
+at `cbfc483` (with the Rm hardness fix in the harness).
+
+| Vendor, op (groups) | Before | After, unbranded | After, brand = vendor |
+|---|---|---|---|
+| Harvey rough (54) | 1.32 / 1.00, above max 41 | 1.00 / 1.00, 1 | 1.00 / 1.00, 1 |
+| Harvey HEM (6) | 1.43 / 0.70, 6 | 1.00 / 0.72, 0 | 1.00 / 0.72, 0 |
+| Harvey side (9) | 2.45 / 2.58, 9 | 1.00 / 1.89, 0 | 1.00 / 1.48, 0 |
+| Helical rough (35) | 1.15 / 0.74, 27 | 1.00 / 0.89, 0 | 1.00 / 0.96, 0 |
+| Helical HEM (12) | 1.51 / 0.65, 8 | 1.00 / 0.72, 0 | 1.00 / 0.72, 0 |
+| Kennametal rough (10) | 0.74 / 0.87, 0 | 0.71 / 0.81, 0 | 0.74 / 0.94, 0 |
+| Kennametal HEM (13) | 0.85 / 0.72, 2 | 0.88 / 0.78, 2 | 0.88 / 0.85, 2 |
+| Kennametal side (44) | 0.76 / 0.83, 0 | 0.71 / 0.88, 0 | 0.78 / 0.96, 0 |
+| Kyocera SGS HEM (48) | 0.88 / 1.15, 5 | 0.82 / 1.26, 1 | 0.94 / 1.00, 0 |
+| Kyocera SGS side (53) | 0.85 / 0.92, 10 | 0.73 / 1.24, 9 | 0.89 / 1.00, 0 |
+| OSG HEM (22) | 1.02 / 0.65, 0 | 0.84 / 0.80, 3 | 0.94 / 0.88, 0 |
+| OSG side (76) | 0.89 / 0.86, 11 | 0.65 / 0.84, 10 | 0.81 / 0.94, 4 |
+| Sandvik HEM (36) | 0.69 / 1.11, 7 | 0.69 / 1.32, 7 | 0.71 / 1.00, 0 |
+| Sandvik side (62) | 0.57 / 0.63, 0 | 0.51 / 0.63, 0 | 0.60 / 0.67, 0 |
+| Seco HEM (16) | 0.75 / 0.73, 2 | 0.72 / 0.78, 1 | 0.75 / 0.78, 0 |
+| Seco side (38) | 0.68 / 0.64, 1 | 0.62 / 0.65, 0 | 0.76 / 0.82, 0 |
+| Emuge HEM (16) | 0.84 / 0.93, 0 | 0.70 / 1.04, 2 | 0.93 / 1.00, 0 |
+| Emuge side (120) | 0.78 / 1.01, 10 | 0.68 / 1.20, 9 | 0.89 / 1.00, 0 |
+| Garr HEM (36) | 0.79 / 0.90, 0 | 0.83 / 1.00, 0 | 0.80 / 0.88, 0 |
+| Garr side (30) | 0.84 / 0.98, 4 | 0.68 / 1.07, 0 | 0.90 / 0.91, 0 |
+| YG-1 HEM (20) | 0.85 / 1.04, 0 | 0.62 / 1.27, 0 | 0.95 / 1.00, 0 |
+| YG-1 side (20) | 0.92 / 1.04, 5 | 0.78 / 1.14, 0 | 0.94 / 1.00, 0 |
+
+Reading: unbranded, the engine now sits on Harvey/Helical (ratio 1.00, none above their maximum) and below the faster
+vendors, as decided; with the brand given it moves to that vendor's middle wherever the physics allows (ratios 0.9-1.0),
+and where it stays lower (Sandvik, Seco, Kennametal roughing) the C7 tool-life speed or C2 is the limit. Unbranded fz ratios
+above 1 (Kyocera, YG-1, Emuge side) come from the default chart's chip load being higher than that vendor's; with the brand
+they come to 1.00.

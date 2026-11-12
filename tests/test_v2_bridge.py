@@ -165,7 +165,7 @@ class TestAddinMessage(unittest.TestCase):
         self.assertIn("v1 used because x.", msg)
         self.assertEqual(
             a._limited_by_text("v2: C14f, C14m"),
-            "v2: vendor-average chip load, vendor-average removal rate",
+            "v2: vendor chart chip load, vendor chart removal rate",
         )
 
     def test_v2_t12_slotting_17_4_annealed_vendor_depth_and_reduced_flutes(self):

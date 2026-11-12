@@ -38,6 +38,14 @@ class TestToolHelpers(unittest.TestCase):
         self.assertEqual(set(ft), {"type", "unit", "geometry", "description", "shaft", "holder"})
         self.assertIsNone(t.fusion_tool_for_server({"type": "x"}))
 
+    def test_fusion_tool_carries_the_vendor_as_brand(self):
+        """Owner decisions 2026-11-12: the server's vendor guardrail uses the tool's brand (Fusion's `vendor`)."""
+        ft = t.fusion_tool_for_server({"type": "flat end mill", "unit": "inches", "geometry": {"DC": 0.25}, "vendor": " Harvey Tool "})
+        self.assertEqual(ft["vendor"], "Harvey Tool")
+        self.assertNotIn("vendor", t.fusion_tool_for_server({"type": "x", "geometry": {"DC": 1}, "vendor": "  "}))
+        self.assertEqual(t.tool_vendor({"vendor": "Klot (Amazon Ebay)"}), "Klot (Amazon Ebay)")
+        self.assertIsNone(t.tool_vendor({}))
+
 
 class TestAutoSetReport(unittest.TestCase):
     CALC = {"rpm": 9000, "engagement_source": "user", "engagement_doc": 0.2, "engagement_woc": 0.05, "doc": 0.3, "woc": 0.1,

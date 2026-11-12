@@ -70,6 +70,7 @@ TOOLS: List[ToolSpec] = [
                    "tool_number": _INT, "diameter": _d(_NUM, "inches"), "flutes": _INT, "flute_length": _NUM, "shank_diameter": _NUM,
                    "stickout": _NUM, "corner_radius": _NUM, "coating": _STR, "geometry": _STR, "aggressiveness": _NUM,
                    "runout_in": _NUM, "cut_depth": _d(_NUM, "inches"), "cut_width": _d(_NUM, "inches"),
+                   "brand": _d(_STR, "tool brand/vendor, e.g. Harvey Tool, Helical, Kyocera SGS; blank = unbranded"),
                    "model": {"type": "string", "enum": ["v1", "v2"]}}, ["diameter"])),
     ToolSpec("strategy_compare",
              "Compare machining strategies with ToolWiz for a feature (profile cutout with tabs, slot, T-slot, pocket): options with ap, ae, rpm, feed, "
@@ -91,7 +92,8 @@ TOOLS: List[ToolSpec] = [
     ToolSpec("runout_sensitivity",
              "How the recommended numbers change with holder runout (calls ToolWiz's runout sensitivity analysis when this ToolWiz has it)." + NUMBERS_RULE,
              _obj({"family": _STR, "alloy": _STR, "operation": _STR, "tool_number": _INT, "diameter": _NUM, "flutes": _INT,
-                   "flute_length": _NUM, "shank_diameter": _NUM, "stickout": _d(_NUM, "inches from holder face; ask, the 1.5\" default is far too long for micro tools"), "coating": _STR, "aggressiveness": _NUM}, ["family", "diameter"])),
+                   "flute_length": _NUM, "shank_diameter": _NUM, "stickout": _d(_NUM, "inches from holder face; ask, the 1.5\" default is far too long for micro tools"), "coating": _STR, "aggressiveness": _NUM,
+                   "brand": _d(_STR, "tool brand/vendor; blank = unbranded")}, ["family", "diameter"])),
     ToolSpec("set_assumption",
              "Record something the owner told you that Fusion does not say, for every advisor / calculation run in this chat, without changing "
              "Fusion. Keys: " + "; ".join(f"{k} ({v})" for k, v in setup_advisor.ASSUMPTION_KEYS.items()) + ". With no scope it applies to all "
@@ -176,6 +178,9 @@ def _apply_to_calc(ctx: ToolContext, args: Dict[str, Any]) -> tuple:
     if "tool_material" in res:
         a["tool_material"] = res["tool_material"]["value"]
         notes.append(f"tool material {a['tool_material']} from your assumption")
+    if "brand" in res and (not a.get("brand") or res["brand"]["override"]):
+        a["brand"] = res["brand"]["value"]
+        notes.append(f"brand {a['brand']} from your assumption")
     return a, notes
 
 
@@ -279,7 +284,7 @@ def _calc_body(a: Dict[str, Any], notes: List[str]) -> tuple:
             "flutes": a.get("flutes", 4), "coating": a.get("coating") or "AlTiN", "model": a.get("model") or _default_model()}
     for src, dst in (("flute_length", "fluteLength"), ("shank_diameter", "shankDiameter"), ("stickout", "stickout"),
                      ("corner_radius", "cornerRadius"), ("geometry", "geometry"), ("cut_depth", "cutDepth"), ("cut_width", "cutWidth"),
-                     ("runout_in", "runout")):
+                     ("runout_in", "runout"), ("brand", "brand")):
         if a.get(src) is not None:
             body[dst] = a[src]
     if a.get("aggressiveness") is not None:

@@ -114,6 +114,12 @@ class CutRequest:
     tslot_operation: str = "full_slot"               # full_slot | side_cut | both_sides | axial_step
     slot_height: Optional[float] = None              # finished slot height along Z (in)
     radial_depth_total: Optional[float] = None       # total radial depth wanted (in)
+    # Tool brand (owner decisions 2026-11-12, toolwiz_common.brand): free text; when it names a charted vendor the v2
+    # vendor guardrail (C14) uses that vendor's charts. None/blank: the Fusion tool dict's `vendor`, else no brand.
+    brand: Optional[str] = None
+    brand_key: Optional[str] = None                  # set by _normalize: vendor key or None
+    brand_text: Optional[str] = None                 # set by _normalize: the text the brand came from
+    brand_source: Optional[str] = None               # set by _normalize: "request" | "fusion vendor" | None
 
 
 @dataclass
@@ -191,6 +197,9 @@ class CutResult:
     runout_source: Optional[str] = None       # "request" | "holder: <class>" | "default by diameter"
     holder_advice: Optional[Dict[str, Any]] = None   # toolwiz_common.tooling_advisor.holder_advice (advice_wiring)
     tool_advice: List[Dict[str, Any]] = field(default_factory=list)   # tooling_advisor.tool_advice (advice_wiring)
+    # Which vendor charts set the v2 guardrail (owner decisions 2026-11-12): {"mode": "brand" | "default" | "consensus" |
+    # "none", "vendor", "brand_text", "chart_class", "rows", "sfm_range": [lo, mid, hi], "fz_range": [...], "note"}.
+    vendor_basis: Optional[Dict[str, Any]] = None
 
 
 def _ratio(after: float, before: float) -> float:
@@ -327,6 +336,8 @@ def _normalize(req: CutRequest) -> CutRequest:
             neck_diameter=r.neck_diameter, neck_length=r.neck_length,
             taper_angle=r.taper_angle, corner_radius=r.corner_radius, assume_shaft_taper=True)
     r.profile = prof
+    from toolwiz_common import brand as _brand
+    r.brand_key, r.brand_text, r.brand_source = _brand.from_sources(r.brand, r.fusion_tool)
     if r.runout is None:
         holder = r.holder or holder_description_of(r.fusion_tool)
         r.runout, r.runout_source = default_runout(r.diameter, holder)
@@ -739,6 +750,9 @@ def run_cut(physics, req: CutRequest) -> CutResult:
     if req.model == "v2":
         import v2_bridge
         result = v2_bridge.apply(physics, r, result, machine_profile=req.machine_profile)
+    if result.vendor_basis is None:
+        import v2_bridge
+        result.vendor_basis = v2_bridge.vendor_basis_block(None, r, result)
     if result.is_finishing and not (ctx.is_hole_tool or ctx.is_tapping or ctx.is_saw) and result.feed_ipm > 0:
         import finish_modes
         finish_modes.apply(physics, r, result)

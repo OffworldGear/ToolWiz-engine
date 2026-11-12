@@ -10,7 +10,8 @@ into `toolwiz/v3-advisor` by the planner. Read `docs/REVIEW_AND_FIX_PLAN.md` Par
    the vendor median for the bucket, engagement (ADOC, RDOC) inside the vendor envelope for that
    operation. 75% = vendor median. 100% = about 1.10 x vendor median with deeper engagement and
    accepted faster wear. (These anchors already exist as `CONSENSUS_SCALE_POINTS` in
-   `physics_v2/optimize.py`; keep them.)
+   `physics_v2/optimize.py`; keep them.) *Superseded for the vendor guardrail by the owner decisions of 2026-11-12
+   (50 % = the middle of the vendor's range; see below).*
 2. When the test suite runs, the engine at 50% must fall inside the vendors' published ranges
    (acceptance test `tests/test_vendor_conformance.py`, defined below).
 3. Micro tools (1/16" and below) handled by physics: deflection, stress and per-flute runout.
@@ -178,6 +179,36 @@ subject to its targets and all hard limits. Response block `finish`: {mode,
 predicted_ra_uin, predicted_cusp_in, predicted_wall_error_in, target_ra_uin, wall_tolerance_in,
 limited_by, advice}. Advice includes spring-pass guidance (not in work-hardening alloys),
 climb vs conventional, and the stock to leave from roughing that the finish pass needs.
+
+### Owner decisions, 2026-11-12
+
+A per-vendor comparison (`tools/vendor_compare.py`) showed that one cross-vendor average is wrong for specific brands
+(roughing 1.32x Harvey's typical speed and above Harvey's published maximum in 41 of 54 groups; HEM 0.56-0.88x of most
+vendors but 1.43x Harvey and 1.51x Helical). Decisions:
+
+1. **Brand first.** When the tool's brand is known and that vendor has chart rows for the cut (same chart class;
+   widened by diameter band, engagement and hardness within that vendor before giving up), the vendor guardrail (C14)
+   uses that vendor's own values, not the cross-vendor average. Brand comes from the request field `brand`, else the
+   Fusion tool's `vendor` (`toolwiz_common/brand.py`).
+2. **No brand, or a brand with no charts** (most of the owner's library: "Klot (Amazon Ebay)", "KK DUK AliExpress or
+   Temu", "SpeTool Amazon", "Speed Tiger", "Haas", "Maritool", blank): the more conservative Harvey Performance charts,
+   Helical for HEM, Harvey + Helical for traditional roughing and the other operations where they have rows; where they
+   have none, the cross-vendor consensus. "Conservative" is about speed: chip load still goes through every physics limit
+   (C1-C8), never relaxed.
+3. **50 % aggressiveness = the middle of the vendor's published range**, 0 % its bottom, 100 % its top (range = min..max
+   over the bucket rows' min/nominal/max; middle = median of the nominal values; a single published value spans
+   0.76-1.10x of it). Monotone and continuous (linear between the three points). Physics limits still cap everything.
+   **This supersedes the 0.92 x median anchor of Goal 1 for the vendor guardrail (C14v, C14f, C14m).** The physics
+   scales on C7 (tool-life speed level) and C2 (chip invariant) keep `CONSENSUS_SCALE_POINTS`, since relaxing them would
+   relax a physics limit.
+4. **HEM and traditional roughing are distinguished everywhere**: adaptive / HEM / dynamic / trochoidal toolpaths read
+   the vendors' HEM charts; pockets, roughing contours and "Roughing" read the roughing charts (a vendor's side-milling
+   chart when it has no roughing chart); they never share a bucket. The result field `vendor_basis` names the chart class
+   used.
+
+Implementation: `data/model_v2/consensus_by_vendor.json` (`tools/build_vendor_consensus.py`),
+`physics_v2/optimize.vendor_lookup`, `range_at`, `c14_cap`; result field `vendor_basis`; notes and measured effect in
+`docs/V4_ENGINE_NOTES.md`.
 
 ## Work packages
 

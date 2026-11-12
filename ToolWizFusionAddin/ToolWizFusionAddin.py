@@ -1178,8 +1178,8 @@ LIMIT_LABELS = {
     "C1": "every flute cuts (runout)", "C2": "chip thickness (tooth strength)", "C3": "tool deflection",
     "C4": "bending stress", "C5": "spindle power/torque", "C6": "flute length", "C7": "cutting speed (tool life)",
     "C8": "slot depth", "C9": "chatter (reach)", "C10": "work-hardening chip", "C11": "feed cap",
-    "C12": "stepover vs runout", "C13": "program size", "C14v": "vendor-average speed",
-    "C14f": "vendor-average chip load", "C14m": "vendor-average removal rate",
+    "C12": "stepover vs runout", "C13": "program size", "C14v": "vendor chart speed",
+    "C14f": "vendor chart chip load", "C14m": "vendor chart removal rate",
 }
 
 
@@ -2580,6 +2580,15 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
             tool_category = "Carbide Endmill"
 
     ft = fusion_tool_payload(geo_payload)
+    # Brand (owner decisions 2026-11-12): the tool's vendor, so the server uses that vendor's charts; sent as `brand` when the
+    # fusion tool slice does not carry it (no raw tool JSON), blank = unbranded.
+    brand = None
+    if not (ft or {}).get("vendor"):
+        try:
+            raw = (geo_payload or {}).get("raw_json")
+            brand = twlogic.tool_vendor(json.loads(raw) if isinstance(raw, str) else raw) or (geo_payload or {}).get("vendor")
+        except Exception:
+            brand = (geo_payload or {}).get("vendor")
     # Runout: the dialog's value, else the tool's own toolwiz.runout_*; otherwise it is not sent and the server
     # picks it from the holder class, else by tool diameter (0.0001 in up to 1/8 in, 0.0002 in above).
     if runout_in is None and (geo_payload or {}).get("runout_source") == "tool":
@@ -2589,6 +2598,7 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
         "tool": tool_category, "coating": coating_code, "isCarbide": is_carbide,
         **({"runout": float(runout_in)} if runout_in is not None else {}),
         **({"model": model} if model else {}),
+        **({"brand": str(brand)} if brand else {}),
         **(engagement or {}),
         **({"fusion_tool": ft} if ft else {}),
         "diameter": geo_payload["diameter"], "flutes": geo_payload["flutes"], "fluteLength": geo_payload["fluteLength"],
@@ -3595,8 +3605,9 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             
             agg_input = inputs.addIntegerSliderCommandInput('aggressiveness', 'Aggressiveness', 0, 100)
             agg_input.valueOne = prefs.get('aggressiveness', 50)
-            agg_input.tooltip = ('50% = relatively safe starting data (about 0.92 x the vendor median chip load); '
-                                 '75% = vendor median; 100% = about 1.10 x with deeper engagement and faster wear.')
+            agg_input.tooltip = ('50% = the middle of the vendor chart range (the tool brand\'s own chart, else Helical HEM / '
+                                 'Harvey + Helical); 0% = bottom of the range; 100% = top of the range. Physics limits still cap '
+                                 'every value.')
 
             # Runout (TIR): the tool's own toolwiz.runout_* value, else blank = automatic (server: holder class, else by diameter).
             doc_u = get_cam_document_units()
