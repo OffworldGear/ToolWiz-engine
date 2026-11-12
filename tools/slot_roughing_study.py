@@ -293,7 +293,13 @@ def tw_option(res, D, z, depth, dyn, mach, hf=False):
 # the study
 # ---------------------------------------------------------------------------------------------------------------------
 
-HF_BRANDS = (("Harvey", "harvey"), ("Helical", "helical"), ("Niagara SN400R", "seco"))
+# (label, vendor key, series filter, flute filter): the Seco brand key holds the Niagara Cutter and the Seco catalog rows; each
+# charted high-feed series is its own option. The slot is one TOOL diameter wide, so a metric tool (JHF980 3 mm = 0.118")
+# cuts a slot of its own width; the option name carries the true diameter.
+HF_BRANDS = (("Harvey", "harvey", None, None), ("Helical", "helical", None, None),
+             ("Niagara SN400R", "seco", ("SN400R", "SN200R"), None),
+             ("Seco JHF980 2FL", "seco", ("JHF980",), 2), ("Seco JHF980 4FL", "seco", ("JHF980",), 4),
+             ("Seco SHF712 2FL", "seco", ("SHF712",), 2))
 STD_FLUTES = (2, 3, 4)
 
 
@@ -326,41 +332,47 @@ def study_case(mat_name, D, aggs, depths, mach, dyn, rows, with_estimates=True):
 
     # 1. high-feed
     if mat["hf"]:
-        for label, key in HF_BRANDS + (("unbranded", None),):
-            cands = [r for r in chart_rows(rows, mat["family"], hb, D, "hf") if r["_vendor"] == key] if key else []
+        for label, key, series, nfl in HF_BRANDS + (("unbranded", None, None, None),):
+            cands = [r for r in chart_rows(rows, mat["family"], hb, D, "hf") if r["_vendor"] == key
+                     and (series is None or r["tool"].get("series") in series)
+                     and (nfl is None or int(r["tool"]["flutes"]) == nfl)] if key else []
             geo_row = cands[0]["tool"] if cands else None
+            Dt = float(geo_row["DC"]) if geo_row else D   # the tool's true diameter (a 3 mm tool is 0.118")
+            tag = f" [{round(Dt * 25.4, 2):g} mm = {Dt:.3f}\" tool, {Dt:.3f}\" slot]" if abs(Dt - D) > 0.005 * D else ""
             rp = (geo_row or {}).get("programming_radius")
             apmx = (geo_row or {}).get("apmx")
             z = int(geo_row["flutes"]) if geo_row else 4
             notes = []
             if key and not cands:
                 any_size = sorted({float(r["tool"]["DC"]) for r in rows if r["_vendor"] == key and end_class(r) == "hf"
-                                   and r["material"].get("toolwiz_family") == mat["family"]})
+                                   and r["material"].get("toolwiz_family") == mat["family"]
+                                   and (series is None or r["tool"].get("series") in series)
+                                   and (nfl is None or int(r["tool"]["flutes"]) == nfl)})
                 notes.append(f"no {label} high-feed chart row at {D:g}\" in this material (charted diameters: "
                              f"{', '.join(f'{x:g}' for x in any_size) or 'none'})")
                 add(f"high-feed {label}", "hf", {"D": D, "z": None}, None, {}, notes)
                 continue
             tw = {}
             for a in aggs:
-                res = toolwiz(mat, D, z, "High Feed", a, mach, brand=(label.split()[0] if key else None),
-                              corner=rp or 0.0, max_ap=apmx, stickout=3.0 * D)
-                tw[a] = {dep: tw_option(res, D, z, dep, dyn, mach, hf=True) for dep in depths}
+                res = toolwiz(mat, Dt, z, "High Feed", a, mach, brand=(label.split()[0] if key else None),
+                              corner=rp or 0.0, max_ap=apmx, stickout=3.0 * Dt)
+                tw[a] = {dep: tw_option(res, Dt, z, dep, dyn, mach, hf=True) for dep in depths}
                 if a == 0.5 and with_estimates:
                     t0 = tw[a][depths[0]]
-                    tw[a]["estimates"] = model_estimates(mat, D, z, "High Feed", rp, apmx or ((res.v2 or {}).get("high_feed") or {}).get("max_ap_in"),
-                                                         t0["ap"], D, t0["fz"], t0["rpm"], a, res.runout_in, stickout=3.0 * D)
+                    tw[a]["estimates"] = model_estimates(mat, Dt, z, "High Feed", rp, apmx or ((res.v2 or {}).get("high_feed") or {}).get("max_ap_in"),
+                                                         t0["ap"], Dt, t0["fz"], t0["rpm"], a, res.runout_in, stickout=3.0 * Dt)
             hfo = ((res.v2 or {}).get("high_feed") or {})
-            ramp_deg = hfo and min(math.degrees(math.atan(hfo["max_ap_in"] / D)), 3.0) or DEFAULT_RAMP_DEG
+            ramp_deg = hfo and min(math.degrees(math.atan(hfo["max_ap_in"] / Dt)), 3.0) or DEFAULT_RAMP_DEG
             chart = {dep: chart_for(cands, dep, ramp_deg, HF_RAMP_FEED_FRACTION) for dep in depths} if cands else None
             if chart and with_estimates:
                 c0 = chart[depths[0]]
-                chart["estimates"] = model_estimates(mat, D, z, "High Feed", rp, apmx or hfo.get("max_ap_in"), min(c0["ap"], hfo.get("max_ap_in") or c0["ap"]),
-                                                     D, c0["fz"], c0["rpm"], 0.5, res.runout_in, stickout=3.0 * D)
+                chart["estimates"] = model_estimates(mat, Dt, z, "High Feed", rp, apmx or hfo.get("max_ap_in"), min(c0["ap"], hfo.get("max_ap_in") or c0["ap"]),
+                                                     Dt, c0["fz"], c0["rpm"], 0.5, res.runout_in, stickout=3.0 * Dt)
             if not key:
                 notes.append("generic high-feed geometry: lead angle and max ap assumed by the engine (15 deg, 0.06 x D)")
             if hfo.get("assumed"):
                 notes.append("engine assumed: " + ", ".join(hfo["assumed"]))
-            add(f"high-feed {label}", "hf", {"D": D, "z": z, "programming_radius": rp, "apmx": apmx}, chart, tw, notes)
+            add(f"high-feed {label}{tag}", "hf", {"D": Dt, "z": z, "programming_radius": rp, "apmx": apmx}, chart, tw, notes)
 
     # 2./3. square and bull-nose
     for cls, geometry in (("square", "Square"), ("bull", "Radiused")):

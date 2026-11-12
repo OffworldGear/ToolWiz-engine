@@ -31,13 +31,17 @@ class TestFitFile(unittest.TestCase):
 
     def test_row_counts_vendors_and_holdout(self):
         fams = self.data["families"]
-        self.assertGreaterEqual(self.data["rows"], 399)   # 438 cited rows less 39 Cobalt Chrome (no engine family)
+        self.assertGreaterEqual(self.data["rows"], 980)   # 1,019 cited rows less 39 Cobalt Chrome (no engine family)
         ti = fams[TI]["hf_slot"]
         self.assertEqual(ti["vendor_groups"], ["Harvey Performance", "Seco Tools"])
         self.assertEqual(ti["confidence"], "two groups")
         self.assertIsNotNone(ti["speed"]["holdout_median_abs_err"])
-        self.assertEqual(fams[SS]["hf_slot"]["confidence"], "one group (lower)")
-        self.assertIsNone(fams[SS]["hf_slot"]["speed"]["holdout_median_abs_err"])
+        # 17-4 has two groups since Seco's own 2026.2 catalog (P12 / H12 rows); 420 stays Harvey only
+        self.assertEqual(fams[SS]["hf_slot"]["confidence"], "two groups")
+        self.assertIsNotNone(fams[SS]["hf_slot"]["speed"]["holdout_median_abs_err"])
+        s4 = fams["Stainless - 400 Series (420)"]["hf_slot"]
+        self.assertEqual(s4["confidence"], "one group (lower)")
+        self.assertIsNone(s4["speed"]["holdout_median_abs_err"])
         self.assertNotIn(AL, fams)
         for classes in fams.values():
             for e in classes.values():
@@ -94,15 +98,18 @@ class TestEngine(unittest.TestCase):
         self.assertLessEqual(r["cut"]["fz_in"], r["vendor_basis"]["fz_range"][1] * 1.0001)   # never above the chart middle
 
     def test_tool_life_bound_sixteenth_is_not_called_spindle_limited(self):
-        # With the 2-flute SN200R rows in the fit the Ti factor reaches the spindle at 50 % (262 SFM at 16,000 rpm), so the
-        # tool-life-bound case is the bottom of the chart (0 %).
-        r = run(TI, D=0.0625, brand="seco", a=0.0)
+        # With the Niagara SN200R and the Seco JHF980 rows in the fit the Ti factor reaches the spindle even at 0 % (262 SFM at
+        # 16,000 rpm), so the tool-life-bound 1/16" case is H13 on the unbranded (Harvey + Helical) chart at the bottom of its
+        # range (0 %): its 380 SFM needs about 23,000 rpm.
+        h13 = "Steel - Tool (H13)"
+        r = run(h13, D=0.0625, a=0.0)
         sl = r["high_feed"]["spindle_limited"]
         self.assertFalse(sl["limited"])
         self.assertLess(r["cut"]["rpm"], 16000.0)
-        self.assertGreater(sl["rpm_needed"], 20000.0)   # Niagara's 377 SFM needs about 23,000 rpm at 1/16"
+        self.assertGreater(sl["rpm_needed"], 20000.0)
         self.assertIn("not what limits", sl["sentence"])
-        self.assertTrue(run(TI, D=0.0625, brand="seco")["high_feed"]["spindle_limited"]["limited"])
+        self.assertTrue(run(h13, D=0.0625)["high_feed"]["spindle_limited"]["limited"])
+        self.assertTrue(run(TI, D=0.0625, brand="seco", a=0.0)["high_feed"]["spindle_limited"]["limited"])
 
     def test_aggressiveness_is_monotone(self):
         sfm = [run(TI, a=a)["cut"]["sfm"] for a in (0.0, 0.5, 1.0)]

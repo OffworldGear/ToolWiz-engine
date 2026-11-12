@@ -120,8 +120,8 @@
        "power_per_edge_w": 12.385101,
        "power_per_mm_edge_w": 33.628863,
        "violated": [],
-       "life_ratio": 0.829554,
-       "v_life_sfm": 286.307332,
+       "life_ratio": 1.653213,
+       "v_life_sfm": 340.17583,
        "taylor_n": 0.25
       }
      },
@@ -130,8 +130,8 @@
        "0.05": {
         "rpm": 5805.972324,
         "sfm": 190.0,
-        "fz": 0.001798,
-        "feed_ipm": 41.745114,
+        "fz": 0.00174,
+        "feed_ipm": 40.41056,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -162,17 +162,17 @@
         "stock_radial_in": 0.016,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.704274,
-        "ramp_min": 0.045709,
-        "corner_min": 0.004015,
-        "total_min": 0.7541,
+        "cut_min": 0.727533,
+        "ramp_min": 0.047218,
+        "corner_min": 0.003961,
+        "total_min": 0.778814,
         "ramp_run_in": 0.136294
        },
        "0.15": {
         "rpm": 5805.972324,
         "sfm": 190.0,
-        "fz": 0.001798,
-        "feed_ipm": 41.745114,
+        "fz": 0.00174,
+        "feed_ipm": 40.41056,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -203,17 +203,17 @@
         "stock_radial_in": 0.016,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 2.012212,
-        "ramp_min": 0.137126,
-        "corner_min": 0.011472,
-        "total_min": 2.160911,
+        "cut_min": 2.078665,
+        "ramp_min": 0.141655,
+        "corner_min": 0.011318,
+        "total_min": 2.231739,
         "ramp_run_in": 0.143109
        },
        "0.3": {
         "rpm": 5805.972324,
         "sfm": 190.0,
-        "fz": 0.001798,
-        "feed_ipm": 41.745114,
+        "fz": 0.00174,
+        "feed_ipm": 40.41056,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -244,10 +244,10 @@
         "stock_radial_in": 0.016,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 4.024423,
-        "ramp_min": 0.274252,
-        "corner_min": 0.022944,
-        "total_min": 4.321721,
+        "cut_min": 4.157329,
+        "ramp_min": 0.283309,
+        "corner_min": 0.022637,
+        "total_min": 4.463377,
         "ramp_run_in": 0.143109
        }
       },
@@ -255,8 +255,8 @@
        "0.05": {
         "rpm": 8403.380995,
         "sfm": 275.0,
-        "fz": 0.002173,
-        "feed_ipm": 73.029384,
+        "fz": 0.00211,
+        "feed_ipm": 70.918994,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -287,17 +287,17 @@
         "stock_radial_in": 0.016,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.402578,
-        "ramp_min": 0.026128,
-        "corner_min": 0.005276,
-        "total_min": 0.434083,
+        "cut_min": 0.414557,
+        "ramp_min": 0.026906,
+        "corner_min": 0.005191,
+        "total_min": 0.446755,
         "ramp_run_in": 0.136294
        },
        "0.15": {
         "rpm": 8403.380995,
         "sfm": 275.0,
-        "fz": 0.002173,
-        "feed_ipm": 73.029384,
+        "fz": 0.00211,
+        "feed_ipm": 70.918994,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -328,17 +328,17 @@
         "stock_radial_in": 0.016,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 1.150222,
-        "ramp_min": 0.078384,
-        "corner_min": 0.015073,
-        "total_min": 1.243781,
+        "cut_min": 1.18445,
+        "ramp_min": 0.080717,
+        "corner_min": 0.01483,
+        "total_min": 1.280099,
         "ramp_run_in": 0.143109
        },
        "0.3": {
         "rpm": 8403.380995,
         "sfm": 275.0,
-        "fz": 0.002173,
-        "feed_ipm": 73.029384,
+        "fz": 0.00211,
+        "feed_ipm": 70.918994,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -369,22 +369,22 @@
         "stock_radial_in": 0.016,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 2.300444,
-        "ramp_min": 0.156768,
-        "corner_min": 0.030147,
-        "total_min": 2.48746,
+        "cut_min": 2.3689,
+        "ramp_min": 0.161433,
+        "corner_min": 0.029661,
+        "total_min": 2.560096,
         "ramp_run_in": 0.143109
        },
        "estimates": {
-        "lateral_peak_n": 31.519372,
-        "deflection_in": 4.8e-05,
-        "axial_peak_n": 15.78939,
-        "power_w": 47.225913,
-        "power_per_edge_w": 11.806478,
-        "power_per_mm_edge_w": 26.714789,
+        "lateral_peak_n": 30.834393,
+        "deflection_in": 4.7e-05,
+        "axial_peak_n": 15.444552,
+        "power_w": 46.171448,
+        "power_per_edge_w": 11.542862,
+        "power_per_mm_edge_w": 26.118299,
         "violated": [],
-        "life_ratio": 1.174895,
-        "v_life_sfm": 286.307332,
+        "life_ratio": 2.34144,
+        "v_life_sfm": 340.17583,
         "taylor_n": 0.25
        }
       },
@@ -392,8 +392,8 @@
        "0.05": {
         "rpm": 10084.057194,
         "sfm": 330.0,
-        "fz": 0.002598,
-        "feed_ipm": 104.78236,
+        "fz": 0.002523,
+        "feed_ipm": 101.754379,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -424,17 +424,17 @@
         "stock_radial_in": 0.016,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.280582,
-        "ramp_min": 0.01821,
-        "corner_min": 0.006555,
-        "total_min": 0.305448,
+        "cut_min": 0.288931,
+        "ramp_min": 0.018752,
+        "corner_min": 0.006433,
+        "total_min": 0.314218,
         "ramp_run_in": 0.136294
        },
        "0.15": {
         "rpm": 10084.057194,
         "sfm": 330.0,
-        "fz": 0.002598,
-        "feed_ipm": 104.78236,
+        "fz": 0.002523,
+        "feed_ipm": 101.754379,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -465,17 +465,17 @@
         "stock_radial_in": 0.016,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 0.801662,
-        "ramp_min": 0.054631,
-        "corner_min": 0.018729,
-        "total_min": 0.875123,
+        "cut_min": 0.825517,
+        "ramp_min": 0.056256,
+        "corner_min": 0.01838,
+        "total_min": 0.900255,
         "ramp_run_in": 0.143109
        },
        "0.3": {
         "rpm": 10084.057194,
         "sfm": 330.0,
-        "fz": 0.002598,
-        "feed_ipm": 104.78236,
+        "fz": 0.002523,
+        "feed_ipm": 101.754379,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -506,10 +506,10 @@
         "stock_radial_in": 0.016,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 1.603323,
-        "ramp_min": 0.109262,
-        "corner_min": 0.037457,
-        "total_min": 1.750144,
+        "cut_min": 1.651035,
+        "ramp_min": 0.112513,
+        "corner_min": 0.03676,
+        "total_min": 1.800409,
         "ramp_run_in": 0.143109
        }
       }
@@ -617,26 +617,24 @@
        "power_w": 33.169956,
        "power_per_edge_w": 8.292489,
        "power_per_mm_edge_w": 38.811218,
-       "violated": [
-        "C7"
-       ],
-       "life_ratio": 0.332632,
-       "v_life_sfm": 286.307332,
+       "violated": [],
+       "life_ratio": 0.662901,
+       "v_life_sfm": 340.17583,
        "taylor_n": 0.25
       }
      },
      "toolwiz": {
       "0.0": {
        "0.05": {
-        "rpm": 7227.358459,
-        "sfm": 236.514752,
-        "fz": 0.001628,
-        "feed_ipm": 47.059062,
+        "rpm": 8587.180239,
+        "sfm": 281.014816,
+        "fz": 0.000512,
+        "feed_ipm": 17.595294,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -645,16 +643,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -662,22 +660,22 @@
         "stock_radial_in": 0.015,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.624747,
-        "ramp_min": 0.040547,
-        "corner_min": 0.004229,
-        "total_min": 0.669625,
+        "cut_min": 1.670901,
+        "ramp_min": 0.108445,
+        "corner_min": 0.003042,
+        "total_min": 1.78249,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 7227.358459,
-        "sfm": 236.514752,
-        "fz": 0.001628,
-        "feed_ipm": 47.059062,
+        "rpm": 8587.180239,
+        "sfm": 281.014816,
+        "fz": 0.000512,
+        "feed_ipm": 17.595294,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -686,16 +684,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -703,22 +701,22 @@
         "stock_radial_in": 0.015,
         "levels": 19,
         "ap_eff": 0.007895,
-        "cut_min": 1.695741,
-        "ramp_min": 0.121642,
-        "corner_min": 0.01148,
-        "total_min": 1.828964,
+        "cut_min": 4.535304,
+        "ramp_min": 0.325334,
+        "corner_min": 0.008258,
+        "total_min": 4.868996,
         "ramp_run_in": 0.150641
        },
        "0.3": {
-        "rpm": 7227.358459,
-        "sfm": 236.514752,
-        "fz": 0.001628,
-        "feed_ipm": 47.059062,
+        "rpm": 8587.180239,
+        "sfm": 281.014816,
+        "fz": 0.000512,
+        "feed_ipm": 17.595294,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -727,16 +725,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -744,19 +742,19 @@
         "stock_radial_in": 0.015,
         "levels": 38,
         "ap_eff": 0.007895,
-        "cut_min": 3.391483,
-        "ramp_min": 0.243283,
-        "corner_min": 0.022959,
-        "total_min": 3.657827,
+        "cut_min": 9.070607,
+        "ramp_min": 0.650667,
+        "corner_min": 0.016515,
+        "total_min": 9.737891,
         "ramp_run_in": 0.150641
        }
       },
       "0.5": {
        "0.05": {
-        "rpm": 8748.907608,
-        "sfm": 286.307332,
-        "fz": 0.001972,
-        "feed_ipm": 69.009117,
+        "rpm": 10395.007658,
+        "sfm": 340.17583,
+        "fz": 0.001909,
+        "feed_ipm": 79.371881,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
@@ -770,16 +768,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -787,17 +785,17 @@
         "stock_radial_in": 0.015,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.426031,
-        "ramp_min": 0.02765,
-        "corner_min": 0.005114,
-        "total_min": 0.458896,
+        "cut_min": 0.370408,
+        "ramp_min": 0.02404,
+        "corner_min": 0.005531,
+        "total_min": 0.400081,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 8748.907608,
-        "sfm": 286.307332,
-        "fz": 0.001972,
-        "feed_ipm": 69.009117,
+        "rpm": 10395.007658,
+        "sfm": 340.17583,
+        "fz": 0.001909,
+        "feed_ipm": 79.371881,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
@@ -811,16 +809,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -828,17 +826,17 @@
         "stock_radial_in": 0.015,
         "levels": 19,
         "ap_eff": 0.007895,
-        "cut_min": 1.156369,
-        "ramp_min": 0.082951,
-        "corner_min": 0.01388,
-        "total_min": 1.253301,
+        "cut_min": 1.005394,
+        "ramp_min": 0.072121,
+        "corner_min": 0.015013,
+        "total_min": 1.092629,
         "ramp_run_in": 0.150641
        },
        "0.3": {
-        "rpm": 8748.907608,
-        "sfm": 286.307332,
-        "fz": 0.001972,
-        "feed_ipm": 69.009117,
+        "rpm": 10395.007658,
+        "sfm": 340.17583,
+        "fz": 0.001909,
+        "feed_ipm": 79.371881,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
@@ -852,16 +850,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -869,31 +867,31 @@
         "stock_radial_in": 0.015,
         "levels": 38,
         "ap_eff": 0.007895,
-        "cut_min": 2.312738,
-        "ramp_min": 0.165901,
-        "corner_min": 0.02776,
-        "total_min": 2.506501,
+        "cut_min": 2.010788,
+        "ramp_min": 0.144241,
+        "corner_min": 0.030027,
+        "total_min": 2.185157,
         "ramp_run_in": 0.150641
        },
        "estimates": {
-        "lateral_peak_n": 30.665315,
-        "deflection_in": 4.7e-05,
-        "axial_peak_n": 14.922847,
-        "power_w": 47.98099,
-        "power_per_edge_w": 11.995248,
-        "power_per_mm_edge_w": 28.070593,
+        "lateral_peak_n": 29.929814,
+        "deflection_in": 4.6e-05,
+        "axial_peak_n": 14.562956,
+        "power_w": 55.599767,
+        "power_per_edge_w": 13.899942,
+        "power_per_mm_edge_w": 32.52785,
         "violated": [],
         "life_ratio": 1.0,
-        "v_life_sfm": 286.307332,
+        "v_life_sfm": 340.17583,
         "taylor_n": 0.25
        }
       },
       "1.0": {
        "0.05": {
-        "rpm": 10460.650401,
-        "sfm": 342.323984,
-        "fz": 0.002358,
-        "feed_ipm": 98.655347,
+        "rpm": 12428.813504,
+        "sfm": 406.731971,
+        "fz": 0.002282,
+        "feed_ipm": 113.469941,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
@@ -907,16 +905,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -924,17 +922,17 @@
         "stock_radial_in": 0.015,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.298007,
-        "ramp_min": 0.019341,
-        "corner_min": 0.006308,
-        "total_min": 0.323758,
+        "cut_min": 0.259099,
+        "ramp_min": 0.016816,
+        "corner_min": 0.006905,
+        "total_min": 0.282922,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 10460.650401,
-        "sfm": 342.323984,
-        "fz": 0.002358,
-        "feed_ipm": 98.655347,
+        "rpm": 12428.813504,
+        "sfm": 406.731971,
+        "fz": 0.002282,
+        "feed_ipm": 113.469941,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
@@ -948,16 +946,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -965,17 +963,17 @@
         "stock_radial_in": 0.015,
         "levels": 19,
         "ap_eff": 0.007895,
-        "cut_min": 0.808877,
-        "ramp_min": 0.058024,
-        "corner_min": 0.017122,
-        "total_min": 0.884124,
+        "cut_min": 0.70327,
+        "ramp_min": 0.050448,
+        "corner_min": 0.018742,
+        "total_min": 0.772562,
         "ramp_run_in": 0.150641
        },
        "0.3": {
-        "rpm": 10460.650401,
-        "sfm": 342.323984,
-        "fz": 0.002358,
-        "feed_ipm": 98.655347,
+        "rpm": 12428.813504,
+        "sfm": 406.731971,
+        "fz": 0.002282,
+        "feed_ipm": 113.469941,
         "ap": 0.008,
         "z": 4,
         "D": 0.125,
@@ -989,16 +987,16 @@
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 6,
+         "rows": 18,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          520.0
          ],
          "fz_range": [
-          0.001702,
-          0.002267,
-          0.00253
+          0.000513,
+          0.00224,
+          0.002561
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -1006,15 +1004,1466 @@
         "stock_radial_in": 0.015,
         "levels": 38,
         "ap_eff": 0.007895,
-        "cut_min": 1.617753,
-        "ramp_min": 0.116047,
-        "corner_min": 0.034244,
-        "total_min": 1.768146,
+        "cut_min": 1.40654,
+        "ramp_min": 0.100896,
+        "corner_min": 0.037484,
+        "total_min": 1.545022,
         "ramp_run_in": 0.150641
        }
       }
      },
      "notes": []
+    },
+    {
+     "name": "high-feed Seco JHF980 2FL [3 mm = 0.118\" tool, 0.118\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.11811,
+      "z": 2,
+      "programming_radius": 0.01441,
+      "apmx": 0.00787
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 3 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.00787,
+       "sfm": 395.0,
+       "fz": 0.0022,
+       "ap": 0.0026,
+       "rpm": 12774.437901,
+       "feed_ipm": 56.207527,
+       "spindle_limited": false,
+       "sfm_on_machine": 395.0,
+       "levels": 20,
+       "ap_eff": 0.0025,
+       "cut_min": 1.494462,
+       "ramp_min": 0.033948,
+       "corner_min": 0.013137,
+       "total_min": 1.541648,
+       "ramp_run_in": 0.047703
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 3 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.00787,
+       "sfm": 395.0,
+       "fz": 0.0022,
+       "ap": 0.0026,
+       "rpm": 12774.437901,
+       "feed_ipm": 56.207527,
+       "spindle_limited": false,
+       "sfm_on_machine": 395.0,
+       "levels": 58,
+       "ap_eff": 0.002586,
+       "cut_min": 4.333939,
+       "ramp_min": 0.101843,
+       "corner_min": 0.038097,
+       "total_min": 4.473981,
+       "ramp_run_in": 0.049348
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 3 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.00787,
+       "sfm": 395.0,
+       "fz": 0.0022,
+       "ap": 0.0026,
+       "rpm": 12774.437901,
+       "feed_ipm": 56.207527,
+       "spindle_limited": false,
+       "sfm_on_machine": 395.0,
+       "levels": 116,
+       "ap_eff": 0.002586,
+       "cut_min": 8.667878,
+       "ramp_min": 0.203686,
+       "corner_min": 0.076194,
+       "total_min": 8.94786,
+       "ramp_run_in": 0.049348
+      },
+      "estimates": {
+       "lateral_peak_n": 10.886859,
+       "deflection_in": 1.6e-05,
+       "axial_peak_n": 3.75376,
+       "power_w": 10.54401,
+       "power_per_edge_w": 5.272005,
+       "power_per_mm_edge_w": 38.264462,
+       "violated": [],
+       "life_ratio": 0.54116,
+       "v_life_sfm": 338.788415,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 8.757936,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 3.356955,
+        "ramp_min": 0.217873,
+        "corner_min": 0.002686,
+        "total_min": 3.577616,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 8.757936,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 9.591301,
+        "ramp_min": 0.653618,
+        "corner_min": 0.007675,
+        "total_min": 10.252695,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 8.757936,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 18.703038,
+        "ramp_min": 1.307235,
+        "corner_min": 0.014966,
+        "total_min": 20.02534,
+        "ramp_run_in": 0.146778
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.001789,
+        "feed_ipm": 39.205232,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.7499,
+        "ramp_min": 0.04867,
+        "corner_min": 0.003913,
+        "total_min": 0.802584,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.001789,
+        "feed_ipm": 39.205232,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 2.142571,
+        "ramp_min": 0.14601,
+        "corner_min": 0.01118,
+        "total_min": 2.299862,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.001789,
+        "feed_ipm": 39.205232,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 4.178014,
+        "ramp_min": 0.292019,
+        "corner_min": 0.021801,
+        "total_min": 4.491935,
+        "ramp_run_in": 0.146778
+       },
+       "estimates": {
+        "lateral_peak_n": 28.270175,
+        "deflection_in": 4.2e-05,
+        "axial_peak_n": 9.751461,
+        "power_w": 25.737721,
+        "power_per_edge_w": 12.868861,
+        "power_per_mm_edge_w": 30.857342,
+        "violated": [],
+        "life_ratio": 1.0,
+        "v_life_sfm": 338.788415,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002139,
+        "feed_ipm": 56.04775,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.524553,
+        "ramp_min": 0.034044,
+        "corner_min": 0.004591,
+        "total_min": 0.56329,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002139,
+        "feed_ipm": 56.04775,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 1.498722,
+        "ramp_min": 0.102133,
+        "corner_min": 0.013119,
+        "total_min": 1.614076,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002139,
+        "feed_ipm": 56.04775,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 2.922508,
+        "ramp_min": 0.204267,
+        "corner_min": 0.025581,
+        "total_min": 3.152457,
+        "ramp_run_in": 0.146778
+       }
+      }
+     },
+     "notes": []
+    },
+    {
+     "name": "high-feed Seco JHF980 4FL [3 mm = 0.118\" tool, 0.118\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.11811,
+      "z": 4,
+      "programming_radius": 0.01441,
+      "apmx": 0.00787
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 3 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_3mm_z4",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 4,
+       "corner_radius": 0.00787,
+       "sfm": 395.0,
+       "fz": 0.0022,
+       "ap": 0.0026,
+       "rpm": 12774.437901,
+       "feed_ipm": 112.415054,
+       "spindle_limited": false,
+       "sfm_on_machine": 395.0,
+       "levels": 20,
+       "ap_eff": 0.0025,
+       "cut_min": 0.747231,
+       "ramp_min": 0.016974,
+       "corner_min": 0.019607,
+       "total_min": 0.783914,
+       "ramp_run_in": 0.047703
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 3 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_3mm_z4",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 4,
+       "corner_radius": 0.00787,
+       "sfm": 395.0,
+       "fz": 0.0022,
+       "ap": 0.0026,
+       "rpm": 12774.437901,
+       "feed_ipm": 112.415054,
+       "spindle_limited": false,
+       "sfm_on_machine": 395.0,
+       "levels": 58,
+       "ap_eff": 0.002586,
+       "cut_min": 2.16697,
+       "ramp_min": 0.050921,
+       "corner_min": 0.056861,
+       "total_min": 2.274854,
+       "ramp_run_in": 0.049348
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 3 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_3mm_z4",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 4,
+       "corner_radius": 0.00787,
+       "sfm": 395.0,
+       "fz": 0.0022,
+       "ap": 0.0026,
+       "rpm": 12774.437901,
+       "feed_ipm": 112.415054,
+       "spindle_limited": false,
+       "sfm_on_machine": 395.0,
+       "levels": 116,
+       "ap_eff": 0.002586,
+       "cut_min": 4.333939,
+       "ramp_min": 0.101843,
+       "corner_min": 0.113722,
+       "total_min": 4.549606,
+       "ramp_run_in": 0.049348
+      },
+      "estimates": {
+       "lateral_peak_n": 10.800768,
+       "deflection_in": 1.6e-05,
+       "axial_peak_n": 5.245937,
+       "power_w": 21.098442,
+       "power_per_edge_w": 5.27461,
+       "power_per_mm_edge_w": 38.283373,
+       "violated": [],
+       "life_ratio": 0.54116,
+       "v_life_sfm": 338.788415,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 17.515871,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 1.678478,
+        "ramp_min": 0.108936,
+        "corner_min": 0.003039,
+        "total_min": 1.790555,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 17.515871,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 4.795651,
+        "ramp_min": 0.326809,
+        "corner_min": 0.008683,
+        "total_min": 5.131244,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 17.515871,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 9.351519,
+        "ramp_min": 0.653618,
+        "corner_min": 0.016932,
+        "total_min": 10.02217,
+        "ramp_run_in": 0.146778
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.001789,
+        "feed_ipm": 78.410464,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.37495,
+        "ramp_min": 0.024335,
+        "corner_min": 0.005492,
+        "total_min": 0.404879,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.001789,
+        "feed_ipm": 78.410464,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 1.071286,
+        "ramp_min": 0.073005,
+        "corner_min": 0.015693,
+        "total_min": 1.160085,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.001789,
+        "feed_ipm": 78.410464,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 2.089007,
+        "ramp_min": 0.14601,
+        "corner_min": 0.030601,
+        "total_min": 2.265719,
+        "ramp_run_in": 0.146778
+       },
+       "estimates": {
+        "lateral_peak_n": 28.010431,
+        "deflection_in": 4.2e-05,
+        "axial_peak_n": 13.588202,
+        "power_w": 51.510355,
+        "power_per_edge_w": 12.877589,
+        "power_per_mm_edge_w": 30.878271,
+        "violated": [],
+        "life_ratio": 1.0,
+        "v_life_sfm": 338.788415,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002139,
+        "feed_ipm": 112.095499,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.262276,
+        "ramp_min": 0.017022,
+        "corner_min": 0.00685,
+        "total_min": 0.28625,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002139,
+        "feed_ipm": 112.095499,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 0.749361,
+        "ramp_min": 0.051067,
+        "corner_min": 0.01957,
+        "total_min": 0.8201,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002139,
+        "feed_ipm": 112.095499,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 1.461254,
+        "ramp_min": 0.102133,
+        "corner_min": 0.038162,
+        "total_min": 1.601651,
+        "ramp_run_in": 0.146778
+       }
+      }
+     },
+     "notes": []
+    },
+    {
+     "name": "high-feed Seco SHF712 2FL [3 mm = 0.118\" tool, 0.118\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.11811,
+      "z": 2,
+      "programming_radius": null,
+      "apmx": 0.01969
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.436 (printed page 434); item table PDF p.435 (printed 433): SMG S12 / DCX 3 mm",
+       "row_id": "seco_SHF712_ti6al4v_S12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "SHF712",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.01969,
+       "sfm": 475.0,
+       "fz": 0.0018,
+       "ap": 0.00591,
+       "rpm": 15361.665831,
+       "feed_ipm": 55.301997,
+       "spindle_limited": false,
+       "sfm_on_machine": 475.0,
+       "levels": 9,
+       "ap_eff": 0.005556,
+       "cut_min": 0.68352,
+       "ramp_min": 0.034504,
+       "corner_min": 0.005865,
+       "total_min": 0.723989,
+       "ramp_run_in": 0.106006
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.436 (printed page 434); item table PDF p.435 (printed 433): SMG S12 / DCX 3 mm",
+       "row_id": "seco_SHF712_ti6al4v_S12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "SHF712",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.01969,
+       "sfm": 475.0,
+       "fz": 0.0018,
+       "ap": 0.00591,
+       "rpm": 15361.665831,
+       "feed_ipm": 55.301997,
+       "spindle_limited": false,
+       "sfm_on_machine": 475.0,
+       "levels": 26,
+       "ap_eff": 0.005769,
+       "cut_min": 1.974612,
+       "ramp_min": 0.103511,
+       "corner_min": 0.016943,
+       "total_min": 2.095167,
+       "ramp_run_in": 0.110083
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.436 (printed page 434); item table PDF p.435 (printed 433): SMG S12 / DCX 3 mm",
+       "row_id": "seco_SHF712_ti6al4v_S12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "SHF712",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.01969,
+       "sfm": 475.0,
+       "fz": 0.0018,
+       "ap": 0.00591,
+       "rpm": 15361.665831,
+       "feed_ipm": 55.301997,
+       "spindle_limited": false,
+       "sfm_on_machine": 475.0,
+       "levels": 51,
+       "ap_eff": 0.005882,
+       "cut_min": 3.873278,
+       "ramp_min": 0.207021,
+       "corner_min": 0.033233,
+       "total_min": 4.113634,
+       "ramp_run_in": 0.112242
+      },
+      "estimates": {
+       "lateral_peak_n": 22.59663,
+       "deflection_in": 3.4e-05,
+       "axial_peak_n": 8.431736,
+       "power_w": 7.831127,
+       "power_per_edge_w": 3.915564,
+       "power_per_mm_edge_w": 9.061348,
+       "violated": [],
+       "life_ratio": 0.258785,
+       "v_life_sfm": 338.788415,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 8.757936,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 3,
+        "ap_eff": 0.016667,
+        "cut_min": 1.438695,
+        "ramp_min": 0.217873,
+        "corner_min": 0.001151,
+        "total_min": 1.657821,
+        "ramp_run_in": 0.318019
+       },
+       "0.15": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 8.757936,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 8,
+        "ap_eff": 0.01875,
+        "cut_min": 3.836521,
+        "ramp_min": 0.653618,
+        "corner_min": 0.00307,
+        "total_min": 4.49331,
+        "ramp_run_in": 0.357771
+       },
+       "0.3": {
+        "rpm": 9051.051163,
+        "sfm": 279.868691,
+        "fz": 0.000484,
+        "feed_ipm": 8.757936,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 16,
+        "ap_eff": 0.01875,
+        "cut_min": 7.673041,
+        "ramp_min": 1.307235,
+        "corner_min": 0.00614,
+        "total_min": 8.986518,
+        "ramp_run_in": 0.357771
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.002116,
+        "feed_ipm": 46.371349,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 3,
+        "ap_eff": 0.016667,
+        "cut_min": 0.27172,
+        "ramp_min": 0.041149,
+        "corner_min": 0.001801,
+        "total_min": 0.31477,
+        "ramp_run_in": 0.318019
+       },
+       "0.15": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.002116,
+        "feed_ipm": 46.371349,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 8,
+        "ap_eff": 0.01875,
+        "cut_min": 0.724585,
+        "ramp_min": 0.123446,
+        "corner_min": 0.004802,
+        "total_min": 0.852934,
+        "ramp_run_in": 0.357771
+       },
+       "0.3": {
+        "rpm": 10956.535618,
+        "sfm": 338.788415,
+        "fz": 0.002116,
+        "feed_ipm": 46.371349,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": null,
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 16,
+        "ap_eff": 0.01875,
+        "cut_min": 1.449171,
+        "ramp_min": 0.246891,
+        "corner_min": 0.009604,
+        "total_min": 1.705767,
+        "ramp_run_in": 0.357771
+       },
+       "estimates": {
+        "lateral_peak_n": 83.670489,
+        "deflection_in": 0.000124,
+        "axial_peak_n": 31.440753,
+        "power_w": 49.404945,
+        "power_per_edge_w": 24.702473,
+        "power_per_mm_edge_w": 17.158555,
+        "violated": [],
+        "life_ratio": 1.0,
+        "v_life_sfm": 338.788415,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002417,
+        "feed_ipm": 63.339324,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 3,
+        "ap_eff": 0.016667,
+        "cut_min": 0.198929,
+        "ramp_min": 0.030125,
+        "corner_min": 0.002094,
+        "total_min": 0.231249,
+        "ramp_run_in": 0.318019
+       },
+       "0.15": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002417,
+        "feed_ipm": 63.339324,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 8,
+        "ap_eff": 0.01875,
+        "cut_min": 0.530476,
+        "ramp_min": 0.090376,
+        "corner_min": 0.005583,
+        "total_min": 0.626537,
+        "ramp_run_in": 0.357771
+       },
+       "0.3": {
+        "rpm": 13100.20563,
+        "sfm": 405.073105,
+        "fz": 0.002417,
+        "feed_ipm": 63.339324,
+        "ap": 0.01969,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C6, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 520 SFM would need 16,817 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 18,
+         "sfm_range": [
+          328.0,
+          395.0,
+          520.0
+         ],
+         "fz_range": [
+          0.000484,
+          0.002117,
+          0.00242
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0535,
+        "levels": 16,
+        "ap_eff": 0.01875,
+        "cut_min": 1.060952,
+        "ramp_min": 0.180752,
+        "corner_min": 0.011166,
+        "total_min": 1.252972,
+        "ramp_run_in": 0.357771
+       }
+      }
+     },
+     "notes": [
+      "engine assumed: lead_angle"
+     ]
     },
     {
      "name": "high-feed unbranded",
@@ -1284,8 +2733,8 @@
         "power_per_edge_w": 12.342106,
         "power_per_mm_edge_w": 16.768357,
         "violated": [],
-        "life_ratio": 1.720164,
-        "v_life_sfm": 286.307332,
+        "life_ratio": 3.428102,
+        "v_life_sfm": 340.17583,
         "taylor_n": 0.25
        }
       },
@@ -6295,41 +7744,41 @@
        "power_per_edge_w": 1.627221,
        "power_per_mm_edge_w": 15.231716,
        "violated": [],
-       "life_ratio": 1.171278,
-       "v_life_sfm": 272.353899,
+       "life_ratio": 2.334231,
+       "v_life_sfm": 323.59707,
        "taylor_n": 0.25
       }
      },
      "toolwiz": {
       "0.0": {
        "0.05": {
-        "rpm": 13750.253907,
-        "sfm": 224.988003,
-        "fz": 0.000836,
-        "feed_ipm": 22.979668,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
+        "fz": 0.000265,
+        "feed_ipm": 8.486382,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C2, C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 328 SFM would need 20,046 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 328 SFM, which needs 20,046 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 80% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 80% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6337,40 +7786,40 @@
         "stock_radial_in": 0.0075,
         "levels": 13,
         "ap_eff": 0.003846,
-        "cut_min": 2.376013,
-        "ramp_min": 0.083035,
-        "corner_min": 0.006053,
-        "total_min": 2.465203,
+        "cut_min": 6.433837,
+        "ramp_min": 0.224844,
+        "corner_min": 0.004968,
+        "total_min": 6.663751,
         "ramp_run_in": 0.073389
        },
        "0.15": {
-        "rpm": 13750.253907,
-        "sfm": 224.988003,
-        "fz": 0.000836,
-        "feed_ipm": 22.979668,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
+        "fz": 0.000265,
+        "feed_ipm": 8.486382,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C2, C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 328 SFM would need 20,046 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 328 SFM, which needs 20,046 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 80% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 80% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6378,40 +7827,40 @@
         "stock_radial_in": 0.0075,
         "levels": 38,
         "ap_eff": 0.003947,
-        "cut_min": 6.94527,
-        "ramp_min": 0.249105,
-        "corner_min": 0.017693,
-        "total_min": 7.212169,
+        "cut_min": 18.806601,
+        "ramp_min": 0.674533,
+        "corner_min": 0.014523,
+        "total_min": 19.495758,
         "ramp_run_in": 0.07532
        },
        "0.3": {
-        "rpm": 13750.253907,
-        "sfm": 224.988003,
-        "fz": 0.000836,
-        "feed_ipm": 22.979668,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
+        "fz": 0.000265,
+        "feed_ipm": 8.486382,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C2, C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 328 SFM would need 20,046 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 328 SFM, which needs 20,046 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 80% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 80% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6419,10 +7868,10 @@
         "stock_radial_in": 0.0075,
         "levels": 75,
         "ap_eff": 0.004,
-        "cut_min": 13.70777,
-        "ramp_min": 0.498209,
-        "corner_min": 0.03492,
-        "total_min": 14.241,
+        "cut_min": 37.118292,
+        "ramp_min": 1.349065,
+        "corner_min": 0.028663,
+        "total_min": 38.496123,
         "ramp_run_in": 0.076325
        }
       },
@@ -6430,8 +7879,8 @@
        "0.05": {
         "rpm": 16000.0,
         "sfm": 261.799388,
-        "fz": 0.001019,
-        "feed_ipm": 32.598185,
+        "fz": 0.000986,
+        "feed_ipm": 31.55605,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
@@ -6440,21 +7889,21 @@
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": true,
-        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 377 SFM, which needs 23,041 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 69% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 69% and is not made up with a larger chip.",
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 395 SFM, which needs 24,141 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 66% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 66% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6462,17 +7911,17 @@
         "stock_radial_in": 0.0075,
         "levels": 13,
         "ap_eff": 0.003846,
-        "cut_min": 1.67494,
-        "ramp_min": 0.058534,
-        "corner_min": 0.006772,
-        "total_min": 1.740348,
+        "cut_min": 1.730255,
+        "ramp_min": 0.060467,
+        "corner_min": 0.006694,
+        "total_min": 1.797518,
         "ramp_run_in": 0.073389
        },
        "0.15": {
         "rpm": 16000.0,
         "sfm": 261.799388,
-        "fz": 0.001019,
-        "feed_ipm": 32.598185,
+        "fz": 0.000986,
+        "feed_ipm": 31.55605,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
@@ -6481,21 +7930,21 @@
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": true,
-        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 377 SFM, which needs 23,041 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 69% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 69% and is not made up with a larger chip.",
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 395 SFM, which needs 24,141 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 66% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 66% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6503,17 +7952,17 @@
         "stock_radial_in": 0.0075,
         "levels": 38,
         "ap_eff": 0.003947,
-        "cut_min": 4.895978,
-        "ramp_min": 0.175603,
-        "corner_min": 0.019796,
-        "total_min": 5.091479,
+        "cut_min": 5.057667,
+        "ramp_min": 0.181402,
+        "corner_min": 0.019569,
+        "total_min": 5.25874,
         "ramp_run_in": 0.07532
        },
        "0.3": {
         "rpm": 16000.0,
         "sfm": 261.799388,
-        "fz": 0.001019,
-        "feed_ipm": 32.598185,
+        "fz": 0.000986,
+        "feed_ipm": 31.55605,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
@@ -6522,21 +7971,21 @@
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": true,
-        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 377 SFM, which needs 23,041 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 69% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 69% and is not made up with a larger chip.",
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 395 SFM, which needs 24,141 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 66% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 66% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6544,22 +7993,22 @@
         "stock_radial_in": 0.0075,
         "levels": 75,
         "ap_eff": 0.004,
-        "cut_min": 9.663115,
-        "ramp_min": 0.351206,
-        "corner_min": 0.039072,
-        "total_min": 10.053494,
+        "cut_min": 9.982238,
+        "ramp_min": 0.362805,
+        "corner_min": 0.038622,
+        "total_min": 10.383766,
         "ramp_run_in": 0.076325
        },
        "estimates": {
-        "lateral_peak_n": 9.571731,
+        "lateral_peak_n": 9.353422,
         "deflection_in": 1.2e-05,
-        "axial_peak_n": 3.310226,
-        "power_w": 6.576708,
-        "power_per_edge_w": 3.288354,
-        "power_per_mm_edge_w": 15.390435,
+        "axial_peak_n": 3.234728,
+        "power_w": 6.413363,
+        "power_per_edge_w": 3.206682,
+        "power_per_mm_edge_w": 15.008186,
         "violated": [],
-        "life_ratio": 1.171278,
-        "v_life_sfm": 272.353899,
+        "life_ratio": 2.334231,
+        "v_life_sfm": 323.59707,
         "taylor_n": 0.25
        }
       },
@@ -6567,31 +8016,31 @@
        "0.05": {
         "rpm": 16000.0,
         "sfm": 261.799388,
-        "fz": 0.001218,
-        "feed_ipm": 38.976489,
+        "fz": 0.001179,
+        "feed_ipm": 37.730446,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C2, C6, C7, C14f",
+        "limited_by": "C2, C6, C7",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": true,
-        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 427 SFM, which needs 26,096 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 61% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 61% and is not made up with a larger chip.",
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 450 SFM, which needs 27,502 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 58% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 58% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6599,40 +8048,40 @@
         "stock_radial_in": 0.0075,
         "levels": 13,
         "ap_eff": 0.003846,
-        "cut_min": 1.400844,
-        "ramp_min": 0.048956,
-        "corner_min": 0.00725,
-        "total_min": 1.457151,
+        "cut_min": 1.447107,
+        "ramp_min": 0.050572,
+        "corner_min": 0.007156,
+        "total_min": 1.504938,
         "ramp_run_in": 0.073389
        },
        "0.15": {
         "rpm": 16000.0,
         "sfm": 261.799388,
-        "fz": 0.001218,
-        "feed_ipm": 38.976489,
+        "fz": 0.001179,
+        "feed_ipm": 37.730446,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C2, C6, C7, C14f",
+        "limited_by": "C2, C6, C7",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": true,
-        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 427 SFM, which needs 26,096 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 61% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 61% and is not made up with a larger chip.",
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 450 SFM, which needs 27,502 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 58% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 58% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6640,40 +8089,40 @@
         "stock_radial_in": 0.0075,
         "levels": 38,
         "ap_eff": 0.003947,
-        "cut_min": 4.094776,
-        "ramp_min": 0.146867,
-        "corner_min": 0.021191,
-        "total_min": 4.262936,
+        "cut_min": 4.230006,
+        "ramp_min": 0.151717,
+        "corner_min": 0.020919,
+        "total_min": 4.402743,
         "ramp_run_in": 0.07532
        },
        "0.3": {
         "rpm": 16000.0,
         "sfm": 261.799388,
-        "fz": 0.001218,
-        "feed_ipm": 38.976489,
+        "fz": 0.001179,
+        "feed_ipm": 37.730446,
         "ap": 0.004,
         "z": 2,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C2, C6, C7, C14f",
+        "limited_by": "C2, C6, C7",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": true,
-        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 427 SFM, which needs 26,096 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 61% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 61% and is not made up with a larger chip.",
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 450 SFM, which needs 27,502 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 58% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 58% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "brand",
          "vendor": "seco",
          "chart_class": "hf_slot",
-         "rows": 2,
+         "rows": 7,
          "sfm_range": [
           328.0,
-          377.0,
-          427.0
+          395.0,
+          450.0
          ],
          "fz_range": [
-          0.000836,
-          0.001117,
-          0.001247
+          0.000265,
+          0.001111,
+          0.00128
          ],
          "note": "Vendor basis: Seco hf_slot chart (brand \"Niagara\")."
         },
@@ -6681,15 +8130,524 @@
         "stock_radial_in": 0.0075,
         "levels": 75,
         "ap_eff": 0.004,
-        "cut_min": 8.081795,
-        "ramp_min": 0.293733,
-        "corner_min": 0.041825,
-        "total_min": 8.417455,
+        "cut_min": 8.348695,
+        "ramp_min": 0.303434,
+        "corner_min": 0.041287,
+        "total_min": 8.693518,
         "ramp_run_in": 0.076325
        }
       }
      },
      "notes": []
+    },
+    {
+     "name": "high-feed Seco JHF980 2FL [1.5 mm = 0.059\" tool, 0.059\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.05906,
+      "z": 2,
+      "programming_radius": 0.0072,
+      "apmx": 0.00394
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 1.5 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_1p5mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.05906,
+       "z": 2,
+       "corner_radius": 0.00394,
+       "sfm": 395.0,
+       "fz": 0.0011,
+       "ap": 0.0013,
+       "rpm": 16000.0,
+       "feed_ipm": 35.2,
+       "spindle_limited": true,
+       "sfm_on_machine": 247.389949,
+       "levels": 39,
+       "ap_eff": 0.001282,
+       "cut_min": 4.653409,
+       "ramp_min": 0.054208,
+       "corner_min": 0.020901,
+       "total_min": 4.72862,
+       "ramp_run_in": 0.024463
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 1.5 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_1p5mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.05906,
+       "z": 2,
+       "corner_radius": 0.00394,
+       "sfm": 395.0,
+       "fz": 0.0011,
+       "ap": 0.0013,
+       "rpm": 16000.0,
+       "feed_ipm": 35.2,
+       "spindle_limited": true,
+       "sfm_on_machine": 247.389949,
+       "levels": 116,
+       "ap_eff": 0.001293,
+       "cut_min": 13.840909,
+       "ramp_min": 0.162623,
+       "corner_min": 0.062168,
+       "total_min": 14.065802,
+       "ramp_run_in": 0.024674
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG S12 / DCX 1.5 mm",
+       "row_id": "seco_JHF980_ti6al4v_S12_slot_1p5mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.05906,
+       "z": 2,
+       "corner_radius": 0.00394,
+       "sfm": 395.0,
+       "fz": 0.0011,
+       "ap": 0.0013,
+       "rpm": 16000.0,
+       "feed_ipm": 35.2,
+       "spindle_limited": true,
+       "sfm_on_machine": 247.389949,
+       "levels": 231,
+       "ap_eff": 0.001299,
+       "cut_min": 27.5625,
+       "ramp_min": 0.325247,
+       "corner_min": 0.123801,
+       "total_min": 28.011649,
+       "ramp_run_in": 0.024781
+      },
+      "estimates": {
+       "lateral_peak_n": 3.281431,
+       "deflection_in": 4e-06,
+       "axial_peak_n": 1.130857,
+       "power_w": 1.931612,
+       "power_per_edge_w": 0.965806,
+       "power_per_mm_edge_w": 14.040947,
+       "violated": [],
+       "life_ratio": 2.880057,
+       "v_life_sfm": 322.279238,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.00025,
+        "feed_ipm": 8.015108,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C6, C7, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 328 SFM, which needs 21,213 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 75% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 75% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 13,
+        "ap_eff": 0.003846,
+        "cut_min": 6.812136,
+        "ramp_min": 0.238065,
+        "corner_min": 0.004933,
+        "total_min": 7.055235,
+        "ramp_run_in": 0.073389
+       },
+       "0.15": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.00025,
+        "feed_ipm": 8.015108,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C6, C7, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 328 SFM, which needs 21,213 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 75% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 75% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 39,
+        "ap_eff": 0.003846,
+        "cut_min": 20.436407,
+        "ramp_min": 0.714194,
+        "corner_min": 0.014799,
+        "total_min": 21.165502,
+        "ramp_run_in": 0.073389
+       },
+       "0.3": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.00025,
+        "feed_ipm": 8.015108,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C6, C7, C14f",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 328 SFM, which needs 21,213 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 75% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 75% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 77,
+        "ap_eff": 0.003896,
+        "cut_min": 40.348804,
+        "ramp_min": 1.428388,
+        "corner_min": 0.029219,
+        "total_min": 41.806512,
+        "ramp_run_in": 0.074342
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.000924,
+        "feed_ipm": 29.576144,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 395 SFM, which needs 25,547 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 63% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 63% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 13,
+        "ap_eff": 0.003846,
+        "cut_min": 1.846082,
+        "ramp_min": 0.064515,
+        "corner_min": 0.006546,
+        "total_min": 1.917246,
+        "ramp_run_in": 0.073389
+       },
+       "0.15": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.000924,
+        "feed_ipm": 29.576144,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 395 SFM, which needs 25,547 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 63% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 63% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 39,
+        "ap_eff": 0.003846,
+        "cut_min": 5.538247,
+        "ramp_min": 0.193546,
+        "corner_min": 0.019639,
+        "total_min": 5.751534,
+        "ramp_run_in": 0.073389
+       },
+       "0.3": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.000924,
+        "feed_ipm": 29.576144,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 395 SFM, which needs 25,547 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 63% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 63% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 77,
+        "ap_eff": 0.003896,
+        "cut_min": 10.934488,
+        "ramp_min": 0.387092,
+        "corner_min": 0.038775,
+        "total_min": 11.360456,
+        "ramp_run_in": 0.074342
+       },
+       "estimates": {
+        "lateral_peak_n": 8.783244,
+        "deflection_in": 1.1e-05,
+        "axial_peak_n": 3.028147,
+        "power_w": 5.641907,
+        "power_per_edge_w": 2.820953,
+        "power_per_mm_edge_w": 13.531613,
+        "violated": [],
+        "life_ratio": 2.880057,
+        "v_life_sfm": 322.279238,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.001105,
+        "feed_ipm": 35.363142,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 450 SFM, which needs 29,104 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 55% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 55% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 13,
+        "ap_eff": 0.003846,
+        "cut_min": 1.54398,
+        "ramp_min": 0.053958,
+        "corner_min": 0.006979,
+        "total_min": 1.605019,
+        "ramp_run_in": 0.073389
+       },
+       "0.15": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.001105,
+        "feed_ipm": 35.363142,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 450 SFM, which needs 29,104 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 55% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 55% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 39,
+        "ap_eff": 0.003846,
+        "cut_min": 4.631941,
+        "ramp_min": 0.161873,
+        "corner_min": 0.020938,
+        "total_min": 4.814854,
+        "ramp_run_in": 0.073389
+       },
+       "0.3": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.001105,
+        "feed_ipm": 35.363142,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 450 SFM, which needs 29,104 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 55% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 55% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 7,
+         "sfm_range": [
+          328.0,
+          395.0,
+          450.0
+         ],
+         "fz_range": [
+          0.000251,
+          0.00105,
+          0.00121
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 77,
+        "ap_eff": 0.003896,
+        "cut_min": 9.145115,
+        "ramp_min": 0.323746,
+        "corner_min": 0.041339,
+        "total_min": 9.510302,
+        "ramp_run_in": 0.074342
+       }
+      }
+     },
+     "notes": []
+    },
+    {
+     "name": "high-feed Seco JHF980 4FL",
+     "kind": "hf",
+     "tool": {
+      "D": 0.0625,
+      "z": null
+     },
+     "chart": null,
+     "toolwiz": {},
+     "notes": [
+      "no Seco JHF980 4FL high-feed chart row at 0.0625\" in this material (charted diameters: 0.07874, 0.11811, 0.15748, 0.19685, 0.23622)"
+     ]
+    },
+    {
+     "name": "high-feed Seco SHF712 2FL",
+     "kind": "hf",
+     "tool": {
+      "D": 0.0625,
+      "z": null
+     },
+     "chart": null,
+     "toolwiz": {},
+     "notes": [
+      "no Seco SHF712 2FL high-feed chart row at 0.0625\" in this material (charted diameters: 0.11811, 0.15748, 0.23622)"
+     ]
     },
     {
      "name": "high-feed unbranded",
@@ -6959,8 +8917,8 @@
         "power_per_edge_w": 3.87256,
         "power_per_mm_edge_w": 10.522754,
         "violated": [],
-        "life_ratio": 1.171278,
-        "v_life_sfm": 272.353899,
+        "life_ratio": 2.334231,
+        "v_life_sfm": 323.59707,
         "taylor_n": 0.25
        }
       },
@@ -12517,18 +14475,18 @@
        "violated": [
         "C7"
        ],
-       "life_ratio": 0.128447,
-       "v_life_sfm": 239.464542,
+       "life_ratio": 0.366574,
+       "v_life_sfm": 311.243676,
        "taylor_n": 0.25
       }
      },
      "toolwiz": {
       "0.0": {
        "0.05": {
-        "rpm": 6044.889149,
-        "sfm": 197.818535,
+        "rpm": 7856.835504,
+        "sfm": 257.114341,
         "fz": 0.001518,
-        "feed_ipm": 36.697763,
+        "feed_ipm": 47.697861,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -12559,17 +14517,17 @@
         "stock_radial_in": 0.016,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.801139,
-        "ramp_min": 0.051995,
-        "corner_min": 0.003812,
-        "total_min": 0.857048,
+        "cut_min": 0.61638,
+        "ramp_min": 0.040004,
+        "corner_min": 0.004255,
+        "total_min": 0.660741,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 6044.889149,
-        "sfm": 197.818535,
+        "rpm": 7856.835504,
+        "sfm": 257.114341,
         "fz": 0.001518,
-        "feed_ipm": 36.697763,
+        "feed_ipm": 47.697861,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -12600,17 +14558,17 @@
         "stock_radial_in": 0.016,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 2.288968,
-        "ramp_min": 0.155986,
-        "corner_min": 0.010891,
-        "total_min": 2.455947,
+        "cut_min": 1.761085,
+        "ramp_min": 0.120013,
+        "corner_min": 0.012157,
+        "total_min": 1.893357,
         "ramp_run_in": 0.143109
        },
        "0.3": {
-        "rpm": 6044.889149,
-        "sfm": 197.818535,
+        "rpm": 7856.835504,
+        "sfm": 257.114341,
         "fz": 0.001518,
-        "feed_ipm": 36.697763,
+        "feed_ipm": 47.697861,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -12641,24 +14599,24 @@
         "stock_radial_in": 0.016,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 4.577936,
-        "ramp_min": 0.311972,
-        "corner_min": 0.021782,
-        "total_min": 4.911792,
+        "cut_min": 3.52217,
+        "ramp_min": 0.240025,
+        "corner_min": 0.024315,
+        "total_min": 3.786612,
         "ramp_run_in": 0.143109
        }
       },
       "0.5": {
        "0.05": {
-        "rpm": 7317.497391,
-        "sfm": 239.464542,
-        "fz": 0.00191,
-        "feed_ipm": 55.894024,
+        "rpm": 9510.906137,
+        "sfm": 311.243676,
+        "fz": 0.002005,
+        "feed_ipm": 76.276519,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -12684,22 +14642,22 @@
         "stock_radial_in": 0.016,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.525995,
-        "ramp_min": 0.034138,
-        "corner_min": 0.004585,
-        "total_min": 0.56482,
+        "cut_min": 0.38544,
+        "ramp_min": 0.025016,
+        "corner_min": 0.005407,
+        "total_min": 0.415964,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 7317.497391,
-        "sfm": 239.464542,
-        "fz": 0.00191,
-        "feed_ipm": 55.894024,
+        "rpm": 9510.906137,
+        "sfm": 311.243676,
+        "fz": 0.002005,
+        "feed_ipm": 76.276519,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -12725,22 +14683,22 @@
         "stock_radial_in": 0.016,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 1.502844,
-        "ramp_min": 0.102414,
-        "corner_min": 0.013101,
-        "total_min": 1.618461,
+        "cut_min": 1.101256,
+        "ramp_min": 0.075047,
+        "corner_min": 0.015447,
+        "total_min": 1.191852,
         "ramp_run_in": 0.143109
        },
        "0.3": {
-        "rpm": 7317.497391,
-        "sfm": 239.464542,
-        "fz": 0.00191,
-        "feed_ipm": 55.894024,
+        "rpm": 9510.906137,
+        "sfm": 311.243676,
+        "fz": 0.002005,
+        "feed_ipm": 76.276519,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -12766,36 +14724,36 @@
         "stock_radial_in": 0.016,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 3.005688,
-        "ramp_min": 0.204828,
-        "corner_min": 0.026202,
-        "total_min": 3.23682,
+        "cut_min": 2.202513,
+        "ramp_min": 0.150094,
+        "corner_min": 0.030894,
+        "total_min": 2.383603,
         "ramp_run_in": 0.143109
        },
        "estimates": {
-        "lateral_peak_n": 45.810572,
-        "deflection_in": 7e-05,
-        "axial_peak_n": 22.924443,
-        "power_w": 59.544278,
-        "power_per_edge_w": 14.886069,
-        "power_per_mm_edge_w": 33.683051,
+        "lateral_peak_n": 47.553863,
+        "deflection_in": 7.3e-05,
+        "axial_peak_n": 23.802169,
+        "power_w": 80.430917,
+        "power_per_edge_w": 20.107729,
+        "power_per_mm_edge_w": 45.49822,
         "violated": [],
         "life_ratio": 1.0,
-        "v_life_sfm": 239.464542,
+        "v_life_sfm": 311.243676,
         "taylor_n": 0.25
        }
       },
       "1.0": {
        "0.05": {
-        "rpm": 8749.181663,
-        "sfm": 286.3163,
-        "fz": 0.002283,
-        "feed_ipm": 79.906025,
+        "rpm": 11371.735599,
+        "sfm": 372.139177,
+        "fz": 0.00229,
+        "feed_ipm": 104.187247,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6, C14f",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -12821,22 +14779,22 @@
         "stock_radial_in": 0.016,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.367932,
-        "ramp_min": 0.023879,
-        "corner_min": 0.005553,
-        "total_min": 0.397466,
+        "cut_min": 0.282184,
+        "ramp_min": 0.018314,
+        "corner_min": 0.006531,
+        "total_min": 0.307131,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 8749.181663,
-        "sfm": 286.3163,
-        "fz": 0.002283,
-        "feed_ipm": 79.906025,
+        "rpm": 11371.735599,
+        "sfm": 372.139177,
+        "fz": 0.00229,
+        "feed_ipm": 104.187247,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6, C14f",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -12862,22 +14820,22 @@
         "stock_radial_in": 0.016,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 1.051235,
-        "ramp_min": 0.071638,
-        "corner_min": 0.015865,
-        "total_min": 1.13884,
+        "cut_min": 0.806241,
+        "ramp_min": 0.054943,
+        "corner_min": 0.01866,
+        "total_min": 0.879945,
         "ramp_run_in": 0.143109
        },
        "0.3": {
-        "rpm": 8749.181663,
-        "sfm": 286.3163,
-        "fz": 0.002283,
-        "feed_ipm": 79.906025,
+        "rpm": 11371.735599,
+        "sfm": 372.139177,
+        "fz": 0.00229,
+        "feed_ipm": 104.187247,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
         "feasible": true,
-        "limited_by": "C2, C6, C14f",
+        "limited_by": "C6, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
         "spindle_limited": false,
@@ -12903,10 +14861,10 @@
         "stock_radial_in": 0.016,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 2.10247,
-        "ramp_min": 0.143277,
-        "corner_min": 0.03173,
-        "total_min": 2.277578,
+        "cut_min": 1.612481,
+        "ramp_min": 0.109886,
+        "corner_min": 0.03732,
+        "total_min": 1.759789,
         "ramp_run_in": 0.143109
        }
       }
@@ -12939,6 +14897,985 @@
      "toolwiz": {},
      "notes": [
       "no Niagara SN400R high-feed chart row at 0.125\" in this material (charted diameters: none)"
+     ]
+    },
+    {
+     "name": "high-feed Seco JHF980 2FL [3 mm = 0.118\" tool, 0.118\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.11811,
+      "z": 2,
+      "programming_radius": 0.01441,
+      "apmx": 0.00787
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 3 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.00787,
+       "sfm": 345.0,
+       "fz": 0.0028,
+       "ap": 0.00425,
+       "rpm": 11157.420445,
+       "feed_ipm": 62.481554,
+       "spindle_limited": false,
+       "sfm_on_machine": 345.0,
+       "levels": 12,
+       "ap_eff": 0.004167,
+       "cut_min": 0.806638,
+       "ramp_min": 0.030539,
+       "corner_min": 0.008316,
+       "total_min": 0.845594,
+       "ramp_run_in": 0.079505
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 3 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.00787,
+       "sfm": 345.0,
+       "fz": 0.0028,
+       "ap": 0.00425,
+       "rpm": 11157.420445,
+       "feed_ipm": 62.481554,
+       "spindle_limited": false,
+       "sfm_on_machine": 345.0,
+       "levels": 36,
+       "ap_eff": 0.004167,
+       "cut_min": 2.419914,
+       "ramp_min": 0.091616,
+       "corner_min": 0.024947,
+       "total_min": 2.536579,
+       "ramp_run_in": 0.079505
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 3 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_3mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 2,
+       "corner_radius": 0.00787,
+       "sfm": 345.0,
+       "fz": 0.0028,
+       "ap": 0.00425,
+       "rpm": 11157.420445,
+       "feed_ipm": 62.481554,
+       "spindle_limited": false,
+       "sfm_on_machine": 345.0,
+       "levels": 71,
+       "ap_eff": 0.004225,
+       "cut_min": 4.772609,
+       "ramp_min": 0.183233,
+       "corner_min": 0.0492,
+       "total_min": 5.005143,
+       "ramp_run_in": 0.080625
+      },
+      "estimates": {
+       "lateral_peak_n": 34.425587,
+       "deflection_in": 5.1e-05,
+       "axial_peak_n": 11.870962,
+       "power_w": 30.21448,
+       "power_per_edge_w": 15.10724,
+       "power_per_mm_edge_w": 67.079428,
+       "violated": [],
+       "life_ratio": 0.667868,
+       "v_life_sfm": 311.882983,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 8332.247228,
+        "sfm": 257.642464,
+        "fz": 0.001663,
+        "feed_ipm": 27.707787,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 530 SFM would need 17,140 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 1.061074,
+        "ramp_min": 0.068866,
+        "corner_min": 0.00345,
+        "total_min": 1.13349,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 8332.247228,
+        "sfm": 257.642464,
+        "fz": 0.001663,
+        "feed_ipm": 27.707787,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 530 SFM would need 17,140 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 3.031639,
+        "ramp_min": 0.206597,
+        "corner_min": 0.009856,
+        "total_min": 3.248193,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 8332.247228,
+        "sfm": 257.642464,
+        "fz": 0.001663,
+        "feed_ipm": 27.707787,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 530 SFM would need 17,140 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 5.911696,
+        "ramp_min": 0.413194,
+        "corner_min": 0.01922,
+        "total_min": 6.34421,
+        "ramp_run_in": 0.146778
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 10086.404539,
+        "sfm": 311.882983,
+        "fz": 0.00201,
+        "feed_ipm": 40.540487,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 560 SFM would need 18,111 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.725201,
+        "ramp_min": 0.047067,
+        "corner_min": 0.003967,
+        "total_min": 0.776336,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 10086.404539,
+        "sfm": 311.882983,
+        "fz": 0.00201,
+        "feed_ipm": 40.540487,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 560 SFM would need 18,111 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 2.072003,
+        "ramp_min": 0.141201,
+        "corner_min": 0.011333,
+        "total_min": 2.224638,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 10086.404539,
+        "sfm": 311.882983,
+        "fz": 0.00201,
+        "feed_ipm": 40.540487,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 560 SFM would need 18,111 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 4.040405,
+        "ramp_min": 0.282401,
+        "corner_min": 0.0221,
+        "total_min": 4.345008,
+        "ramp_run_in": 0.146778
+       },
+       "estimates": {
+        "lateral_peak_n": 49.47627,
+        "deflection_in": 7.3e-05,
+        "axial_peak_n": 17.066251,
+        "power_w": 41.577593,
+        "power_per_edge_w": 20.788796,
+        "power_per_mm_edge_w": 49.848003,
+        "violated": [],
+        "life_ratio": 1.0,
+        "v_life_sfm": 311.882983,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 12059.831514,
+        "sfm": 372.903566,
+        "fz": 0.002403,
+        "feed_ipm": 57.956629,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 590 SFM would need 19,081 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.507276,
+        "ramp_min": 0.032923,
+        "corner_min": 0.004668,
+        "total_min": 0.544969,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 12059.831514,
+        "sfm": 372.903566,
+        "fz": 0.002403,
+        "feed_ipm": 57.956629,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 590 SFM would need 19,081 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 1.44936,
+        "ramp_min": 0.098769,
+        "corner_min": 0.013338,
+        "total_min": 1.561569,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 12059.831514,
+        "sfm": 372.903566,
+        "fz": 0.002403,
+        "feed_ipm": 57.956629,
+        "ap": 0.00787,
+        "z": 2,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 590 SFM would need 19,081 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 2.826251,
+        "ramp_min": 0.197539,
+        "corner_min": 0.02601,
+        "total_min": 3.049901,
+        "ramp_run_in": 0.146778
+       }
+      }
+     },
+     "notes": []
+    },
+    {
+     "name": "high-feed Seco JHF980 4FL [3 mm = 0.118\" tool, 0.118\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.11811,
+      "z": 4,
+      "programming_radius": 0.01441,
+      "apmx": 0.00787
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 3 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_3mm_z4",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 4,
+       "corner_radius": 0.00787,
+       "sfm": 345.0,
+       "fz": 0.0028,
+       "ap": 0.00425,
+       "rpm": 11157.420445,
+       "feed_ipm": 124.963109,
+       "spindle_limited": false,
+       "sfm_on_machine": 345.0,
+       "levels": 12,
+       "ap_eff": 0.004167,
+       "cut_min": 0.403319,
+       "ramp_min": 0.015269,
+       "corner_min": 0.012631,
+       "total_min": 0.431321,
+       "ramp_run_in": 0.079505
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 3 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_3mm_z4",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 4,
+       "corner_radius": 0.00787,
+       "sfm": 345.0,
+       "fz": 0.0028,
+       "ap": 0.00425,
+       "rpm": 11157.420445,
+       "feed_ipm": 124.963109,
+       "spindle_limited": false,
+       "sfm_on_machine": 345.0,
+       "levels": 36,
+       "ap_eff": 0.004167,
+       "cut_min": 1.209957,
+       "ramp_min": 0.045808,
+       "corner_min": 0.037893,
+       "total_min": 1.29376,
+       "ramp_run_in": 0.079505
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 3 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_3mm_z4",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.11811,
+       "z": 4,
+       "corner_radius": 0.00787,
+       "sfm": 345.0,
+       "fz": 0.0028,
+       "ap": 0.00425,
+       "rpm": 11157.420445,
+       "feed_ipm": 124.963109,
+       "spindle_limited": false,
+       "sfm_on_machine": 345.0,
+       "levels": 71,
+       "ap_eff": 0.004225,
+       "cut_min": 2.386304,
+       "ramp_min": 0.091616,
+       "corner_min": 0.074734,
+       "total_min": 2.552756,
+       "ramp_run_in": 0.080625
+      },
+      "estimates": {
+       "lateral_peak_n": 34.201106,
+       "deflection_in": 5.1e-05,
+       "axial_peak_n": 16.619135,
+       "power_w": 60.451355,
+       "power_per_edge_w": 15.112839,
+       "power_per_mm_edge_w": 67.104287,
+       "violated": [],
+       "life_ratio": 0.667868,
+       "v_life_sfm": 311.882983,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 8332.247228,
+        "sfm": 257.642464,
+        "fz": 0.001663,
+        "feed_ipm": 55.415574,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 530 SFM would need 17,140 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.530537,
+        "ramp_min": 0.034433,
+        "corner_min": 0.004566,
+        "total_min": 0.569637,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 8332.247228,
+        "sfm": 257.642464,
+        "fz": 0.001663,
+        "feed_ipm": 55.415574,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 530 SFM would need 17,140 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 1.515819,
+        "ramp_min": 0.103298,
+        "corner_min": 0.013046,
+        "total_min": 1.632265,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 8332.247228,
+        "sfm": 257.642464,
+        "fz": 0.001663,
+        "feed_ipm": 55.415574,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 530 SFM would need 17,140 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 2.955848,
+        "ramp_min": 0.206597,
+        "corner_min": 0.025439,
+        "total_min": 3.187985,
+        "ramp_run_in": 0.146778
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 10086.404539,
+        "sfm": 311.882983,
+        "fz": 0.00201,
+        "feed_ipm": 81.080974,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 560 SFM would need 18,111 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.3626,
+        "ramp_min": 0.023533,
+        "corner_min": 0.0056,
+        "total_min": 0.391836,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 10086.404539,
+        "sfm": 311.882983,
+        "fz": 0.00201,
+        "feed_ipm": 81.080974,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 560 SFM would need 18,111 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 1.036001,
+        "ramp_min": 0.0706,
+        "corner_min": 0.016,
+        "total_min": 1.122704,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 10086.404539,
+        "sfm": 311.882983,
+        "fz": 0.00201,
+        "feed_ipm": 81.080974,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 560 SFM would need 18,111 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 2.020203,
+        "ramp_min": 0.141201,
+        "corner_min": 0.0312,
+        "total_min": 2.192705,
+        "ramp_run_in": 0.146778
+       },
+       "estimates": {
+        "lateral_peak_n": 49.054049,
+        "deflection_in": 7.3e-05,
+        "axial_peak_n": 23.796431,
+        "power_w": 83.197361,
+        "power_per_edge_w": 20.79934,
+        "power_per_mm_edge_w": 49.873286,
+        "violated": [],
+        "life_ratio": 1.0,
+        "v_life_sfm": 311.882983,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 12059.831514,
+        "sfm": 372.903566,
+        "fz": 0.002403,
+        "feed_ipm": 115.913258,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 590 SFM would need 19,081 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 7,
+        "ap_eff": 0.007143,
+        "cut_min": 0.253638,
+        "ramp_min": 0.016462,
+        "corner_min": 0.007003,
+        "total_min": 0.277205,
+        "ramp_run_in": 0.136294
+       },
+       "0.15": {
+        "rpm": 12059.831514,
+        "sfm": 372.903566,
+        "fz": 0.002403,
+        "feed_ipm": 115.913258,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 590 SFM would need 19,081 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 20,
+        "ap_eff": 0.0075,
+        "cut_min": 0.72468,
+        "ramp_min": 0.049385,
+        "corner_min": 0.02001,
+        "total_min": 0.794176,
+        "ramp_run_in": 0.143109
+       },
+       "0.3": {
+        "rpm": 12059.831514,
+        "sfm": 372.903566,
+        "fz": 0.002403,
+        "feed_ipm": 115.913258,
+        "ap": 0.00787,
+        "z": 4,
+        "D": 0.11811,
+        "feasible": true,
+        "limited_by": "C2, C6",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": false,
+        "spindle_sentence": "The chart speed 590 SFM would need 19,081 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 4,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.001938,
+          0.002575,
+          0.00286
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0145,
+        "levels": 39,
+        "ap_eff": 0.007692,
+        "cut_min": 1.413126,
+        "ramp_min": 0.098769,
+        "corner_min": 0.039019,
+        "total_min": 1.551016,
+        "ramp_run_in": 0.146778
+       }
+      }
+     },
+     "notes": []
+    },
+    {
+     "name": "high-feed Seco SHF712 2FL",
+     "kind": "hf",
+     "tool": {
+      "D": 0.125,
+      "z": null
+     },
+     "chart": null,
+     "toolwiz": {},
+     "notes": [
+      "no Seco SHF712 2FL high-feed chart row at 0.125\" in this material (charted diameters: none)"
      ]
     },
     {
@@ -13079,10 +16016,10 @@
       },
       "0.5": {
        "0.05": {
-        "rpm": 7317.497391,
-        "sfm": 239.464542,
+        "rpm": 9510.906137,
+        "sfm": 311.243676,
         "fz": 0.001994,
-        "feed_ipm": 58.368664,
+        "feed_ipm": 75.864582,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -13113,17 +16050,17 @@
         "stock_radial_in": 0.028,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.503695,
-        "ramp_min": 0.032691,
-        "corner_min": 0.004685,
-        "total_min": 0.541172,
+        "cut_min": 0.387533,
+        "ramp_min": 0.025152,
+        "corner_min": 0.00539,
+        "total_min": 0.418176,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 7317.497391,
-        "sfm": 239.464542,
+        "rpm": 9510.906137,
+        "sfm": 311.243676,
         "fz": 0.001994,
-        "feed_ipm": 58.368664,
+        "feed_ipm": 75.864582,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -13154,17 +16091,17 @@
         "stock_radial_in": 0.028,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 1.439128,
-        "ramp_min": 0.098072,
-        "corner_min": 0.013386,
-        "total_min": 1.550688,
+        "cut_min": 1.107236,
+        "ramp_min": 0.075455,
+        "corner_min": 0.0154,
+        "total_min": 1.198192,
         "ramp_run_in": 0.143109
        },
        "0.3": {
-        "rpm": 7317.497391,
-        "sfm": 239.464542,
+        "rpm": 9510.906137,
+        "sfm": 311.243676,
         "fz": 0.001994,
-        "feed_ipm": 58.368664,
+        "feed_ipm": 75.864582,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -13195,31 +16132,31 @@
         "stock_radial_in": 0.028,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 2.878257,
-        "ramp_min": 0.196144,
-        "corner_min": 0.026771,
-        "total_min": 3.101274,
+        "cut_min": 2.214472,
+        "ramp_min": 0.150909,
+        "corner_min": 0.0308,
+        "total_min": 2.396283,
         "ramp_run_in": 0.143109
        },
        "estimates": {
         "lateral_peak_n": 52.222873,
         "deflection_in": 8e-05,
         "axial_peak_n": 28.234064,
-        "power_w": 60.865754,
-        "power_per_edge_w": 15.216438,
-        "power_per_mm_edge_w": 20.673512,
+        "power_w": 79.110171,
+        "power_per_edge_w": 19.777543,
+        "power_per_mm_edge_w": 26.870366,
         "violated": [],
         "life_ratio": 1.0,
-        "v_life_sfm": 239.464542,
+        "v_life_sfm": 311.243676,
         "taylor_n": 0.25
        }
       },
       "1.0": {
        "0.05": {
-        "rpm": 8749.181663,
-        "sfm": 286.3163,
+        "rpm": 11371.735599,
+        "sfm": 372.139177,
         "fz": 0.00229,
-        "feed_ipm": 80.159545,
+        "feed_ipm": 104.187247,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -13250,17 +16187,17 @@
         "stock_radial_in": 0.028,
         "levels": 7,
         "ap_eff": 0.007143,
-        "cut_min": 0.366769,
-        "ramp_min": 0.023804,
-        "corner_min": 0.005563,
-        "total_min": 0.396237,
+        "cut_min": 0.282184,
+        "ramp_min": 0.018314,
+        "corner_min": 0.006531,
+        "total_min": 0.307131,
         "ramp_run_in": 0.136294
        },
        "0.15": {
-        "rpm": 8749.181663,
-        "sfm": 286.3163,
+        "rpm": 11371.735599,
+        "sfm": 372.139177,
         "fz": 0.00229,
-        "feed_ipm": 80.159545,
+        "feed_ipm": 104.187247,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -13291,17 +16228,17 @@
         "stock_radial_in": 0.028,
         "levels": 20,
         "ap_eff": 0.0075,
-        "cut_min": 1.04791,
-        "ramp_min": 0.071412,
-        "corner_min": 0.015894,
-        "total_min": 1.135318,
+        "cut_min": 0.806241,
+        "ramp_min": 0.054943,
+        "corner_min": 0.01866,
+        "total_min": 0.879945,
         "ramp_run_in": 0.143109
        },
        "0.3": {
-        "rpm": 8749.181663,
-        "sfm": 286.3163,
+        "rpm": 11371.735599,
+        "sfm": 372.139177,
         "fz": 0.00229,
-        "feed_ipm": 80.159545,
+        "feed_ipm": 104.187247,
         "ap": 0.0075,
         "z": 4,
         "D": 0.125,
@@ -13332,10 +16269,10 @@
         "stock_radial_in": 0.028,
         "levels": 40,
         "ap_eff": 0.0075,
-        "cut_min": 2.09582,
-        "ramp_min": 0.142824,
-        "corner_min": 0.031788,
-        "total_min": 2.270534,
+        "cut_min": 1.612481,
+        "ramp_min": 0.109886,
+        "corner_min": 0.03732,
+        "total_min": 1.759789,
         "ramp_run_in": 0.143109
        }
       }
@@ -18798,6 +21735,515 @@
      ]
     },
     {
+     "name": "high-feed Seco JHF980 2FL [1.5 mm = 0.059\" tool, 0.059\" slot]",
+     "kind": "hf",
+     "tool": {
+      "D": 0.05906,
+      "z": 2,
+      "programming_radius": 0.0072,
+      "apmx": 0.00394
+     },
+     "chart": {
+      "0.05": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 1.5 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_1p5mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.05906,
+       "z": 2,
+       "corner_radius": 0.00394,
+       "sfm": 345.0,
+       "fz": 0.0014,
+       "ap": 0.00213,
+       "rpm": 16000.0,
+       "feed_ipm": 44.8,
+       "spindle_limited": true,
+       "sfm_on_machine": 247.389949,
+       "levels": 24,
+       "ap_eff": 0.002083,
+       "cut_min": 2.25,
+       "ramp_min": 0.042592,
+       "corner_min": 0.014189,
+       "total_min": 2.306882,
+       "ramp_run_in": 0.039752
+      },
+      "0.15": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 1.5 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_1p5mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.05906,
+       "z": 2,
+       "corner_radius": 0.00394,
+       "sfm": 345.0,
+       "fz": 0.0014,
+       "ap": 0.00213,
+       "rpm": 16000.0,
+       "feed_ipm": 44.8,
+       "spindle_limited": true,
+       "sfm_on_machine": 247.389949,
+       "levels": 71,
+       "ap_eff": 0.002113,
+       "cut_min": 6.65625,
+       "ramp_min": 0.127775,
+       "corner_min": 0.041974,
+       "total_min": 6.826101,
+       "ramp_run_in": 0.040312
+      },
+      "0.3": {
+       "source": "seco SECO_SEM_2026_2 p.PDF p.235 (printed page 233); item table PDF p.232-233 (printed 230-231): SMG P12 / DCX 1.5 mm",
+       "row_id": "seco_JHF980_17-4_P12_slot_1p5mm_z2",
+       "vendor": "seco",
+       "series": "JHF980",
+       "D": 0.05906,
+       "z": 2,
+       "corner_radius": 0.00394,
+       "sfm": 345.0,
+       "fz": 0.0014,
+       "ap": 0.00213,
+       "rpm": 16000.0,
+       "feed_ipm": 44.8,
+       "spindle_limited": true,
+       "sfm_on_machine": 247.389949,
+       "levels": 141,
+       "ap_eff": 0.002128,
+       "cut_min": 13.21875,
+       "ramp_min": 0.255551,
+       "corner_min": 0.083358,
+       "total_min": 13.55776,
+       "ramp_run_in": 0.040598
+      },
+      "estimates": {
+       "lateral_peak_n": 10.209378,
+       "deflection_in": 1.3e-05,
+       "axial_peak_n": 3.518718,
+       "power_w": 6.269478,
+       "power_per_edge_w": 3.134739,
+       "power_per_mm_edge_w": 27.814523,
+       "violated": [],
+       "life_ratio": 2.792618,
+       "v_life_sfm": 319.804761,
+       "taylor_n": 0.25
+      }
+     },
+     "toolwiz": {
+      "0.0": {
+       "0.05": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.000856,
+        "feed_ipm": 27.399002,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 530 SFM, which needs 34,278 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 47% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 47% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 13,
+        "ap_eff": 0.003846,
+        "cut_min": 1.992773,
+        "ramp_min": 0.069642,
+        "corner_min": 0.006383,
+        "total_min": 2.0689,
+        "ramp_run_in": 0.073389
+       },
+       "0.15": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.000856,
+        "feed_ipm": 27.399002,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 530 SFM, which needs 34,278 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 47% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 47% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 39,
+        "ap_eff": 0.003846,
+        "cut_min": 5.97832,
+        "ramp_min": 0.208925,
+        "corner_min": 0.01915,
+        "total_min": 6.206497,
+        "ramp_run_in": 0.073389
+       },
+       "0.3": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.000856,
+        "feed_ipm": 27.399002,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 530 SFM, which needs 34,278 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 47% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 47% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 77,
+        "ap_eff": 0.003896,
+        "cut_min": 11.803349,
+        "ramp_min": 0.41785,
+        "corner_min": 0.03781,
+        "total_min": 12.259111,
+        "ramp_run_in": 0.074342
+       }
+      },
+      "0.5": {
+       "0.05": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.001037,
+        "feed_ipm": 33.191259,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 560 SFM, which needs 36,218 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 44% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 44% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 13,
+        "ap_eff": 0.003846,
+        "cut_min": 1.645011,
+        "ramp_min": 0.057488,
+        "corner_min": 0.006817,
+        "total_min": 1.709418,
+        "ramp_run_in": 0.073389
+       },
+       "0.15": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.001037,
+        "feed_ipm": 33.191259,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 560 SFM, which needs 36,218 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 44% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 44% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 39,
+        "ap_eff": 0.003846,
+        "cut_min": 4.935034,
+        "ramp_min": 0.172465,
+        "corner_min": 0.020451,
+        "total_min": 5.128052,
+        "ramp_run_in": 0.073389
+       },
+       "0.3": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.001037,
+        "feed_ipm": 33.191259,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 560 SFM, which needs 36,218 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 44% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 44% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 77,
+        "ap_eff": 0.003896,
+        "cut_min": 9.743529,
+        "ramp_min": 0.344931,
+        "corner_min": 0.040377,
+        "total_min": 10.128938,
+        "ramp_run_in": 0.074342
+       },
+       "estimates": {
+        "lateral_peak_n": 15.129809,
+        "deflection_in": 1.9e-05,
+        "axial_peak_n": 5.216215,
+        "power_w": 9.768888,
+        "power_per_edge_w": 4.884444,
+        "power_per_mm_edge_w": 23.429812,
+        "violated": [],
+        "life_ratio": 2.792618,
+        "v_life_sfm": 319.804761,
+        "taylor_n": 0.25
+       }
+      },
+      "1.0": {
+       "0.05": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.00124,
+        "feed_ipm": 39.685606,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 590 SFM, which needs 38,158 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 42% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 42% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 13,
+        "ap_eff": 0.003846,
+        "cut_min": 1.375814,
+        "ramp_min": 0.048081,
+        "corner_min": 0.007303,
+        "total_min": 1.431299,
+        "ramp_run_in": 0.073389
+       },
+       "0.15": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.00124,
+        "feed_ipm": 39.685606,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 590 SFM, which needs 38,158 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 42% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 42% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 39,
+        "ap_eff": 0.003846,
+        "cut_min": 4.127441,
+        "ramp_min": 0.144242,
+        "corner_min": 0.021908,
+        "total_min": 4.293693,
+        "ramp_run_in": 0.073389
+       },
+       "0.3": {
+        "rpm": 16000.0,
+        "sfm": 247.389949,
+        "fz": 0.00124,
+        "feed_ipm": 39.685606,
+        "ap": 0.00394,
+        "z": 2,
+        "D": 0.05906,
+        "feasible": true,
+        "limited_by": "C2, C6, C7",
+        "ramp_deg": 3.0,
+        "ramp_frac": 0.5,
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the seco chart speed at this aggressiveness is 590 SFM, which needs 38,158 rpm on a 0.0591\" tool; this spindle tops out at 16,000 rpm (247 SFM, 42% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 42% and is not made up with a larger chip.",
+        "vendor_basis": {
+         "mode": "brand",
+         "vendor": "seco",
+         "chart_class": "hf_slot",
+         "rows": 2,
+         "sfm_range": [
+          530.0,
+          560.0,
+          590.0
+         ],
+         "fz_range": [
+          0.000969,
+          0.001275,
+          0.001403
+         ],
+         "note": "Vendor basis: Seco hf_slot chart (brand \"Seco\")."
+        },
+        "runout_in": 0.0001,
+        "stock_radial_in": 0.0075,
+        "levels": 77,
+        "ap_eff": 0.003896,
+        "cut_min": 8.14905,
+        "ramp_min": 0.288484,
+        "corner_min": 0.043255,
+        "total_min": 8.480891,
+        "ramp_run_in": 0.074342
+       }
+      }
+     },
+     "notes": []
+    },
+    {
+     "name": "high-feed Seco JHF980 4FL",
+     "kind": "hf",
+     "tool": {
+      "D": 0.0625,
+      "z": null
+     },
+     "chart": null,
+     "toolwiz": {},
+     "notes": [
+      "no Seco JHF980 4FL high-feed chart row at 0.0625\" in this material (charted diameters: 0.07874, 0.11811, 0.15748, 0.19685, 0.23622)"
+     ]
+    },
+    {
+     "name": "high-feed Seco SHF712 2FL",
+     "kind": "hf",
+     "tool": {
+      "D": 0.0625,
+      "z": null
+     },
+     "chart": null,
+     "toolwiz": {},
+     "notes": [
+      "no Seco SHF712 2FL high-feed chart row at 0.0625\" in this material (charted diameters: none)"
+     ]
+    },
+    {
      "name": "high-feed unbranded",
      "kind": "hf",
      "tool": {
@@ -18810,19 +22256,19 @@
      "toolwiz": {
       "0.0": {
        "0.05": {
-        "rpm": 12396.894732,
-        "sfm": 202.843716,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
         "fz": 0.000758,
-        "feed_ipm": 37.601446,
+        "feed_ipm": 48.530147,
         "ap": 0.00375,
         "z": 4,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 304 SFM would need 18,579 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the harvey+helical chart speed at this aggressiveness is 304 SFM, which needs 18,579 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 86% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 86% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "default",
          "vendor": "harvey+helical",
@@ -18844,26 +22290,26 @@
         "stock_radial_in": 0.014,
         "levels": 14,
         "ap_eff": 0.003571,
-        "cut_min": 1.56377,
-        "ramp_min": 0.050746,
-        "corner_min": 0.007697,
-        "total_min": 1.622314,
+        "cut_min": 1.211618,
+        "ramp_min": 0.039318,
+        "corner_min": 0.008577,
+        "total_min": 1.259615,
         "ramp_run_in": 0.068147
        },
        "0.15": {
-        "rpm": 12396.894732,
-        "sfm": 202.843716,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
         "fz": 0.000758,
-        "feed_ipm": 37.601446,
+        "feed_ipm": 48.530147,
         "ap": 0.00375,
         "z": 4,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 304 SFM would need 18,579 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the harvey+helical chart speed at this aggressiveness is 304 SFM, which needs 18,579 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 86% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 86% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "default",
          "vendor": "harvey+helical",
@@ -18885,26 +22331,26 @@
         "stock_radial_in": 0.014,
         "levels": 40,
         "ap_eff": 0.00375,
-        "cut_min": 4.467913,
-        "ramp_min": 0.152237,
-        "corner_min": 0.02199,
-        "total_min": 4.642242,
+        "cut_min": 3.461766,
+        "ramp_min": 0.117954,
+        "corner_min": 0.024506,
+        "total_min": 3.604328,
         "ramp_run_in": 0.071554
        },
        "0.3": {
-        "rpm": 12396.894732,
-        "sfm": 202.843716,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
         "fz": 0.000758,
-        "feed_ipm": 37.601446,
+        "feed_ipm": 48.530147,
         "ap": 0.00375,
         "z": 4,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 304 SFM would need 18,579 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the harvey+helical chart speed at this aggressiveness is 304 SFM, which needs 18,579 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 86% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 86% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "default",
          "vendor": "harvey+helical",
@@ -18926,28 +22372,28 @@
         "stock_radial_in": 0.014,
         "levels": 80,
         "ap_eff": 0.00375,
-        "cut_min": 8.935827,
-        "ramp_min": 0.304475,
-        "corner_min": 0.043981,
-        "total_min": 9.284383,
+        "cut_min": 6.923531,
+        "ramp_min": 0.235909,
+        "corner_min": 0.049013,
+        "total_min": 7.208554,
         "ramp_run_in": 0.071554
        }
       },
       "0.5": {
        "0.05": {
-        "rpm": 15006.767308,
-        "sfm": 245.547656,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
         "fz": 0.001005,
-        "feed_ipm": 60.321511,
+        "feed_ipm": 64.31393,
         "ap": 0.00375,
         "z": 4,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 400 SFM would need 24,446 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the harvey+helical chart speed at this aggressiveness is 400 SFM, which needs 24,446 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 65% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 65% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "default",
          "vendor": "harvey+helical",
@@ -18969,26 +22415,26 @@
         "stock_radial_in": 0.014,
         "levels": 14,
         "ap_eff": 0.003571,
-        "cut_min": 0.974777,
-        "ramp_min": 0.031632,
-        "corner_min": 0.009527,
-        "total_min": 1.016038,
+        "cut_min": 0.914265,
+        "ramp_min": 0.029669,
+        "corner_min": 0.009849,
+        "total_min": 0.953885,
         "ramp_run_in": 0.068147
        },
        "0.15": {
-        "rpm": 15006.767308,
-        "sfm": 245.547656,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
         "fz": 0.001005,
-        "feed_ipm": 60.321511,
+        "feed_ipm": 64.31393,
         "ap": 0.00375,
         "z": 4,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 400 SFM would need 24,446 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the harvey+helical chart speed at this aggressiveness is 400 SFM, which needs 24,446 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 65% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 65% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "default",
          "vendor": "harvey+helical",
@@ -19010,26 +22456,26 @@
         "stock_radial_in": 0.014,
         "levels": 40,
         "ap_eff": 0.00375,
-        "cut_min": 2.785076,
-        "ramp_min": 0.094897,
-        "corner_min": 0.027221,
-        "total_min": 2.907296,
+        "cut_min": 2.612187,
+        "ramp_min": 0.089006,
+        "corner_min": 0.02814,
+        "total_min": 2.729435,
         "ramp_run_in": 0.071554
        },
        "0.3": {
-        "rpm": 15006.767308,
-        "sfm": 245.547656,
+        "rpm": 16000.0,
+        "sfm": 261.799388,
         "fz": 0.001005,
-        "feed_ipm": 60.321511,
+        "feed_ipm": 64.31393,
         "ap": 0.00375,
         "z": 4,
         "D": 0.0625,
         "feasible": true,
-        "limited_by": "C6, C14f",
+        "limited_by": "C6, C7, C14f",
         "ramp_deg": 3.0,
         "ramp_frac": 0.5,
-        "spindle_limited": false,
-        "spindle_sentence": "The chart speed 400 SFM would need 24,446 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.",
+        "spindle_limited": true,
+        "spindle_sentence": "Spindle-limited: the harvey+helical chart speed at this aggressiveness is 400 SFM, which needs 24,446 rpm on a 0.0625\" tool; this spindle tops out at 16,000 rpm (262 SFM, 65% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 65% and is not made up with a larger chip.",
         "vendor_basis": {
          "mode": "default",
          "vendor": "harvey+helical",
@@ -19051,22 +22497,22 @@
         "stock_radial_in": 0.014,
         "levels": 80,
         "ap_eff": 0.00375,
-        "cut_min": 5.570152,
-        "ramp_min": 0.189794,
-        "corner_min": 0.054442,
-        "total_min": 5.81449,
+        "cut_min": 5.224374,
+        "ramp_min": 0.178012,
+        "corner_min": 0.05628,
+        "total_min": 5.458768,
         "ramp_run_in": 0.071554
        },
        "estimates": {
         "lateral_peak_n": 15.542367,
         "deflection_in": 2e-05,
         "axial_peak_n": 8.365397,
-        "power_w": 18.141339,
-        "power_per_edge_w": 4.535335,
-        "power_per_mm_edge_w": 12.323685,
+        "power_w": 19.342036,
+        "power_per_edge_w": 4.835509,
+        "power_per_mm_edge_w": 13.139337,
         "violated": [],
-        "life_ratio": 1.0,
-        "v_life_sfm": 245.547656,
+        "life_ratio": 2.208543,
+        "v_life_sfm": 319.150193,
         "taylor_n": 0.25
        }
       },
@@ -35650,15 +39096,36 @@
    "material": "Ti-6Al-4V",
    "D": 0.125,
    "option": "high-feed Harvey",
-   "nominal_min": 1.243781,
-   "pessimistic_min": 1.289724
+   "nominal_min": 1.280099,
+   "pessimistic_min": 1.325678
   },
   {
    "material": "Ti-6Al-4V",
    "D": 0.125,
    "option": "high-feed Niagara SN400R",
-   "nominal_min": 1.253301,
-   "pessimistic_min": 1.296288
+   "nominal_min": 1.092629,
+   "pessimistic_min": 1.137316
+  },
+  {
+   "material": "Ti-6Al-4V",
+   "D": 0.125,
+   "option": "high-feed Seco JHF980 2FL [3 mm = 0.118\" tool, 0.118\" slot]",
+   "nominal_min": 2.299862,
+   "pessimistic_min": 2.339965
+  },
+  {
+   "material": "Ti-6Al-4V",
+   "D": 0.125,
+   "option": "high-feed Seco JHF980 4FL [3 mm = 0.118\" tool, 0.118\" slot]",
+   "nominal_min": 1.160085,
+   "pessimistic_min": 1.206957
+  },
+  {
+   "material": "Ti-6Al-4V",
+   "D": 0.125,
+   "option": "high-feed Seco SHF712 2FL [3 mm = 0.118\" tool, 0.118\" slot]",
+   "nominal_min": 0.852934,
+   "pessimistic_min": 0.869471
   },
   {
    "material": "Ti-6Al-4V",
@@ -35755,8 +39222,15 @@
    "material": "Ti-6Al-4V",
    "D": 0.0625,
    "option": "high-feed Niagara SN400R",
-   "nominal_min": 5.091479,
-   "pessimistic_min": 5.165507
+   "nominal_min": 5.25874,
+   "pessimistic_min": 5.332426
+  },
+  {
+   "material": "Ti-6Al-4V",
+   "D": 0.0625,
+   "option": "high-feed Seco JHF980 2FL [1.5 mm = 0.059\" tool, 0.059\" slot]",
+   "nominal_min": 5.751534,
+   "pessimistic_min": 5.826492
   },
   {
    "material": "Ti-6Al-4V",
@@ -35860,15 +39334,29 @@
    "material": "17-4 PH",
    "D": 0.125,
    "option": "high-feed Harvey",
-   "nominal_min": 1.618461,
-   "pessimistic_min": 1.661445
+   "nominal_min": 1.191852,
+   "pessimistic_min": 1.238356
+  },
+  {
+   "material": "17-4 PH",
+   "D": 0.125,
+   "option": "high-feed Seco JHF980 2FL [3 mm = 0.118\" tool, 0.118\" slot]",
+   "nominal_min": 2.224638,
+   "pessimistic_min": 2.264972
+  },
+  {
+   "material": "17-4 PH",
+   "D": 0.125,
+   "option": "high-feed Seco JHF980 4FL [3 mm = 0.118\" tool, 0.118\" slot]",
+   "nominal_min": 1.122704,
+   "pessimistic_min": 1.170037
   },
   {
    "material": "17-4 PH",
    "D": 0.125,
    "option": "high-feed unbranded",
-   "nominal_min": 1.550688,
-   "pessimistic_min": 1.5941
+   "nominal_min": 1.198192,
+   "pessimistic_min": 1.244625
   },
   {
    "material": "17-4 PH",
@@ -35964,9 +39452,16 @@
   {
    "material": "17-4 PH",
    "D": 0.0625,
+   "option": "high-feed Seco JHF980 2FL [1.5 mm = 0.059\" tool, 0.059\" slot]",
+   "nominal_min": 5.128052,
+   "pessimistic_min": 5.204228
+  },
+  {
+   "material": "17-4 PH",
+   "D": 0.0625,
    "option": "high-feed unbranded",
-   "nominal_min": 2.907296,
-   "pessimistic_min": 2.994794
+   "nominal_min": 2.729435,
+   "pessimistic_min": 2.818312
   },
   {
    "material": "17-4 PH",

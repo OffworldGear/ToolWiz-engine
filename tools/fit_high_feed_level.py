@@ -121,16 +121,16 @@ def items():
                         op=row["operation"], q_sq=mat.vc_hardness_exp, hb_vc_ref=mat.vc_hb_ref or mat.hb_ref,
                         bucket=bvc.cell_key(fam, hb, D, aeD, cls).rsplit("|", 1)[0],
                         sfm=vals[1], base_sfm=base_sfm, chip=chip, base_chip=chip_base_over_D(fam, D, cls),
-                        lead_deg=geo.lead_deg, kappa_assumed=list(geo.assumed)))
+                        lead_deg=geo.lead_deg, kappa_assumed=list(geo.assumed), series=row["tool"].get("series")))
     return out
 
 
 def hardness_exponents(its):
     """{family: (q, n_pairs)}: the high-feed charts' own hardness slope from within-chart contrasts (same vendor, document,
-    diameter and operation at two hardness classes): median of log(SFM_soft / SFM_hard) / log(HB_hard / HB_soft)."""
+    diameter, operation and tool series at two hardness classes): median of log(SFM_soft / SFM_hard) / log(HB_hard / HB_soft)."""
     by = collections.defaultdict(dict)
     for it in its:
-        by[(it["family"], it["vendor"], it["doc"], it["D"], it["op"])][round(it["hb"])] = it["sfm"]
+        by[(it["family"], it["vendor"], it["doc"], it["D"], it["op"], it["series"])][round(it["hb"])] = it["sfm"]
     qs = collections.defaultdict(list)
     for (fam, *_), cells in by.items():
         hbs = sorted(cells)

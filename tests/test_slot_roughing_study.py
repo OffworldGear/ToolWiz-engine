@@ -45,8 +45,9 @@ class TestArithmetic(unittest.TestCase):
         harvey = [r for r in ti if r["_vendor"] == "harvey"]
         self.assertEqual({s.nominal(r["cut"]["sfm"]) for r in harvey}, {300.0})   # the 21-36 HRC class
         self.assertTrue(any(r["_vendor"] == "seco" for r in ti))
-        sixteenth = s.chart_rows(rows, "Titanium Alloy", 330.0, 0.0625, "hf")   # only the Niagara 2-flute SN200R is charted
-        self.assertEqual({(r["_vendor"], r["tool"]["series"], r["tool"]["flutes"]) for r in sixteenth}, {("seco", "SN200R", 2)})
+        sixteenth = s.chart_rows(rows, "Titanium Alloy", 330.0, 0.0625, "hf")   # 1/16"-class: Niagara SN200R, Seco JHF980 1.5 mm
+        self.assertEqual({(r["_vendor"], r["tool"]["series"], r["tool"]["flutes"]) for r in sixteenth},
+                         {("seco", "SN200R", 2), ("seco", "JHF980", 2)})
 
 
 class TestQuickRun(unittest.TestCase):
@@ -55,6 +56,7 @@ class TestQuickRun(unittest.TestCase):
         case = data["cases"][0]
         names = [o["name"] for o in case["options"]]
         self.assertIn("high-feed Niagara SN400R", names)
+        self.assertTrue(any(n.startswith('high-feed Seco JHF980 4FL [3 mm = 0.118" tool') for n in names))   # true metric size
         self.assertTrue(any(n.startswith("HEM") for n in names))
         text = s.render(data)
         self.assertIn("| high-feed Harvey |", text)
