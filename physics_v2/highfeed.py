@@ -156,7 +156,11 @@ def tips(geo, cut, entry, axial_force_n=None):
                                 f"{'was' if len(geo.assumed) == 1 else 'were'} not given ({geo.basis}). Enter the catalog values (max ap, lead angle or programming radius) "
                                 f"for numbers that match your tool.")})
     ref = (cut.get("_square_chart_sfm") if isinstance(cut, dict) else None)
-    if ref and cut.get("sfm") and cut["sfm"] > 1.1 * ref:
+    no_chart = (cut.get("_vendor_mode") in (None, "none", "off")) if isinstance(cut, dict) else True
+    sl = (cut.get("_spindle_limited") or {}) if isinstance(cut, dict) else {}
+    if sl.get("limited"):
+        out.append({"title": "High-feed spindle-limited", "type": "warning", "fusion": True, "message": sl["sentence"]})
+    if no_chart and ref and cut.get("sfm") and cut["sfm"] > 1.1 * ref:
         out.append({"title": "High-feed speed not chart-capped", "type": "warning", "fusion": True,
                     "message": (f"{cut['sfm']:.0f} SFM is the physics (tool-life) speed with no vendor cap: ToolWiz has no "
                                 f"high-feed chart yet, and the square-end chart for this material reads {ref:.0f} SFM at this "

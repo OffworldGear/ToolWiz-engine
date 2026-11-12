@@ -63,6 +63,33 @@ def speed_by_family():
     return _CACHE[SPEED_BY_FAMILY_PATH]
 
 
+HIGH_FEED_LEVEL_PATH = os.path.join(ROOT, "data", "model_v2", "high_feed_level.json")
+
+
+def high_feed_level():
+    """The high-feed chart class level per family (tools/fit_high_feed_level.py): {family: {class: entry}}, {} when absent."""
+    if HIGH_FEED_LEVEL_PATH not in _CACHE:
+        try:
+            with open(HIGH_FEED_LEVEL_PATH, encoding="utf-8") as fh:
+                _CACHE[HIGH_FEED_LEVEL_PATH] = json.load(fh).get("families", {})
+        except OSError:
+            _CACHE[HIGH_FEED_LEVEL_PATH] = {}
+    return _CACHE[HIGH_FEED_LEVEL_PATH]
+
+
+def _high_feed_kwargs(family):
+    """Material fields for a high-feed tool's C7 level and C2 limit in this family (empty when not fitted)."""
+    ent = {c: e for c, e in (high_feed_level().get(family) or {}).items() if e.get("applied")}
+    if not ent:
+        return {}
+    basis = "; ".join(f"{c}: {e['n_rows']} rows, {', '.join(e['vendor_groups'])}, {e['confidence']}" for c, e in ent.items())
+    q = next((e["hardness_exp"]["value"] for e in ent.values() if (e.get("hardness_exp") or {}).get("value") is not None), None)
+    return dict(vc_hf_factor=tuple((c, float(e["speed"]["value"])) for c, e in ent.items()),
+                vc_hf_hardness_exp=None if q is None else float(q),
+                c2_hf_factor=tuple((c, float(e["chip"]["value"])) for c, e in ent.items()),
+                hf_level_basis=basis)
+
+
 def coating_class(label):
     """Coating chemistry from a catalog label; proprietary names without a chemistry are 'unspecified'."""
     if not label:
@@ -124,6 +151,8 @@ def material(family, hb=None, coating=None, path=None, **overrides):
         # only where the refit did not do worse on the hold-out groups.
         kw.update(vc_ref_sfm=float(ov["vc_ref_sfm"]) * float(cf), vc_engagement_exp=float(ov["engagement_k"]),
                   vc_diameter_exp=float(ov["diameter_m"]), vc_d_knee_in=float(ov["diameter_knee_in"]))
+    if sp:
+        kw.update(_high_feed_kwargs(family))
     off = p.get("consensus_offsets")
     if off:
         kw["c2_scale"] = float(off["c2"]["value"])

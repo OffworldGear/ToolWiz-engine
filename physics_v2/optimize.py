@@ -328,6 +328,10 @@ class Material:
     vc_diameter_exp: float = 0.0        # C7 level ×(min(D, vc_d_knee_in)/vc_d_knee_in)^m (calibration, step 4)
     vc_d_knee_in: float = 1.0
     vc_op_factor: tuple = ()            # C7 level × factor by operation, ((op, factor), ...); V4 (see `operation_speed_factor`)
+    vc_hf_factor: tuple = ()            # high-feed tools: C7 level × factor by chart class, (("hf_slot", f), ("hf_rough", f))
+    c2_hf_factor: tuple = ()            # high-feed tools: C2 chip limit × factor by chart class (tools/fit_high_feed_level.py)
+    hf_level_basis: str = ""            # where the two high-feed factors came from (rows, groups, confidence)
+    vc_hf_hardness_exp: Optional[float] = None   # high-feed tools: the charts' own C7 hardness exponent (None: vc_hardness_exp)
     family: Optional[str] = None        # GWizard family, for the C14 vendor-consensus lookup
     taylor_n: float = 0.25              # PLACEHOLDER
     k_r: float = 0.4                    # PLACEHOLDER
@@ -732,7 +736,31 @@ def operation_speed_factor(material, operation):
     return 1.0
 
 
-def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1.0, operation=None):
+def hf_chart_class(operation):
+    """The high-feed chart class an engine operation reads (HF_CHART_CLASSES): hf_slot for slots, hf_rough otherwise."""
+    return "hf_slot" if operation == "slot" else "hf_rough"
+
+
+def hf_factor(pairs, operation):
+    """A high-feed level factor ((class, f), ...) for the operation's chart class, or None when the family has none."""
+    cls = hf_chart_class(operation)
+    for c, f in pairs:
+        if c == cls:
+            return float(f)
+    return None
+
+
+def speed_level_factor(material, operation, end=None):
+    """C7's toolpath factor: the square-end operation factor, or for a high-feed tool (end "high_feed") with a fitted
+    high-feed level (data/model_v2/high_feed_level.json) the slot / rough level × the high-feed factor of its class."""
+    if end == "high_feed":
+        f = hf_factor(material.vc_hf_factor, operation)
+        if f is not None:
+            return operation_speed_factor(material, "slot" if operation == "slot" else "rough") * f
+    return operation_speed_factor(material, operation)
+
+
+def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1.0, operation=None, end=None):
     """C7 speed: v_ref·(HB_ref/HB)^q·g(engagement)·f(D)·(T/T_ref)^(−n)·s, m/min.
 
     g is `engagement_speed_factor`. By default (basis "phi") φe is held at or above the engagement of
@@ -742,22 +770,27 @@ def taylor_speed_m_min(material, phi_e, life_ratio=1.0, D_mm=None, speed_scale=1
     T/T_ref = s^(−1/n)).
     """
     v = material.vc_ref_sfm / FT_PER_M
-    v *= ((material.vc_hb_ref or material.hb_ref) / material.hb) ** material.vc_hardness_exp
+    q = material.vc_hardness_exp
+    if (end == "high_feed" and material.vc_hf_hardness_exp is not None
+            and hf_factor(material.vc_hf_factor, operation) is not None):
+        q = material.vc_hf_hardness_exp
+    v *= ((material.vc_hb_ref or material.hb_ref) / material.hb) ** q
     v *= engagement_speed_factor(material, phi_e)
     v *= diameter_speed_factor(material, D_mm)
-    v *= operation_speed_factor(material, operation)
+    v *= speed_level_factor(material, operation, end)
     v *= life_ratio ** (-material.taylor_n)
     return v * speed_scale
 
 
 def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0, speed_scale=1.0, operation=None,
-             D_eff_mm=None):
+             D_eff_mm=None, end=None):
     """C7: v_c from tool life (and the C9 factor); rpm = v_c/(π·D), capped at the machine's max.
 
     Returns (rpm_used, v_c_m_min_used, Check, rpm_tool_life). The check's value is the rpm used, so it binds
     (margin 0) when the spindle's max rpm caps the tool-life speed.
     """
-    vc_life = taylor_speed_m_min(material, phi_e, life_ratio, D_mm, speed_scale, operation) * reach_factor
+    vc_life = taylor_speed_m_min(material, phi_e, life_ratio, D_mm, speed_scale, operation, end) * reach_factor
+    hf = hf_factor(material.vc_hf_factor, operation) if end == "high_feed" else None
     D_cut = D_eff_mm or D_mm   # ball and bull nose at a shallow depth: v_c is set at the effective cutting diameter
     rpm_want = 1000.0 * vc_life / (math.pi * D_cut)
     rpm = min(rpm_want, max_rpm)
@@ -770,7 +803,9 @@ def c7_speed(material, phi_e, D_mm, max_rpm, life_ratio=1.0, reach_factor=1.0, s
                        + f"^−{material.vc_engagement_exp:g}"
                        + (f"·D-term {diameter_speed_factor(material, D_mm):.3f}" if material.vc_diameter_exp else "")
                        + (f"·{operation} toolpath {operation_speed_factor(material, operation):.3f}"
-                          if operation_speed_factor(material, operation) != 1.0 else "")
+                          if hf is None and operation_speed_factor(material, operation) != 1.0 else "")
+                       + (f"·high-feed level {speed_level_factor(material, operation, end):.3f} ({hf_chart_class(operation)} "
+                          f"× {hf:.3f}, data/model_v2/high_feed_level.json)" if hf is not None else "")
                        + f"·(T/T_ref = {life_ratio:.2f})^−{material.taylor_n:g}"
                        + (f"·consensus scale {speed_scale:.3f} (T/T_ref = {speed_scale ** (-1.0 / material.taylor_n):.2f})"
                           if speed_scale != 1.0 else "")
@@ -1920,6 +1955,22 @@ class _Context:
                     self.h_nominal_basis += "; " + self.flute_basis
                     self.h_overload *= f
                     self.h_overload_basis += "; " + self.flute_basis
+        # C2 for a high-feed tool: the high-feed chart class level of the family (tools/fit_high_feed_level.py), on the thinned
+        # chip fz·sin κ; 1 (the square-end limit) for a family without high-feed rows.
+        self.hf_chip_factor = None
+        if tool.high_feed is not None and self.chip_band is not None:
+            f = hf_factor(material.c2_hf_factor, operation)
+            if f is not None:
+                self.hf_chip_factor = f
+                txt = (f"× {f:.2f} high-feed {hf_chart_class(operation)} level ({material.hf_level_basis}; "
+                       f"data/model_v2/high_feed_level.json)")
+                self.h_tooth *= f
+                self.h_tooth_basis += "; " + txt
+                if self.h_nominal is not None:
+                    self.h_nominal *= f
+                    self.h_nominal_basis += "; " + txt
+                    self.h_overload *= f
+                    self.h_overload_basis += "; " + txt
         # C3
         if o["deflection_allow"] is not None:
             self.delta_allow, self.delta_basis = o["deflection_allow"], "given"
@@ -2098,7 +2149,7 @@ class _Context:
             phi_e = forces.engagement_angle(min(ae_in * MM_PER_IN, D_ref), D_ref)
             self._speed[key] = c7_speed(self.mat, phi_e, self.tool.D_mm, self.mach.max_rpm,
                                         self.mg.life_ratio, self.reach_factor, self.mg.speed_scale, self.op,
-                                        D_eff_mm=D_eff)
+                                        D_eff_mm=D_eff, end=self.tool.end_form)
         return self._speed[key]
 
 
@@ -2596,6 +2647,9 @@ def _report(pt, fz_in, checks, f, beam, chips):
                       "sigma1_mpa": checks["C4"].value, "vendor_median_sigma1_mpa": band["sigma1_mpa"],
                       "sigma1_ratio": checks["C4"].value / band["sigma1_mpa"]}
     cut["time_min_per_in3"] = 1.0 / cut["mrr_in3_min"] if cut["mrr_in3_min"] > 0 else math.inf
+    hf_rep = _hf_level_report(pt) if t.high_feed is not None else {}
+    if hf_rep.get("spindle_limited", {}).get("limited"):
+        warnings.append(hf_rep["spindle_limited"]["sentence"])
     return {"cut": cut, "loads": loads, "checks": {k: c.to_dict() for k, c in checks.items()},
             "vendor_basis": vendor_basis(pt), "chip_space": chip_space_report(pt, fz_in, checks.get("C15")),
             "violated": [k for k, c in checks.items() if not c.ok],
@@ -2606,8 +2660,37 @@ def _report(pt, fz_in, checks, f, beam, chips):
             "high_feed": (dict(t.high_feed.to_dict(), effective_diameter_in=pt.D_eff_in,
                                axial_peak_n=loads.get("axial_peak_n"), axial_mean_n=loads.get("axial_mean_n"),
                                axial_check="none: no spindle or holder axial-load limit in the machine profile (reported only)",
-                               square_end_chart_sfm=_square_chart_sfm(pt))
+                               square_end_chart_sfm=_square_chart_sfm(pt), **hf_rep)
                           if t.high_feed is not None else None)}
+
+
+def _hf_level_report(pt):
+    """For a high-feed tool: the high-feed level factors used (C7, C2) and whether the spindle caps the chart speed."""
+    ctx = pt.ctx
+    mat = ctx.mat
+    out = {"level_speed_factor": hf_factor(mat.vc_hf_factor, ctx.op), "level_chip_factor": ctx.hf_chip_factor,
+           "level_chart_class": hf_chart_class(ctx.op), "level_basis": mat.hf_level_basis or
+           "no high-feed rows for this family: the square-end C7 level and C2 limit are used"}
+    sl = {"limited": False}
+    if pt.cons:
+        chart_sfm = c14_cap(pt.cons, "sfm", ctx.mg)
+        need = 12.0 * chart_sfm / (math.pi * ctx.tool.D)
+        if need > ctx.mach.max_rpm * 1.001 and pt.rpm < ctx.mach.max_rpm * 0.999:
+            sl = {"limited": False, "chart_sfm": chart_sfm, "rpm_needed": need, "max_rpm": ctx.mach.max_rpm,
+                  "sentence": (f"The chart speed {chart_sfm:.0f} SFM would need {need:,.0f} rpm, above this spindle's "
+                               f"{ctx.mach.max_rpm:,.0f}, but the tool-life speed (C7) is lower here, so the spindle is not "
+                               f"what limits this cut.")}
+        elif need > ctx.mach.max_rpm * 1.001:
+            got = math.pi * ctx.tool.D * ctx.mach.max_rpm / 12.0
+            sl = {"limited": True, "chart_sfm": chart_sfm, "rpm_needed": need, "max_rpm": ctx.mach.max_rpm,
+                  "sfm_at_max_rpm": got, "fraction_of_chart": got / chart_sfm,
+                  "sentence": (f"Spindle-limited: the {pt.cons.get('vendor') or 'consensus'} chart speed at this aggressiveness "
+                               f"is {chart_sfm:.0f} SFM, which needs {need:,.0f} rpm on a {ctx.tool.D:.4f}\" tool; this spindle "
+                               f"tops out at {ctx.mach.max_rpm:,.0f} rpm ({got:.0f} SFM, {got / chart_sfm:.0%} of the chart). "
+                               f"The chip per tooth stays at or below the chart's; the feed is lower by the same "
+                               f"{got / chart_sfm:.0%} and is not made up with a larger chip.")}
+    out["spindle_limited"] = sl
+    return out
 
 
 def _square_chart_sfm(pt):

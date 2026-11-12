@@ -1,0 +1,1257 @@
+{
+ "version": "2026-11-12.1",
+ "generated_by": "tools/fit_high_feed_level.py",
+ "form": "high-feed tool: C7 level = square-end level (with the high-feed charts' own hardness exponent where they publish hardness classes) (slot level for slots, rough level for roughing, adaptive and side) × speed factor of (family, chart class); C2 nominal chip limit (and C2o) × chip factor",
+ "justification": "High-feed cuts are a thin chip (fz·sin κ, κ the lead angle) at a shallow ap with a short arc of edge in contact per tooth; the heat and the edge load per tooth are lower than in a square-end cut at the same feed per tooth, so the vendors publish higher speeds and feeds per tooth for this tool class. Vendors' own words: Harvey SF_709800 'High Feed End Mills for High Temp Alloys' (one table for 3x/5x/8x reach, 'suggested starting values that may be increased given optimal setup conditions'); Niagara Cutter SN400R (Seco): 'focus on ISO P, S and K materials including stainless steel, Inconel and titanium', Ti-6Al-4V start value 377 SFM (328-427) at ap max .008\" on 1/8\"; Helical HEVF-C-5 'Combination Feed & HEM', slot ADOC 3-5 % D. The factor is empirical (fitted to these charts), not derived from a thermal model.",
+ "classes": {
+  "hf_slot": "engine operation slot",
+  "hf_rough": "engine operations rough, adaptive (and side)"
+ },
+ "rows": 399,
+ "families": {
+  "High Temp Nickel Alloy": {
+   "hf_rough": {
+    "n_rows": 22,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 15,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 2.0071,
+     "in_sample_median_abs_err": 0.0569,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.0189,
+       "median_abs_err": 0.5011,
+       "n_test": 15
+      },
+      "Seco Tools": {
+       "factor_from_others": 2.0421,
+       "median_abs_err": 1.0043,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.7527
+    },
+    "chip": {
+     "value": 2.0727,
+     "in_sample_median_abs_err": 0.0871,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.6656,
+       "median_abs_err": 0.238,
+       "n_test": 15
+      },
+      "Seco Tools": {
+       "factor_from_others": 2.1858,
+       "median_abs_err": 0.3123,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2752
+    },
+    "hardness_exp": {
+     "value": 0.3385,
+     "n_pairs": 39,
+     "square_end_value": 0.3494,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 15
+   },
+   "hf_slot": {
+    "n_rows": 31,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 24,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 0.9827,
+     "in_sample_median_abs_err": 0.2695,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.0783,
+       "median_abs_err": 0.413,
+       "n_test": 24
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.3101,
+       "median_abs_err": 0.215,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.314
+    },
+    "chip": {
+     "value": 1.8295,
+     "in_sample_median_abs_err": 0.1246,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.4143,
+       "median_abs_err": 0.2269,
+       "n_test": 24
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.8295,
+       "median_abs_err": 0.2936,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2602
+    },
+    "hardness_exp": {
+     "value": 0.3385,
+     "n_pairs": 39,
+     "square_end_value": 0.3494,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 24
+   }
+  },
+  "Stainless - 300 Series (316)": {
+   "hf_rough": {
+    "n_rows": 21,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 15,
+     "Seco Tools": 6
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.9461,
+     "in_sample_median_abs_err": 0.0169,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.4893,
+       "median_abs_err": 0.235,
+       "n_test": 15
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.9467,
+       "median_abs_err": 0.3071,
+       "n_test": 6
+      }
+     },
+     "holdout_median_abs_err": 0.2711
+    },
+    "chip": {
+     "value": 3.1134,
+     "in_sample_median_abs_err": 0.1192,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.9951,
+       "median_abs_err": 0.1304,
+       "n_test": 15
+      },
+      "Seco Tools": {
+       "factor_from_others": 3.1134,
+       "median_abs_err": 0.0918,
+       "n_test": 6
+      }
+     },
+     "holdout_median_abs_err": 0.1111
+    },
+    "hardness_exp": {
+     "value": 0.2626,
+     "n_pairs": 39,
+     "square_end_value": 0.3235,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 15
+   },
+   "hf_slot": {
+    "n_rows": 36,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 24,
+     "Seco Tools": 12
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.3878,
+     "in_sample_median_abs_err": 0.2476,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.3878,
+       "median_abs_err": 0.3407,
+       "n_test": 24
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.3313,
+       "median_abs_err": 0.0407,
+       "n_test": 12
+      }
+     },
+     "holdout_median_abs_err": 0.1907
+    },
+    "chip": {
+     "value": 1.8711,
+     "in_sample_median_abs_err": 0.1041,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.1659,
+       "median_abs_err": 0.1839,
+       "n_test": 24
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.8295,
+       "median_abs_err": 0.2665,
+       "n_test": 12
+      }
+     },
+     "holdout_median_abs_err": 0.2252
+    },
+    "hardness_exp": {
+     "value": 0.2626,
+     "n_pairs": 39,
+     "square_end_value": 0.3235,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 24
+   }
+  },
+  "Stainless - 400 Series (420)": {
+   "hf_rough": {
+    "n_rows": 10,
+    "vendor_groups": [
+     "Harvey Performance"
+    ],
+    "vendors": [
+     "harvey"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 10
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.187,
+     0.25
+    ],
+    "confidence": "one group (lower)",
+    "speed": {
+     "value": 1.8124,
+     "in_sample_median_abs_err": 0.0003,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "chip": {
+     "value": 3.1394,
+     "in_sample_median_abs_err": 0.1613,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "hardness_exp": {
+     "value": 0.3012,
+     "n_pairs": 13,
+     "square_end_value": 0.4205,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     25.4,
+     25.5
+    ],
+    "max_ap_assumed_rows": 10
+   },
+   "hf_slot": {
+    "n_rows": 16,
+    "vendor_groups": [
+     "Harvey Performance"
+    ],
+    "vendors": [
+     "harvey",
+     "helical"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 16
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.187,
+     0.25,
+     0.375,
+     0.5
+    ],
+    "confidence": "one group (lower)",
+    "speed": {
+     "value": 1.1177,
+     "in_sample_median_abs_err": 0.4301,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "chip": {
+     "value": 1.893,
+     "in_sample_median_abs_err": 0.0827,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "hardness_exp": {
+     "value": 0.3012,
+     "n_pairs": 13,
+     "square_end_value": 0.4205,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     25.4,
+     25.5
+    ],
+    "max_ap_assumed_rows": 16
+   }
+  },
+  "Stainless - PH Series (17-4)": {
+   "hf_rough": {
+    "n_rows": 10,
+    "vendor_groups": [
+     "Harvey Performance"
+    ],
+    "vendors": [
+     "harvey"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 10
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.187,
+     0.25
+    ],
+    "confidence": "one group (lower)",
+    "speed": {
+     "value": 2.1581,
+     "in_sample_median_abs_err": 0.0001,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "chip": {
+     "value": 2.4117,
+     "in_sample_median_abs_err": 0.051,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "hardness_exp": {
+     "value": 0.3143,
+     "n_pairs": 13,
+     "square_end_value": 1.8352,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     25.4,
+     25.5
+    ],
+    "max_ap_assumed_rows": 10
+   },
+   "hf_slot": {
+    "n_rows": 16,
+    "vendor_groups": [
+     "Harvey Performance"
+    ],
+    "vendors": [
+     "harvey",
+     "helical"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 16
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.187,
+     0.25,
+     0.375,
+     0.5
+    ],
+    "confidence": "one group (lower)",
+    "speed": {
+     "value": 1.3518,
+     "in_sample_median_abs_err": 0.4131,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "chip": {
+     "value": 1.6174,
+     "in_sample_median_abs_err": 0.1171,
+     "holdout_leave_one_group_out": null,
+     "holdout_median_abs_err": null
+    },
+    "hardness_exp": {
+     "value": 0.3143,
+     "n_pairs": 13,
+     "square_end_value": 1.8352,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     25.4,
+     25.5
+    ],
+    "max_ap_assumed_rows": 16
+   }
+  },
+  "Steel - Low Carbon (1020)": {
+   "hf_rough": {
+    "n_rows": 12,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 5,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 2.3356,
+     "in_sample_median_abs_err": 0.0207,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.5765,
+       "median_abs_err": 0.1365,
+       "n_test": 5
+      },
+      "Seco Tools": {
+       "factor_from_others": 2.2671,
+       "median_abs_err": 0.1201,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.1283
+    },
+    "chip": {
+     "value": 4.1353,
+     "in_sample_median_abs_err": 0.0228,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 3.8198,
+       "median_abs_err": 0.0207,
+       "n_test": 5
+      },
+      "Seco Tools": {
+       "factor_from_others": 3.7782,
+       "median_abs_err": 0.159,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.0898
+    },
+    "hardness_exp": {
+     "value": null,
+     "n_pairs": 0,
+     "square_end_value": 0.4205,
+     "basis": "no within-chart hardness contrast: the square-end exponent is kept"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 5
+   },
+   "hf_slot": {
+    "n_rows": 15,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 8,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.9938,
+     "in_sample_median_abs_err": 0.0319,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.7267,
+       "median_abs_err": 0.7614,
+       "n_test": 8
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.6064,
+       "median_abs_err": 0.4109,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.5861
+    },
+    "chip": {
+     "value": 2.2154,
+     "in_sample_median_abs_err": 0.06,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.6013,
+       "median_abs_err": 0.3337,
+       "n_test": 8
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.9547,
+       "median_abs_err": 0.2486,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2912
+    },
+    "hardness_exp": {
+     "value": null,
+     "n_pairs": 0,
+     "square_end_value": 0.4205,
+     "basis": "no within-chart hardness contrast: the square-end exponent is kept"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 8
+   }
+  },
+  "Steel - Medium Carbon (1045)": {
+   "hf_rough": {
+    "n_rows": 17,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 10,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.5834,
+     "in_sample_median_abs_err": 0.0168,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.4409,
+       "median_abs_err": 0.1052,
+       "n_test": 10
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.6104,
+       "median_abs_err": 0.1176,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.1114
+    },
+    "chip": {
+     "value": 2.9411,
+     "in_sample_median_abs_err": 0.1018,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 3.4645,
+       "median_abs_err": 0.5899,
+       "n_test": 10
+      },
+      "Seco Tools": {
+       "factor_from_others": 2.1898,
+       "median_abs_err": 0.3679,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.4789
+    },
+    "hardness_exp": {
+     "value": 0.1452,
+     "n_pairs": 13,
+     "square_end_value": 0.4205,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 10
+   },
+   "hf_slot": {
+    "n_rows": 23,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 16,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.2223,
+     "in_sample_median_abs_err": 0.1906,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.525,
+       "median_abs_err": 0.3503,
+       "n_test": 16
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.1656,
+       "median_abs_err": 0.2357,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.293
+    },
+    "chip": {
+     "value": 1.5778,
+     "in_sample_median_abs_err": 0.3252,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.374,
+       "median_abs_err": 1.0412,
+       "n_test": 16
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.1737,
+       "median_abs_err": 0.5056,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.7734
+    },
+    "hardness_exp": {
+     "value": 0.1452,
+     "n_pairs": 13,
+     "square_end_value": 0.4205,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 16
+   }
+  },
+  "Steel - Medium Carbon Alloy (4130)": {
+   "hf_rough": {
+    "n_rows": 27,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 20,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.4685,
+     "in_sample_median_abs_err": 0.0637,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.3296,
+       "median_abs_err": 0.1098,
+       "n_test": 20
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.4936,
+       "median_abs_err": 0.1233,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.1166
+    },
+    "chip": {
+     "value": 3.1134,
+     "in_sample_median_abs_err": 0.176,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 3.1313,
+       "median_abs_err": 0.2808,
+       "n_test": 20
+      },
+      "Seco Tools": {
+       "factor_from_others": 2.7221,
+       "median_abs_err": 0.1307,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2057
+    },
+    "hardness_exp": {
+     "value": 0.72,
+     "n_pairs": 78,
+     "square_end_value": 0.4205,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 20
+   },
+   "hf_slot": {
+    "n_rows": 39,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 32,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.1524,
+     "in_sample_median_abs_err": 0.2113,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.4072,
+       "median_abs_err": 0.3859,
+       "n_test": 32
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.0209,
+       "median_abs_err": 0.2745,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.3302
+    },
+    "chip": {
+     "value": 1.8295,
+     "in_sample_median_abs_err": 0.1376,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.1214,
+       "median_abs_err": 0.2713,
+       "n_test": 32
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.673,
+       "median_abs_err": 0.2114,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2414
+    },
+    "hardness_exp": {
+     "value": 0.72,
+     "n_pairs": 78,
+     "square_end_value": 0.4205,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 32
+   }
+  },
+  "Steel - Tool (H13)": {
+   "hf_rough": {
+    "n_rows": 26,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 20,
+     "Seco Tools": 6
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.8711,
+     "in_sample_median_abs_err": 0.0457,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 0.9974,
+       "median_abs_err": 0.4758,
+       "n_test": 20
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.9029,
+       "median_abs_err": 0.9079,
+       "n_test": 6
+      }
+     },
+     "holdout_median_abs_err": 0.6919
+    },
+    "chip": {
+     "value": 2.9062,
+     "in_sample_median_abs_err": 0.2271,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.9951,
+       "median_abs_err": 0.2686,
+       "n_test": 20
+      },
+      "Seco Tools": {
+       "factor_from_others": 2.7221,
+       "median_abs_err": 0.1665,
+       "n_test": 6
+      }
+     },
+     "holdout_median_abs_err": 0.2176
+    },
+    "hardness_exp": {
+     "value": 0.3079,
+     "n_pairs": 78,
+     "square_end_value": 0.2407,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 20
+   },
+   "hf_slot": {
+    "n_rows": 38,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 32,
+     "Seco Tools": 6
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.0961,
+     "in_sample_median_abs_err": 0.3818,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.0555,
+       "median_abs_err": 0.4145,
+       "n_test": 32
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.3823,
+       "median_abs_err": 0.3095,
+       "n_test": 6
+      }
+     },
+     "holdout_median_abs_err": 0.362
+    },
+    "chip": {
+     "value": 1.8137,
+     "in_sample_median_abs_err": 0.1652,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.1659,
+       "median_abs_err": 0.298,
+       "n_test": 32
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.673,
+       "median_abs_err": 0.2437,
+       "n_test": 6
+      }
+     },
+     "holdout_median_abs_err": 0.2708
+    },
+    "hardness_exp": {
+     "value": 0.3079,
+     "n_pairs": 78,
+     "square_end_value": 0.2407,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 32
+   }
+  },
+  "Titanium Alloy": {
+   "hf_rough": {
+    "n_rows": 17,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 10,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.8811,
+     "in_sample_median_abs_err": 0.071,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.1286,
+       "median_abs_err": 0.1706,
+       "n_test": 10
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.8184,
+       "median_abs_err": 0.1458,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.1582
+    },
+    "chip": {
+     "value": 2.1858,
+     "in_sample_median_abs_err": 0.097,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.4207,
+       "median_abs_err": 0.2839,
+       "n_test": 10
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.9032,
+       "median_abs_err": 0.2138,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2488
+    },
+    "hardness_exp": {
+     "value": 0.4866,
+     "n_pairs": 13,
+     "square_end_value": 0.3146,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 10
+   },
+   "hf_slot": {
+    "n_rows": 23,
+    "vendor_groups": [
+     "Harvey Performance",
+     "Seco Tools"
+    ],
+    "vendors": [
+     "harvey",
+     "helical",
+     "seco"
+    ],
+    "rows_by_group": {
+     "Harvey Performance": 16,
+     "Seco Tools": 7
+    },
+    "diameters_in": [
+     0.078,
+     0.093,
+     0.125,
+     0.15625,
+     0.187,
+     0.1875,
+     0.25,
+     0.3125,
+     0.375,
+     0.5
+    ],
+    "confidence": "two groups",
+    "speed": {
+     "value": 1.7232,
+     "in_sample_median_abs_err": 0.2348,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 2.2521,
+       "median_abs_err": 0.7463,
+       "n_test": 16
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.325,
+       "median_abs_err": 0.4117,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.579
+    },
+    "chip": {
+     "value": 1.8295,
+     "in_sample_median_abs_err": 0.066,
+     "holdout_leave_one_group_out": {
+      "Harvey Performance": {
+       "factor_from_others": 1.4143,
+       "median_abs_err": 0.2524,
+       "n_test": 16
+      },
+      "Seco Tools": {
+       "factor_from_others": 1.893,
+       "median_abs_err": 0.3385,
+       "n_test": 7
+      }
+     },
+     "holdout_median_abs_err": 0.2954
+    },
+    "hardness_exp": {
+     "value": 0.4866,
+     "n_pairs": 13,
+     "square_end_value": 0.3146,
+     "basis": "within-chart contrasts (same vendor, document, diameter, operation at two hardness classes), median"
+    },
+    "applied": true,
+    "lead_angle_deg_rows": [
+     18.0,
+     28.4
+    ],
+    "max_ap_assumed_rows": 16
+   }
+  }
+ },
+ "not_fitted": "aluminium and every family without high-feed rows keep the square-end level (no vendor publishes a high-feed solid end mill chart in aluminium in the dataset); Cobalt Chrome rows have no engine family"
+}

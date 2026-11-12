@@ -60,6 +60,7 @@ Then restart Fusion and enable ToolWizFusionAddin (Utilities > Add-Ins). The add
 |---|---|
 | Fusion add-in commands and workflow | `docs/ADDIN_USER_GUIDE.md` |
 | Strategy planner (tab milling vs adaptive, T-slot cutters) | `docs/STRATEGY_PLANNER.md` |
+| Slot roughing decision study: high-feed vs square / bull-nose slotting vs HEM (Ti, 17-4, 6061; 1/8" and 1/16") | `docs/SLOT_ROUGHING_STUDY.md` |
 | Setup advisor, LLM guard and bridge contract | `docs/SETUP_ADVISOR.md` |
 | Tool recommender: "is another tool much faster?" (library, other brands, flute counts, larger tools) | `docs/TOOL_RECOMMENDER.md` |
 | Tool libraries, master library builder, API | `docs/TOOL_LIBRARY_NOTES.md` |

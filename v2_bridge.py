@@ -249,6 +249,8 @@ def _cache_key(r, op, hb, machine, kw, extra=None):
         "cs": _chip_space_version(),
         # flute-aware chip load (C2 / C14 × F(flutes)): a refitted file must not be answered from the cache
         "cf": _data_version("chip_by_flutes.json"),
+        # high-feed chart class level (C7 and C2 for high-feed tools): a refitted file must not be answered from the cache
+        "hl": _data_version("high_feed_level.json"),
         # high-feed end mill: lead angle, max ap and the programming radius they came from (None for other tools)
         "hf": (lambda g: [g.lead_deg, g.apmx_in, g.programming_radius_in, list(g.assumed)] if g else None)(high_feed_geometry(r)),
         "m": [machine.label, machine.max_rpm, machine.tir_in, machine.spindle.get("power_kw_continuous"),
@@ -519,7 +521,9 @@ def _high_feed_tips(r, res, cut, out):
     res.recommended_radial_stock_in = max(res.recommended_radial_stock_in or 0.0, radial)
     res.recommended_axial_stock_in = max(res.recommended_axial_stock_in or 0.0, axial)
     res.tips = [t for t in res.tips if t.get("title") != "Stock to leave"]
-    cut_ref = dict(cut, _square_chart_sfm=(out.get("high_feed") or {}).get("square_end_chart_sfm"))
+    hfo = out.get("high_feed") or {}
+    cut_ref = dict(cut, _square_chart_sfm=hfo.get("square_end_chart_sfm"),
+                   _vendor_mode=(out.get("vendor_basis") or {}).get("mode"), _spindle_limited=hfo.get("spindle_limited"))
     res.tips.extend(highfeed.tips(g, cut_ref, rp, (out.get("high_feed") or {}).get("axial_peak_n")))
     if res.v2 is not None:
         res.v2["high_feed"] = dict(out.get("high_feed") or {}, radial_stock_in=radial, axial_stock_in=axial)

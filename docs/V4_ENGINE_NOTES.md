@@ -390,3 +390,65 @@ The only other change in any listed group: the cross-vendor 6061 slot 1/16-1/8 g
 under the 0.00060 floor). High-feed tools are not in the conformance data (no rows). Stability (`tests/test_v2_stability.py`):
 113 passed, 7 xfailed before; 115 passed, 5 xfailed after (the 1/16" and 1/32" 2-flute 6061 slot "+10 % stickout" cases now
 pass and their strict marks were removed). Tests: `tests/test_v2_flute_aware.py`, `tests/test_v2_high_feed.py`.
+
+## High-feed level fit (branch `v4/j1-hf-fit`, 2026-11-12)
+
+**Change.** A high-feed end mill now runs C7 at the square-end level × a high-feed speed factor and C2 (C2o) at the square-end
+nominal chip limit × a high-feed chip factor, per material family and chart class (`hf_slot` for slots, `hf_rough` for
+roughing, side and adaptive; the factor multiplies the slot level for slots and the rough level otherwise).
+`tools/fit_high_feed_level.py` writes `data/model_v2/high_feed_level.json` from the 399 cited high-feed rows in engine
+families (438 less 39 Cobalt Chrome): target = each row's bucket median (family, 50-HB bin, band, class; each vendor group's
+median, then the median over groups), factor = exp(median log(target / the engine's square-end value at 75 %)), as
+`fit_level_consensus` fitted the adaptive / rough levels. Hold-out: leave one vendor group out (Harvey + Helical vs
+Seco / Niagara), the other group's fit predicting its own bucket medians. Families with both groups: two-group factors;
+17-4 and 420 (Harvey only): one-group factors, applied, marked "one group (lower)"; aluminium and families without rows keep
+the square-end level. Justification (written in the file): thin chip fz·sin κ, shallow ap and a short arc of edge in contact
+per tooth, i.e. less heat and edge load per tooth; Harvey SF_709800 ("High Feed End Mills for High Temp Alloys"), Niagara
+SN400R ("ISO P, S and K ... stainless steel, Inconel and titanium", Ti start value 377 SFM at ap .008"). Everything else
+(C1, C3-C6, C8-C15, the 0/50/100 % map, the guardrail) is unchanged. Results carry `high_feed.level_speed_factor`,
+`level_chip_factor`, `level_basis` and `high_feed.spindle_limited` (a sentence and a warning when the chart speed needs more
+rpm than the spindle has and the spindle binds; the chip stays at or below the chart's). The "not chart-capped" tip now shows
+only when no high-feed chart applies. The v2 cache key carries the file's version.
+
+| family | class | rows (groups) | hardness exp (square) | speed factor | hold-out err | chip factor | hold-out err | confidence |
+|---|---|---|---|---|---|---|---|---|
+| High Temp Nickel Alloy | hf_rough | 22 (Harvey Performance 15, Seco Tools 7) | 0.34 (0.35) | 2.01 | 75% | 2.07 | 28% | two groups |
+| High Temp Nickel Alloy | hf_slot | 31 (Harvey Performance 24, Seco Tools 7) | 0.34 (0.35) | 0.98 | 31% | 1.83 | 26% | two groups |
+| Stainless - 300 Series (316) | hf_rough | 21 (Harvey Performance 15, Seco Tools 6) | 0.26 (0.32) | 1.95 | 27% | 3.11 | 11% | two groups |
+| Stainless - 300 Series (316) | hf_slot | 36 (Harvey Performance 24, Seco Tools 12) | 0.26 (0.32) | 1.39 | 19% | 1.87 | 23% | two groups |
+| Stainless - 400 Series (420) | hf_rough | 10 (Harvey Performance 10) | 0.30 (0.42) | 1.81 | - | 3.14 | - | one group (lower) |
+| Stainless - 400 Series (420) | hf_slot | 16 (Harvey Performance 16) | 0.30 (0.42) | 1.12 | - | 1.89 | - | one group (lower) |
+| Stainless - PH Series (17-4) | hf_rough | 10 (Harvey Performance 10) | 0.31 (1.84) | 2.16 | - | 2.41 | - | one group (lower) |
+| Stainless - PH Series (17-4) | hf_slot | 16 (Harvey Performance 16) | 0.31 (1.84) | 1.35 | - | 1.62 | - | one group (lower) |
+| Steel - Low Carbon (1020) | hf_rough | 12 (Harvey Performance 5, Seco Tools 7) | - (0.42) | 2.34 | 13% | 4.14 | 9% | two groups |
+| Steel - Low Carbon (1020) | hf_slot | 15 (Harvey Performance 8, Seco Tools 7) | - (0.42) | 1.99 | 59% | 2.22 | 29% | two groups |
+| Steel - Medium Carbon (1045) | hf_rough | 17 (Harvey Performance 10, Seco Tools 7) | 0.15 (0.42) | 1.58 | 11% | 2.94 | 48% | two groups |
+| Steel - Medium Carbon (1045) | hf_slot | 23 (Harvey Performance 16, Seco Tools 7) | 0.15 (0.42) | 1.22 | 29% | 1.58 | 77% | two groups |
+| Steel - Medium Carbon Alloy (4130) | hf_rough | 27 (Harvey Performance 20, Seco Tools 7) | 0.72 (0.42) | 1.47 | 12% | 3.11 | 21% | two groups |
+| Steel - Medium Carbon Alloy (4130) | hf_slot | 39 (Harvey Performance 32, Seco Tools 7) | 0.72 (0.42) | 1.15 | 33% | 1.83 | 24% | two groups |
+| Steel - Tool (H13) | hf_rough | 26 (Harvey Performance 20, Seco Tools 6) | 0.31 (0.24) | 1.87 | 69% | 2.91 | 22% | two groups |
+| Steel - Tool (H13) | hf_slot | 38 (Harvey Performance 32, Seco Tools 6) | 0.31 (0.24) | 1.10 | 36% | 1.81 | 27% | two groups |
+| Titanium Alloy | hf_rough | 17 (Harvey Performance 10, Seco Tools 7) | 0.49 (0.31) | 1.88 | 16% | 2.19 | 25% | two groups |
+| Titanium Alloy | hf_slot | 23 (Harvey Performance 16, Seco Tools 7) | 0.49 (0.31) | 1.72 | 58% | 1.83 | 30% | two groups |
+
+(`python3 tools/fit_high_feed_level.py --table`.) Hardness: where the high-feed charts print two hardness classes for the same
+tool (Harvey), their own slope replaces the square-end C7 hardness exponent for high-feed tools (17-4: 0.31 instead of 1.84;
+without it a 420 HB 17-4 ran at 151 SFM against Harvey's 400). The hold-out errors are large where the two groups publish different
+levels for the same family: Ti slots, Helical's HEVF-C-5 (a combination feed / HEM tool, 1/4"-1/2") at 160-180 SFM, Harvey's
+high-temp-alloy series at 250-300, Niagara at 377; a single factor sits between them. It is a level, not a law.
+
+1/8" 4FL Ti slot at 50 % (Speedio 16k, `params.optimize`): before 147 SFM / fz 0.0020"; now unbranded (Harvey + Helical
+default chart, C14v binding at the chart middle) 250 SFM / 0.0020-0.0026" (geometry-dependent); brand Niagara with the SN400R
+geometry (ap .008", rp .0148") 253 SFM / 0.00196" (C2, C6; 67 % of Niagara's 377 SFM and 86 % of its 0.0023"); 17-4 at
+the engine's default 200 HB 450 SFM = the Harvey chart middle (C14v), at 420 HB (database "17-4 PH", H900 class) 239 SFM against
+Harvey's 400 (60 %; one-group factor, Harvey's 17-4 chart is well above Helical's). 1/16" in 17-4 at 200 HB is
+spindle-limited (the chart's 450 SFM needs 27,500 rpm; 262 SFM at 16,000), fz held at the chart middle; 1/16" Ti stays under the spindle (C7 240 SFM at 14,700 rpm; Niagara's 377 SFM would
+need 23,000 rpm), and the result says the spindle is not what limits it.
+
+Conformance (new part 6 of `tests/test_vendor_conformance.py`, 50 %, runout 0.0001", 60k test machine, same tolerances):
+branded high-feed groups 88.8 % of 80 (gate 85 %, passes; slot 82.0 % of 50 strict xfail, side 100 % of 12, rough 100 % of
+18; Harvey 77.8 %, Helical 100 %, Seco 96.3 %); unbranded (Harvey + Helical groups on the default chart) 77.4 % of 53 (strict
+xfail; rough 100 % passes, slot 65.7 % strict xfail). The failures are Harvey slot groups whose speed sits under 0.75 x
+Harvey's minimum (Inconel, 17-4, 420, H13 slots: the factor is the median over both groups, and Harvey publishes more than
+Niagara / Helical for these) and one Seco 1045 fz just under the floor. No other gate changed (the square-end, ball and
+bull-nose paths do not read the file). The decision study that uses this is `docs/SLOT_ROUGHING_STUDY.md`.
