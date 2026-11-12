@@ -533,6 +533,7 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
             "finish": res.finish,
             "feature_geometry": res.feature_geometry,
             "vendor_basis": res.vendor_basis,
+            "chip_space": res.chip_space,
             "tips": res.tips,
         }
 

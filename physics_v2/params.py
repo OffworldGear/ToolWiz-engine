@@ -24,6 +24,10 @@ CONSENSUS_PATH = o.CONSENSUS_DEFAULT_PATH
 # C14 by vendor (owner decisions 2026-11-12): brand, unbranded default (Helical HEM, Harvey + Helical), consensus.
 VENDOR_TABLE_PATH = o.VENDOR_TABLE_DEFAULT_PATH
 ENVELOPE_PATH = o.ENVELOPE_DEFAULT_PATH
+# C15 chip space (2026-11-12): gullet room against the chip, K per material group from the most packed published full
+# slot (tools/calibrate_chip_space.py; sources in the file and docs/research/chip_space.md).
+from physics_v2 import chipspace as _chipspace  # noqa: E402
+CHIP_SPACE_PATH = _chipspace.CHIP_SPACE_PATH
 # C2 basis of the calibrated model: "nominal" (runout-free chip fz·sin φe ≤ the vendor median nominal chip, plus the
 # worst-flute chip ≤ the vendor p90, C2o) keeps the feed from collapsing at the first microns of runout on micro
 # tools; "worst" (worst-flute chip ≤ the median) is optimize.py's own default. See docs/V3_IMPLEMENTATION_PLAN.md M1.
@@ -141,8 +145,8 @@ speedio_bt30 = machine
 def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_=None, **kw):
     """optimize.optimize with the calibrated defaults (user decisions 2026-10-17): the consensus aggressiveness
     scheme, C14 from data/model_v2/consensus_by_vendor.json (brand, default, consensus; `brand` = a vendor key or None),
-    the machine profile's holder stiffness, and (V3) the vendor
-    engagement envelope and the chip-load floor."""
+    the machine profile's holder stiffness, (V3) the vendor engagement envelope and the chip-load floor, and C15 chip
+    space (data/model_v2/chip_space.json)."""
     kw.setdefault("consensus", CONSENSUS_PATH)
     kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
     kw.setdefault("vendor_table", VENDOR_TABLE_PATH)
@@ -151,6 +155,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     kw.setdefault("c2_basis", C2_BASIS)
     kw.setdefault("depth_trade", MRR_TIE_BAND)
     kw.setdefault("select_tir_in", o.REFERENCE_TIR_IN)
+    kw.setdefault("chip_space", CHIP_SPACE_PATH)
     return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)
 
 
@@ -160,6 +165,7 @@ def evaluate_user_engagement(tool, material_, operation, ap_in, ae_in, aggressiv
     kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
     kw.setdefault("vendor_table", VENDOR_TABLE_PATH)
     kw.setdefault("c2_basis", C2_BASIS)
+    kw.setdefault("chip_space", CHIP_SPACE_PATH)
     return o.evaluate_user_engagement(tool, material_, machine_ or machine(), operation, ap_in, ae_in,
                                       margins=margins(aggressiveness), **kw)
 

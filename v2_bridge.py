@@ -214,9 +214,22 @@ def _cache_key(r, op, hb, machine, kw, extra=None):
         # the profile's segments carry no flute count or end form: without these a 5-flute tool got a 2-flute answer
         "z": int(r.profile.geometry.flutes), "d": float(r.profile.geometry.diameter),
         "rc": round(corner_radius_in(r, float(r.profile.geometry.diameter)), 6), "carbide": bool(getattr(r, "is_carbide", True)), "kw": kw, "extra": extra, "brand": getattr(r, "brand_key", None),
+        # C15 chip space reads flutes, D, family, operation, aggressiveness and the user's ap/ae (all above) and its
+        # parameter file: a recalibrated file must not be answered from the cache
+        "cs": _chip_space_version(),
         "m": [machine.label, machine.max_rpm, machine.tir_in, machine.spindle.get("power_kw_continuous"),
               machine.holder_k_n_um, machine.holder_ktheta_nm_urad, machine.max_feed_ipm],
     }, sort_keys=True, default=str)
+
+
+def _chip_space_version():
+    """The C15 parameter file's identity (version and the packing per group) for the cache key."""
+    try:
+        from physics_v2 import chipspace
+        p = chipspace.load()
+        return [p.get("version"), sorted((g, v.get("K")) for g, v in (p.get("packing") or {}).items())]
+    except (OSError, ValueError):
+        return None
 
 
 def _cached(key, compute):
@@ -299,7 +312,7 @@ def _cut_summary(out):
 def _v2_details(out, hb, notes, recommended=None):
     checks = out.get("checks") or {}
     binding = list(out.get("binding") or [])
-    shown = [k for k in binding] + [k for k in ("C14v", "C14f", "C14m", "C14lo") if k in checks and k not in binding]
+    shown = [k for k in binding] + [k for k in ("C14v", "C14f", "C14m", "C14lo", "C15") if k in checks and k not in binding]
     return {
         "operation": out.get("operation"),
         "feasible": bool(out.get("feasible")),
@@ -371,6 +384,19 @@ def vendor_basis_block(vb, r, res=None, op=None):
     else:
         out["note"] = f"Vendor basis: none: no vendor chart matches this cut ({why}); physics limits only."
     return out
+
+
+def chip_space_block(cs, res=None):
+    """The result's `chip_space` (C15): the engine's block (utilisation, limiting, sentence, ...) or, when v2 did not
+    produce the result, {"applies": False, "note"}."""
+    if not cs:
+        why = ("the v1 model has no chip-space check" if (res is None or getattr(res, "model", "v1") != "v2")
+               else "no chip-space check for this cut")
+        return {"applies": False, "limiting": False, "utilisation": None, "note": why}
+    keys = ("applies", "limiting", "utilisation", "limit", "fill_of_limit", "full_slot", "flutes", "material_group",
+            "packing_K", "depth_factor", "core_ratio", "gullet_area_in2", "chip_area_in2", "max_fz_in",
+            "max_fz_by_flutes_in", "sentence", "basis", "note")
+    return {k: cs[k] for k in keys if k in cs}
 
 
 # ---------------------------------------------------------------------------
@@ -466,6 +492,7 @@ def apply(physics, r, res, machine_profile=None):
     details = _v2_details(out, hb, notes, recommended)
     res.model, res.v1, res.v2 = "v2", v1, details
     res.vendor_basis = vendor_basis_block(out.get("vendor_basis"), r, res, op)
+    res.chip_space = chip_space_block(out.get("chip_space"), res)
     res.engagement_source = out.get("engagement_source", "recommended")
     if op == "finish" and user_given:
         res.engagement_source = "user"

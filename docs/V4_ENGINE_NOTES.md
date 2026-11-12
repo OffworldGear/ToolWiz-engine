@@ -189,3 +189,57 @@ vendors, as decided; with the brand given it moves to that vendor's middle where
 and where it stays lower (Sandvik, Seco, Kennametal roughing) the C7 tool-life speed or C2 is the limit. Unbranded fz ratios
 above 1 (Kyocera, YG-1, Emuge side) come from the default chart's chip load being higher than that vendor's; with the brand
 they come to 1.00.
+
+## Chip space, C15 (branch `v4/h1-chipspace`, 2026-11-12)
+
+Reasoning, sources and calibration: `docs/research/chip_space.md`. New check C15: the chip one tooth cuts (fz·ae per unit
+edge length, times a packing factor K) must fit the gullet in front of it, φ·(π/4)·D²·(1 − c_z²)/z, with the core ratio
+c_z rising with flute count (0.55 at 2 flutes to 0.70 at 7). K per material group is the most packed full slot any vendor
+publishes (aluminium 5.74, steel 4.11, stainless and titanium/nickel 4.80; `tools/calibrate_chip_space.py` writes
+`data/model_v2/chip_space.json`), raised for full slots deeper than D/2 (×(1 + 0.5·(ap/D − 0.5))). Limit: 100 % of that
+packing at aggressiveness 1, 84 % at 50 %. Open-sided cuts (anything under 0.95·D) are not depth-penalised, so HEM is
+untouched. Every endpoint returns `chip_space` {utilisation, limit, fill_of_limit, limiting, max_fz_in,
+max_fz_by_flutes_in, sentence, ...}; the web panel shows a "Chip room" line only when C15 limits; C15 has plain words in
+`runout_sensitivity`, the add-in and `results_v3.js`. The v2 cache key carries the parameter file's version and K values.
+
+MRR (in³/min) at 50 %, Speedio 16k, `/api/calculate` model v2, stickout 4·D, LCF 3·D (17-4 and titanium with no alloy given,
+as in the request that produced the problem report). "before → after" only where it changed; "your depth" rows send
+cutDepth / cutWidth = D (user engagement).
+
+| Case (50 %, Speedio 16k) | 2FL | 3FL | 4FL | 5FL | 6FL | 7FL |
+|---|---|---|---|---|---|---|
+| 6061 slot 1/8" | 0.254 | 0.381 | 0.508 | 0.578 | 0.51 | 0.517 |
+| 6061 slot 1/4" | 2.3 | 3.45 | 4.6 | 5.57 | 4.98 | 4.86 → **4.8** (C15) |
+| 6061 adaptive 1/8" | 0.0982 | 0.147 | 0.196 | 0.245 | 0.295 | 0.344 |
+| 6061 adaptive 1/4" | 0.923 | 1.38 | 1.85 | 2.3 | 2.76 | 2.91 |
+| 17-4 slot 1/8" | 0.0357 | 0.0559 | 0.0763 | 0.0786 | 0.0789 | 0.0773 |
+| 17-4 slot 1/4" | 0.175 | 0.272 | 0.366 | 0.344 | 0.322 | 0.314 |
+| 17-4 adaptive 1/8" | 0.0862 | 0.129 | 0.172 | 0.215 | 0.246 | 0.259 |
+| 17-4 adaptive 1/4" | 0.432 | 0.647 | 0.863 | 1.06 | 1.04 | 1.03 |
+| Ti slot 1/8" | 0.0195 | 0.0293 | 0.0391 | 0.0489 | 0.0549 | 0.0552 |
+| Ti slot 1/4" | 0.0959 | 0.144 | 0.192 | 0.24 | 0.249 | 0.242 |
+| Ti adaptive 1/8" | 0.0341 | 0.0512 | 0.0683 | 0.0853 | 0.102 | 0.116 |
+| Ti adaptive 1/4" | 0.135 | 0.203 | 0.271 | 0.338 | 0.406 | 0.474 |
+| 6061 slot 1/4", your depth 1.5·D | 3.44 | 5.17 | 6.88 | 8.61 | 10.3 → **8.87** (C15) | 12 → **8.03** (C15) |
+| 6061 slot 1/4", your depth 2·D | 4.59 | 6.89 | 9.18 | 11.5 → **10.6** (C15) | 11.6 → **10.2** (C15) | 11 → **9.17** (C15) |
+| 17-4 slot 1/4", your depth 1.5·D | 0.458 | 0.687 | 0.906 | 0.826 | 0.709 | 0.674 |
+| 17-4 slot 1/4", your depth 2·D | 0.611 | 0.917 | 0.957 | 0.872 | 0.754 | 0.713 |
+
+Reading:
+* What changed: 6061 full slots with 7 flutes, and deep 6061 slots (1.5·D: 6-7 flutes; 2·D: 5-7 flutes). The sentence
+  there reads e.g. "5 flutes leave too little chip room for a full slot in aluminum; a 2- or 3-flute tool can take a
+  larger chip." (2·D deep; flute counts whose gullets take at least a 50 % larger chip are named) In a 2·D 6061 slot the chip per tooth now falls with flute count (0.00115" up to 4 flutes, 0.00106 /
+  0.00085 / 0.00065" for 5 / 6 / 7).
+* What did not: 2-5 flute slots at the recommended depth, every 17-4 and titanium cut, every adaptive cut. C15 uses
+  12-60 % of its limit in those slots and under 20 % in HEM.
+* Why the 5-flute 6061 slot still out-removes the 3-flute: C2 holds every flute count to the same chip (0.0046·D at
+  1/4"), half of what vendors run on 3- and 4-flute tools in aluminium; at that chip a 5-flute's gullets are 76 % full
+  (of the 50 % limit) at 1·D. With C2 and the guardrail off, C15 alone gives fz/D 0.018 / 0.011 / 0.008 / 0.006 for
+  2 / 3 / 4 / 5 flutes (the vendors' aluminium slot chip loads) and the 2- and 3-flute tools remove more than the 5-flute
+  (8.8 / 8.4 against 7.4 in³/min). A flute-aware C2 would relax an existing limit; left for the owner.
+
+Conformance (gated runs, 50 %, runout 0.0001"): identical before and after on every gate and every listed group:
+cross-vendor overall 84.1 % (slot 95.8, side 74.8, hem 88.7, rough 89.4, micro 79.7; xfails unchanged), recommended
+engagement cells 96.8 % of 157, branded 89.9 % of 526 (slot 94.1, side 82.2, hem 91.4, rough 100, micro 86.5; per vendor
+unchanged), unbranded 95.8 % of 48 (hem 80.0, rough 100). Stability (`tests/test_v2_stability.py`) 128 passed, 13 xfailed,
+before and after. Tests: `tests/test_v2_chip_space.py`.

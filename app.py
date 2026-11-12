@@ -573,7 +573,7 @@ def _runout_fields(res):
             "runout_in": r(res.runout_in, 6), "runout_source": res.runout_source,
             "recommended_radial_stock_in": r(res.recommended_radial_stock_in, 5),
             "recommended_axial_stock_in": r(res.recommended_axial_stock_in, 5),
-            "vendor_basis": res.vendor_basis}
+            "vendor_basis": res.vendor_basis, "chip_space": res.chip_space}
 
 
 @app.route("/api/model_settings", methods=["GET", "POST"])

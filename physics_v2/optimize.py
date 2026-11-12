@@ -1,4 +1,4 @@
-"""Constraints C1–C10 and the cut optimizer for square end mills.
+"""Constraints C1–C15 and the cut optimizer for square end mills.
 
 Design: docs/PHYSICS_MODEL_DESIGN.md §3.4–3.6 (step 3 of §6). Pure functions and frozen inputs; no
 pipeline state. Forces come from `physics_v2.forces` (step 2).
@@ -88,7 +88,7 @@ from typing import Optional
 
 import machine_profiles
 from gwizard_physics import DEPTH_TRADE_MRR, BeamDeflectionEngine, CuttingMechanics, reach_sfm_factor
-from physics_v2 import endforms, forces
+from physics_v2 import chipspace, endforms, forces
 from toolwiz_common.tool_profile import ToolProfile
 
 LOG = logging.getLogger(__name__)
@@ -176,6 +176,10 @@ SRC = {
     "C12": "Every flute reaches the stock: ae ≥ k·TIR, k = 2 (lowest flute engages ae − TIR ≥ ae/2)",
     "C13": "Program size (optional): 23.1 bytes/line × L_cut / s, L_cut = V/(ap·ae)·1.15, from 100 adaptive "
            "ops in the user's 239 Fusion → Brother C00 programs (2026-10-16); limit user-set (6 MB)",
+    "C15": "Chip space: K·fz·ae ≤ the gullet area per flute φ·(π/4)·D²·(1 − c_z²)/z, K the chip packing of the most "
+           "packed vendor full slot of the material group (data/model_v2/chip_space.json, tools/calibrate_chip_space.py), "
+           "raised for deep full slots (chips leave only up the flute); core ratio c_z by flute count from patents and "
+           "Mitsubishi; docs/research/chip_space.md",
     "C10": "Empirical (design §3.5 C10): cut under the work-hardened layer, h ≥ h_wh. No sourced "
            "per-alloy value yet; inactive unless h_wh is given (17-4 PH is not in v1's "
            "work-hardening list)",
@@ -795,6 +799,73 @@ def c8_slot_depth(ap_in, D_in, operation, k_slot=None):
     what = "depth cap (vendor engagement envelope)" if given else "micro slot depth (chip packing)"
     return Check("C8", what, "max", ap_in, lim, "in", SRC["C8"], applies=applies,
                  detail=(f"k = {k:.3f} → {lim:.4f}\"" if applies else "not a micro full slot"))
+
+
+CHIP_SPACE_BINDING_TOL = 0.03   # as _binding: within 3 % of the limit counts as limiting
+CHIP_SPACE_SUGGEST_RATIO = 1.5  # the sentence names the flute counts whose gullets take at least a 50 % larger chip
+GROUP_WORDS = {"non-ferrous": "aluminum", "steel": "steel", "stainless": "stainless steel",
+               "Ti-Ni-Co": "titanium and nickel alloys", "hardened": "hardened steel"}
+
+
+def c15_chip_space(ctx, ap_in, ae_in, fz_in):
+    """C15: chip-space utilisation u = K_eff·fz·ae / A_g ≤ the aggressiveness limit (physics_v2/chipspace.py).
+
+    K is the material group's packing (the most packed published full slot); K_eff adds the depth term of a full
+    slot. The limit is 1 at aggressiveness 1 and consensus_scale(a)/consensus_scale(1) below."""
+    cs = ctx.chip_space
+    t = ctx.tool
+    if cs is None:
+        return Check("C15", "chip space", "max", 0.0, None, "fraction", SRC["C15"], applies=False,
+                     detail="chip-space check off")
+    p = cs["params"]
+    u = chipspace.utilisation(fz_in, ap_in, ae_in, t.D, t.z, cs["K"], cs["core"], cs["void"], p)
+    a_g = chipspace.gullet_area(t.D, t.z, cs["core"], cs["void"])
+    e = chipspace.depth_factor(ap_in, ae_in, t.D, p)
+    fz_max = chipspace.max_fz(ap_in, ae_in, t.D, t.z, cs["K"], cs["core"], cs["void"], p) * cs["u_limit"]
+    return Check("C15", "chip space (gullet room)", "max", u, cs["u_limit"], "fraction", SRC["C15"],
+                 detail=(f"chip fz·ae = {fz_in * min(ae_in, t.D):.3e} in² × packing K {cs['K']:.2f} ({cs['group']}"
+                         f"{', full slot depth ×' + format(e, '.2f') if e != 1.0 else ''}) against the gullet "
+                         f"{a_g:.3e} in² ({t.z} flutes, core {cs['core']:.2f}·D): {u:.0%} used, limit {cs['u_limit']:.0%} "
+                         f"at aggressiveness {ctx.mg.aggressiveness:.2f}; fz ≤ {fz_max:.5f}\" here"))
+
+
+def chip_space_report(pt, fz_in, check):
+    """The result's `chip_space` block: utilisation, whether it limits the cut, and a plain sentence."""
+    ctx = pt.ctx
+    if check is None or not check.applies or ctx.chip_space is None:
+        why = ("finishing passes are not chip-space limited" if ctx.op == "finish" else "chip-space check off")
+        return {"applies": False, "limiting": False, "utilisation": None, "note": why}
+    cs, t = ctx.chip_space, ctx.tool
+    p = cs["params"]
+    slot = pt.ae >= float(p["depth"]["enclosed_ae_over_D"]["value"]) * t.D
+    u, lim = check.value, check.limit
+    limiting = check.margin is not None and check.margin <= CHIP_SPACE_BINDING_TOL
+    fz_max = chipspace.max_fz(pt.ap, pt.ae, t.D, t.z, cs["K"], cs["core"], cs["void"], p) * lim
+    others = {}
+    for z2 in range(2, t.z):
+        c2 = chipspace.core_ratio(z2, p["core_ratio_by_flutes"])
+        others[z2] = chipspace.max_fz(pt.ap, pt.ae, t.D, z2, cs["K"], c2, cs["void"], p) * lim
+    bigger = [z2 for z2, f in others.items() if f >= CHIP_SPACE_SUGGEST_RATIO * fz_max]
+    mat = GROUP_WORDS.get(cs["group"], cs["group"])
+    where = "a full slot" if slot else "this engagement"
+    if limiting:
+        sentence = f"{t.z} flutes leave too little chip room for {where} in {mat}"
+        if bigger:
+            names = (f"{bigger[0]}-flute" if len(bigger) == 1 else f"{bigger[0]}- or {bigger[1]}-flute" if len(bigger) == 2
+                     else f"{bigger[0]}- to {bigger[-1]}-flute")
+            sentence += f"; a {names} tool can take a larger chip"
+        else:
+            sentence += "; a shallower slot or a lighter radial cut gives the chips room"
+        sentence += "."
+    else:
+        sentence = f"Chip room: {u / lim:.0%} of the allowed gullet fill is used; the {t.z}-flute gullets clear this chip."
+    return {"applies": True, "limiting": limiting, "utilisation": u, "limit": lim, "fill_of_limit": u / lim,
+            "full_slot": slot, "flutes": t.z, "material_group": cs["group"], "packing_K": cs["K"],
+            "depth_factor": chipspace.depth_factor(pt.ap, pt.ae, t.D, p), "core_ratio": cs["core"],
+            "gullet_area_in2": chipspace.gullet_area(t.D, t.z, cs["core"], cs["void"]),
+            "chip_area_in2": chipspace.chip_area(fz_in, pt.ae, t.D), "max_fz_in": fz_max,
+            "max_fz_by_flutes_in": {str(k): v for k, v in others.items()}, "sentence": sentence,
+            "basis": cs["basis"]}
 
 
 def c9_stickout(eq_stickout_in, D_in):
@@ -1643,7 +1714,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
                    "wall_metric": "ripple", "consensus": None, "consensus_shaped": None, "envelope": None, "chip_floor": None,
-                   "vendor_table": None, "brand": None,
+                   "vendor_table": None, "brand": None, "chip_space": None,
                    "user_engagement": False, "n_phases": None, "ae_env_min": True}
 
 
@@ -1830,6 +1901,17 @@ class _Context:
             src = VENDOR_TABLE_DEFAULT_PATH if o["vendor_table"] == "default" else o["vendor_table"]
             self.vendor_table = src if isinstance(src, dict) else _limits(src)
         self.c14_on = self.consensus is not None or self.vendor_table is not None
+        # C15 chip space (data/model_v2/chip_space.json), on when a parameter file is given; not for finishing passes.
+        self.chip_space = None
+        if o["chip_space"] is not None and operation != "finish":
+            src = chipspace.CHIP_SPACE_PATH if o["chip_space"] == "default" else o["chip_space"]
+            p = src if isinstance(src, dict) else chipspace.load(src)
+            group = material_group(material.family)
+            K, basis = chipspace.group_packing(group, p)
+            core = tool.core_ratio or chipspace.core_ratio(tool.z, p["core_ratio_by_flutes"])
+            self.chip_space = {"params": p, "group": group, "K": K, "basis": basis, "core": core,
+                               "void": float(p["void_fraction"]["value"]),
+                               "u_limit": consensus_scale(margins.aggressiveness) / consensus_scale(1.0)}
         if machine.holder_k_n_um or machine.holder_ktheta_nm_urad:
             self.notes.append(f"C3 includes the spindle/holder compliance in series with the tool: "
                               f"k {machine.holder_k_n_um or 0:g} N/µm, k_θ {machine.holder_ktheta_nm_urad or 0:g} N·m/µrad"
@@ -2026,6 +2108,10 @@ class CutPoint:
                                              "worst-flute chip (overload)", "C2o")}
         return {"C2": c2_tooth_strength(worst, ctx.h_tooth, ctx.mg.limit_scale, ctx.h_tooth_basis)}
 
+    def c15(self, fz_in):
+        """C15: the chip one tooth cuts fits its gullet (physics_v2/chipspace.py)."""
+        return c15_chip_space(self.ctx, self.ap, self.ae, fz_in)
+
     def c11(self, fz_in):
         return c11_feed(fz_in * self.ctx.tool.z * self.rpm, self.ctx.mach.max_feed_ipm, self.ctx.feed_cap)
 
@@ -2169,6 +2255,8 @@ class CutPoint:
         out.update(fc)
         out.update({"C6": self.c6, "C7": self.c7, "C8": self.c8, "C9": self.ctx.c9, "C11": self.c11(fz_in),
                     "C12": self.c12, "C13": self.c13})
+        if self.ctx.chip_space is not None:
+            out["C15"] = self.c15(fz_in)
         if self.ctx.c14_on:
             out["C14v"] = self.c14v
             out.update(self.c14_checks(fz_in))
@@ -2186,6 +2274,8 @@ class CutPoint:
         if not (self.c11(fz_in).ok and all(c.ok for c in self.c2_checks(fz_in).values())
                 and all(c.ok for c in self.c14_checks(fz_in).values())):
             return False
+        if self.ctx.chip_space is not None and not self.c15(fz_in).ok:
+            return False
         return all(c.ok for c in self.force_checks(fz_in)[0].values())
 
     def lower_ok(self, fz_in):
@@ -2197,12 +2287,14 @@ class CutPoint:
         out += [k for k, c in self.c14_checks(fz_in).items() if not c.ok]
         if not self.c11(fz_in).ok:
             out.append("C11")
+        if self.ctx.chip_space is not None and not self.c15(fz_in).ok:
+            out.append("C15")
         out += [k for k, c in self.force_checks(fz_in)[0].items() if not c.ok]
         return out
 
     # --- fz window -------------------------------------------------------
     def fz_window(self, rel_tol=0.002, lower_tol=None):
-        """(fz_lo, fz_hi) in inches: the smallest fz meeting C1/C10/C14lo and the largest meeting C2–C5, C11.
+        """(fz_lo, fz_hi) in inches: the smallest fz meeting C1/C10/C14lo and the largest meeting C2–C5, C11, C15.
 
         None when the geometry fails (C6, C7, C8, C12, C13) or C1/C10 cannot be met below FZ_MAX_IN; fz_hi
         is None when the upper limits already fail at fz_lo. self.fz_capped is True when fz_hi stopped at
@@ -2368,7 +2460,7 @@ def _report(pt, fz_in, checks, f, beam, chips):
                       "sigma1_ratio": checks["C4"].value / band["sigma1_mpa"]}
     cut["time_min_per_in3"] = 1.0 / cut["mrr_in3_min"] if cut["mrr_in3_min"] > 0 else math.inf
     return {"cut": cut, "loads": loads, "checks": {k: c.to_dict() for k, c in checks.items()},
-            "vendor_basis": vendor_basis(pt),
+            "vendor_basis": vendor_basis(pt), "chip_space": chip_space_report(pt, fz_in, checks.get("C15")),
             "violated": [k for k, c in checks.items() if not c.ok],
             "vendor_median_comparison": comparison,
             "runout_bound": {"flute_h_max_in": [h / MM_PER_IN for h in bound],

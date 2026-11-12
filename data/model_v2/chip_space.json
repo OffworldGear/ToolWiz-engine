@@ -1,0 +1,95 @@
+{
+ "version": "2026-11-12",
+ "core_ratio_by_flutes": {
+  "1": 0.5,
+  "2": 0.55,
+  "3": 0.58,
+  "4": 0.6,
+  "5": 0.64,
+  "6": 0.66,
+  "7": 0.7,
+  "8": 0.72,
+  "_source": "Design values (not measured): 2-3 flutes 50-65 % (EP 1 072 345), 40-55 % (US 11,554,426), >= 60 % high-load (US 10,335,870); 4 flutes ~60 % (Mitsubishi 'Web thickness'), >= 58 %; 5 flutes >= 61-64 %, 6 flutes >= 63-65 % (US 10,335,870); 7 flutes flute depth 10-20 % of D, i.e. a 60-80 % core (CA 3 000 831 C, 7 teeth 'the most preferred ... taking into account flute space'); 5-8 flutes finishing 75-85 % (EP 1 072 345). docs/research/carbide_and_edge_radius.md §5, docs/research/chip_space.md §2"
+ },
+ "void_fraction": {
+  "value": 0.55,
+  "source": "Engineering estimate: the share of the core-to-OD annulus that is open gullet rather than tooth body. It multiplies every flute count alike, so it cancels in the calibration of K (only the ratio between flute counts, set by the core table, matters)"
+ },
+ "depth": {
+  "enclosed_ae_over_D": {
+   "value": 0.95,
+   "source": "a full slot: no open side for the chip to leave by"
+  },
+  "a0_over_D": {
+   "value": 0.5,
+   "source": "engineering estimate: up to D/2 the chip clears the slot within the half revolution the tooth is enclosed (flute advance along a 30-45° helix)"
+  },
+  "k_d": {
+   "value": 0.5,
+   "source": "engineering estimate, checked on the vendor slots: with k_d 0.5 the 2-flute slots at 0.6·D (OSG) and 3-flute slots at 1·D (YG-1, OSG, Helical) in aluminium fall on the same normalised packing (5.7-6.4); k_d 0 and 1 give 6.0 / 5.3 for the group minimum (sensitivity in docs/research/chip_space.md). Sandvik: reduce full-slot ap to ~70 % of the edge length and use compressed air against chip congestion"
+  }
+ },
+ "aggressiveness": {
+  "basis": "u_limit(a) = consensus_scale(a) / consensus_scale(1) (optimize.CONSENSUS_SCALE_POINTS): 1.0 at aggressiveness 1 (the most packed published slot), 0.84 at 50 %, 0.69 at 0. The same margin the engine keeps on its other vendor-anchored limit, C2, because K and the gullet geometry are uncertain (design values, one void fraction, no measured chip packing)"
+ },
+ "fallback_group": "steel",
+ "packing": {
+  "non-ferrous": {
+   "K": 5.739,
+   "basis": "most packed published full slot: osg_BLIZZARD2022_al_slot_1-2 (OSG, 2 flutes, D 0.5\", ap 0.60·D, fz 0.0250·D)",
+   "n_slot_rows": 26,
+   "p10": 6.37,
+   "median": 7.972,
+   "lowest_rows": [
+    "osg_BLIZZARD2022_al_slot_1-2",
+    "yg1_jag95_alwrought_slot_1-4",
+    "yg1_jag95_alwrought_slot_1-2",
+    "osg_BLIZZARD2022_al_slot_1-4",
+    "emuge_VAR_std_N1.2_slot_ae1_1-16"
+   ]
+  },
+  "steel": {
+   "K": 4.113,
+   "basis": "most packed published full slot: garr_vrx_h13_lt40_slot_1-16 (Garr Tool, 4 flutes, D 0.0625\", ap 1.50·D, fz 0.0112·D)",
+   "n_slot_rows": 221,
+   "p10": 8.861,
+   "median": 13.994,
+   "lowest_rows": [
+    "garr_vrx_h13_lt40_slot_1-16",
+    "garr_vrx_4140_lt40_slot_1-16",
+    "garr_vrx_h13_gt40_slot_1-16",
+    "garr_x3_h13_lt40_slot_1-16",
+    "garr_x3_4140_lt40_slot_1-16"
+   ]
+  },
+  "stainless": {
+   "K": 4.799,
+   "basis": "most packed published full slot: garr_vrx_17-4_lt40_slot_1-16 (Garr Tool, 4 flutes, D 0.0625\", ap 1.50·D, fz 0.0096·D)",
+   "n_slot_rows": 300,
+   "p10": 11.094,
+   "median": 16.574,
+   "lowest_rows": [
+    "garr_vrx_17-4_lt40_slot_1-16",
+    "garr_vrx_316_lt40_slot_1-16",
+    "garr_vrx_17-4_gt40_slot_1-16",
+    "garr_vrx_316_gt40_slot_1-16",
+    "kmt2_HARVII-TE5_M1_slot_0.25_7155870"
+   ]
+  },
+  "Ti-Ni-Co": {
+   "K": 4.799,
+   "basis": "most packed published full slot: garr_vrx_ti64_nohrc_slot_1-16 (Garr Tool, 4 flutes, D 0.0625\", ap 1.50·D, fz 0.0096·D)",
+   "n_slot_rows": 269,
+   "p10": 11.73,
+   "median": 21.598,
+   "lowest_rows": [
+    "garr_vrx_ti64_nohrc_slot_1-16",
+    "garr_vrx_in718_lt40_slot_1-16",
+    "garr_vrx_in718_gt40_slot_1-16",
+    "seco_JHP770_S12_slot_25mm",
+    "garr_x3_ti64_nohrc_slot_1-16"
+   ]
+  }
+ },
+ "calibration": "tools/calibrate_chip_space.py: K = the smallest A_g/(fz·ae)/depth_factor over the group's square-end full-slot rows of tests/benchmarks/v2/*.json"
+}

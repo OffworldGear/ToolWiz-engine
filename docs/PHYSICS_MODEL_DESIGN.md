@@ -103,6 +103,11 @@ Every constraint names its source. "Empirical" means kept deliberately until it 
 | C8 | Full-slot micro depth ≤ k_slot·D | **Empirical:** chip packing (Harvey miniature guide: step down 5–15% of D when slotting) | Vendor slot depths |
 | C9 | Stickout-related speed reduction | **Empirical:** chatter. OSG overhang tables applied to the equivalent stickout. Replace with stability lobes if the user ever measures the tool's vibration response | — |
 | C10 | Work-hardening alloys: h ≥ h_wh (cut under the hardened layer) | **Empirical:** vendor guidance | Per-alloy values |
+| C15 | Chip space (added 2026-11-12): K·fz·ae ≤ gullet area per flute φ·(π/4)·D²·(1 − c_z²)/z, K raised for full slots deeper than D/2; limit 1 at aggressiveness 1, 0.84 at 50 % | Chip per tooth per unit edge length = h_m·arc = fz·ae; core ratio c_z by flute count (patents, Mitsubishi); K per material group = the most packed vendor full slot (`tools/calibrate_chip_space.py`, `data/model_v2/chip_space.json`); `docs/research/chip_space.md` | Measured gullet areas and chip packing (none published) |
+
+C11–C14 (feed cap, every flute reaches the stock, program size, vendor guardrail) were added after this table; their
+sources are in `physics_v2/optimize.SRC`. C15 is reported in every v2 result as `chip_space` (utilisation, whether it
+limits, a plain sentence).
 
 ### 3.6 Choosing the cut
 

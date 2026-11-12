@@ -473,6 +473,7 @@ def _cut_dict(res: Any, flutes: int) -> Dict[str, Any]:
         "holder_advice": ha,
         "tool_advice": res.tool_advice if isinstance(res.tool_advice, list) else [],
         "vendor_basis": res.vendor_basis if isinstance(getattr(res, "vendor_basis", None), dict) else None,
+        "chip_space": res.chip_space if isinstance(getattr(res, "chip_space", None), dict) else None,
     }
 
 

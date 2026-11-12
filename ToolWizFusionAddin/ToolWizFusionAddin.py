@@ -1180,6 +1180,7 @@ LIMIT_LABELS = {
     "C8": "slot depth", "C9": "chatter (reach)", "C10": "work-hardening chip", "C11": "feed cap",
     "C12": "stepover vs runout", "C13": "program size", "C14v": "vendor chart speed",
     "C14f": "vendor chart chip load", "C14m": "vendor chart removal rate",
+    "C15": "chip room in the flutes",
 }
 
 

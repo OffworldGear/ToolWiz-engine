@@ -26,6 +26,7 @@
         C14f: 'the vendor chart chip load (see Vendor basis)',
         C14m: 'the vendor chart removal rate (see Vendor basis)',
         C14lo: 'the minimum chip-load floor (half the vendor chart chip load)',
+        C15: 'chip room in the flutes (the gullets must hold the chip; fewer flutes have more room)',
         holder_clearance: 'holder clearance',
         neck_clearance: 'neck clearance of the cutter'
     };
@@ -36,6 +37,13 @@
         const ids = String(raw).replace(/^v2:\s*/, '').split(/[,\s]+/).filter(Boolean);
         const words = ids.map(id => CHECK_WORDS[id] || (checks[id] && checks[id].name) || id);
         return words.join('; ');
+    }
+
+    // C15: one line, only when the gullets' chip room limits the cut.
+    function chipSpaceLine(res) {
+        const cs = res && res.chip_space;
+        if (!cs || !cs.applies || !cs.limiting || !cs.sentence) return '';
+        return `<span class="v3-limited-label">Chip room</span> ${T.esc(cs.sentence)}`;
     }
 
     const isRoughing = () => /rough|adaptive|slot|high feed|pocket/i.test((($('operation') || {}).value) || '');
@@ -165,6 +173,7 @@
         const lw = limitedWords(res);
         set('limitedByLine', lw ? `<span class="v3-limited-label">Limited by</span> ${T.esc(lw)}` : '');
         set('vendorBasisLine', typeof vendorBasisLine === 'function' ? vendorBasisLine(res) : '');
+        set('chipSpaceLine', chipSpaceLine(res));
         set('runoutCard', runoutCard(res));
         set('finishCard', typeof finishCardHtml === 'function' ? finishCardHtml(res) : '');
         set('stockCard', stockCard(res));

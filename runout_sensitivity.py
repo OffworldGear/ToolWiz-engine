@@ -38,6 +38,7 @@ CHECK_WORDS = {
     "C9": "long-stickout chatter speed reduction", "C10": "work-hardened layer", "C11": "machine feed limit",
     "C12": "every flute must reach the stock", "C14v": "vendor speed ceiling", "C14f": "vendor chip-load ceiling",
     "C14m": "vendor removal-rate ceiling", "C14lo": "minimum chip-load floor for small tools",
+    "C15": "chip room in the flutes (too many flutes for this chip)",
     "C2o": "chip thickness with runout", "holder_clearance": "holder clearance", "neck_clearance": "neck clearance",
 }
 
