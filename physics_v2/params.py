@@ -21,6 +21,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MATERIALS_PATH = os.path.join(ROOT, "data", "model_v2", "materials.json")
 TOOLS_PATH = os.path.join(ROOT, "data", "model_v2", "tools.json")
 CONSENSUS_PATH = o.CONSENSUS_DEFAULT_PATH
+# C14 by vendor (owner decisions 2026-11-12): brand, unbranded default (Helical HEM, Harvey + Helical), consensus.
+VENDOR_TABLE_PATH = o.VENDOR_TABLE_DEFAULT_PATH
 ENVELOPE_PATH = o.ENVELOPE_DEFAULT_PATH
 # C2 basis of the calibrated model: "nominal" (runout-free chip fz·sin φe ≤ the vendor median nominal chip, plus the
 # worst-flute chip ≤ the vendor p90, C2o) keeps the feed from collapsing at the first microns of runout on micro
@@ -138,10 +140,12 @@ speedio_bt30 = machine
 
 def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_=None, **kw):
     """optimize.optimize with the calibrated defaults (user decisions 2026-10-17): the consensus aggressiveness
-    scheme, C14 from data/model_v2/consensus.json, the machine profile's holder stiffness, and (V3) the vendor
+    scheme, C14 from data/model_v2/consensus_by_vendor.json (brand, default, consensus; `brand` = a vendor key or None),
+    the machine profile's holder stiffness, and (V3) the vendor
     engagement envelope and the chip-load floor."""
     kw.setdefault("consensus", CONSENSUS_PATH)
     kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
+    kw.setdefault("vendor_table", VENDOR_TABLE_PATH)
     kw.setdefault("envelope", ENVELOPE_PATH)
     kw.setdefault("chip_floor", "vendor")
     kw.setdefault("c2_basis", C2_BASIS)
@@ -154,6 +158,7 @@ def evaluate_user_engagement(tool, material_, operation, ap_in, ae_in, aggressiv
     """optimize.evaluate_user_engagement with the same calibrated defaults: rpm and fz for the user's own ap and ae."""
     kw.setdefault("consensus", CONSENSUS_PATH)
     kw.setdefault("consensus_shaped", o.CONSENSUS_SHAPED_DEFAULT_PATH)
+    kw.setdefault("vendor_table", VENDOR_TABLE_PATH)
     kw.setdefault("c2_basis", C2_BASIS)
     return o.evaluate_user_engagement(tool, material_, machine_ or machine(), operation, ap_in, ae_in,
                                       margins=margins(aggressiveness), **kw)

@@ -9,8 +9,13 @@ the same numbers.
 - **Speeds and feeds from physics, checked against vendors.** The default cutting model (v2) computes
   per-flute chip loads with runout, cutting forces, tool deflection and bending stress on the real tool
   profile, spindle power, and tool life. It picks the cut with the highest material removal that passes
-  every limit and stays inside the vendors' published depth and width envelope. At 50% aggressiveness the
-  chip load is about 0.92 x the vendor median; 75% is the median; 100% is about 1.10 x with faster wear.
+  every limit and stays inside the vendors' published depth and width envelope. The vendor guardrail is
+  **brand first**: give the tool's brand (the `brand` field, a Brand box in the web form, or the Fusion tool's
+  vendor) and ToolWiz uses that vendor's own charts; with no brand, or a brand that has no charts, it uses the
+  more conservative Helical HEM / Harvey + Helical charts, else the cross-vendor consensus. 50% aggressiveness is
+  the middle of that chart's published range, 0% its bottom, 100% its top; physics limits cap every value. HEM
+  (adaptive) and traditional roughing (pockets, roughing contours) use separate charts. Every result says which in
+  `vendor_basis` (shown as "Vendor basis: ..." under the result).
   3,423 cited vendor rows (Harvey, Helical, OSG, Sandvik, Seco, Kennametal, Emuge, Garr, Kyocera SGS,
   YG-1) validate it; see `docs/V3_EVALUATION.md`. Titan USA micro-tool rows are staged in
   `tests/benchmarks/v2_staged/` and not yet used.

@@ -139,7 +139,15 @@ def fusion_tool_for_server(tool_dict):
         out["holder"] = t["holder"]
     if t.get("BMC"):
         out["BMC"] = t["BMC"]
+    if isinstance(t.get("vendor"), str) and t["vendor"].strip():
+        out["vendor"] = t["vendor"].strip()   # the server's vendor guardrail uses this brand's charts (owner, 2026-11-12)
     return out
+
+
+def tool_vendor(tool_dict):
+    """The Fusion tool's vendor text ("Harvey Tool", "Klot (Amazon Ebay)"), or None."""
+    v = tool_dict.get("vendor") if isinstance(tool_dict, dict) else None
+    return v.strip() if isinstance(v, str) and v.strip() else None
 
 
 def tool_guid(tool_dict):

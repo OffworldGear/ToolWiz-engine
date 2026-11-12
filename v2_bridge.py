@@ -23,11 +23,14 @@ KW_TO_HP = 1.341
 
 # Operation names (web page / Fusion strategy) -> v2 operation. Others stay on v1 for now.
 OPERATION_MAP = {
-    # clearing: constant-engagement toolpaths
+    # HEM: constant-engagement toolpaths (low radial, deep axial) -> the vendors' HEM charts
     "adaptive roughing": "adaptive", "adaptive clearing": "adaptive", "2d adaptive clearing": "adaptive",
-    "3d adaptive clearing": "adaptive", "adaptive": "adaptive", "trochoidal": "adaptive",
-    "pocket clearing": "adaptive", "pocket": "adaptive", "2d pocket": "adaptive", "3d pocket": "adaptive",
-    # roughing contours
+    "3d adaptive clearing": "adaptive", "adaptive": "adaptive", "trochoidal": "adaptive", "trochoidal milling": "adaptive",
+    "dynamic": "adaptive", "dynamic milling": "adaptive", "hem": "adaptive", "high efficiency milling": "adaptive",
+    "3d adaptive": "adaptive",
+    # traditional roughing (wider radial): offset pockets and roughing contours -> the vendors' roughing charts (owner
+    # decision 4, 2026-11-12: a pocket is not HEM; before, pockets were mapped to adaptive)
+    "pocket clearing": "rough", "pocket": "rough", "2d pocket": "rough", "3d pocket": "rough",
     "standard roughing": "rough", "roughing": "rough", "contour (roughing)": "rough", "2d contour (roughing)": "rough",
     "roughing contour": "rough", "contour roughing": "rough", "3d roughing": "rough", "rest roughing": "rough",
     # slots
@@ -36,7 +39,6 @@ OPERATION_MAP = {
     "wall finishing (deep doc)": "finish", "wall finishing": "finish", "finishing": "finish",
     "3d finishing": "finish", "finishing (3d)": "finish", "scallop": "finish", "3d scallop": "finish", "parallel": "finish",
     "contour finishing": "finish", "3d contour": "finish", "3d contouring": "finish", "pencil": "finish",
-    "3d adaptive": "adaptive", "3d pocket": "adaptive",
 }
 NOT_SQUARE = ("chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
               "t-slot", "keyseat", "woodruff", "thread", "drill", "ream", "tap", "saw", "face", "form")
@@ -208,7 +210,7 @@ def _setup(physics, r, op, machine_profile):
 def _cache_key(r, op, hb, machine, kw, extra=None):
     return json.dumps({
         "fam": r.family, "hb": hb, "coat": r.coating, "op": op, "a": round(float(r.aggressiveness), 4),
-        "prof": r.profile.to_dict(), "helix": r.helix_angle, "kw": kw, "extra": extra,
+        "prof": r.profile.to_dict(), "helix": r.helix_angle, "kw": kw, "extra": extra, "brand": getattr(r, "brand_key", None),
         "m": [machine.label, machine.max_rpm, machine.tir_in, machine.spindle.get("power_kw_continuous"),
               machine.holder_k_n_um, machine.holder_ktheta_nm_urad, machine.max_feed_ipm],
     }, sort_keys=True, default=str)
@@ -235,7 +237,7 @@ def _optimize(physics, r, op, machine_profile):
     def compute():
         material = params.material(r.family, hb=hb, coating=r.coating)
         out = params.optimize(tool, material, op, float(r.aggressiveness), machine_=machine, robust=False,
-                              robustness=False, **kw)
+                              robustness=False, brand=getattr(r, "brand_key", None), **kw)
         return dict(out, ramp=_ramp(tool, material, machine, r, out))
     return _cached(_cache_key(r, op, hb, machine, kw), compute), hb, notes
 
@@ -247,7 +249,8 @@ def _optimize_user(physics, r, op, machine_profile, ap, ae):
 
     def compute():
         material = params.material(r.family, hb=hb, coating=r.coating)
-        out = params.evaluate_user_engagement(tool, material, op, ap, ae, float(r.aggressiveness), machine_=machine)
+        out = params.evaluate_user_engagement(tool, material, op, ap, ae, float(r.aggressiveness), machine_=machine,
+                                              brand=getattr(r, "brand_key", None))
         return dict(out, ramp=_ramp(tool, material, machine, r, out))
     return _cached(_cache_key(r, op, hb, machine, kw, ("user", round(ap, 7), round(ae, 7))), compute), hb, notes
 
@@ -312,6 +315,59 @@ def _v2_details(out, hb, notes, recommended=None):
         "hardness_hb": hb,
         "ramp": _ramp_details(out.get("ramp")),
     }
+
+
+# ---------------------------------------------------------------------------
+# Vendor basis (owner decisions 2026-11-12)
+# ---------------------------------------------------------------------------
+
+CHART_WORDS = {"hem": "HEM", "rough": "roughing", "side": "side-milling", "slot": "slotting", "finish": "finishing"}
+
+
+def _vendor_name(key):
+    from toolwiz_common import brand
+    if not key:
+        return None
+    return " + ".join(brand.short_name(k) for k in key.split("+"))
+
+
+def vendor_basis_block(vb, r, res=None, op=None):
+    """The result's `vendor_basis`: which vendor charts set the v2 guardrail, in plain words. vb: the engine's
+    optimize.vendor_basis (None when v2 did not produce the result)."""
+    from toolwiz_common import brand
+    text, key = getattr(r, "brand_text", None), getattr(r, "brand_key", None)
+    out = {"mode": "none", "vendor": None, "vendor_name": None, "brand_text": text, "brand_key": key,
+           "brand_source": getattr(r, "brand_source", None), "chart_class": None, "rows": 0, "sfm_range": None,
+           "fz_range": None, "bucket": None, "widening": None}
+    if not vb or vb.get("mode") in (None, "off"):
+        why = ("the v1 model has no vendor guardrail" if (res is None or getattr(res, "model", "v1") != "v2")
+               else "the vendor guardrail is off")
+        out["note"] = f"No vendor chart used: {why}."
+        return out
+    mode = vb["mode"]
+    cls = vb.get("chart_class")
+    word = CHART_WORDS.get(cls, cls or "")
+    out.update({k: vb.get(k) for k in ("mode", "vendor", "chart_class", "rows", "sfm_range", "fz_range", "bucket",
+                                       "widening")})
+    out["vendor_name"] = _vendor_name(vb.get("vendor"))
+    if not text:
+        why = "no brand given"
+    elif not key:
+        why = f"brand \"{text}\" has no vendor charts"
+    else:
+        why = f"{brand.display_name(key)} has {vb.get('brand_missing') or 'no chart for this cut'}"
+    if mode == "brand":
+        out["note"] = f"Vendor basis: {out['vendor_name']} {word} chart (brand \"{text}\")."
+    elif mode == "default":
+        out["note"] = f"Vendor basis: {out['vendor_name']} {word} chart ({why}; conservative default)."
+    elif mode == "consensus":
+        rows = "side-milling and roughing" if cls == "side" and op == "rough" else word
+        hh = "" if key in ("harvey", "helical") else "; Harvey/Helical have no chart for this cut"
+        out["note"] = (f"Vendor basis: cross-vendor consensus of {rows} charts ({why}{hh})." if vb.get("sfm_range") else
+                       f"Vendor basis: cross-vendor consensus of {rows} charts for this end form ({why}).")
+    else:
+        out["note"] = f"Vendor basis: none: no vendor chart matches this cut ({why}); physics limits only."
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -406,6 +462,7 @@ def apply(physics, r, res, machine_profile=None):
           "feasible": res.feasible, "limited_by": res.limited_by}
     details = _v2_details(out, hb, notes, recommended)
     res.model, res.v1, res.v2 = "v2", v1, details
+    res.vendor_basis = vendor_basis_block(out.get("vendor_basis"), r, res, op)
     res.engagement_source = out.get("engagement_source", "recommended")
     if op == "finish" and user_given:
         res.engagement_source = "user"

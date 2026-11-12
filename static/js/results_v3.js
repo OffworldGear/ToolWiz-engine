@@ -22,10 +22,10 @@
         C11: 'machine feed-rate limit',
         C12: 'every flute must reach the stock',
         C13: 'program size',
-        C14v: 'the vendor-consensus speed ceiling',
-        C14f: 'the vendor-consensus chip-load ceiling',
-        C14m: 'the vendor-consensus removal-rate ceiling',
-        C14lo: 'the minimum chip-load floor for small tools',
+        C14v: 'the vendor chart speed (see Vendor basis)',
+        C14f: 'the vendor chart chip load (see Vendor basis)',
+        C14m: 'the vendor chart removal rate (see Vendor basis)',
+        C14lo: 'the minimum chip-load floor (half the vendor chart chip load)',
         holder_clearance: 'holder clearance',
         neck_clearance: 'neck clearance of the cutter'
     };
@@ -164,6 +164,7 @@
         set('engagementCard', engagementCard(res));
         const lw = limitedWords(res);
         set('limitedByLine', lw ? `<span class="v3-limited-label">Limited by</span> ${T.esc(lw)}` : '');
+        set('vendorBasisLine', typeof vendorBasisLine === 'function' ? vendorBasisLine(res) : '');
         set('runoutCard', runoutCard(res));
         set('finishCard', typeof finishCardHtml === 'function' ? finishCardHtml(res) : '');
         set('stockCard', stockCard(res));

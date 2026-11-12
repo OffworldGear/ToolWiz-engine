@@ -65,7 +65,9 @@ def test_numbers_are_toolwiz(res):
     assert o["rpm"] == round(a.rpm) and o["feed_ipm"] == pytest.approx(a.feed_ipm, abs=1e-3) and o["ae"] == pytest.approx(a.woc, abs=1e-5)
     ro = direct("Roughing", T_QTR)
     o2 = opt(r, "pocket_offset", 0.25)
-    assert o2["rpm"] == round(ro.rpm) and o2["ae"] == pytest.approx(ro.woc, abs=1e-5)
+    # the option's headline numbers are its longest phase's, which can be a finishing phase: compare the roughing phase
+    ph = next(p for p in o2["phases"] if p["name"] == "offset roughing")
+    assert ph["rpm"] == round(ro.rpm) and o2["ae"] == pytest.approx(ro.woc, abs=1e-5)
 
 
 def test_offset_has_full_slot_entry_and_adaptive_path_formula(res):

@@ -880,7 +880,13 @@ def engagement_class(ae_over_D, edges):
 
 CONSENSUS_MIN_GROUPS = 2   # user decision 2026-10-17 (R-C): ≥ 2 independent vendor groups (Harvey + Helical = one)
 CONSENSUS_WIDENING = ("exact bucket", "+ neighbouring diameter band", "+ neighbouring engagement class",
-                      "+ neighbouring hardness bin")
+                      "+ neighbouring hardness bin", "+ hardness bins within 100 HB", "+ hardness bins within 200 HB",
+                      "+ any engagement class")
+# Per step: (diameter bands either side, engagement classes either side (None: all), hardness bins either side). Steps 4-6
+# (owner decisions 2026-11-12): without them a cut whose engagement class has rows only two hardness bins away (17-4 at the
+# family's default 230 HB against vendor rows at 29-44 HRC) lost the guardrail altogether, so the speed jumped to the
+# physics (C7) value as soon as ae crossed into that class (741 SFM at 100 % against 463 at 80 %).
+WIDENING_STEPS = ((0, 0, 0), (1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 1, 2), (1, 1, 4), (1, None, 4))
 # Row values stored per cell and vendor group in consensus.json: [SFM, fz/D, fz·n (in/min), MRR/D³].
 CONSENSUS_FIELDS = ("sfm", "fz_over_D", "feed_per_flute_ipm", "mrr_over_D3")
 
@@ -901,38 +907,170 @@ def consensus_lookup(table, family, hb, D_in, operation, ae_over_D, min_groups=N
     taken over its pooled rows, then the median over the groups. Returns None when even the widest step has too
     few groups (the caller then uses the physics result and says so)."""
     min_groups = min_groups or table.get("min_vendor_groups", CONSENSUS_MIN_GROUPS)
+    opc = CONSENSUS_OPERATION.get(operation, operation)
+    found = _widened_pool(table, table["cells"].get, family, hb, D_in, opc, ae_over_D, min_groups)
+    if found is None:
+        return None
+    pooled, exact, label, step, used = found
+    out = {}
+    for i, f in enumerate(CONSENSUS_FIELDS):
+        meds = [_median([r[i] for r in rows]) for rows in pooled.values()]
+        out[f] = _median(meds)
+    return dict(out, key=exact, widening=label, step=step, cells=used, vendor_groups=sorted(pooled),
+                n_rows=sum(len(r) for r in pooled.values()))
+
+
+def _neighbours_n(names, name, n):
+    """name and n names either side of it (n None: all names)."""
+    if n is None:
+        return list(names)
+    i = names.index(name) if name in names else None
+    if i is None:
+        return [name]
+    return names[max(0, i - n):i + n + 1]
+
+
+def _widened_pool(table, get, family, hb, D_in, cls, ae_over_D, min_groups):
+    """Rows of the bucket (family, hardness bin, band, class, engagement class), widened stepwise and cumulatively
+    (WIDENING_STEPS) until `min_groups` groups match. get(cell key) -> {group: rows} or None. Returns (pooled {group:
+    rows}, exact key, widening label, step, cells used) or None."""
     band = _band_for(table["bands"], D_in)
     if band is None:
         return None
     bands = [b["band"] for b in table["bands"]]
     engs = [e[0] for e in table["engagement_classes"]]
     eng = engagement_class(ae_over_D, table["engagement_classes"])
-    opc = CONSENSUS_OPERATION.get(operation, operation)
     hbin = int(hb // table["hb_bin"])
-    cells = table["cells"]
-    for step, label in enumerate(CONSENSUS_WIDENING):
-        bset = _neighbours(bands, band["band"], step >= 1)
-        eset = _neighbours(engs, eng, step >= 2)
-        hset = [hbin - 1, hbin, hbin + 1] if step >= 3 else [hbin]
+    exact = "|".join((family, str(hbin), band["band"], cls, eng))
+    for step, (label, (nb, ne, nh)) in enumerate(zip(CONSENSUS_WIDENING, WIDENING_STEPS)):
         pooled, used = {}, []
-        for b in bset:
-            for e in eset:
-                for h in hset:
-                    key = "|".join((family, str(h), b, opc, e))
-                    c = cells.get(key)
+        for b in _neighbours_n(bands, band["band"], nb):
+            for e in _neighbours_n(engs, eng, ne):
+                for h in range(hbin - nh, hbin + nh + 1):
+                    key = "|".join((family, str(h), b, cls, e))
+                    c = get(key)
                     if c:
                         used.append(key)
                         for vg, rows in c.items():
                             pooled.setdefault(vg, []).extend(rows)
-        if len(pooled) < min_groups:
-            continue
-        out = {}
-        for i, f in enumerate(CONSENSUS_FIELDS):
-            meds = [_median([r[i] for r in rows]) for rows in pooled.values()]
-            out[f] = _median(meds)
-        exact = "|".join((family, str(hbin), band["band"], opc, eng))
-        return dict(out, key=exact, widening=label, step=step, cells=used, vendor_groups=sorted(pooled),
-                    n_rows=sum(len(r) for r in pooled.values()))
+        if len(pooled) >= min_groups:
+            return pooled, exact, label, step, used
+    return None
+
+
+# ---------------------------------------------------------------------------
+# C14 by vendor (owner decisions 2026-11-12): brand first, then the unbranded default, then the cross-vendor consensus
+# ---------------------------------------------------------------------------
+
+VENDOR_TABLE_DEFAULT_PATH = os.path.join(ROOT, "data", "model_v2", "consensus_by_vendor.json")
+# Chart classes an optimizer operation reads, in order, within one source. HEM (adaptive) and traditional roughing never
+# share: an adaptive cut reads only HEM charts; a roughing cut reads the vendor's roughing chart, else its side-milling
+# (profiling) chart, never its HEM chart.
+VENDOR_CHART_CLASSES = {"adaptive": ("hem",), "rough": ("rough", "side"), "slot": ("slot",), "finish": ("finish",)}
+# Unbranded default (owner, 2026-11-12): the more conservative Harvey Performance charts. HEM: Helical ("Helical would be
+# better about HEM than Harvey"), then Harvey's HEM rows; every other operation: Harvey and Helical pooled.
+VENDOR_DEFAULT_SOURCES = {"adaptive": (("helical",), ("harvey",)), "rough": (("harvey", "helical"),),
+                          "slot": (("harvey", "helical"),), "finish": (("harvey", "helical"),)}
+VENDOR_RANGE_FIELDS = ("sfm", "fz_over_D", "feed_per_flute_ipm")
+CHART_WORD = {"hem": "HEM", "rough": "roughing", "side": "side-milling", "slot": "slotting", "finish": "finishing"}
+VENDOR_MODES = ("brand", "default", "consensus", "none")
+SRC["C14b"] = ("Vendor guardrail by brand (owner decisions 2026-11-12): the tool's own vendor's charts when the brand is "
+               "known and charted for this cut (same chart class; widened within that vendor by diameter band, engagement "
+               "and hardness), else Helical HEM / Harvey + Helical charts, else the cross-vendor consensus; "
+               "data/model_v2/consensus_by_vendor.json (tools/build_vendor_consensus.py). Aggressiveness 0 % = the bottom of "
+               "the range (smallest published min, nominal or max of the bucket's rows), 50 % = the middle (median of the "
+               "nominal values), 100 % = the top; one published number spans 0.76-1.10x of it")
+
+
+def range_at(rng, aggressiveness):
+    """The value at aggressiveness a of a (lo, mid, hi) range: lo at 0, mid at 0.5, hi at 1, linear in between
+    (continuous and monotone because lo <= mid <= hi)."""
+    lo, mid, hi = rng
+    a = min(max(float(aggressiveness), 0.0), 1.0)
+    return lo + (mid - lo) * a / 0.5 if a <= 0.5 else mid + (hi - mid) * (a - 0.5) / 0.5
+
+
+def c14_cap(cons, field, mg):
+    """C14's cap on `field` ("sfm", "fz_over_D", "feed_per_flute_ipm") at the margins' aggressiveness: the vendor range
+    when the bucket carries one (consensus_by_vendor.json), else the old scale × median (shaped tools' table)."""
+    rng = (cons.get("ranges") or {}).get(field)
+    if rng:
+        return range_at(rng, mg.aggressiveness)
+    return mg.consensus_cap_scale * cons[field]
+
+
+def _range_of(pooled, field_index, mid_by_group=False):
+    """(lo, mid, hi) over pooled rows (each row [lo, nom, hi] × 3 fields): lo/hi the extreme row values, mid the median
+    of the nominal values (mid_by_group: the median of each group's median, the cross-vendor consensus' rule)."""
+    i = 3 * field_index
+    rows = [r for rs in pooled.values() for r in rs]
+    lo = min(r[i] for r in rows)
+    hi = max(r[i + 2] for r in rows)
+    if mid_by_group:
+        mid = _median([_median([r[i + 1] for r in rs]) for rs in pooled.values()])
+    else:
+        mid = _median([r[i + 1] for r in rows])
+    return lo, mid, hi
+
+
+def _vendor_bucket(table, get, family, hb, D_in, cls, ae_over_D, min_groups, mid_by_group=False):
+    found = _widened_pool(table, get, family, hb, D_in, cls, ae_over_D, min_groups)
+    if found is None:
+        return None
+    pooled, exact, label, step, used = found
+    ranges = {f: _range_of(pooled, k, mid_by_group) for k, f in enumerate(VENDOR_RANGE_FIELDS)}
+    out = {f: ranges[f][1] for f in VENDOR_RANGE_FIELDS}
+    aes = [r[9] for rs in pooled.values() for r in rs if len(r) > 9]
+    out["ae_over_D"] = _median(aes) if aes else None
+    return dict(out, ranges=ranges, key=exact, widening=label, step=step, cells=used, vendor_groups=sorted(pooled),
+                n_rows=sum(len(r) for r in pooled.values()), chart_class=cls)
+
+
+def vendor_lookup(table, brand, family, hb, D_in, operation, ae_over_D):
+    """C14's bucket for a cut, in the owner's order (2026-11-12): the brand's own charts (mode "brand"), the unbranded
+    default (mode "default": Helical HEM, then Harvey HEM, for adaptive; Harvey + Helical otherwise), the cross-vendor
+    consensus (mode "consensus", ≥ 2 vendor groups). None: no vendor data (physics only). The result carries the mids
+    (sfm, fz_over_D, feed_per_flute_ipm), their (lo, mid, hi) `ranges`, the bucket and widening, `mode`, `vendor` (keys
+    joined by "+"), `chart_class` and `brand_missing` (why the brand's charts were not used)."""
+    if not family:
+        return None
+    vendors = table.get("vendors") or {}
+    classes = VENDOR_CHART_CLASSES.get(operation, (operation,))
+
+    def from_vendors(keys, cls):
+        cells = [vendors[k]["cells"] for k in keys if k in vendors]
+        if not cells:
+            return None
+        def get(key):
+            out = {k: c[key] for k, c in zip(keys, cells) if key in c}
+            return out or None
+        return _vendor_bucket(table, get, family, hb, D_in, cls, ae_over_D, 1)
+
+    brand_missing = None
+    if brand:
+        if brand not in vendors or not vendors[brand].get("cells"):
+            brand_missing = "no square-end charts in the benchmark data"
+        else:
+            found = [f for f in (from_vendors((brand,), cls) for cls in classes) if f]
+            if len(found) > 1:
+                # A vendor with both a roughing and a side-milling (profiling) chart: the chart whose rows' radial engagement
+                # is closest to this cut's (Harvey publishes Profiling at 0.10-0.15·D and Roughing at 0.2-0.4·D).
+                found.sort(key=lambda f: abs(math.log(max(ae_over_D, 1e-4) / max(f.get("ae_over_D") or ae_over_D, 1e-4))))
+            if found:
+                return dict(found[0], mode="brand", vendor=brand)
+            brand_missing = f"no {' or '.join(CHART_WORD.get(c, c) for c in classes)} chart rows for this material"
+    for keys in VENDOR_DEFAULT_SOURCES.get(operation, (("harvey", "helical"),)):
+        for cls in classes:
+            found = from_vendors(keys, cls)
+            if found:
+                return dict(found, mode="default", vendor="+".join(keys), brand_missing=brand_missing)
+    cons = table.get("consensus")
+    if cons:
+        cls = CONSENSUS_OPERATION.get(operation, operation)
+        found = _vendor_bucket(table, cons["cells"].get, family, hb, D_in, cls, ae_over_D,
+                               table.get("min_vendor_groups", CONSENSUS_MIN_GROUPS), mid_by_group=True)
+        if found:
+            return dict(found, mode="consensus", vendor=None, brand_missing=brand_missing)
     return None
 
 
@@ -944,51 +1082,69 @@ def _median(vals):
 
 def _c14_detail(cons, what):
     groups = cons["vendor_groups"]
+    mode = cons.get("mode")
+    if mode in ("brand", "default"):
+        src = (f"{'brand' if mode == 'brand' else 'unbranded default'} {cons['vendor']} {cons['chart_class']} chart")
+        return f"{what}; {src}, bucket {cons['key']}, {cons['widening']} ({cons['n_rows']} rows)"
     return (f"{what}; bucket {cons['key']}, {cons['widening']} ({cons['n_rows']} rows, {len(groups)} vendor groups: "
             f"{', '.join(groups)})")
+
+
+def _cap_text(cons, field, mg, fmt):
+    """How C14's cap was set: 'a % of the range lo–mid–hi' or 'scale × vendor median'."""
+    rng = (cons.get("ranges") or {}).get(field)
+    if rng:
+        return (f"{mg.aggressiveness:.0%} of the vendor range {fmt(rng[0])}–{fmt(rng[1])}–{fmt(rng[2])} "
+                f"(0 % bottom, 50 % middle, 100 % top)")
+    return f"{mg.consensus_cap_scale:.2f} × vendor median {fmt(cons[field])}"
 
 
 def c14_speed(pt, rpm_given=False):
     """C14v: SFM ≤ scale × the bucket's vendor-median SFM. Caps the C7 speed; a given rpm is only checked."""
     ctx, cons = pt.ctx, pt.cons
     if not cons:
-        return Check("C14v", "vendor-consensus speed", "max", 0.0, None, "SFM", SRC["C14"], applies=False,
-                     detail=(f"fewer than {ctx.consensus.get('min_vendor_groups', CONSENSUS_MIN_GROUPS)} vendor groups "
-                             f"match this cut even after widening (band, engagement, hardness); the physics (C7) "
-                             f"speed and limits stand" if ctx.consensus else "consensus guardrail off"))
-    s = ctx.mg.consensus_cap_scale
-    med = cons["sfm"]
-    cap_sfm = s * med
+        return Check("C14v", "vendor speed", "max", 0.0, None, "SFM", SRC["C14"], applies=False,
+                     detail=("no vendor chart (brand, default or consensus) matches this cut even after widening (band, "
+                             "engagement, hardness); the physics (C7) speed and limits stand" if ctx.vendor_table is not None
+                             else f"fewer than {ctx.consensus.get('min_vendor_groups', CONSENSUS_MIN_GROUPS)} vendor groups "
+                                  f"match this cut even after widening (band, engagement, hardness); the physics (C7) "
+                                  f"speed and limits stand" if ctx.consensus else "consensus guardrail off"))
+    cap_sfm = c14_cap(cons, "sfm", ctx.mg)
     D_in = ctx.tool.D   # vendors print SFM on the nominal diameter (ball nose too), so C14 compares that
     sfm = math.pi * D_in * pt.rpm / 12.0
     if sfm > cap_sfm * (1 + 1e-9) and not rpm_given:
         pt.rpm = 12.0 * cap_sfm / (math.pi * D_in)
         sfm = cap_sfm
-    return Check("C14v", "vendor-consensus speed", "max", sfm, cap_sfm, "SFM", SRC["C14"],
-                 detail=_c14_detail(cons, f"SFM {sfm:.0f} vs {s:.2f} × vendor median {med:.0f} = {cap_sfm:.0f}"))
+    return Check("C14v", "vendor speed", "max", sfm, cap_sfm, "SFM", SRC["C14b"] if cons.get("ranges") else SRC["C14"],
+                 detail=_c14_detail(cons, f"SFM {sfm:.0f} vs {_cap_text(cons, 'sfm', ctx.mg, lambda x: f'{x:.0f}')} "
+                                          f"= {cap_sfm:.0f}"))
 
 
 def c14_feed_checks(pt, fz_in):
     ctx, cons = pt.ctx, pt.cons
     if not cons:
         return {}
-    s = ctx.mg.consensus_cap_scale
     D = ctx.tool.D
-    fz_med = cons["fz_over_D"] * D
+    fz_cap = c14_cap(cons, "fz_over_D", ctx.mg) * D
     mrr = pt.mrr_in3_min(fz_in)
     if "feed_per_flute_ipm" in cons:
         # MRR like-for-like: per unit engaged area (ap·ae) and per flute, i.e. the feed per flute fz·n (in/min),
         # which is scale-free in D. Vendors' depth follows their own flute length, ae varies inside an engagement
         # class and their flute counts differ, so depth, width and z are left to the physics limits (C3, C4, C6).
         # In MRR terms the cap at this cut is scale × median(fz·n)·z·ap·ae.
-        mrr_med = cons["feed_per_flute_ipm"] * ctx.tool.z * pt.ap * pt.ae
+        mrr_cap = c14_cap(cons, "feed_per_flute_ipm", ctx.mg) * ctx.tool.z * pt.ap * pt.ae
+        m_txt = _cap_text(cons, "feed_per_flute_ipm", ctx.mg, lambda x: f"{x:.3f}") + " in/min feed per flute × z·ap·ae"
     else:
-        mrr_med = cons["mrr_over_D3"] * D ** 3
+        mrr_cap = ctx.mg.consensus_cap_scale * cons["mrr_over_D3"] * D ** 3
+        m_txt = f"{ctx.mg.consensus_cap_scale:.2f} × vendor median MRR/D³"
+    src = SRC["C14b"] if cons.get("ranges") else SRC["C14"]
     return {
-        "C14f": Check("C14f", "vendor-consensus chip load", "max", fz_in, s * fz_med, "in", SRC["C14"],
-                      detail=_c14_detail(cons, f"fz {fz_in:.6f}\" vs {s:.2f} × vendor median {fz_med:.6f}\"")),
-        "C14m": Check("C14m", "vendor-consensus MRR", "max", mrr, s * mrr_med, "in³/min", SRC["C14"],
-                      detail=_c14_detail(cons, f"MRR {mrr:.4f} vs {s:.2f} × vendor median {mrr_med:.4f} in³/min")),
+        "C14f": Check("C14f", "vendor chip load", "max", fz_in, fz_cap, "in", src,
+                      detail=_c14_detail(cons, f"fz {fz_in:.6f}\" vs "
+                                               f"{_cap_text(cons, 'fz_over_D', ctx.mg, lambda x: f'{x * D:.6f}')}\" "
+                                               f"= {fz_cap:.6f}\"")),
+        "C14m": Check("C14m", "vendor MRR", "max", mrr, mrr_cap, "in³/min", src,
+                      detail=_c14_detail(cons, f"MRR {mrr:.4f} vs {m_txt} = {mrr_cap:.4f} in³/min")),
     }
 
 
@@ -1487,6 +1643,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
                    "wall_metric": "ripple", "consensus": None, "consensus_shaped": None, "envelope": None, "chip_floor": None,
+                   "vendor_table": None, "brand": None,
                    "user_engagement": False, "n_phases": None, "ae_env_min": True}
 
 
@@ -1665,6 +1822,14 @@ class _Context:
             src = CONSENSUS_SHAPED_DEFAULT_PATH if o["consensus_shaped"] == "default" else o["consensus_shaped"]
             tables = src if isinstance(src, dict) else _limits(src)
             self.consensus_shaped = tables.get(tool.end_form)
+        # C14 by vendor (owner decisions 2026-11-12): square-end tools read consensus_by_vendor.json (brand, default,
+        # consensus); ball and bull-nose tools keep the shaped table and the old scale × median caps.
+        self.vendor_table = None
+        self.brand = o["brand"] or None
+        if o["vendor_table"] is not None and tool.end_form == "square":
+            src = VENDOR_TABLE_DEFAULT_PATH if o["vendor_table"] == "default" else o["vendor_table"]
+            self.vendor_table = src if isinstance(src, dict) else _limits(src)
+        self.c14_on = self.consensus is not None or self.vendor_table is not None
         if machine.holder_k_n_um or machine.holder_ktheta_nm_urad:
             self.notes.append(f"C3 includes the spindle/holder compliance in series with the tool: "
                               f"k {machine.holder_k_n_um or 0:g} N/µm, k_θ {machine.holder_ktheta_nm_urad or 0:g} N·m/µrad"
@@ -1672,9 +1837,19 @@ class _Context:
 
     def consensus_for(self, ae_in):
         """The C14 bucket for this cut (family, hardness, band, operation, engagement), or None."""
-        if not self.consensus or not self.mat.family:
+        if not self.c14_on or not self.mat.family:
             return None
         aeD = ae_in / self.tool.D
+        if self.vendor_table is not None:
+            # per engagement class; a brand with both roughing and side-milling charts picks by ae, so per 1 % of ae/D too
+            key = ("vendor", engagement_class(aeD, self.vendor_table["engagement_classes"]),
+                   round(aeD, 2) if self.brand and self.op == "rough" else None)
+            if key not in self._cons_cache:
+                self._cons_cache[key] = vendor_lookup(self.vendor_table, self.brand, self.mat.family, self.mat.hb,
+                                                      self.tool.D, self.op, aeD)
+            return self._cons_cache[key]
+        if not self.consensus:
+            return None
         key = engagement_class(aeD, self.consensus["engagement_classes"])
         if key not in self._cons_cache:
             found = None
@@ -1927,7 +2102,7 @@ class CutPoint:
         if ctx.c2_basis == "nominal":
             ceilings.append(ctx.h_nominal * ctx.mg.limit_scale / self.eng.h_unit / MM_PER_IN)
         if self.cons:
-            ceilings.append(ctx.mg.consensus_cap_scale * self.cons["fz_over_D"] * ctx.tool.D)
+            ceilings.append(c14_cap(self.cons, "fz_over_D", ctx.mg) * ctx.tool.D)
         if ceilings and pref > CHIP_FLOOR_CEILING_FRACTION * min(ceilings):
             cap = CHIP_FLOOR_CEILING_FRACTION * min(ceilings)
             pref, hard = cap, min(hard, cap)
@@ -1994,7 +2169,7 @@ class CutPoint:
         out.update(fc)
         out.update({"C6": self.c6, "C7": self.c7, "C8": self.c8, "C9": self.ctx.c9, "C11": self.c11(fz_in),
                     "C12": self.c12, "C13": self.c13})
-        if self.ctx.consensus is not None:
+        if self.ctx.c14_on:
             out["C14v"] = self.c14v
             out.update(self.c14_checks(fz_in))
         chips = {"c2": self.chips_c2(fz_in)[0], "c1": self.chips_c1(fz_in)[0]}
@@ -2193,6 +2368,7 @@ def _report(pt, fz_in, checks, f, beam, chips):
                       "sigma1_ratio": checks["C4"].value / band["sigma1_mpa"]}
     cut["time_min_per_in3"] = 1.0 / cut["mrr_in3_min"] if cut["mrr_in3_min"] > 0 else math.inf
     return {"cut": cut, "loads": loads, "checks": {k: c.to_dict() for k, c in checks.items()},
+            "vendor_basis": vendor_basis(pt),
             "violated": [k for k, c in checks.items() if not c.ok],
             "vendor_median_comparison": comparison,
             "runout_bound": {"flute_h_max_in": [h / MM_PER_IN for h in bound],
@@ -2203,6 +2379,33 @@ def _report(pt, fz_in, checks, f, beam, chips):
 # ---------------------------------------------------------------------------
 # Optimizer
 # ---------------------------------------------------------------------------
+
+def vendor_basis(pt):
+    """Which vendor data set C14 at this cut (owner decisions 2026-11-12): mode brand | default | consensus | none, the
+    vendor key(s), chart class, rows, the SFM and fz (in) ranges (lo, mid, hi) and the bucket. Ball and bull-nose tools
+    on the shaped table report mode "consensus" with the old scale × median (no range)."""
+    ctx, cons = pt.ctx, pt.cons
+    out = {"mode": "none", "vendor": None, "chart_class": None, "rows": 0, "sfm_range": None, "fz_range": None,
+           "brand": ctx.brand, "aggressiveness": ctx.mg.aggressiveness, "bucket": None, "widening": None,
+           "brand_missing": None, "vendor_groups": None}
+    if not ctx.c14_on:
+        out["mode"] = "off"
+        return out
+    if not cons:
+        return out
+    D = ctx.tool.D
+    rng = cons.get("ranges") or {}
+    out.update(mode=cons.get("mode") or "consensus", vendor=cons.get("vendor"),
+               chart_class=cons.get("chart_class") or CONSENSUS_OPERATION.get(ctx.op, ctx.op), rows=cons["n_rows"],
+               sfm_range=list(rng["sfm"]) if "sfm" in rng else None,
+               fz_range=[x * D for x in rng["fz_over_D"]] if "fz_over_D" in rng else None,
+               bucket=cons["key"], widening=cons["widening"], brand_missing=cons.get("brand_missing"),
+               vendor_groups=list(cons["vendor_groups"]))
+    if not rng:
+        s = ctx.mg.consensus_cap_scale
+        out["sfm_median"], out["fz_median"], out["cap_scale"] = cons["sfm"], cons["fz_over_D"] * D, s
+    return out
+
 
 def _logspace(lo, hi, n):
     if n <= 1 or hi <= lo:
@@ -2633,7 +2836,7 @@ def evaluate_user_engagement(tool, material, machine, operation, ap_in, ae_in, a
         prov.append(f"fz {fz:.6f}\": the highest every limit allows (window {win[0]:.6f}\" – {win[1]:.6f}\"; the "
                     f"C14f consensus cap at aggressiveness {mg.aggressiveness:.2f} is one of them)")
     else:
-        fz_cons = (mg.consensus_cap_scale * pt.cons["fz_over_D"] * D) if pt.cons else 0.002 * D
+        fz_cons = (c14_cap(pt.cons, "fz_over_D", mg) * D) if pt.cons else 0.002 * D
         fz = win[0] if win is not None else fz_cons
         prov.append(f"no fz meets every limit at this engagement; shown at fz {fz:.6f}\" "
                     f"({'the smallest chip that cuts' if win is not None else 'the consensus chip load'})")
@@ -2717,7 +2920,7 @@ class _Selector:
         D = ctx.tool.D
         self.ap_t = b["ap_over_D"]["median"] * D if b else None
         self.ae_t = b["ae_over_D"]["median"] * D if (b and ctx.op != "slot") else None
-        self.use_fz = ctx.consensus is not None
+        self.use_fz = ctx.c14_on
         self.has_targets = bool(self.ap_t or self.ae_t or self.use_fz)
         self._all_cut = {}
 
@@ -2734,7 +2937,7 @@ class _Selector:
 
     def fz_target(self, c):
         cons = c["pt"].cons
-        return self.ctx.mg.consensus_cap_scale * cons["fz_over_D"] * self.ctx.tool.D if cons else None
+        return c14_cap(cons, "fz_over_D", self.ctx.mg) * self.ctx.tool.D if cons else None
 
     def distance(self, c):
         d2 = 0.0

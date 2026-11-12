@@ -68,6 +68,8 @@ MCP_TOOLS: List[Dict[str, Any]] = [
                                "description": "Finishing and facing operations: none (stock prep, no finish target; the default for Facing), cleanup (default for finishing), surface (target Ra) or accuracy (wall tolerance)"},
                 "targetRa": {"type": "number", "description": "Target Ra in micro-inches (finishMode surface)"},
                 "wallTolerance": {"type": "number", "description": "Wall tolerance in inches (finishMode accuracy)"},
+                "brand": {"type": "string", "description": "Tool brand / vendor (e.g. 'Harvey Tool', 'Helical', 'Kyocera SGS'); "
+                                                          "a charted brand makes the vendor guardrail use its own charts; blank = unbranded"},
                 "feature_geometry": {
                     "type": "object",
                     "description": "Optional live B-Rep geometry metrics (feature_depth_in, min_corner_radius_in, min_wall_thickness_in, min_floor_thickness_in)",
@@ -504,6 +506,7 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
             cut_depth=float(args["cutDepth"]) if args.get("cutDepth") is not None else None,
             cut_width=float(args["cutWidth"]) if args.get("cutWidth") is not None else None,
             model=args.get("model"),
+            brand=str(args["brand"]).strip() if args.get("brand") and str(args["brand"]).strip() else None,
             is_carbide=bool(args.get("isCarbide", True)),
             machine_profile=active_machine(),
             feature_geometry=args.get("feature_geometry") if isinstance(args.get("feature_geometry"), dict) else None,
@@ -529,6 +532,7 @@ def call_mcp_tool_by_name(name: str, arguments: Optional[Dict[str, Any]] = None)
             "limited_by": res.limited_by,
             "finish": res.finish,
             "feature_geometry": res.feature_geometry,
+            "vendor_basis": res.vendor_basis,
             "tips": res.tips,
         }
 

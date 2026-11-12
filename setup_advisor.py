@@ -156,7 +156,7 @@ def parse_tool(t: Any) -> Dict[str, Any]:
     out: Dict[str, Any] = {"diameter_in": None, "flutes": None, "flute_length_in": None, "shank_diameter_in": None,
                            "stickout_in": None, "corner_radius_in": 0.0, "coating": None, "holder": None,
                            "holder_runout_in": None, "type": "", "description": "", "number": None,
-                           "neck_diameter_in": None, "reach_in": None, "kerf_in": None, "teeth": None}
+                           "neck_diameter_in": None, "reach_in": None, "kerf_in": None, "teeth": None, "vendor": None}
     if t is None:
         return out
     if isinstance(t, str):
@@ -205,6 +205,8 @@ def parse_tool(t: Any) -> Dict[str, Any]:
         out["holder"] = h or None
     if out["holder_runout_in"] is None:
         out["holder_runout_in"] = _first(t, ("holder_runout_in", "runout_in", "tir_in"), "len")
+    v = t.get("vendor") or t.get("brand")
+    out["vendor"] = str(v).strip() if isinstance(v, str) and v.strip() else None
     return out
 
 
@@ -470,6 +472,7 @@ def _cut_dict(res: Any, flutes: int) -> Dict[str, Any]:
         "warnings": warns,
         "holder_advice": ha,
         "tool_advice": res.tool_advice if isinstance(res.tool_advice, list) else [],
+        "vendor_basis": res.vendor_basis if isinstance(getattr(res, "vendor_basis", None), dict) else None,
     }
 
 
@@ -484,7 +487,7 @@ def _run_endmill(physics, machine, ctx, tool, operation, depth, width):
         shank_diameter=tool["shank_diameter_in"], corner_radius=tool.get("corner_radius_in") or 0.0,
         stickout=tool["stickout_in"], aggressiveness=ctx["aggressiveness"], max_rpm=machine["max_rpm"],
         max_hp=machine["max_hp"], runout=ctx["runout"], cut_depth=depth, cut_width=width,
-        fusion_tool=_fusion_tool_dict(tool, tool["stickout_in"]), model=ctx["model"],
+        fusion_tool=_fusion_tool_dict(tool, tool["stickout_in"]), model=ctx["model"], brand=tool.get("vendor"),
         is_carbide=tool.get("is_carbide") is not False, finish_mode=ctx.get("finish_mode"),
         machine_profile=machine["profile"] if machine.get("profile", {}).get("spindle_options") else None)
     return run_cut(physics, req)
@@ -1191,7 +1194,7 @@ def _multi_stepover(op, tool, physics, machine, ctx, cache) -> Tuple[Optional[Di
     D, n, so = tool["diameter_in"], int(ms["count"]), float(ms["stepover_in"])
     ap = cur["stepdown_in"]
     key = lambda opn, w: (opn, D, tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"),
-                          ctx["family"], ctx["alloy"], ap, w)
+                          tool.get("vendor"), ctx["family"], ctx["alloy"], ap, w)
     res = {}
     for nm, opn, w in (("slot", "Slotting", D), ("side", "Roughing", min(so, D))):
         k = key(opn, w)
@@ -1345,6 +1348,9 @@ ASSUMPTION_KEYS = {
     "runout": "holder total indicated runout (inches by default, or {value, unit: 'mm'})",
     "finish_mode": "finishing mode: none (stock prep, no finish target), cleanup, surface or accuracy (finishing and facing operations)",
     "holder_type": "holder type text (shrink fit, hydraulic, ER collet, ...); fills in operations whose holder the snapshot does not know",
+    "brand": "tool brand / vendor (Harvey Tool, Helical, Kennametal, Kyocera SGS, OSG, Sandvik, Seco, Emuge, Garr, YG-1, Titan, or "
+             "any other text); fills in tools whose vendor the snapshot does not know. A charted brand makes the vendor "
+             "guardrail use that vendor's charts; other text uses the conservative Helical/Harvey default",
 }
 _COATING_NAMES = {n.lower(): n for _, n in _COATINGS}
 _COATING_NAMES.update({"none": "Uncoated", "bright": "Uncoated", "no coating": "Uncoated", "dlc": "DLC", "diamond": "Diamond"})
@@ -1374,7 +1380,7 @@ def normalize_assumption(rec: Any) -> Dict[str, Any]:
         if v is None:
             raise ValueError("tool_material must be carbide, hss or cobalt")
         val = v
-    elif key in ("tool_grade", "family", "alloy", "holder_type"):
+    elif key in ("tool_grade", "family", "alloy", "holder_type", "brand"):
         val = str(val or "").strip()
         if not val or len(val) > 120:
             raise ValueError(f"{key} needs a short text value")
@@ -1419,7 +1425,7 @@ def normalize_assumption(rec: Any) -> Dict[str, Any]:
     if not scope:
         scope = {"all": True}
     return {"key": key, "value": val, "scope": scope, "override": bool(rec.get("override", key not in
-            ("coating", "tool_material", "tool_grade", "holder_type"))), "id": str(rec.get("id") or "")}
+            ("coating", "tool_material", "tool_grade", "holder_type", "brand"))), "id": str(rec.get("id") or "")}
 
 
 def normalize_assumptions(recs: Any) -> List[Dict[str, Any]]:
@@ -1501,6 +1507,13 @@ def apply_assumptions(norm: Dict[str, Any], assumptions: List[Dict[str, Any]]) -
             elif k == "tool_grade":
                 tool["tool_grade"] = v
                 log(op, rec, "recorded (no physics effect)")
+            elif k == "brand":
+                if not tool.get("vendor") or rec["override"]:
+                    prev = tool.get("vendor")
+                    tool["vendor"] = v
+                    log(op, rec, "assumed (the snapshot did not say)" if prev is None else f"overrides the snapshot's {prev}")
+                else:
+                    log(op, rec, f"not applied: the snapshot already says {tool['vendor']}")
             elif k == "holder_type":
                 if not tool.get("holder") or rec["override"]:
                     tool["holder"] = v
@@ -1617,7 +1630,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 opn = _KIND_OPERATION.get(kind, "Roughing")
                 # Facing: the depth is set by the stock on top, not chosen, so the recommendation is made at the op's own depth.
                 rec_depth = cur["stepdown_in"] if kind == "face" else None
-                key_r = (opn, tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), ctx["family"], ctx["alloy"], rec_depth, None)
+                key_r = (opn, tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), tool.get("vendor"), ctx["family"], ctx["alloy"], rec_depth, None)
                 rec_res = cache.get(key_r) or _run_endmill(physics, machine, ctx, tool, opn, rec_depth, None)
                 if rec_depth:
                     entry["notes"].append("facing: ToolWiz's recommendation is for this operation's own depth of cut")

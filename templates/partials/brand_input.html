@@ -1,0 +1,21 @@
+<!-- Tool brand (owner decisions 2026-11-12): static/js/brand_v4.js. A charted vendor makes the v2 vendor guardrail use its own
+     charts; blank or another brand uses the conservative default (Helical HEM, Harvey + Helical otherwise). -->
+<div class="input-group" style="margin:0;">
+    <label for="toolBrand">Brand <span class="v3-sub" style="display:inline;">(optional)</span></label>
+    <input type="text" id="toolBrand" class="tool-dialog-input" list="toolBrandList" placeholder="blank = no brand" autocomplete="off"
+           maxlength="80" aria-describedby="toolBrandNote" onchange="calculate()">
+    <datalist id="toolBrandList">
+        <option value="Harvey Tool"></option>
+        <option value="Helical Solutions"></option>
+        <option value="Kennametal"></option>
+        <option value="Kyocera SGS"></option>
+        <option value="OSG"></option>
+        <option value="Sandvik Coromant"></option>
+        <option value="Seco Tools"></option>
+        <option value="Emuge-Franken"></option>
+        <option value="Garr Tool"></option>
+        <option value="YG-1"></option>
+        <option value="Titan USA"></option>
+    </datalist>
+    <div id="toolBrandNote" class="v3-sub" style="margin-top:4px;">Uses that vendor's charts when ToolWiz has them; otherwise the Helical / Harvey charts.</div>
+</div>

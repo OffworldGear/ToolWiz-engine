@@ -407,6 +407,7 @@
                                 <label for="geometry">Geometry</label>
                                 <select id="geometry" onchange="updateGeometryDisplay('geometry'); calculate()"></select>
                             </div>
+                            {% include 'partials/brand_input.html' %}
                         </div>
 
                         <!-- Cutter fields (mirror Fusion 360's Cutter tab). Abbreviations are Fusion's geometry keys. -->
@@ -1915,6 +1916,7 @@
                 if (!r.ok || !data.success) throw new Error(data.error || ('HTTP ' + r.status));
                 const row = libraryLoaderTools.find(t => String(t.index) === String(index));
                 const note = applyFusionToolToFields(data.tool, row && row.unit);
+                if (window.setBrandFromTool) setBrandFromTool(data.tool);
                 closeLibraryLoader();
                 const status = document.getElementById('libraryLoadStatus');
                 if (status) {
@@ -4159,6 +4161,7 @@
                 fusion_tool: fusionTool
             };
             try { Object.assign(payload, finishPayload()); } catch (e) { /* finish mode is optional */ }
+            try { Object.assign(payload, brandPayload()); } catch (e) { /* brand is optional */ }
             if (isFormTool) { try { Object.assign(payload, tslotPayload()); } catch (e) { console.warn('tslot fields', e); } }
             // Send the chosen model once it is known; before that the server falls back to the saved setting.
             const modelSel = document.getElementById('cutModelSelect');
@@ -6441,7 +6444,8 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
     </script>
     <script src="/static/js/tw_common.js?v=1"></script>
     <script src="/static/js/twin_ui.js?v=1"></script>
-    <script src="/static/js/results_v3.js?v=1"></script>
+    <script src="/static/js/results_v3.js?v=2"></script>
+    <script src="/static/js/brand_v4.js?v=1"></script>
     <script src="/static/js/runout_sens_v4.js?v=1"></script>
     <script src="/static/js/machine_editor_v4.js?v=1"></script>
     <script src="/static/js/tslot_ui.js?v=1"></script>
