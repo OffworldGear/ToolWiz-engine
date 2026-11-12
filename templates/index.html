@@ -559,6 +559,7 @@
 
                     {% include 'partials/results_v3.html' %}
                     {% include 'partials/runout_card.html' %}
+                    {% include 'partials/tool_alternatives_card.html' %}
 
                     <!-- v2 PHYSICS DETAIL (only when the v2 model produced the result) -->
                     <details id="v2Panel" class="glass-panel why-panel" style="grid-column: span 2; display:none;">
@@ -4432,6 +4433,7 @@
                     try { updateFinishModeVisibility(); } catch (e) {}
                     try { renderV3Result(res); } catch (e) { console.warn('v3 result', e); }
                     try { if (window.RunoutSens) RunoutSens.update(payload, res); } catch (e) { console.warn('runout card', e); }
+                    try { if (window.ToolAlt) ToolAlt.update(payload, res); } catch (e) { console.warn('tool alternatives card', e); }
                     refreshCalibrationStatus();
                     
                     // Render Tips & Machining Advisor
@@ -6447,6 +6449,7 @@ return `<defs>${toolSvgDefs(c.isNeckCollision)}${clipDefs}</defs>
     <script src="/static/js/results_v3.js?v=2"></script>
     <script src="/static/js/brand_v4.js?v=1"></script>
     <script src="/static/js/runout_sens_v4.js?v=1"></script>
+    <script src="/static/js/tool_alternatives_v4.js?v=1"></script>
     <script src="/static/js/machine_editor_v4.js?v=1"></script>
     <script src="/static/js/tslot_ui.js?v=1"></script>
     <script src="/static/js/planner_ui.js?v=1"></script>

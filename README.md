@@ -61,6 +61,7 @@ Then restart Fusion and enable ToolWizFusionAddin (Utilities > Add-Ins). The add
 | Fusion add-in commands and workflow | `docs/ADDIN_USER_GUIDE.md` |
 | Strategy planner (tab milling vs adaptive, T-slot cutters) | `docs/STRATEGY_PLANNER.md` |
 | Setup advisor, LLM guard and bridge contract | `docs/SETUP_ADVISOR.md` |
+| Tool recommender: "is another tool much faster?" (library, other brands, flute counts, larger tools) | `docs/TOOL_RECOMMENDER.md` |
 | Tool libraries, master library builder, API | `docs/TOOL_LIBRARY_NOTES.md` |
 | Audit of the owner's titanium library | `docs/SHOP_LIBRARY_AUDIT.md` |
 | Evaluation: vendor conformance, stability, timings | `docs/V3_EVALUATION.md` |

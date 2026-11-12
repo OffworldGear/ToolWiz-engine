@@ -30,7 +30,7 @@ SERVER_INSTRUCTIONS = (
     "round-to-typical any speed, feed, chip load, rpm, SFM, depth of cut, stepdown, stepover, stock to leave, tool life or "
     "cycle time. Every such number you tell the user MUST come from a toolwiz_* tool result in this conversation and be "
     "quoted exactly with its units. If a number you need is not in a result, call the matching toolwiz_* tool "
-    "(toolwiz_calculate_cut, toolwiz_strategy_compare, toolwiz_setup_advisor, toolwiz_holder_advice, toolwiz_tool_advice) or tell "
+    "(toolwiz_calculate_cut, toolwiz_strategy_compare, toolwiz_setup_advisor, toolwiz_holder_advice, toolwiz_tool_advice, toolwiz_alternative_tools) or tell "
     "the user it is unavailable. Use your own knowledge only to explain, prioritise and suggest toolpath strategy in words. "
     "Changes to a Fusion 360 operation may only use values ToolWiz recommended; the add-in asks the user to confirm them. "
     "Record what the owner tells you that Fusion does not say (coatings, runout, holders, material) with toolwiz_set_assumption. "
@@ -253,6 +253,41 @@ MCP_TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "toolwiz_alternative_tools",
+        "description": (
+            "Is another tool much faster for this cut? Reruns ToolWiz for one cut with alternative tools that fit the same feature: the "
+            "owner's library end mills, other brands' charts (with the flute counts and flute lengths that exist at that diameter), other "
+            "flute counts and larger diameters up to the feature limit. Reports only gains of min_gain_pct (default 30 %) or more, each "
+            "with rpm, feed, ap, ae, removal rate, gain and a plain 'why'; roughing is scored by removal rate (and cycle time with a toolpath "
+            "length), finishing by the rate that meets the same Ra and wall targets. A brand gain is the vendor's published chart, not a "
+            "measured tool test; a catalog tool is a geometry from a cited row, not proof the part number is in stock."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "family": {"type": "string", "description": "ToolWiz material family"},
+                "alloy": {"type": "string"},
+                "operation": {"type": "string", "description": "Slotting, Adaptive Roughing, Roughing, Finishing, ..."},
+                "aggressiveness": {"type": "number", "description": "0..1 (0.5 = relatively safe)"},
+                "runout": {"type": "number", "description": "Holder runout (in)"},
+                "model": {"type": "string", "enum": ["v1", "v2"]},
+                "diameter": {"type": "number", "description": "Current tool diameter (in)"},
+                "flutes": {"type": "integer"}, "flute_length": {"type": "number"}, "shank_diameter": {"type": "number"},
+                "stickout": {"type": "number"}, "corner_radius": {"type": "number"}, "coating": {"type": "string"},
+                "brand": {"type": "string", "description": "Current tool brand; blank = unbranded (conservative default chart)"},
+                "max_diameter_in": {"type": "number", "description": "Widest tool the feature allows (slot width or 2 x inside corner radius)"},
+                "min_reach_in": {"type": "number", "description": "Flute length the feature depth needs"},
+                "full_slot": {"type": "boolean"}, "cut_depth": {"type": "number"}, "cut_width": {"type": "number"},
+                "toolpath_length_in": {"type": "number"}, "volume_in3": {"type": "number"},
+                "finish_mode": {"type": "string", "enum": ["none", "cleanup", "surface", "accuracy"]}, "target_ra": {"type": "number"},
+                "wall_tolerance": {"type": "number"},
+                "sources": {"type": "array", "items": {"type": "string", "enum": ["library", "catalog"]}},
+                "min_gain_pct": {"type": "number"},
+            },
+            "required": ["family", "operation", "diameter"],
+        },
+    },
+    {
         "name": "toolwiz_holder_advice",
         "description": (
             "Toolholder advice from the runout a cut needs: required tip runout, holder class (standard / precision / ultra), "
@@ -431,6 +466,7 @@ _ENDPOINT_TOOLS = {
     "toolwiz_strategy_compare": ("POST", "/api/strategy/compare"),
     "toolwiz_holder_advice": ("POST", "/api/advice/holder"),
     "toolwiz_tool_advice": ("POST", "/api/advice/tools"),
+    "toolwiz_alternative_tools": ("POST", "/api/advice/alternative_tools"),
     "toolwiz_setup_advisor": ("POST", "/api/setup_advisor"),
     "toolwiz_library_audit": ("POST", "/api/twin/audit"),
 }
@@ -651,7 +687,7 @@ Steps:
 3. Ask what Fusion does not say: tool coatings (when the advisor reports an unknown coating), holder types and measured runout, tool material. Record each answer with toolwiz_set_assumption (scope it to specific tools when it is not true for all).
 4. Call toolwiz_setup_advisor (omit 'setup' to use the live Fusion state) and walk through the result: STOP findings first, then CAUTION, then useful INFO and the strategy suggestions. For each operation say what is wrong, why it matters and what to do, quoting ToolWiz's numbers. Ask before moving on.
 5. When the owner agrees to a change, apply only ToolWiz's own values with toolwiz_apply_recommendation (op_id and values from the advisor's apply_plan), or tool fields (coating, BMC, GRADE, description keywords such as "staggered") with fusion_update_tool_fields. Both only queue the change: the owner confirms in Fusion. Read the outcome with fusion_bridge_result and report it honestly (applied, skipped or declined).
-6. Use toolwiz_strategy_compare, toolwiz_holder_advice and toolwiz_tool_advice for strategy, holder and tool questions."""
+6. Use toolwiz_strategy_compare, toolwiz_holder_advice, toolwiz_tool_advice and toolwiz_alternative_tools (is another tool much faster?) for strategy, holder and tool questions."""
 
 MCP_PROMPTS: List[Dict[str, Any]] = [
     {"name": "review_setup",

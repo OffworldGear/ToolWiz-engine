@@ -36,6 +36,7 @@ from routes_ui_support import bp as ui_support_bp; app.register_blueprint(ui_sup
 from routes_setup_advisor import bp as setup_advisor_bp; app.register_blueprint(setup_advisor_bp)
 from routes_advisor_chat import bp as advisor_chat_bp; app.register_blueprint(advisor_chat_bp)
 from routes_runout import bp as runout_bp; app.register_blueprint(runout_bp)
+from routes_tool_recommender import bp as tool_recommender_bp; app.register_blueprint(tool_recommender_bp)
 import machine_profiles
 
 # Initialize physics engine

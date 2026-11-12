@@ -92,6 +92,21 @@ TOOLS: List[ToolSpec] = [
              "Tool-series recommendations and cited application notes for a material, diameter and operation." + NUMBERS_RULE,
              _obj({"family": _STR, "diameter": _NUM, "operation": _d(_STR, "slot, side, hem, rough, finish"), "flutes": _INT, "coating": _STR},
                   ["diameter", "operation"])),
+    ToolSpec("alternative_tools",
+             "Is another tool much faster for this cut? Reruns ToolWiz with alternative tools that fit the same feature (the owner's own library "
+             "end mills, other brands' charts, other flute counts, larger diameters up to the feature limit) and lists only those that gain "
+             "30% or more, each with rpm, feed, ap, ae, removal rate and a plain 'why'. Brand gains are the vendor's published chart, not a "
+             "measured test, and catalog tools are cited geometries, not stock: say so. Give the feature limits you know (max_diameter_in from the "
+             "slot width or 2 x the inside corner radius, min_reach_in from the depth); say when none were known." + NUMBERS_RULE,
+             _obj({"family": _STR, "alloy": _STR, "operation": _d(_STR, "Slotting, Adaptive Roughing, Roughing, Finishing, ..."),
+                   "tool_number": _INT, "diameter": _d(_NUM, "inches"), "flutes": _INT, "flute_length": _NUM, "stickout": _NUM,
+                   "corner_radius": _NUM, "coating": _STR, "brand": _d(_STR, "current tool brand; blank = unbranded"),
+                   "aggressiveness": _NUM, "runout_in": _NUM,
+                   "max_diameter_in": _d(_NUM, "widest tool the feature allows (slot width or 2 x inside corner radius)"),
+                   "min_reach_in": _d(_NUM, "flute length the feature depth needs"), "full_slot": _BOOL,
+                   "toolpath_length_in": _NUM, "finish_mode": {"type": "string", "enum": ["none", "cleanup", "surface", "accuracy"]},
+                   "target_ra_uin": _NUM, "sources": _d({"type": "array", "items": {"type": "string", "enum": ["library", "catalog"]}},
+                                                         "default both"), "min_gain_pct": _d(_NUM, "default 30")}, ["diameter", "operation"])),
     ToolSpec("runout_sensitivity",
              "How the recommended numbers change with holder runout (calls ToolWiz's runout sensitivity analysis when this ToolWiz has it)." + NUMBERS_RULE,
              _obj({"family": _STR, "alloy": _STR, "operation": _STR, "tool_number": _INT, "diameter": _NUM, "flutes": _INT,
@@ -360,6 +375,28 @@ def tool_advice(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
     return ctx.call_endpoint("/api/advice/tools", a)
 
 
+def alternative_tools(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
+    a, notes = _apply_to_calc(ctx, _clean(args))
+    if not a.get("family"):
+        return {"success": False, "error": "family (the ToolWiz material family) is required: ask the owner or set_assumption key family."}
+    body: Dict[str, Any] = {k: a[k] for k in ("family", "alloy", "operation", "diameter", "flutes", "flute_length", "stickout", "corner_radius",
+                                              "coating", "brand", "max_diameter_in", "min_reach_in", "full_slot", "toolpath_length_in",
+                                              "finish_mode", "sources", "min_gain_pct") if a.get(k) is not None}
+    if a.get("aggressiveness") is not None:
+        ag = float(a["aggressiveness"])
+        body["aggressiveness"] = ag / 100.0 if ag > 1.0 else ag
+    if a.get("runout_in") is not None:
+        body["runout"] = a["runout_in"]
+    if a.get("target_ra_uin") is not None:
+        body["target_ra"] = a["target_ra_uin"]
+    if a.get("tool_material") in ("hss", "cobalt"):
+        body["is_carbide"] = False
+    body["model"] = _default_model()
+    out = ctx.call_endpoint("/api/advice/alternative_tools", body)
+    out["inputs_assumed"] = notes
+    return out
+
+
 def runout_sensitivity(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]:
     if ctx.post is None:
         import app as A
@@ -465,7 +502,7 @@ def get_viewport_image(ctx: ToolContext, args: Dict[str, Any]) -> Dict[str, Any]
 
 _RUNNERS: Dict[str, Callable[[ToolContext, Dict[str, Any]], Dict[str, Any]]] = {
     "get_live_setup": get_live_setup, "run_setup_advisor": run_setup_advisor, "toolwiz_calculate": toolwiz_calculate,
-    "strategy_compare": strategy_compare, "holder_advice": holder_advice, "tool_advice": tool_advice,
+    "strategy_compare": strategy_compare, "holder_advice": holder_advice, "tool_advice": tool_advice, "alternative_tools": alternative_tools,
     "runout_sensitivity": runout_sensitivity, "set_assumption": set_assumption, "clear_assumption": clear_assumption,
     "list_assumptions": list_assumptions, "propose_fusion_change": propose_fusion_change, "get_viewport_image": get_viewport_image,
 }
