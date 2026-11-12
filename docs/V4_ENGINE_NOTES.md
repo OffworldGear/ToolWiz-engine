@@ -318,7 +318,7 @@ loader is ready: rows with `tool.end = "high_feed"` go to chart classes `hf_slot
 HEM, pocket, face rows) in `consensus_by_vendor.json`, per vendor and cross-vendor, never pooled with square-end classes;
 a high-feed tool reads them in the brand -> default (Harvey + Helical) -> consensus (≥ 2 vendor groups) order with 0/50/100 %
 = bottom/middle/top (`tests/test_v2_high_feed.py::TestVendorPath`, on the SYNTHETIC fixture `tests/fixtures/highfeed_synthetic`).
-**Done 2026-11-12:** 438 cited high-feed rows are in `tests/benchmarks/v2/highfeed_{harvey,helical,seco}.json` (Niagara Cutter
+**Done 2026-11-12:** 438 cited high-feed rows (573 with the 135 SN200R rows added later, see HIGHFEED_NOTES.md) are in `tests/benchmarks/v2/highfeed_{harvey,helical,seco}.json` (Niagara Cutter
 SN200R/SN400R is filed under the Seco brand key; sources and gaps in `tests/benchmarks/v2/HIGHFEED_NOTES.md`). Harvey and
 Helical are one vendor group, so there are two independent sources. With the charts loaded the engine's titanium high-feed
 result stays below them (1/8" 4FL slot at 50%: 147 SFM and 0.0020 in/tooth against Niagara's 377 SFM and 0.0023; the speed is
@@ -396,8 +396,8 @@ pass and their strict marks were removed). Tests: `tests/test_v2_flute_aware.py`
 **Change.** A high-feed end mill now runs C7 at the square-end level × a high-feed speed factor and C2 (C2o) at the square-end
 nominal chip limit × a high-feed chip factor, per material family and chart class (`hf_slot` for slots, `hf_rough` for
 roughing, side and adaptive; the factor multiplies the slot level for slots and the rough level otherwise).
-`tools/fit_high_feed_level.py` writes `data/model_v2/high_feed_level.json` from the 399 cited high-feed rows in engine
-families (438 less 39 Cobalt Chrome): target = each row's bucket median (family, 50-HB bin, band, class; each vendor group's
+`tools/fit_high_feed_level.py` writes `data/model_v2/high_feed_level.json` from the 534 cited high-feed rows in engine
+families (573 less 39 Cobalt Chrome; 399 / 438 before the 2-flute SN200R rows were added): target = each row's bucket median (family, 50-HB bin, band, class; each vendor group's
 median, then the median over groups), factor = exp(median log(target / the engine's square-end value at 75 %)), as
 `fit_level_consensus` fitted the adaptive / rough levels. Hold-out: leave one vendor group out (Harvey + Helical vs
 Seco / Niagara), the other group's fit predicting its own bucket medians. Families with both groups: two-group factors;
@@ -412,24 +412,24 @@ only when no high-feed chart applies. The v2 cache key carries the file's versio
 
 | family | class | rows (groups) | hardness exp (square) | speed factor | hold-out err | chip factor | hold-out err | confidence |
 |---|---|---|---|---|---|---|---|---|
-| High Temp Nickel Alloy | hf_rough | 22 (Harvey Performance 15, Seco Tools 7) | 0.34 (0.35) | 2.01 | 75% | 2.07 | 28% | two groups |
-| High Temp Nickel Alloy | hf_slot | 31 (Harvey Performance 24, Seco Tools 7) | 0.34 (0.35) | 0.98 | 31% | 1.83 | 26% | two groups |
-| Stainless - 300 Series (316) | hf_rough | 21 (Harvey Performance 15, Seco Tools 6) | 0.26 (0.32) | 1.95 | 27% | 3.11 | 11% | two groups |
-| Stainless - 300 Series (316) | hf_slot | 36 (Harvey Performance 24, Seco Tools 12) | 0.26 (0.32) | 1.39 | 19% | 1.87 | 23% | two groups |
+| High Temp Nickel Alloy | hf_rough | 31 (Harvey Performance 15, Seco Tools 16) | 0.34 (0.35) | 1.45 | 75% | 2.07 | 19% | two groups |
+| High Temp Nickel Alloy | hf_slot | 40 (Harvey Performance 24, Seco Tools 16) | 0.34 (0.35) | 1.21 | 31% | 1.83 | 14% | two groups |
+| Stainless - 300 Series (316) | hf_rough | 30 (Harvey Performance 15, Seco Tools 15) | 0.26 (0.32) | 1.69 | 27% | 3.19 | 10% | two groups |
+| Stainless - 300 Series (316) | hf_slot | 54 (Harvey Performance 24, Seco Tools 30) | 0.26 (0.32) | 1.39 | 19% | 1.89 | 32% | two groups |
 | Stainless - 400 Series (420) | hf_rough | 10 (Harvey Performance 10) | 0.30 (0.42) | 1.81 | - | 3.14 | - | one group (lower) |
 | Stainless - 400 Series (420) | hf_slot | 16 (Harvey Performance 16) | 0.30 (0.42) | 1.12 | - | 1.89 | - | one group (lower) |
 | Stainless - PH Series (17-4) | hf_rough | 10 (Harvey Performance 10) | 0.31 (1.84) | 2.16 | - | 2.41 | - | one group (lower) |
 | Stainless - PH Series (17-4) | hf_slot | 16 (Harvey Performance 16) | 0.31 (1.84) | 1.35 | - | 1.62 | - | one group (lower) |
-| Steel - Low Carbon (1020) | hf_rough | 12 (Harvey Performance 5, Seco Tools 7) | - (0.42) | 2.34 | 13% | 4.14 | 9% | two groups |
-| Steel - Low Carbon (1020) | hf_slot | 15 (Harvey Performance 8, Seco Tools 7) | - (0.42) | 1.99 | 59% | 2.22 | 29% | two groups |
-| Steel - Medium Carbon (1045) | hf_rough | 17 (Harvey Performance 10, Seco Tools 7) | 0.15 (0.42) | 1.58 | 11% | 2.94 | 48% | two groups |
-| Steel - Medium Carbon (1045) | hf_slot | 23 (Harvey Performance 16, Seco Tools 7) | 0.15 (0.42) | 1.22 | 29% | 1.58 | 77% | two groups |
-| Steel - Medium Carbon Alloy (4130) | hf_rough | 27 (Harvey Performance 20, Seco Tools 7) | 0.72 (0.42) | 1.47 | 12% | 3.11 | 21% | two groups |
-| Steel - Medium Carbon Alloy (4130) | hf_slot | 39 (Harvey Performance 32, Seco Tools 7) | 0.72 (0.42) | 1.15 | 33% | 1.83 | 24% | two groups |
-| Steel - Tool (H13) | hf_rough | 26 (Harvey Performance 20, Seco Tools 6) | 0.31 (0.24) | 1.87 | 69% | 2.91 | 22% | two groups |
-| Steel - Tool (H13) | hf_slot | 38 (Harvey Performance 32, Seco Tools 6) | 0.31 (0.24) | 1.10 | 36% | 1.81 | 27% | two groups |
-| Titanium Alloy | hf_rough | 17 (Harvey Performance 10, Seco Tools 7) | 0.49 (0.31) | 1.88 | 16% | 2.19 | 25% | two groups |
-| Titanium Alloy | hf_slot | 23 (Harvey Performance 16, Seco Tools 7) | 0.49 (0.31) | 1.72 | 58% | 1.83 | 30% | two groups |
+| Steel - Low Carbon (1020) | hf_rough | 21 (Harvey Performance 5, Seco Tools 16) | - (0.42) | 2.34 | 13% | 4.14 | 13% | two groups |
+| Steel - Low Carbon (1020) | hf_slot | 24 (Harvey Performance 8, Seco Tools 16) | - (0.42) | 2.17 | 59% | 2.48 | 44% | two groups |
+| Steel - Medium Carbon (1045) | hf_rough | 26 (Harvey Performance 10, Seco Tools 16) | 0.15 (0.42) | 1.45 | 11% | 2.94 | 57% | two groups |
+| Steel - Medium Carbon (1045) | hf_slot | 32 (Harvey Performance 16, Seco Tools 16) | 0.15 (0.42) | 1.35 | 29% | 1.88 | 95% | two groups |
+| Steel - Medium Carbon Alloy (4130) | hf_rough | 36 (Harvey Performance 20, Seco Tools 16) | 0.72 (0.42) | 1.33 | 12% | 3.13 | 25% | two groups |
+| Steel - Medium Carbon Alloy (4130) | hf_slot | 48 (Harvey Performance 32, Seco Tools 16) | 0.72 (0.42) | 1.40 | 33% | 1.83 | 38% | two groups |
+| Steel - Tool (H13) | hf_rough | 35 (Harvey Performance 20, Seco Tools 15) | 0.31 (0.24) | 1.85 | 69% | 3.08 | 23% | two groups |
+| Steel - Tool (H13) | hf_slot | 47 (Harvey Performance 32, Seco Tools 15) | 0.31 (0.24) | 1.06 | 36% | 1.83 | 42% | two groups |
+| Titanium Alloy | hf_rough | 26 (Harvey Performance 10, Seco Tools 16) | 0.49 (0.31) | 2.07 | 17% | 2.42 | 34% | two groups |
+| Titanium Alloy | hf_slot | 32 (Harvey Performance 16, Seco Tools 16) | 0.49 (0.31) | 1.95 | 59% | 1.84 | 16% | two groups |
 
 (`python3 tools/fit_high_feed_level.py --table`.) Hardness: where the high-feed charts print two hardness classes for the same
 tool (Harvey), their own slope replaces the square-end C7 hardness exponent for high-feed tools (17-4: 0.31 instead of 1.84;

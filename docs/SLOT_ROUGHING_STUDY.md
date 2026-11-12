@@ -18,12 +18,17 @@ GENERATED markers and `data/studies/slot_roughing_study.json`). Tests: `tests/te
   conservative charts, but not of every chart.** At 0.150" deep: Ti, Harvey high-feed chart 1.10 min, Niagara SN400R chart
   1.60 min, against Harvey's own square 4-flute chart 3.30 min; but Kennametal's HARVI I TE 4-flute chart (slot at 1.25·D
   deep, one level) gives 0.69 min. In 17-4 (H900 class) Harvey high-feed 1.37 min vs Kennametal HARVI 0.43, Helical HSV-4
-  1.53, Harvey square 4.87. ToolWiz: Ti high-feed 1.14-1.43 vs best square 1.74; 17-4 high-feed 1.55-1.62 vs best square
+  1.53, Harvey square 4.87. ToolWiz: Ti high-feed 1.14-1.25 vs best square 1.74; 17-4 high-feed 1.55-1.62 vs best square
   3.11.
-* **1/16": no high-feed end mill is charted in the data** (Harvey's smallest is 5/64" = 0.078", Niagara's SN400R starts at
-  1/8"). The ToolWiz number for a 1/16" high-feed tool (Ti 2.23 min, 17-4 2.91 min) is an extrapolation of a level fitted on
-  0.078" and up; the charted square tools (Garr VRX 4-flute at 1.5·D deep: 0.46-0.50 min) are far faster on paper. There is
-  no data basis for buying 1/16" high-feed tooling.
+* **1/16": one 1/16" high-feed tool is charted, in Ti only: the Niagara SN200R (2-flute, Seco).** Its Ti-6Al-4V start value is
+  377 SFM = 23,000 rpm, so on a 16,000 rpm spindle it is spindle-limited (262 SFM) and the chart takes 9.15 min at 0.150"
+  deep (ap 0.0020", 75 levels); ToolWiz gives 5.09 min for it (ap 0.0040" = the tool's length of cut, 38 levels). The
+  catalog has no 17-4 group (its stainless groups are 316-class), so 17-4 has no charted 1/16" high-feed tool. Harvey charts
+  high-feed tools at 0.078" and 0.093" (and up), but not at 1/16". The unbranded high-feed row (Ti 2.05 min, 17-4 2.91 min,
+  both spindle-limited at 16,000 rpm) remains an extrapolation of a level fitted on 0.078" and up; the charted square tools
+  (Garr VRX 4-flute at 1.5·D deep: 0.46-0.50 min) are far faster on paper and 3.6-4.4 min on ToolWiz. The one charted 1/16"
+  high-feed row is slower than the charted square tools on both columns, so there is no data basis for buying 1/16"
+  high-feed tooling.
 * **Bull-nose is not as good as a high-feed mill or a square end mill here.** The vendors chart corner-radius tools in Ti and
   17-4 at the same or a lower chip than square tools (Harvey: 0.00022" vs 0.00041-0.00047" at 1/8" in Ti), so they come out
   1.3-3x slower than square and 3-10x slower than high-feed. No 2- or 3-flute bull-nose slot chart exists in the data for Ti
@@ -44,7 +49,7 @@ GENERATED markers and `data/studies/slot_roughing_study.json`). Tests: `tests/te
 * Feature: a closed contour slot one tool diameter wide, perimeter 4.2", 4 corners per level, depths 0.050, 0.150, 0.300";
   tools 1/8" and 1/16".
 * Options: (1) high-feed slotting in many shallow levels: Harvey (7124xx series, SF_709800), Helical (HEVF-C-5, only 1/4"
-  and up, so no row here), Niagara SN400R (Seco; Ti only: the catalog has no 17-4 group), unbranded (the engine's default
+  and up, so no row here), Niagara SN400R at 1/8" and SN200R (2-flute) at 1/16" (Seco; Ti only: the catalog has no 17-4 group), unbranded (the engine's default
   high-feed geometry: 15 deg lead, max ap 0.06·D, assumed); (2) square 2/3/4-flute: unbranded default (Harvey + Helical charts),
   Helical, and the best charted brand (the vendor whose median row is fastest at 0.150"); (3) bull-nose 2/3/4-flute
   (corner-radius rows; the engine reads its shaped consensus table and says so in each row's basis); (4) HEM with the next
@@ -73,12 +78,12 @@ level), which is included.
 
 Before this branch the engine ran a high-feed tool at the square-end tool-life speed and chip limit (1/8" Ti slot at 50 %:
 147 SFM, 0.0020"), 40-60 % of the charts. `tools/fit_high_feed_level.py` now fits, per family and chart class, a speed factor
-and a chip factor (and, where the charts print hardness classes, their own hardness slope) from the 399 cited high-feed rows
+and a chip factor (and, where the charts print hardness classes, their own hardness slope) from the 534 cited high-feed rows
 in engine families; see `docs/V4_ENGINE_NOTES.md` ("High-feed level fit") for the table, the hold-out errors and the
-conformance run. Ti uses both vendor groups (hold-out error 58 % on speed for slots: Helical's combination tool, Harvey's
+conformance run. Ti uses both vendor groups (hold-out error 59 % on speed for slots: Helical's combination tool, Harvey's
 high-temp-alloy series and Niagara publish 160-180, 250-300 and 377 SFM), 17-4 one group (Harvey + Helical, lower
-confidence). In the study this shows as: Ti 1/8" high-feed at 250-253 SFM (Harvey chart middle 250-300, Niagara 377: ToolWiz
-sits at 67-100 % of the charts), 17-4 at 239 SFM against Harvey's 400 (60 %: Harvey's 17-4 chart is far above Helical's,
+confidence). In the study this shows as: Ti 1/8" high-feed at 250-286 SFM (Harvey chart middle 250-300, Niagara 377: ToolWiz
+sits at 76-92 % of the charts), 17-4 at 239 SFM against Harvey's 400 (60 %: Harvey's 17-4 chart is far above Helical's,
 and the one-group factor is the median of both).
 
 ## Tool life: what the data does and does not say
@@ -113,7 +118,10 @@ and the one-group factor is the median of both).
   Helical HEVF-C-5 is a coolant-through tool (the machine profile does not say whether the Speedio has through-spindle coolant). Chip evacuation
   in a full slot is the square tool's risk (C15 chip space is checked; it binds in none of the ToolWiz results here).
 * Reach: Harvey's one table covers 3x, 5x and 8x reach; Niagara reduces APMX 20 % and fz 15 % for 5xD and 40 % / 30 % for
-  7xD. At 1/16" no high-feed tool is listed at all; Harvey's 5/64" has a 0.069" neck.
+  7xD. At 1/16" the only listed high-feed tool is the Niagara SN200R (2-flute, 3x reach item N13984: neck 0.055", rp 0.0074",
+  length of cut 0.004"); Harvey's smallest high-feed tools are 0.078" (5/64") and 0.093", the 5/64" with a 0.069" neck. At
+  1/8" both the 4-flute SN400R and the 2-flute SN200R are charted (same SFM and fz, half the feed for two flutes); the
+  study shows the 4-flute row there.
 * 6061: all standard tools are spindle-limited at 16,000 rpm (charts 795-1400 SFM need 24,000-43,000 rpm at 1/8"); options
   differ by under 2x and no high-feed chart exists.
 
@@ -121,15 +129,15 @@ and the one-group factor is the median of both).
 
 | material, D | fastest on vendor charts (0.150", 50 %) | fastest charted high-feed | fastest on ToolWiz | dedicated high-feed? |
 |---|---|---|---|---|
-| Ti-6Al-4V, 1/8" | Kennametal HARVI I TE 4FL square, 0.69 min (1 level at 1.25·D) | Harvey 1.10 (1.6x), Niagara 1.60 | high-feed 1.14-1.43; best square 1.74 | Worth a trial: 3x faster than Harvey's square chart, 20-50 % faster on ToolWiz (inside the 58 % uncertainty of the fitted level); a premium square 4FL at full depth is faster on its own chart |
+| Ti-6Al-4V, 1/8" | Kennametal HARVI I TE 4FL square, 0.69 min (1 level at 1.25·D) | Harvey 1.10 (1.6x), Niagara 1.60 | high-feed 1.14-1.25; best square 1.74 | Worth a trial: 3x faster than Harvey's square chart, 40-50 % faster on ToolWiz (inside the 59 % uncertainty of the fitted level); a premium square 4FL at full depth is faster on its own chart |
 | 17-4 PH (H900), 1/8" | Kennametal HARVI I TE 4FL, 0.43 min | Harvey 1.37 (3.2x); no Niagara 17-4 chart | high-feed 1.55-1.62; best square 3.11 | Worth a trial against conventional square tools (Harvey square chart 4.87, Helical HSV-4 1.53); not on paper against a full-depth premium square |
-| Ti-6Al-4V, 1/16" | Garr VRX 4FL square, 0.46 min (2 levels at 1.5·D) | none charted | high-feed (uncharted, extrapolated) 2.23; Garr 4FL 3.61 | No: no 1/16" high-feed tool or chart in the data |
-| 17-4 PH, 1/16" | Garr VRX 4FL, 0.50 min | none charted | high-feed (uncharted) 2.91; Garr 4FL 4.43 | No, same reason |
+| Ti-6Al-4V, 1/16" | Garr VRX 4FL square, 0.46 min (2 levels at 1.5·D) | Niagara SN200R 2FL 9.15 (spindle-limited: 377 SFM needs 23,000 rpm) | Niagara SN200R 5.09; high-feed unbranded (extrapolated) 2.05; Garr 4FL 3.61 | No: the one charted 1/16" high-feed tool is slower than the charted square tools on both columns |
+| 17-4 PH, 1/16" | Garr VRX 4FL, 0.50 min | none charted (Niagara has no 17-4 group; Harvey's smallest charted high-feed is 0.078") | high-feed (uncharted) 2.91; Garr 4FL 4.43 | No: no charted 1/16" high-feed tool |
 | 6061, 1/8" and 1/16" | Emuge 4FL / OSG 2FL square, 0.14 min (1/8"), Emuge 4FL 0.41 (1/16") | none | square 0.26-0.27 (1/8"), 0.77-0.78 (1/16") | No high-feed data; 2-, 3- and 4-flute square tools are within 25 % on ToolWiz |
 
 * HEM with a smaller tool is the slowest option in every case (5-50x the slot time). For tool-width slots, slotting toolpaths
   are the right focus; keep HEM for pockets and wide channels.
-* Where the margin is within the uncertainty: Ti 1/8" high-feed vs a good square 4-flute on ToolWiz (1.14-1.43 vs 1.74 min);
+* Where the margin is within the uncertainty: Ti 1/8" high-feed vs a good square 4-flute on ToolWiz (1.14-1.25 vs 1.74 min);
   the spread between charts for the same tool class (Harvey vs Niagara high-feed: 1.10 vs 1.60 min; Harvey vs Kennametal
   square: 3.30 vs 0.69 min) is larger than the difference between tool classes.
 * The owner's guess that a 2- or 3-flute bull-nose is as good as a high-feed mill is **not supported** in Ti or 17-4 by any
@@ -137,7 +145,9 @@ and the one-group factor is the median of both).
 
 ## What would change these conclusions
 
-* A cited 1/16" high-feed chart (or a tool), which would replace the extrapolated ToolWiz row.
+* A cited 1/16" high-feed chart in 17-4 (the only charted 1/16" tool, the Niagara SN200R, has Ti and 316-class groups only), or
+  a 1/16" high-feed tool with a published speed that a 16,000 rpm spindle can reach; both would replace the extrapolated
+  ToolWiz row.
 * Measured tool life (the protocol above): the full-depth square charts sit far outside the engine's deflection and tool-life
   limits; if they hold up in the owner's machine, they win outright; if they chip, high-feed wins at 1/8".
 * Tool prices (cost per slot) and the 17-4 condition (H1150 reads the 21-36 HRC rows).
@@ -156,9 +166,9 @@ Machine: Brother Speedio S500X2 16k (non-dual-contact) (BT30), max feed 1181 IPM
 
 | option | vendor chart: source | SFM (on machine) | rpm | fz | ap | feed IPM | levels | time min | ToolWiz: SFM | rpm | fz | ap | feed IPM | levels | time min | limited by |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| high-feed Harvey | harvey 7124xx | 300 (300) | 9167 | 0.00270 | 0.0063 | 99.0 | 24 | 1.10 | 252 | 7714 | 0.00216 | 0.0075 | 66.7 | 20 | 1.36 | C2, C6 [brand harvey] |
+| high-feed Harvey | harvey 7124xx | 300 (300) | 9167 | 0.00270 | 0.0063 | 99.0 | 24 | 1.10 | 275 | 8403 | 0.00217 | 0.0075 | 73.0 | 20 | 1.24 | C2, C6, C14v [brand harvey] |
 | high-feed Helical | no cited row | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| high-feed Niagara SN400R | seco SN400R | 377 (377) | 11520 | 0.00230 | 0.0040 | 106.0 | 38 | 1.60 | 252 | 7714 | 0.00196 | 0.0080 | 60.4 | 19 | 1.43 | C2, C6 [brand seco] |
+| high-feed Niagara SN400R | seco SN400R | 377 (377) | 11520 | 0.00230 | 0.0040 | 106.0 | 38 | 1.60 | 286 | 8749 | 0.00197 | 0.0080 | 69.0 | 19 | 1.25 | C2, C6 [brand seco] |
 | high-feed unbranded | no cited row | - | - | - | - | - | - | - | 250 | 7639 | 0.00261 | 0.0075 | 79.8 | 20 | 1.14 | C6, C14f, C14m, C14v [default harvey+helical] |
 | square 2FL unbranded default | no cited row | - | - | - | - | - | - | - | 125 | 3820 | 0.00041 | 0.0500 | 3.1 | 3 | 4.88 | C8, C14f, C14m, C14v [default harvey+helical] |
 | square 2FL Helical | no cited row | - | - | - | - | - | - | - | 147 | 4489 | 0.00051 | 0.0500 | 4.6 | 3 | 3.49 | C2, C8 [brand helical] |
@@ -174,7 +184,7 @@ Machine: Brother Speedio S500X2 16k (non-dual-contact) (BT30), max feed 1181 IPM
 | HEM 0.0625" 4FL (adaptive) | no cited row | - | - | - | - | - | - | - | 180 | 11001 | 0.00045 | 0.1875 | 19.8 | 1 | 7.51 | C2, C6, C8, C14v  |
 
 Fastest on vendor-chart numbers: square 4FL best charted (kennametal) 0.69; high-feed Harvey 1.10; high-feed Niagara SN400R 1.60; square 4FL unbranded default 3.30 min.
-Fastest on ToolWiz numbers: high-feed unbranded 1.14; high-feed Harvey 1.36; high-feed Niagara SN400R 1.43; square 4FL Helical 1.74 min.
+Fastest on ToolWiz numbers: high-feed unbranded 1.14; high-feed Harvey 1.24; high-feed Niagara SN400R 1.25; square 4FL Helical 1.74 min.
 
 #### Ti-6Al-4V, 0.0625" slot, depth 0.150", aggressiveness 50%
 
@@ -182,8 +192,8 @@ Fastest on ToolWiz numbers: high-feed unbranded 1.14; high-feed Harvey 1.36; hig
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | high-feed Harvey | no cited row | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
 | high-feed Helical | no cited row | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| high-feed Niagara SN400R | no cited row | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| high-feed unbranded | no cited row | - | - | - | - | - | - | - | 240 | 14677 | 0.00134 | 0.0037 | 79.0 | 40 | 2.23 | C6, C14f [default harvey+helical] |
+| high-feed Niagara SN400R | seco SN200R | 377 (262) (spindle-limited) | 16000 | 0.00110 | 0.0020 | 35.2 | 75 | 9.15 | 262 (spindle-limited) | 16000 | 0.00102 | 0.0040 | 32.6 | 38 | 5.09 | C2, C6, C7 [brand seco] |
+| high-feed unbranded | no cited row | - | - | - | - | - | - | - | 262 (spindle-limited) | 16000 | 0.00134 | 0.0037 | 86.1 | 40 | 2.05 | C6, C7, C14f [default harvey+helical] |
 | square 2FL unbranded default | no cited row | - | - | - | - | - | - | - | 125 | 7639 | 0.00020 | 0.0219 | 3.1 | 7 | 10.30 | C8, C14f, C14m, C14v [default harvey+helical] |
 | square 2FL Helical | no cited row | - | - | - | - | - | - | - | 125 | 7639 | 0.00020 | 0.0219 | 3.1 | 7 | 10.30 | C8, C14f, C14m, C14v [default harvey+helical] |
 | square 3FL unbranded default | harvey 9405xx-C6 | 125 (125) | 7701 | 0.00023 | 0.0174 | 5.3 | 9 | 7.43 | 125 | 7639 | 0.00020 | 0.0219 | 4.6 | 7 | 6.87 | C8, C14f, C14m, C14v [default harvey+helical] |
@@ -199,7 +209,7 @@ Fastest on ToolWiz numbers: high-feed unbranded 1.14; high-feed Harvey 1.36; hig
 | HEM 0.03125" 4FL (adaptive) | no cited row | - | - | - | - | - | - | - | 131 (spindle-limited) | 16000 | 0.00018 | 0.0626 | 11.3 | 3 | 22.17 | C2, C7, C8  |
 
 Fastest on vendor-chart numbers: square 4FL best charted (garr) 0.46; square 3FL best charted (garr) 0.68; square 4FL unbranded default 5.31; square 3FL unbranded default 7.43 min.
-Fastest on ToolWiz numbers: high-feed unbranded 2.23; square 4FL best charted (garr) 3.61; square 3FL best charted (garr) 4.82; square 4FL unbranded default 5.15 min.
+Fastest on ToolWiz numbers: high-feed unbranded 2.05; square 4FL best charted (garr) 3.61; square 3FL best charted (garr) 4.82; high-feed Niagara SN400R 5.09 min.
 
 #### 17-4 PH, 0.125" slot, depth 0.150", aggressiveness 50%
 
@@ -300,10 +310,10 @@ Fastest on ToolWiz numbers: square 4FL best charted (emuge) 0.77; square 4FL unb
 
 | option | 0.050" chart | TW 0% | TW 50% | TW 100% | 0.150" chart | TW 0% | TW 50% | TW 100% | 0.300" chart | TW 0% | TW 50% | TW 100% |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| high-feed Harvey | 0.37 | 0.76 | 0.47 | 0.33 | 1.10 | 2.18 | 1.36 | 0.96 | 2.20 | 4.35 | 2.72 | 1.92 |
+| high-feed Harvey | 0.37 | 0.75 | 0.43 | 0.31 | 1.10 | 2.16 | 1.24 | 0.88 | 2.20 | 4.32 | 2.49 | 1.75 |
 | high-feed Helical | - | - | - | - | - | - | - | - | - | - | - | - |
-| high-feed Niagara SN400R | 0.55 | 0.77 | 0.52 | 0.37 | 1.60 | 2.09 | 1.43 | 1.01 | 3.15 | 4.18 | 2.86 | 2.01 |
-| high-feed unbranded | - | 1.11 | 0.40 | 0.28 | - | 3.19 | 1.14 | 0.80 | - | 6.38 | 2.28 | 1.61 |
+| high-feed Niagara SN400R | 0.55 | 0.67 | 0.46 | 0.32 | 1.60 | 1.83 | 1.25 | 0.88 | 3.15 | 3.66 | 2.51 | 1.77 |
+| high-feed unbranded | - | 1.11 | 0.40 | 0.26 | - | 3.19 | 1.14 | 0.74 | - | 6.38 | 2.28 | 1.48 |
 | square 2FL unbranded default | - | 7.52 | 1.63 | 1.18 | - | 19.04 | 4.88 | 2.58 | - | 34.54 | 9.77 | 5.17 |
 | square 2FL Helical | - | 3.08 | 1.16 | 0.82 | - | 7.88 | 3.49 | 1.80 | - | 15.75 | 6.97 | 3.61 |
 | square 3FL unbranded default | - | 5.01 | 1.09 | 0.79 | - | 12.69 | 3.26 | 1.72 | - | 23.03 | 6.51 | 2.80 |
@@ -323,8 +333,8 @@ Fastest on ToolWiz numbers: square 4FL best charted (emuge) 0.77; square 4FL unb
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | high-feed Harvey | - | - | - | - | - | - | - | - | - | - | - | - |
 | high-feed Helical | - | - | - | - | - | - | - | - | - | - | - | - |
-| high-feed Niagara SN400R | - | - | - | - | - | - | - | - | - | - | - | - |
-| high-feed unbranded | - | 1.39 | 0.78 | 0.63 | - | 3.97 | 2.23 | 1.79 | - | 7.93 | 4.46 | 3.58 |
+| high-feed Niagara SN400R | 3.05 | 2.47 | 1.74 | 1.46 | 9.15 | 7.21 | 5.09 | 4.26 | 18.30 | 14.24 | 10.05 | 8.42 |
+| high-feed unbranded | - | 1.39 | 0.72 | 0.63 | - | 3.97 | 2.05 | 1.79 | - | 7.93 | 4.10 | 3.58 |
 | square 2FL unbranded default | - | 11.38 | 4.35 | 1.22 | - | 34.13 | 10.30 | 2.62 | - | 68.27 | 20.61 | 5.23 |
 | square 2FL Helical | - | 11.38 | 4.35 | 1.22 | - | 34.13 | 10.30 | 2.62 | - | 68.27 | 20.61 | 5.23 |
 | square 3FL unbranded default | 2.71 | 7.59 | 2.90 | 0.72 | 7.43 | 22.76 | 6.87 | 2.16 | 14.85 | 45.51 | 13.74 | 4.33 |
@@ -426,11 +436,11 @@ Fastest on ToolWiz numbers: square 4FL best charted (emuge) 0.77; square 4FL unb
 
 | option | at | lateral peak N | tip deflection in | axial peak N | power W | W per edge | W per mm edge | relative Taylor life | wear index per slot | chart cut fails |
 |---|---|---|---|---|---|---|---|---|---|---|
-| high-feed Harvey | ToolWiz | 31.4 | 0.00005 | 15.7 | 43 | 10.8 | 24.42 | 1.00 | 1.35 |  |
-| high-feed Harvey | chart | 30.9 | 0.00005 | 15.5 | 50 | 12.4 | 33.63 | 0.50 | 2.15 | C7 |
-| high-feed Niagara SN400R | ToolWiz | 30.5 | 0.00005 | 14.8 | 42 | 10.5 | 24.61 | 1.00 | 1.42 |  |
-| high-feed Niagara SN400R | chart | 17.2 | 0.00003 | 8.4 | 33 | 8.3 | 38.81 | 0.20 | 7.76 | C7 |
-| high-feed unbranded | ToolWiz | 40.3 | 0.00006 | 21.8 | 49 | 12.3 | 16.77 | 1.04 | 1.08 |  |
+| high-feed Harvey | ToolWiz | 31.5 | 0.00005 | 15.8 | 47 | 11.8 | 26.71 | 1.17 | 1.05 |  |
+| high-feed Harvey | chart | 30.9 | 0.00005 | 15.5 | 50 | 12.4 | 33.63 | 0.83 | 1.30 |  |
+| high-feed Niagara SN400R | ToolWiz | 30.7 | 0.00005 | 14.9 | 48 | 12.0 | 28.07 | 1.00 | 1.24 |  |
+| high-feed Niagara SN400R | chart | 17.2 | 0.00003 | 8.4 | 33 | 8.3 | 38.81 | 0.33 | 4.69 | C7 |
+| high-feed unbranded | ToolWiz | 40.3 | 0.00006 | 21.8 | 49 | 12.3 | 16.77 | 1.72 | 0.65 |  |
 | square 2FL unbranded default | ToolWiz | 56.5 | 0.00085 | - | 18 | 9.2 | 7.28 | 1.91 | 2.56 |  |
 | square 2FL Helical | ToolWiz | 64.9 | 0.00098 | - | 26 | 12.9 | 10.15 | 1.00 | 3.48 |  |
 | square 3FL unbranded default | ToolWiz | 55.3 | 0.00083 | - | 28 | 9.3 | 7.33 | 1.91 | 1.71 |  |
@@ -451,7 +461,9 @@ Fastest on ToolWiz numbers: square 4FL best charted (emuge) 0.77; square 4FL unb
 
 | option | at | lateral peak N | tip deflection in | axial peak N | power W | W per edge | W per mm edge | relative Taylor life | wear index per slot | chart cut fails |
 |---|---|---|---|---|---|---|---|---|---|---|
-| high-feed unbranded | ToolWiz | 12.3 | 0.00002 | 6.6 | 14 | 3.6 | 9.65 | 1.00 | 2.20 |  |
+| high-feed Niagara SN400R | ToolWiz | 9.6 | 0.00001 | 3.3 | 7 | 3.3 | 15.39 | 1.17 | 4.33 |  |
+| high-feed Niagara SN400R | chart | 5.1 | 0.00001 | 1.7 | 3 | 1.6 | 15.23 | 1.17 | 7.78 |  |
+| high-feed unbranded | ToolWiz | 12.3 | 0.00002 | 6.6 | 15 | 3.9 | 10.52 | 1.17 | 1.72 |  |
 | square 2FL unbranded default | ToolWiz | 16.2 | 0.00031 | - | 4 | 2.2 | 4.08 | 1.56 | 6.60 |  |
 | square 2FL Helical | ToolWiz | 16.2 | 0.00031 | - | 4 | 2.2 | 4.08 | 1.56 | 6.60 |  |
 | square 3FL unbranded default | ToolWiz | 15.5 | 0.00030 | - | 7 | 2.3 | 4.19 | 1.56 | 4.40 |  |
@@ -577,8 +589,8 @@ Pessimistic: ASSUMED: 0.2 g and 30 ms per corner (high-accuracy mode, conservati
 
 | material | D | option | nominal min | pessimistic min | change |
 |---|---|---|---|---|---|
-| Ti-6Al-4V | 0.125 | high-feed Harvey | 1.36 | 1.40 | +3% |
-| Ti-6Al-4V | 0.125 | high-feed Niagara SN400R | 1.43 | 1.47 | +3% |
+| Ti-6Al-4V | 0.125 | high-feed Harvey | 1.24 | 1.29 | +4% |
+| Ti-6Al-4V | 0.125 | high-feed Niagara SN400R | 1.25 | 1.30 | +3% |
 | Ti-6Al-4V | 0.125 | high-feed unbranded | 1.14 | 1.19 | +4% |
 | Ti-6Al-4V | 0.125 | square 2FL unbranded default | 4.88 | 4.89 | +0% |
 | Ti-6Al-4V | 0.125 | square 2FL Helical | 3.49 | 3.49 | +0% |
@@ -592,7 +604,8 @@ Pessimistic: ASSUMED: 0.2 g and 30 ms per corner (high-accuracy mode, conservati
 | Ti-6Al-4V | 0.125 | bull-nose 4FL unbranded default | 4.09 | 4.10 | +0% |
 | Ti-6Al-4V | 0.125 | HEM 0.0625" 3FL (adaptive) | 10.01 | 10.01 | +0% |
 | Ti-6Al-4V | 0.125 | HEM 0.0625" 4FL (adaptive) | 7.51 | 7.51 | +0% |
-| Ti-6Al-4V | 0.0625 | high-feed unbranded | 2.23 | 2.33 | +4% |
+| Ti-6Al-4V | 0.0625 | high-feed Niagara SN400R | 5.09 | 5.17 | +1% |
+| Ti-6Al-4V | 0.0625 | high-feed unbranded | 2.05 | 2.15 | +5% |
 | Ti-6Al-4V | 0.0625 | square 2FL unbranded default | 10.30 | 10.32 | +0% |
 | Ti-6Al-4V | 0.0625 | square 2FL Helical | 10.30 | 10.32 | +0% |
 | Ti-6Al-4V | 0.0625 | square 3FL unbranded default | 6.87 | 6.88 | +0% |
@@ -734,8 +747,8 @@ Pessimistic: ASSUMED: 0.2 g and 30 ms per corner (high-accuracy mode, conservati
 * Ti-6Al-4V 0.0625" bull-nose 4FL unbranded default: engine vendor basis for the bull nose: consensus slot (Vendor basis: cross-vendor consensus of slotting charts for this end form (no brand given).)
 * Ti-6Al-4V 0.0625" high-feed Harvey: no Harvey high-feed chart row at 0.0625" in this material (charted diameters: 0.078, 0.093, 0.125, 0.187, 0.25)
 * Ti-6Al-4V 0.0625" high-feed Helical: no Helical high-feed chart row at 0.0625" in this material (charted diameters: 0.25, 0.375, 0.5)
-* Ti-6Al-4V 0.0625" high-feed Niagara SN400R: no Niagara SN400R high-feed chart row at 0.0625" in this material (charted diameters: 0.125, 0.15625, 0.1875, 0.25, 0.3125, 0.375, 0.5)
-* Ti-6Al-4V 0.0625" high-feed unbranded (50 %): The chart speed 275 SFM would need 16,807 rpm, above this spindle's 16,000, but the tool-life speed (C7) is lower here, so the spindle is not what limits this cut.
+* Ti-6Al-4V 0.0625" high-feed Niagara SN400R (50 %): Spindle-limited: the seco chart speed at this aggressiveness is 377 SFM, which needs 23,041 rpm on a 0.0625" tool; this spindle tops out at 16,000 rpm (262 SFM, 69% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 69% and is not made up with a larger chip.
+* Ti-6Al-4V 0.0625" high-feed unbranded (50 %): Spindle-limited: the harvey+helical chart speed at this aggressiveness is 275 SFM, which needs 16,807 rpm on a 0.0625" tool; this spindle tops out at 16,000 rpm (262 SFM, 95% of the chart). The chip per tooth stays at or below the chart's; the feed is lower by the same 95% and is not made up with a larger chip.
 * Ti-6Al-4V 0.0625" high-feed unbranded: engine assumed: max_ap, lead_angle
 * Ti-6Al-4V 0.0625" high-feed unbranded: generic high-feed geometry: lead angle and max ap assumed by the engine (15 deg, 0.06 x D)
 * Ti-6Al-4V 0.0625" square 2FL Helical: no cited square 2-flute slot row at 0.0625" for this material

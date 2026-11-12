@@ -94,12 +94,15 @@ class TestEngine(unittest.TestCase):
         self.assertLessEqual(r["cut"]["fz_in"], r["vendor_basis"]["fz_range"][1] * 1.0001)   # never above the chart middle
 
     def test_tool_life_bound_sixteenth_is_not_called_spindle_limited(self):
-        r = run(TI, D=0.0625, brand="seco")
+        # With the 2-flute SN200R rows in the fit the Ti factor reaches the spindle at 50 % (262 SFM at 16,000 rpm), so the
+        # tool-life-bound case is the bottom of the chart (0 %).
+        r = run(TI, D=0.0625, brand="seco", a=0.0)
         sl = r["high_feed"]["spindle_limited"]
         self.assertFalse(sl["limited"])
         self.assertLess(r["cut"]["rpm"], 16000.0)
         self.assertGreater(sl["rpm_needed"], 20000.0)   # Niagara's 377 SFM needs about 23,000 rpm at 1/16"
         self.assertIn("not what limits", sl["sentence"])
+        self.assertTrue(run(TI, D=0.0625, brand="seco")["high_feed"]["spindle_limited"]["limited"])
 
     def test_aggressiveness_is_monotone(self):
         sfm = [run(TI, a=a)["cut"]["sfm"] for a in (0.0, 0.5, 1.0)]

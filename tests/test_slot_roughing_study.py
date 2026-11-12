@@ -45,7 +45,8 @@ class TestArithmetic(unittest.TestCase):
         harvey = [r for r in ti if r["_vendor"] == "harvey"]
         self.assertEqual({s.nominal(r["cut"]["sfm"]) for r in harvey}, {300.0})   # the 21-36 HRC class
         self.assertTrue(any(r["_vendor"] == "seco" for r in ti))
-        self.assertFalse(s.chart_rows(rows, "Titanium Alloy", 330.0, 0.0625, "hf"))   # no 1/16" high-feed chart
+        sixteenth = s.chart_rows(rows, "Titanium Alloy", 330.0, 0.0625, "hf")   # only the Niagara 2-flute SN200R is charted
+        self.assertEqual({(r["_vendor"], r["tool"]["series"], r["tool"]["flutes"]) for r in sixteenth}, {("seco", "SN200R", 2)})
 
 
 class TestQuickRun(unittest.TestCase):
