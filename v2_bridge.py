@@ -210,7 +210,10 @@ def _setup(physics, r, op, machine_profile):
 def _cache_key(r, op, hb, machine, kw, extra=None):
     return json.dumps({
         "fam": r.family, "hb": hb, "coat": r.coating, "op": op, "a": round(float(r.aggressiveness), 4),
-        "prof": r.profile.to_dict(), "helix": r.helix_angle, "kw": kw, "extra": extra, "brand": getattr(r, "brand_key", None),
+        "prof": r.profile.to_dict(), "helix": r.helix_angle,
+        # the profile's segments carry no flute count or end form: without these a 5-flute tool got a 2-flute answer
+        "z": int(r.profile.geometry.flutes), "d": float(r.profile.geometry.diameter),
+        "rc": round(corner_radius_in(r, float(r.profile.geometry.diameter)), 6), "carbide": bool(getattr(r, "is_carbide", True)), "kw": kw, "extra": extra, "brand": getattr(r, "brand_key", None),
         "m": [machine.label, machine.max_rpm, machine.tir_in, machine.spindle.get("power_kw_continuous"),
               machine.holder_k_n_um, machine.holder_ktheta_nm_urad, machine.max_feed_ipm],
     }, sort_keys=True, default=str)

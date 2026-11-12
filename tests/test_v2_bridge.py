@@ -276,3 +276,20 @@ class TestProductionDefault(unittest.TestCase):
         """With no request model, saved setting or TOOLWIZ_MODEL, both clients get the v2 physics model."""
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"TOOLWIZ_MODEL": ""}):
             self.assertEqual(v2_bridge.resolve_model(None, path=os.path.join(d, "none.json")), ("v2", "default"))
+
+
+def test_result_cache_separates_flute_counts_and_corner_radius():
+    """Regression: the cache key had no flute count, so the first tool's answer was returned for every flute count."""
+    import app as A
+    from pipeline import CutRequest, run_cut
+
+    def cut(z, cr=0.0):
+        r = CutRequest(family="Titanium Alloy", alloy="", operation="Adaptive Roughing", diameter=0.25, flutes=z, flute_length=0.75,
+                       shank_diameter=0.25, stickout=1.0, aggressiveness=0.5, max_rpm=16000, max_hp=10, runout=0.0002, model="v2",
+                       corner_radius=cr, geometry="Radiused" if cr else "Square", machine_profile=A.active_machine())
+        return run_cut(A.physics, r)
+    five, two = cut(5), cut(2)
+    assert five.model == two.model == "v2"
+    assert abs(five.feed_ipm / (five.rpm * five.adj_ipt) - 5) < 1e-6 and abs(two.feed_ipm / (two.rpm * two.adj_ipt) - 2) < 1e-6
+    assert (five.v2["cut"]["flutes_cutting"], two.v2["cut"]["flutes_cutting"]) == (5, 2)
+    assert cut(5, 0.03).v2["cut"]["end_form"] != five.v2["cut"]["end_form"]
