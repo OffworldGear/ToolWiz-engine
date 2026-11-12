@@ -120,6 +120,10 @@ class CutRequest:
     brand_key: Optional[str] = None                  # set by _normalize: vendor key or None
     brand_text: Optional[str] = None                 # set by _normalize: the text the brand came from
     brand_source: Optional[str] = None               # set by _normalize: "request" | "fusion vendor" | None
+    # High-feed end mills (geometry "High Feed", physics_v2/highfeed.py): the tool's max axial depth (in) and lead angle
+    # (deg) from its catalog; None: the programming radius (corner_radius) or the documented defaults (marked assumed).
+    max_ap: Optional[float] = None
+    lead_angle: Optional[float] = None
 
 
 @dataclass

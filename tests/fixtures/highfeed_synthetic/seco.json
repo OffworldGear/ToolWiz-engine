@@ -1,0 +1,143 @@
+{
+ "vendor": "Seco (SYNTHETIC)",
+ "vendor_group": "Sandvik",
+ "documents": [
+  {
+   "doc_id": "SYNTHETIC",
+   "title": "synthetic test fixture",
+   "url": null,
+   "date_accessed": null,
+   "revision": null
+  }
+ ],
+ "rows": [
+  {
+   "id": "SYNTHETIC_seco_slot_0.125",
+   "source": {
+    "doc_id": "SYNTHETIC",
+    "page": null,
+    "table": "synthetic test fixture",
+    "row_label": "slot",
+    "column_label": "DC 0.125",
+    "cells": "SYNTHETIC: not vendor data; tests the high-feed loader path only",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "HF-SYN-0125",
+    "series": "synthetic high-feed",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 4,
+    "end": "high_feed",
+    "corner_radius": null,
+    "helix_deg": 30,
+    "variable_pitch": false,
+    "DC": 0.125,
+    "LCF": 0.1875,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": null,
+    "missing": [
+     "corner_radius",
+     "neck_diameter",
+     "LB",
+     "geometry_url"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Ti-6Al-4V",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "none published"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "slot",
+   "cut": {
+    "ap": 0.008,
+    "ae": 0.125,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 250.0
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.004
+    },
+    "published": {}
+   },
+   "vendor_notes": [],
+   "notes": "SYNTHETIC fixture for tests/test_v2_high_feed.py; never real vendor data"
+  },
+  {
+   "id": "SYNTHETIC_seco_rough_0.125",
+   "source": {
+    "doc_id": "SYNTHETIC",
+    "page": null,
+    "table": "synthetic test fixture",
+    "row_label": "rough",
+    "column_label": "DC 0.125",
+    "cells": "SYNTHETIC: not vendor data; tests the high-feed loader path only",
+    "read_method": "text"
+   },
+   "tool": {
+    "part_number": "HF-SYN-0125",
+    "series": "synthetic high-feed",
+    "tool_material": "carbide",
+    "coating": "AlTiN",
+    "flutes": 4,
+    "end": "high_feed",
+    "corner_radius": null,
+    "helix_deg": 30,
+    "variable_pitch": false,
+    "DC": 0.125,
+    "LCF": 0.1875,
+    "neck_diameter": null,
+    "LB": null,
+    "SFDM": 0.125,
+    "OAL": 1.5,
+    "geometry_url": null,
+    "missing": [
+     "corner_radius",
+     "neck_diameter",
+     "LB",
+     "geometry_url"
+    ]
+   },
+   "material": {
+    "vendor_label": "Titanium Ti-6Al-4V",
+    "hardness": {
+     "min": null,
+     "max": null,
+     "scale": "none published"
+    },
+    "toolwiz_family": "Titanium Alloy",
+    "representative_alloy": "Ti-6Al-4V"
+   },
+   "operation": "rough",
+   "cut": {
+    "ap": 0.008,
+    "ae": 0.08,
+    "sfm": {
+     "min": null,
+     "max": null,
+     "nominal": 300.0
+    },
+    "fz": {
+     "min": null,
+     "max": null,
+     "nominal": 0.0044
+    },
+    "published": {}
+   },
+   "vendor_notes": [],
+   "notes": "SYNTHETIC fixture for tests/test_v2_high_feed.py; never real vendor data"
+  }
+ ]
+}

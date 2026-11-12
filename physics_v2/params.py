@@ -28,6 +28,9 @@ ENVELOPE_PATH = o.ENVELOPE_DEFAULT_PATH
 # slot (tools/calibrate_chip_space.py; sources in the file and docs/research/chip_space.md).
 from physics_v2 import chipspace as _chipspace  # noqa: E402
 CHIP_SPACE_PATH = _chipspace.CHIP_SPACE_PATH
+# Flute-aware chip load (owner decision 2026-11-12, aluminium first): C2 and C14's chip range × F(flutes) of the material
+# group and chart class (tools/fit_chip_by_flutes.py).
+CHIP_FLUTES_PATH = o.CHIP_FLUTES_DEFAULT_PATH
 # C2 basis of the calibrated model: "nominal" (runout-free chip fz·sin φe ≤ the vendor median nominal chip, plus the
 # worst-flute chip ≤ the vendor p90, C2o) keeps the feed from collapsing at the first microns of runout on micro
 # tools; "worst" (worst-flute chip ≤ the median) is optimize.py's own default. See docs/V3_IMPLEMENTATION_PLAN.md M1.
@@ -156,6 +159,7 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     kw.setdefault("depth_trade", MRR_TIE_BAND)
     kw.setdefault("select_tir_in", o.REFERENCE_TIR_IN)
     kw.setdefault("chip_space", CHIP_SPACE_PATH)
+    kw.setdefault("chip_flutes", CHIP_FLUTES_PATH)
     return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)
 
 
@@ -166,6 +170,7 @@ def evaluate_user_engagement(tool, material_, operation, ap_in, ae_in, aggressiv
     kw.setdefault("vendor_table", VENDOR_TABLE_PATH)
     kw.setdefault("c2_basis", C2_BASIS)
     kw.setdefault("chip_space", CHIP_SPACE_PATH)
+    kw.setdefault("chip_flutes", CHIP_FLUTES_PATH)
     return o.evaluate_user_engagement(tool, material_, machine_ or machine(), operation, ap_in, ae_in,
                                       margins=margins(aggressiveness), **kw)
 

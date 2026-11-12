@@ -76,6 +76,11 @@ _KIND_ROW_OPS = {"slot": ("slot",), "adaptive": ("hem",), "rough": ("rough", "si
                  "face": ("rough", "side")}
 _KIND_CLASS_WORD = {"slot": "slotting", "adaptive": "HEM", "rough": "roughing", "finish": "finishing", "face": "roughing"}
 
+# High-feed candidate (2026-11-12): offered for shallow full slots and pockets, same diameter, physics only until high-feed
+# vendor charts exist. "Shallow": the feature depth (depth_in, min_reach_in or the cut depth) is at most this many diameters.
+HIGH_FEED_SHALLOW_OVER_D = 2.0
+HIGH_FEED_FLUTES = 4          # the common flute count of solid high-feed end mills (an assumption, stated in the caveats)
+
 DISCLAIMERS = [
     "A brand gain reflects that vendor's published chart for this material and operation, not a measured tool test: the chart is the "
     "vendor's starting value.",
@@ -650,6 +655,9 @@ class Runner:
         sp = cut.spec
         depth, width = cut.engagement(c["diameter"], c["flute_length"])
         geo = c["geometry"]
+        if geo == "High Feed":
+            # the engine picks the depth per level (<= the tool's max ap); a full slot is as wide as the tool
+            depth, width = None, (c["diameter"] if cut.full_slot else None)
         ft = {"type": "ball end mill" if geo == "Ball" else ("bull nose end mill" if geo == "Radiused" else "flat end mill"), "unit": "inches",
               "geometry": {"DC": c["diameter"], "NOF": c["flutes"], "LCF": c["flute_length"], "SFDM": c["shank"], "LB": c["stickout"],
                            **({"RE": c["corner_radius"]} if c["corner_radius"] else {})}}
@@ -704,6 +712,16 @@ def _has_chip_space(res: Any) -> bool:
         return True
     v2 = getattr(res, "v2", None)
     return isinstance(v2, dict) and bool(v2.get("chip_space"))
+
+
+def _flute_aware(res: Any) -> bool:
+    """True when the engine's chip-load limit depends on flute count for this cut (``chip_space.flute_aware`` or
+    ``vendor_basis.flute_aware``: aluminium slots and roughing since 2026-11-12)."""
+    if res is None or isinstance(res, dict):
+        return False
+    cs = _chip_space_block(res) or {}
+    vb = getattr(res, "vendor_basis", None) or {}
+    return bool(cs.get("flute_aware") or (isinstance(vb, dict) and vb.get("flute_aware")))
 
 
 def _chip_space_block(res: Any) -> Optional[Dict[str, Any]]:
@@ -855,6 +873,9 @@ def _why(cut: Cut, c: Dict[str, Any], res: Any, ratio: float, sm: Dict[str, Any]
     if changes.get("square"):
         extras.append("a square end (the corner radius is dropped)")
     tail = " and ".join(extras)
+    if changes.get("high_feed"):
+        return (f"A high-feed end mill (many shallow levels, the chip thinned by its low lead angle) gives {rx} the {what}, "
+                "from the physics limits only (no high-feed vendor chart yet).")
     if changes.get("brand") and (sm["vendor_basis"] or {}).get("mode") == "brand":
         name = _chart_name(c)
         base = _base_chart_text(cut, cur_sm)
@@ -871,7 +892,11 @@ def _chip_space_caveat(cut: Cut, c: Dict[str, Any], res: Any, cur_res: Any) -> O
     """The flute-count caveat, for a flute-count increase in a full slot only. The engine's chip-room check (C15, result block
     ``chip_space``) passes most normal-depth slots; what makes more flutes look better is that the chip-load limit is the same
     for every flute count, while vendors run fewer-flute tools at higher chip loads in slots (docs/research/chip_space.md)."""
-    if c["flutes"] <= cut.z0 or not cut.full_slot:
+    if c["flutes"] <= cut.z0 or not cut.full_slot or c.get("geometry") == "High Feed":
+        return None
+    if _flute_aware(res) and _flute_aware(cur_res):
+        # the engine's chip load depends on flute count for this material family (data/model_v2/chip_by_flutes.json):
+        # fewer-flute tools already get the larger chip vendors run, so the flute-count gain is not optimistic
         return None
     if _has_chip_space(res) or _has_chip_space(cur_res):
         return (f"Flute-count gain is optimistic: ToolWiz checks chip room, but it gives a {c['flutes']}-flute and a {cut.z0}-flute tool "
@@ -879,6 +904,51 @@ def _chip_space_caveat(cut: Cut, c: Dict[str, Any], res: Any, cur_res: Any) -> O
                 "aluminum. Try the feed in steps and watch chip evacuation.")
     return ("ToolWiz does not yet limit chip space by flute count: in a full slot a " f"{c['flutes']}-flute tool has less room for chips than a "
             f"{cut.z0}-flute one, so this flute-count gain is optimistic. Check chip evacuation (flood or air blast) and try the feed in steps.")
+
+
+def _high_feed_caveats(cut: Cut, c: Dict[str, Any], res: Any) -> List[str]:
+    """Physics only (no high-feed vendor charts yet), entry and wall stock, and the assumed geometry."""
+    hf = ((getattr(res, "v2", None) or {}).get("high_feed") or {})
+    out = ["Physics only: ToolWiz has no vendor chart for high-feed end mills yet, so this result comes from the physics limits "
+           "alone (no vendor guardrail). Treat it as a starting point and check the tool maker's chart."]
+    rp = getattr(res, "ramp_angle", None)
+    hmin = getattr(res, "ramp_min_diameter", None)
+    out.append("A high-feed end mill is not center cutting: do not plunge; ramp at "
+               + (f"{rp:.1f} deg or less" if rp else "a shallow angle") + " or enter on a helix"
+               + (f" of at least {hmin:.4f} in tool-centre diameter" if hmin else "") + ".")
+    rad, ax = hf.get("radial_stock_in"), hf.get("axial_stock_in")
+    out.append("The walls come out stepped by the lead edge, not square"
+               + (f": leave at least {rad:.4f} in radial and {ax:.4f} in axial stock" if rad and ax else "")
+               + " and finish walls and corners with a square end mill.")
+    ref = hf.get("square_end_chart_sfm")
+    if ref and getattr(res, "sfm", 0) > 1.1 * ref:
+        out.append(f"Its {res.sfm:.0f} SFM is the physics (tool-life) speed with no vendor cap; the square-end chart for this material "
+                   f"reads {ref:.0f} SFM, so the gain may be smaller in practice.")
+    if hf.get("assumed"):
+        out.append(f"Generic high-feed geometry assumed ({HIGH_FEED_FLUTES} flutes, lead angle {hf.get('lead_angle_deg', 0):.0f} deg, "
+                   f"max ap {hf.get('max_ap_in', 0):.4f} in): a real tool's catalog values change the numbers.")
+    return out
+
+
+def _high_feed_phase(cut: Cut, consider, notes: List[str]) -> None:
+    """A high-feed end mill of the same diameter for a shallow full slot or pocket (physics only)."""
+    f = cut.spec["feature"]
+    pocket = "pocket" in str(cut.spec.get("operation_text") or "").lower()
+    if cut.finishing or not (cut.full_slot or pocket) or "high feed" in (cut.geometry0 or "").lower():
+        return
+    depth = f["depth"] or cut.min_reach or f["cut_depth"]
+    if not depth:
+        notes.append("High-feed end mill not compared: give the feature depth (depth_in) to compare one for this slot or pocket.")
+        return
+    if depth > HIGH_FEED_SHALLOW_OVER_D * cut.D0 * (1 + 1e-9):
+        notes.append(f"High-feed end mill not compared: the feature is {depth / cut.D0:.1f} x D deep (offered up to "
+                     f"{HIGH_FEED_SHALLOW_OVER_D:g} x D, where many shallow levels pay off).")
+        return
+    c = _candidate(cut, source="high_feed", diameter=cut.D0, flutes=HIGH_FEED_FLUTES, flute_length=cut.flen0, shank=cut.shank0,
+                   brand_text=None, brand_key=None, corner_radius=0.0, geometry="High Feed", coating=cut.spec["tool"]["coating"],
+                   stickout=cut.spec["tool"]["stickout"], is_carbide=True,
+                   geometry_note="generic solid-carbide high-feed end mill (physics only; geometry assumed)")
+    consider(c, {"high_feed": True, "flutes": HIGH_FEED_FLUTES != cut.z0, "diameter": False, "brand": False, "square": False})
 
 
 def _caveats(cut: Cut, c: Dict[str, Any], res: Any, cur_res: Any, changes: Dict[str, bool], sm: Dict[str, Any]) -> List[str]:
@@ -914,6 +984,8 @@ def _caveats(cut: Cut, c: Dict[str, Any], res: Any, cur_res: Any, changes: Dict[
     cs = _chip_space_caveat(cut, c, res, cur_res)
     if cs:
         out.append(cs)
+    if c.get("geometry") == "High Feed":
+        out.extend(_high_feed_caveats(cut, c, res))
     if sm["is_spindle_limited"]:
         out.append(f"Spindle-limited at {sm['rpm']:,} rpm: the speed is the machine's limit, not the chart's.")
     if cut.spec["tool"]["brand"] and not cut.brand0_key and changes.get("brand"):
@@ -995,7 +1067,7 @@ def _recommend(spec, machine, physics, library_tools, run_cache, budget, max_lib
 
     def consider(c: Dict[str, Any], changes: Dict[str, bool]) -> Optional[Dict[str, Any]]:
         key = (c["source"] == "library", round(c["diameter"], 4), c["flutes"], round(c["flute_length"], 3), c["brand_key"] or (c["brand_text"] or "").lower(),
-               round(c["corner_radius"], 4), (c["library"] or {}).get("description"))
+               round(c["corner_radius"], 4), (c["library"] or {}).get("description"), c.get("geometry"))
         if key in seen:
             return None
         seen.add(key)
@@ -1039,6 +1111,8 @@ def _recommend(spec, machine, physics, library_tools, run_cache, budget, max_lib
 
     # ---- (b)-(d) the catalog ------------------------------------------------------------------------------------------
     catalog_notes: List[str] = []
+    if spec["use_catalog"]:
+        _high_feed_phase(cut, consider, catalog_notes)   # one run, before the catalog search can use up the run cap
     if spec["use_catalog"] and cut.geometry0 != "Ball":
         _catalog_phase(cut, runner, consider, catalog_notes)
     elif spec["use_catalog"]:
@@ -1065,7 +1139,9 @@ def _recommend(spec, machine, physics, library_tools, run_cache, budget, max_lib
         "rate_metric_label": METRIC_LABELS[cur_sm["rate_metric"]], "min_gain_pct": spec["min_gain_pct"],
         "aggressiveness": spec["aggressiveness"], "current": cur_sm, "alternatives": passing[:MAX_ALTERNATIVES],
         "best_library": best_lib, "best_catalog": best_cat,
-        "below_threshold": below[:MAX_BELOW], "not_recommended_reasons": [],
+        # a high-feed candidate is always shown (physics only, labelled), even when it is not among the best below the threshold
+        "below_threshold": below[:MAX_BELOW] + [a for a in below[MAX_BELOW:] if a["source"] == "high_feed"],
+        "not_recommended_reasons": [],
         "assumptions": list(cut.notes), "disclaimers": list(DISCLAIMERS),
         "skipped": skipped[:12],
         "engine_runs": runner.runs, "run_cap": spec["max_runs"], "candidates_evaluated": len(evals),
@@ -1102,6 +1178,8 @@ def describe_alternative(alt: Dict[str, Any], current: Dict[str, Any]) -> str:
 
 def _label(c: Dict[str, Any]) -> str:
     base = f"{c['flutes']}FL {_fmt_d(c['diameter'])} in"
+    if c["source"] == "high_feed":
+        return f"high-feed {base} (physics only)"
     if c["source"] == "library":
         lib = c["library"]
         return f"{('T' + str(lib['number']) + ' ') if lib.get('number') else ''}{lib['description']}"
@@ -1113,6 +1191,8 @@ def label_alternative(a: Dict[str, Any]) -> str:
 
 
 def _label_alt(a: Dict[str, Any]) -> str:
+    if a["source"] == "high_feed":
+        return f"high-feed {a['flutes']}-flute {_fmt_d(a['diameter'])} in (physics only)"
     if a["source"] == "library":
         return a["library_tool"]["description"]
     return f"{a.get('brand') or 'any brand'} {a['flutes']}-flute {_fmt_d(a['diameter'])} in"
@@ -1154,7 +1234,12 @@ def _alternative(cut: Cut, c: Dict[str, Any], ev: Dict[str, Any], cur_res: Any, 
         entry["finish"] = sm["finish"]
     if sm.get("chip_space"):
         entry["chip_space"] = sm["chip_space"]
-    if c["source"] == "library":
+    if c["source"] == "high_feed":
+        entry["geometry"] = "High Feed"
+        entry["physics_only"] = True
+        entry["high_feed"] = ((getattr(res, "v2", None) or {}).get("high_feed") or None)
+        entry["geometry_source"] = "a generic solid-carbide high-feed end mill (geometry assumed; physics only, no vendor chart)"
+    elif c["source"] == "library":
         entry["library_tool"] = dict(c["library"])
     else:
         entry["catalog_ref"] = c.get("catalog_ref")

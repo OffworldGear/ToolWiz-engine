@@ -79,6 +79,7 @@ available as Tool(stress_section="core"). Torsion τ = T·c/J with J = 2I; carbi
 principal stress σ1 = σ/2 + √((σ/2)² + τ²) (Rankine). Stress concentration at the steps is not
 modelled; the stress fraction covers it.
 """
+import collections
 import json
 import logging
 import math
@@ -390,6 +391,7 @@ class Tool:
     climb: bool = True
     corner_radius_in: float = 0.0       # corner radius (in): 0 square, D/2 ball, between bull nose (physics_v2/endforms.py)
     label: str = ""
+    high_feed: Optional[object] = None  # physics_v2.highfeed.Geometry: a high-feed end mill (lead edge, max ap)
 
     @classmethod
     def build(cls, D, z, lcf, stickout, shank=None, neck_diameter=None, neck_length=None, **kw):
@@ -422,8 +424,24 @@ class Tool:
 
     @property
     def end_form(self):
-        """'square', 'bull' or 'ball'."""
+        """'square', 'bull', 'ball' or 'high_feed'."""
+        if self.high_feed is not None:
+            return "high_feed"
         return endforms.end_form(self.D_mm, self.corner_mm)
+
+    @property
+    def ap_limit(self):
+        """The largest axial depth the tool can take (in): LCF, or a high-feed tool's max ap."""
+        return min(self.lcf, self.high_feed.apmx_in) if self.high_feed is not None else self.lcf
+
+    def hf_profile(self):
+        return self.high_feed.profile_mm() if self.high_feed is not None else None
+
+    def effective_diameter_mm(self, ap_mm):
+        """Cutting diameter at axial depth ap (mm): the high-feed lead edge, else the corner radius (endforms)."""
+        if self.high_feed is not None:
+            return self.hf_profile().effective_diameter(ap_mm)
+        return endforms.effective_diameter(ap_mm, self.D_mm, self.corner_mm)
 
     @property
     def E_psi(self):
@@ -666,7 +684,7 @@ def c5_spindle(torque_nm, power_kw, rpm, spindle, rating="continuous", margin=0.
                         f"P = {power_kw * 1000:.1f} W of {s['available_power_kw'] * 1000:.0f} W at {rpm:.0f} rpm")
 
 
-def c6_geometry(ap_in, ae_in, D_in, lcf_in, depth_in=None, slot=False, flute_exposed_in=None):
+def c6_geometry(ap_in, ae_in, D_in, lcf_in, depth_in=None, slot=False, flute_exposed_in=None, lcf_word="LCF"):
     """C6: ap ≤ min(LCF, exposed flute, depth) and ae ≤ D; value is the larger of ap/ap_max and ae/D (ap only
     for a slot, where ae = D by definition). The exposed flute is the fluted length outside the holder
     (ToolProfile: min(LCF, stickout))."""
@@ -674,7 +692,7 @@ def c6_geometry(ap_in, ae_in, D_in, lcf_in, depth_in=None, slot=False, flute_exp
     ratio = ap_in / ap_max if slot and ae_in <= D_in * (1 + 1e-9) else max(ap_in / ap_max, ae_in / D_in)
     return Check("C6", "geometry", "max", ratio, 1.0, "fraction", SRC["C6"],
                  detail=f"ap {ap_in:.4f}\" of {ap_max:.4f}\" ("
-                        f"{'depth' if depth_in and depth_in <= ap_max + 1e-12 else 'flute outside the holder' if flute_exposed_in and flute_exposed_in < lcf_in - 1e-12 else 'LCF'}); "
+                        f"{'depth' if depth_in and depth_in <= ap_max + 1e-12 else 'flute outside the holder' if flute_exposed_in and flute_exposed_in < lcf_in - 1e-12 else lcf_word}); "
                         f"ae {ae_in:.4f}\" of D {D_in:.4f}\"")
 
 
@@ -801,6 +819,36 @@ def c8_slot_depth(ap_in, D_in, operation, k_slot=None):
                  detail=(f"k = {k:.3f} → {lim:.4f}\"" if applies else "not a micro full slot"))
 
 
+# Flute-aware chip load (owner decision 2026-11-12: aluminium first). C2's vendor-chip limit and C14's chip-load range are
+# multiplied by F(z), the material group's vendor chip for z flutes over its 4-flute chip, where the fit is applied
+# (data/model_v2/chip_by_flutes.json, tools/fit_chip_by_flutes.py). Chart class of each optimizer operation:
+FLUTE_CLASS = {"slot": "slot", "rough": "side", "adaptive": "hem"}
+CHIP_FLUTES_DEFAULT_PATH = os.path.join(ROOT, "data", "model_v2", "chip_by_flutes.json")
+SRC["C2f"] = ("Flute-aware chip load (owner decision 2026-11-12, aluminium first): C2's vendor median chip and C14's chip "
+              "range × F(z) = the material group's median vendor chip for z flutes / its 4-flute chip, per chart class "
+              "(slot; side and roughing); held below the lowest charted flute count, falling with the gullet area per "
+              "flute above the highest in full slots; data/model_v2/chip_by_flutes.json (tools/fit_chip_by_flutes.py)")
+
+
+def _flute_key(z):
+    return min(max(int(z), 1), 8)
+
+
+def flute_entry(table, family, hb, cls):
+    """The applied flute-count fit for (material group, chart class), or None (flute-agnostic)."""
+    if not table or not family or not cls:
+        return None
+    ent = ((table.get("groups") or {}).get(material_group(family, hb)) or {}).get(cls)
+    return ent if ent and ent.get("applied") and ent.get("factors") else None
+
+
+def flute_factor(entry, z):
+    """F(z) of an applied entry (1.0 for None)."""
+    if not entry:
+        return 1.0
+    return float(entry["factors"][str(_flute_key(z))])
+
+
 CHIP_SPACE_BINDING_TOL = 0.03   # as _binding: within 3 % of the limit counts as limiting
 CHIP_SPACE_SUGGEST_RATIO = 1.5  # the sentence names the flute counts whose gullets take at least a 50 % larger chip
 GROUP_WORDS = {"non-ferrous": "aluminum", "steel": "steel", "stainless": "stainless steel",
@@ -821,7 +869,7 @@ def c15_chip_space(ctx, ap_in, ae_in, fz_in):
     u = chipspace.utilisation(fz_in, ap_in, ae_in, t.D, t.z, cs["K"], cs["core"], cs["void"], p)
     a_g = chipspace.gullet_area(t.D, t.z, cs["core"], cs["void"])
     e = chipspace.depth_factor(ap_in, ae_in, t.D, p)
-    fz_max = chipspace.max_fz(ap_in, ae_in, t.D, t.z, cs["K"], cs["core"], cs["void"], p) * cs["u_limit"]
+    fz_max = chipspace.max_fz(ap_in, ae_in, t.D, t.z, cs["K"], cs["core"], cs["void"], p) * cs["u_limit"] / ctx.chip_fz_scale
     return Check("C15", "chip space (gullet room)", "max", u, cs["u_limit"], "fraction", SRC["C15"],
                  detail=(f"chip fz·ae = {fz_in * min(ae_in, t.D):.3e} in² × packing K {cs['K']:.2f} ({cs['group']}"
                          f"{', full slot depth ×' + format(e, '.2f') if e != 1.0 else ''}) against the gullet "
@@ -832,19 +880,22 @@ def c15_chip_space(ctx, ap_in, ae_in, fz_in):
 def chip_space_report(pt, fz_in, check):
     """The result's `chip_space` block: utilisation, whether it limits the cut, and a plain sentence."""
     ctx = pt.ctx
+    flutes = {"flute_aware": bool(ctx.flute_aware), "flute_factor": ctx.flute_factor,
+              "flute_basis": ctx.flute_basis or "C2's chip limit does not depend on flute count for this material and cut"}
     if check is None or not check.applies or ctx.chip_space is None:
         why = ("finishing passes are not chip-space limited" if ctx.op == "finish" else "chip-space check off")
-        return {"applies": False, "limiting": False, "utilisation": None, "note": why}
+        return dict({"applies": False, "limiting": False, "utilisation": None, "note": why}, **flutes)
     cs, t = ctx.chip_space, ctx.tool
     p = cs["params"]
     slot = pt.ae >= float(p["depth"]["enclosed_ae_over_D"]["value"]) * t.D
     u, lim = check.value, check.limit
     limiting = check.margin is not None and check.margin <= CHIP_SPACE_BINDING_TOL
-    fz_max = chipspace.max_fz(pt.ap, pt.ae, t.D, t.z, cs["K"], cs["core"], cs["void"], p) * lim
+    sc = ctx.chip_fz_scale   # high-feed: the chip per unit edge length is fz·sin κ0
+    fz_max = chipspace.max_fz(pt.ap, pt.ae, t.D, t.z, cs["K"], cs["core"], cs["void"], p) * lim / sc
     others = {}
     for z2 in range(2, t.z):
         c2 = chipspace.core_ratio(z2, p["core_ratio_by_flutes"])
-        others[z2] = chipspace.max_fz(pt.ap, pt.ae, t.D, z2, cs["K"], c2, cs["void"], p) * lim
+        others[z2] = chipspace.max_fz(pt.ap, pt.ae, t.D, z2, cs["K"], c2, cs["void"], p) * lim / sc
     bigger = [z2 for z2, f in others.items() if f >= CHIP_SPACE_SUGGEST_RATIO * fz_max]
     mat = GROUP_WORDS.get(cs["group"], cs["group"])
     where = "a full slot" if slot else "this engagement"
@@ -863,9 +914,9 @@ def chip_space_report(pt, fz_in, check):
             "full_slot": slot, "flutes": t.z, "material_group": cs["group"], "packing_K": cs["K"],
             "depth_factor": chipspace.depth_factor(pt.ap, pt.ae, t.D, p), "core_ratio": cs["core"],
             "gullet_area_in2": chipspace.gullet_area(t.D, t.z, cs["core"], cs["void"]),
-            "chip_area_in2": chipspace.chip_area(fz_in, pt.ae, t.D), "max_fz_in": fz_max,
+            "chip_area_in2": chipspace.chip_area(fz_in * sc, pt.ae, t.D), "max_fz_in": fz_max,
             "max_fz_by_flutes_in": {str(k): v for k, v in others.items()}, "sentence": sentence,
-            "basis": cs["basis"]}
+            "basis": cs["basis"], **flutes}
 
 
 def c9_stickout(eq_stickout_in, D_in):
@@ -1043,7 +1094,11 @@ VENDOR_CHART_CLASSES = {"adaptive": ("hem",), "rough": ("rough", "side"), "slot"
 VENDOR_DEFAULT_SOURCES = {"adaptive": (("helical",), ("harvey",)), "rough": (("harvey", "helical"),),
                           "slot": (("harvey", "helical"),), "finish": (("harvey", "helical"),)}
 VENDOR_RANGE_FIELDS = ("sfm", "fz_over_D", "feed_per_flute_ipm")
-CHART_WORD = {"hem": "HEM", "rough": "roughing", "side": "side-milling", "slot": "slotting", "finish": "finishing"}
+# High-feed end mills (rows with tool.end "high_feed", tools/build_vendor_consensus.py): their own chart classes, never pooled
+# with square-end charts. Slots read hf_slot; roughing, pocketing and facing-style passes (and adaptive) read hf_rough.
+HF_CHART_CLASSES = {"slot": ("hf_slot",), "rough": ("hf_rough",), "adaptive": ("hf_rough",)}
+CHART_WORD = {"hem": "HEM", "rough": "roughing", "side": "side-milling", "slot": "slotting", "finish": "finishing",
+              "hf_slot": "high-feed slotting", "hf_rough": "high-feed roughing"}
 VENDOR_MODES = ("brand", "default", "consensus", "none")
 SRC["C14b"] = ("Vendor guardrail by brand (owner decisions 2026-11-12): the tool's own vendor's charts when the brand is "
                "known and charted for this cut (same chart class; widened within that vendor by diameter band, engagement "
@@ -1084,29 +1139,49 @@ def _range_of(pooled, field_index, mid_by_group=False):
     return lo, mid, hi
 
 
-def _vendor_bucket(table, get, family, hb, D_in, cls, ae_over_D, min_groups, mid_by_group=False):
+def _flute_scaled(pooled, flute_scale):
+    """The pooled rows with chip load and feed per flute (fields 3-8) × flute_scale(row flutes): a row of a z_row-flute tool
+    read for a z-flute tool (flute-aware chip load). Rows without a flute count (field 10) are kept."""
+    out = {}
+    for g, rows in pooled.items():
+        new = []
+        for r in rows:
+            m = flute_scale(int(r[10])) if len(r) > 10 and r[10] else 1.0
+            new.append(r if m == 1.0 else list(r[:3]) + [x * m for x in r[3:9]] + list(r[9:]))
+        out[g] = new
+    return out
+
+
+def _vendor_bucket(table, get, family, hb, D_in, cls, ae_over_D, min_groups, mid_by_group=False, flute_scale=None):
     found = _widened_pool(table, get, family, hb, D_in, cls, ae_over_D, min_groups)
     if found is None:
         return None
     pooled, exact, label, step, used = found
+    flutes = dict(collections.Counter(int(r[10]) for rs in pooled.values() for r in rs if len(r) > 10 and r[10]))
+    if flute_scale is not None:
+        pooled = _flute_scaled(pooled, flute_scale)
     ranges = {f: _range_of(pooled, k, mid_by_group) for k, f in enumerate(VENDOR_RANGE_FIELDS)}
     out = {f: ranges[f][1] for f in VENDOR_RANGE_FIELDS}
     aes = [r[9] for rs in pooled.values() for r in rs if len(r) > 9]
     out["ae_over_D"] = _median(aes) if aes else None
     return dict(out, ranges=ranges, key=exact, widening=label, step=step, cells=used, vendor_groups=sorted(pooled),
-                n_rows=sum(len(r) for r in pooled.values()), chart_class=cls)
+                n_rows=sum(len(r) for r in pooled.values()), chart_class=cls, row_flutes=flutes,
+                flute_scaled=flute_scale is not None)
 
 
-def vendor_lookup(table, brand, family, hb, D_in, operation, ae_over_D):
+def vendor_lookup(table, brand, family, hb, D_in, operation, ae_over_D, flute_scale=None, end="square"):
     """C14's bucket for a cut, in the owner's order (2026-11-12): the brand's own charts (mode "brand"), the unbranded
     default (mode "default": Helical HEM, then Harvey HEM, for adaptive; Harvey + Helical otherwise), the cross-vendor
     consensus (mode "consensus", ≥ 2 vendor groups). None: no vendor data (physics only). The result carries the mids
     (sfm, fz_over_D, feed_per_flute_ipm), their (lo, mid, hi) `ranges`, the bucket and widening, `mode`, `vendor` (keys
-    joined by "+"), `chart_class` and `brand_missing` (why the brand's charts were not used)."""
+    joined by "+"), `chart_class` and `brand_missing` (why the brand's charts were not used). flute_scale(z_row): the
+    multiplier on a z_row-flute row's chip load and feed per flute for this tool (flute-aware chip load), None: as published.
+    end "high_feed": the high-feed chart classes (HF_CHART_CLASSES) in the same brand -> default -> consensus order."""
     if not family:
         return None
     vendors = table.get("vendors") or {}
-    classes = VENDOR_CHART_CLASSES.get(operation, (operation,))
+    hf = end == "high_feed"
+    classes = (HF_CHART_CLASSES if hf else VENDOR_CHART_CLASSES).get(operation, (operation,))
 
     def from_vendors(keys, cls):
         cells = [vendors[k]["cells"] for k in keys if k in vendors]
@@ -1115,7 +1190,7 @@ def vendor_lookup(table, brand, family, hb, D_in, operation, ae_over_D):
         def get(key):
             out = {k: c[key] for k, c in zip(keys, cells) if key in c}
             return out or None
-        return _vendor_bucket(table, get, family, hb, D_in, cls, ae_over_D, 1)
+        return _vendor_bucket(table, get, family, hb, D_in, cls, ae_over_D, 1, flute_scale=flute_scale)
 
     brand_missing = None
     if brand:
@@ -1137,9 +1212,11 @@ def vendor_lookup(table, brand, family, hb, D_in, operation, ae_over_D):
                 return dict(found, mode="default", vendor="+".join(keys), brand_missing=brand_missing)
     cons = table.get("consensus")
     if cons:
-        cls = CONSENSUS_OPERATION.get(operation, operation)
+        cls = (HF_CHART_CLASSES[operation][0] if hf and operation in HF_CHART_CLASSES
+               else CONSENSUS_OPERATION.get(operation, operation))
         found = _vendor_bucket(table, cons["cells"].get, family, hb, D_in, cls, ae_over_D,
-                               table.get("min_vendor_groups", CONSENSUS_MIN_GROUPS), mid_by_group=True)
+                               table.get("min_vendor_groups", CONSENSUS_MIN_GROUPS), mid_by_group=True,
+                               flute_scale=flute_scale)
         if found:
             return dict(found, mode="consensus", vendor=None, brand_missing=brand_missing)
     return None
@@ -1584,21 +1661,31 @@ class ShapedEngagement(Engagement):
     N_THETA_MAX = 72
     SK_FLOOR = 0.05   # sin κ used for the chip-size effect on kc and the edge terms (the very tip)
 
-    def __init__(self, D_mm, z, ap_mm, ae_mm, helix_deg=0.0, climb=True, corner_mm=0.0):
+    def __init__(self, D_mm, z, ap_mm, ae_mm, helix_deg=0.0, climb=True, corner_mm=0.0, profile=None):
         super().__init__(D_mm, z, ap_mm, ae_mm, helix_deg, climb)
         R = self.R
-        self.rc = endforms.clamp_corner(R, corner_mm)
-        self.r_ap = endforms.radius(ap_mm, R, self.rc)
+        # profile: an end form with radius(z) and sin_kappa(z) of its own (endforms.HighFeedProfile); None: the corner radius
+        self.profile = profile
+        self.rc = profile.height if profile is not None else endforms.clamp_corner(R, corner_mm)
+        rad = profile.radius if profile is not None else (lambda zz: endforms.radius(zz, R, self.rc))
+        skap = profile.sin_kappa if profile is not None else (lambda zz: endforms.sin_kappa(zz, R, self.rc))
+        self.r_ap = rad(ap_mm)
         self.D_eff = 2.0 * self.r_ap
         tan_b = math.tan(math.radians(helix_deg))
         self.slices = []   # (z, dz, r, sin κ, ψ, ae_local)
         psi = 0.0
-        for zc, dz in endforms.slice_heights(ap_mm, self.rc, helix_lag_per_mm=tan_b / R):
-            r = endforms.radius(zc, R, self.rc)
+        n_corner = 10
+        if profile is not None and ae_mm > 0:
+            # a light radial cut engages only the top of the sloped lead edge: resolve at least ~4 slices across it
+            span = self.r_ap - rad(0.0)
+            if ae_mm < span:
+                n_corner = int(min(200, max(10, math.ceil(4.0 * span / ae_mm))))
+        for zc, dz in endforms.slice_heights(ap_mm, self.rc, n_corner=n_corner, helix_lag_per_mm=tan_b / R):
+            r = rad(zc)
             psi_mid = psi + 0.5 * dz * tan_b / max(r, endforms.MIN_R_OVER_R * R)
             psi += dz * tan_b / max(r, endforms.MIN_R_OVER_R * R)
             ae_l = min(2.0 * r, max(ae_mm - (self.r_ap - r), 0.0))
-            self.slices.append((zc, dz, r, endforms.sin_kappa(zc, R, self.rc), psi_mid, ae_l))
+            self.slices.append((zc, dz, r, skap(zc), psi_mid, ae_l))
         self.h_unit = 0.0
         for zc, dz, r, sk, ps, ae_l in self.slices:
             if ae_l > 1e-12:
@@ -1656,16 +1743,17 @@ class ShapedEngagement(Engagement):
                 skf = max(sk, self.SK_FLOOR)
                 ktc = coeffs.kc(max(h_mean * skf, 1e-6))
                 kcs[k] = max(kcs[k] or 0.0, ktc)
-                items.append((terms[k], g - psi, a0, a1, ktc, skf, dz, r, zc))
+                items.append((terms[k], g - psi, a0, a1, ktc, skf, dz, r, zc, math.sqrt(max(1.0 - sk * sk, 0.0))))
         k_r, k_te, k_re = coeffs.k_r, coeffs.k_te, coeffs.k_re
         chip = self.chip
-        sx = sy = st = 0.0
+        sx = sy = st = sa = 0.0
+        a_peak = 0.0
         best = (-1.0, 0.0, 0.0, 0.0, 0.0)
         samples = []
         for i in range(n_theta):
             theta = (i + 0.5) * two_pi / n_theta
-            fx = fy = mx = my = t = 0.0
-            for tk, off, a0, a1, ktc, skf, dz, r, zc in items:
+            fx = fy = mx = my = t = fa = 0.0
+            for tk, off, a0, a1, ktc, skf, dz, r, zc, ck in items:
                 phi = (theta + off) % two_pi
                 if phi < a0 or phi > a1:
                     continue
@@ -1675,6 +1763,7 @@ class ShapedEngagement(Engagement):
                     continue
                 ft = (ktc * h + k_te / skf) * dz
                 fr = (k_r * ktc * h * skf + k_re) * dz
+                fa += k_r * ktc * h * ck * dz   # edge-normal force's axial part (cos κ): into the spindle
                 dfx, dfy = -ft * cs - fr * sn, ft * sn - fr * cs
                 fx += dfx
                 fy += dfy
@@ -1684,6 +1773,8 @@ class ShapedEngagement(Engagement):
             sx += fx
             sy += fy
             st += t
+            sa += fa
+            a_peak = max(a_peak, fa)
             mag2 = fx * fx + fy * fy
             cen = min(max((mx * fx + my * fy) / mag2, 0.0), self.ap) if mag2 > 0 else 0.5 * self.ap
             cen_y = min(max(my / fy, 0.0), self.ap) if abs(fy) > 1e-12 else cen
@@ -1695,7 +1786,7 @@ class ShapedEngagement(Engagement):
                 "centroid_mm": cen, "torque_peak_nm": t / 1000.0,
                 "mean_feed_n": sx / n_theta, "mean_normal_n": sy / n_theta,
                 "mean_n": math.hypot(sx / n_theta, sy / n_theta), "torque_mean_nm": st / n_theta / 1000.0,
-                "flute_kc_n_mm2": kcs, "samples": samples}
+                "flute_kc_n_mm2": kcs, "samples": samples, "mean_axial_n": sa / n_theta, "peak_axial_n": a_peak}
 
 
 # ---------------------------------------------------------------------------
@@ -1714,7 +1805,7 @@ OPTION_DEFAULTS = {"deflection_allow": None, "stress_limit": None, "depth": None
                    "point_spacing_mm": POINT_SPACING_MM, "stock_to_leave_in": STOCK_TO_LEAVE_IN,
                    "chip_limit_over_D": None, "c2_basis": "worst", "part_tolerance_in": None,
                    "wall_metric": "ripple", "consensus": None, "consensus_shaped": None, "envelope": None, "chip_floor": None,
-                   "vendor_table": None, "brand": None, "chip_space": None,
+                   "vendor_table": None, "brand": None, "chip_space": None, "chip_flutes": None, "high_feed": None,
                    "user_engagement": False, "n_phases": None, "ae_env_min": True}
 
 
@@ -1806,6 +1897,29 @@ class _Context:
                                         f"{nb['band']} (n {nb['n']})")
                 self.h_overload = cb["p90"] * tool.D_mm * material.c2_scale
                 self.h_overload_basis = f"vendor p90 worst-flute chip {cb['p90']:.5f}·D ({cb['band']})"
+        # C2 by flute count (owner decision 2026-11-12, aluminium first): the vendor-chip limit × F(z) of the material group
+        # and chart class (data/model_v2/chip_by_flutes.json, tools/fit_chip_by_flutes.py); F = 1 where not applied.
+        self.flute_table = None
+        self.flute_class = FLUTE_CLASS.get(operation)
+        self.flute_factor, self.flute_aware, self.flute_basis = 1.0, False, ""
+        if (o["chip_flutes"] is not None and self.flute_class and self.chip_band is not None
+                and tool.end_form == "square"):   # fitted on square-end rows
+            src = CHIP_FLUTES_DEFAULT_PATH if o["chip_flutes"] == "default" else o["chip_flutes"]
+            self.flute_table = src if isinstance(src, dict) else _limits(src)
+            ent = flute_entry(self.flute_table, material.family, material.hb, self.flute_class)
+            if ent is not None:
+                f = flute_factor(ent, tool.z)
+                self.flute_factor, self.flute_aware = f, True
+                self.flute_basis = (f"× {f:.2f} for {tool.z} flutes ({material_group(material.family, material.hb)} "
+                                    f"{self.flute_class} rows by flute count, {ent['factor_basis'][str(_flute_key(tool.z))]}; "
+                                    f"data/model_v2/chip_by_flutes.json)")
+                self.h_tooth *= f
+                self.h_tooth_basis += "; " + self.flute_basis
+                if self.h_nominal is not None:
+                    self.h_nominal *= f
+                    self.h_nominal_basis += "; " + self.flute_basis
+                    self.h_overload *= f
+                    self.h_overload_basis += "; " + self.flute_basis
         # C3
         if o["deflection_allow"] is not None:
             self.delta_allow, self.delta_basis = o["deflection_allow"], "given"
@@ -1857,7 +1971,10 @@ class _Context:
         self.width_cap_ratio = None
         self.width_min_ratio = None
         self.user_engagement = bool(o["user_engagement"])
-        if o["envelope"] is not None and operation != "finish":
+        if tool.high_feed is not None and o["envelope"] is not None:
+            self.notes.append("high-feed end mill: the vendor engagement envelope (square-end rows) is not used; the depth is "
+                              "capped by the tool's max ap (C6) and the physics")
+        elif o["envelope"] is not None and operation != "finish":
             src = ENVELOPE_DEFAULT_PATH if o["envelope"] == "default" else o["envelope"]
             self.envelope = src if isinstance(src, dict) else _limits(src)
             self.env_bucket = envelope_bucket(self.envelope, material.family, material.hb, tool.D, operation)
@@ -1897,7 +2014,7 @@ class _Context:
         # consensus); ball and bull-nose tools keep the shaped table and the old scale × median caps.
         self.vendor_table = None
         self.brand = o["brand"] or None
-        if o["vendor_table"] is not None and tool.end_form == "square":
+        if o["vendor_table"] is not None and tool.end_form in ("square", "high_feed"):
             src = VENDOR_TABLE_DEFAULT_PATH if o["vendor_table"] == "default" else o["vendor_table"]
             self.vendor_table = src if isinstance(src, dict) else _limits(src)
         self.c14_on = self.consensus is not None or self.vendor_table is not None
@@ -1912,6 +2029,11 @@ class _Context:
             self.chip_space = {"params": p, "group": group, "K": K, "basis": basis, "core": core,
                                "void": float(p["void_fraction"]["value"]),
                                "u_limit": consensus_scale(margins.aggressiveness) / consensus_scale(1.0)}
+        self.chip_fz_scale = tool.high_feed.sin_kappa if tool.high_feed is not None else 1.0
+        if tool.high_feed is not None:
+            g = tool.high_feed
+            self.notes.append(f"high-feed end mill: lead angle {g.lead_deg:.1f} deg, max ap {g.apmx_in:.4f}\" ({g.basis}); chip "
+                              f"normal to the edge = fz x {g.sin_kappa:.3f}")
         if machine.holder_k_n_um or machine.holder_ktheta_nm_urad:
             self.notes.append(f"C3 includes the spindle/holder compliance in series with the tool: "
                               f"k {machine.holder_k_n_um or 0:g} N/µm, k_θ {machine.holder_ktheta_nm_urad or 0:g} N·m/µrad"
@@ -1928,7 +2050,8 @@ class _Context:
                    round(aeD, 2) if self.brand and self.op == "rough" else None)
             if key not in self._cons_cache:
                 self._cons_cache[key] = vendor_lookup(self.vendor_table, self.brand, self.mat.family, self.mat.hb,
-                                                      self.tool.D, self.op, aeD)
+                                                      self.tool.D, self.op, aeD, flute_scale=self.flute_scale(),
+                                                      end=self.tool.end_form)
             return self._cons_cache[key]
         if not self.consensus:
             return None
@@ -1945,6 +2068,13 @@ class _Context:
                 found = consensus_lookup(self.consensus, self.mat.family, self.mat.hb, self.tool.D, self.op, aeD)
             self._cons_cache[key] = found
         return self._cons_cache[key]
+
+    def flute_scale(self):
+        """C14's row scaling for this tool (flute-aware chip load): z_row -> F(z)/F(z_row); None when flute-agnostic."""
+        if not self.flute_aware:
+            return None
+        ent = flute_entry(self.flute_table, self.mat.family, self.mat.hb, self.flute_class)
+        return lambda z_row: self.flute_factor / flute_factor(ent, z_row)
 
     def _chip_band(self, data, kind, basis):
         """The C2 band for this diameter: slot rows for slots when that band has data, else side rows."""
@@ -1963,7 +2093,7 @@ class _Context:
         shaped = self.tool.end_form != "square" and ap_in
         key = (round(ae_in, 9), round(ap_in, 9) if shaped else None)
         if key not in self._speed:
-            D_eff = endforms.effective_diameter(ap_in * MM_PER_IN, self.tool.D_mm, self.tool.corner_mm) if shaped else None
+            D_eff = self.tool.effective_diameter_mm(ap_in * MM_PER_IN) if shaped else None
             D_ref = D_eff or self.tool.D_mm
             phi_e = forces.engagement_angle(min(ae_in * MM_PER_IN, D_ref), D_ref)
             self._speed[key] = c7_speed(self.mat, phi_e, self.tool.D_mm, self.mach.max_rpm,
@@ -1990,12 +2120,14 @@ class CutPoint:
             self.eng = Engagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb)
             self.D_eff_in = t.D
         else:
-            self.eng = ShapedEngagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb, t.corner_mm)
+            self.eng = ShapedEngagement(self.D_mm, t.z, self.ap_mm, self.ae_mm, t.helix_deg, t.climb, t.corner_mm,
+                                        profile=t.hf_profile())
             self.D_eff_in = self.eng.D_eff / MM_PER_IN
         # C14 (vendor consensus): the speed is capped at scale × the bucket's vendor-median SFM.
         self.cons = ctx.consensus_for(ae_in)
         self.c14v = c14_speed(self, rpm_given=bool(rpm))
-        self.c6 = c6_geometry(self.ap, self.ae, t.D, t.lcf, ctx.depth, ctx.op == "slot", ctx.flute_exposed)
+        self.c6 = c6_geometry(self.ap, self.ae, t.D, t.ap_limit, ctx.depth, ctx.op == "slot", ctx.flute_exposed,
+                              lcf_word="max ap of the high-feed edge" if t.high_feed is not None else "LCF")
         self.c8 = (c8_slot_depth(self.ap, t.D, ctx.op, k_slot=ctx.depth_cap_ratio) if not ctx.user_engagement else
                    Check("C8", "depth cap (vendor engagement envelope)", "max", self.ap, None, "in", SRC["C8"],
                          applies=False, detail="the user's own depth; the vendor depth cap is a recommendation"))
@@ -2109,8 +2241,9 @@ class CutPoint:
         return {"C2": c2_tooth_strength(worst, ctx.h_tooth, ctx.mg.limit_scale, ctx.h_tooth_basis)}
 
     def c15(self, fz_in):
-        """C15: the chip one tooth cuts fits its gullet (physics_v2/chipspace.py)."""
-        return c15_chip_space(self.ctx, self.ap, self.ae, fz_in)
+        """C15: the chip one tooth cuts fits its gullet (physics_v2/chipspace.py). A high-feed tool's chip per unit edge
+        length is thinned by sin κ0 (the edge is 1/sin κ0 longer than the depth it cuts)."""
+        return c15_chip_space(self.ctx, self.ap, self.ae, fz_in * self.ctx.chip_fz_scale)
 
     def c11(self, fz_in):
         return c11_feed(fz_in * self.ctx.tool.z * self.rpm, self.ctx.mach.max_feed_ipm, self.ctx.feed_cap)
@@ -2402,6 +2535,10 @@ def _report(pt, fz_in, checks, f, beam, chips):
              "sections": beam["sections"], "flute_h_max_in": [h / MM_PER_IN for h in chips["c2"]],
              "flute_h_max_c1_phase_in": [h / MM_PER_IN for h in chips["c1"]],
              "flute_kc_n_mm2": f["flute_kc_n_mm2"]}
+    if "mean_axial_n" in f:
+        # the edge-normal force's axial part (ball, bull nose, high feed): reported; no spindle/holder axial-load check exists
+        loads.update(axial_mean_n=f["mean_axial_n"], axial_peak_n=f["peak_axial_n"],
+                     axial_peak_lbf=f["peak_axial_n"] / N_PER_LBF)
     ctx = pt.ctx
     bound = pt.eng.max_chips(fz_in * MM_PER_IN, ctx.offsets_bound)
     h_min = ctx.lam * t.edge_radius_mm
@@ -2465,7 +2602,22 @@ def _report(pt, fz_in, checks, f, beam, chips):
             "vendor_median_comparison": comparison,
             "runout_bound": {"flute_h_max_in": [h / MM_PER_IN for h in bound],
                              "c1_ok": min(bound) >= h_min, "c2_ok": max(bound) <= ctx.h_tooth},
-            "warnings": warnings}
+            "warnings": warnings,
+            "high_feed": (dict(t.high_feed.to_dict(), effective_diameter_in=pt.D_eff_in,
+                               axial_peak_n=loads.get("axial_peak_n"), axial_mean_n=loads.get("axial_mean_n"),
+                               axial_check="none: no spindle or holder axial-load limit in the machine profile (reported only)",
+                               square_end_chart_sfm=_square_chart_sfm(pt))
+                          if t.high_feed is not None else None)}
+
+
+def _square_chart_sfm(pt):
+    """For a high-feed tool: the square-end chart's SFM at this aggressiveness for the same material, operation and
+    engagement (reference only; it is not applied to the high-feed tool), or None."""
+    ctx = pt.ctx
+    if ctx.vendor_table is None or not ctx.mat.family:
+        return None
+    ref = vendor_lookup(ctx.vendor_table, ctx.brand, ctx.mat.family, ctx.mat.hb, ctx.tool.D, ctx.op, pt.ae / ctx.tool.D)
+    return c14_cap(ref, "sfm", ctx.mg) if ref else None
 
 
 # ---------------------------------------------------------------------------
@@ -2479,7 +2631,8 @@ def vendor_basis(pt):
     ctx, cons = pt.ctx, pt.cons
     out = {"mode": "none", "vendor": None, "chart_class": None, "rows": 0, "sfm_range": None, "fz_range": None,
            "brand": ctx.brand, "aggressiveness": ctx.mg.aggressiveness, "bucket": None, "widening": None,
-           "brand_missing": None, "vendor_groups": None}
+           "brand_missing": None, "vendor_groups": None, "flute_aware": bool(ctx.flute_aware),
+           "flute_factor": ctx.flute_factor, "row_flutes": None}
     if not ctx.c14_on:
         out["mode"] = "off"
         return out
@@ -2492,7 +2645,7 @@ def vendor_basis(pt):
                sfm_range=list(rng["sfm"]) if "sfm" in rng else None,
                fz_range=[x * D for x in rng["fz_over_D"]] if "fz_over_D" in rng else None,
                bucket=cons["key"], widening=cons["widening"], brand_missing=cons.get("brand_missing"),
-               vendor_groups=list(cons["vendor_groups"]))
+               vendor_groups=list(cons["vendor_groups"]), row_flutes=cons.get("row_flutes"))
     if not rng:
         s = ctx.mg.consensus_cap_scale
         out["sfm_median"], out["fz_median"], out["cap_scale"] = cons["sfm"], cons["fz_over_D"] * D, s
@@ -2582,7 +2735,7 @@ def optimize(tool, material, machine, operation="adaptive", aggressiveness=0.5, 
                                                         **search_opts)
     depth = ctx.depth
     D, lcf = tool.D, tool.lcf
-    ap_max = min(x for x in (lcf, ctx.flute_exposed or lcf, depth) if x)
+    ap_max = min(x for x in (tool.ap_limit, ctx.flute_exposed or lcf, depth) if x)
     prov = [f"{tool.label or 'tool'}: D {D:.4f}\", {tool.z} flutes, LCF {lcf:.4f}\", stickout "
             f"{tool.stickout:.4f}\" (equivalent {ctx.eq_stickout / D:.2f}·D), helix {tool.helix_deg:g}°",
             f"material: {material.name}; kc1.1 = {ctx.coeffs.kienzle.kc1_1:.0f} N/mm², mc {material.kienzle.mc:g}",
@@ -2917,7 +3070,7 @@ def evaluate_user_engagement(tool, material, machine, operation, ap_in, ae_in, a
     mg = margins or Margins(aggressiveness)
     ctx = _Context(tool, material, machine, operation, mg, n_theta, n_quad, **dict(opts, user_engagement=True))
     D = tool.D
-    ap_max = min(x for x in (tool.lcf, ctx.flute_exposed or tool.lcf) if x)
+    ap_max = min(x for x in (tool.ap_limit, ctx.flute_exposed or tool.lcf) if x)
     ap_used, ae_used = min(float(ap_in), ap_max), min(float(ae_in), D)
     pt = CutPoint(ctx, ap_used, ae_used)
     win = pt.fz_window()

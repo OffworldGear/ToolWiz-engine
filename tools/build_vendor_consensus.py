@@ -37,7 +37,7 @@ from physics_v2 import optimize as o  # noqa: E402
 from toolwiz_common import brand  # noqa: E402
 
 OUT = os.path.join(ROOT, "data", "model_v2", "consensus_by_vendor.json")
-VERSION = "2026-11-12.1"
+VERSION = "2026-11-12.2"   # .2: each row carries its flute count (flute-aware C14, chip_by_flutes.json)
 SINGLE_VALUE_SPREAD = (0.76, 1.10)
 CHART_CLASS = {"slot": "slot", "side": "side", "rough": "rough", "hem": "hem", "finish": "finish"}
 FILE_VENDOR = {"harvey_ball_cr": "harvey", "osg_ball": "osg"}
@@ -55,12 +55,13 @@ def triple(v):
     return lo, nom, hi
 
 
-def vendor_rows():
-    """(vendor key, vendor group, row) for every row of the benchmark files except ramps."""
+def vendor_rows(paths=None):
+    """(vendor key, vendor group, row) for every row of the benchmark files except ramps (paths: other files, for tests)."""
     out = []
-    for path in sorted(glob.glob(os.path.join(ROOT, "tests", "benchmarks", "v2", "*.json"))):
+    for path in sorted(paths or glob.glob(os.path.join(ROOT, "tests", "benchmarks", "v2", "*.json"))):
         stem = os.path.basename(path)[:-5]
-        key = FILE_VENDOR.get(stem, stem)
+        # high-feed rows may sit in their own file per vendor: highfeed_<vendor>.json (tests/benchmarks/v2_staged naming)
+        key = FILE_VENDOR.get(stem) or (stem[len("highfeed_"):] if stem.startswith("highfeed_") else stem)
         with open(path, encoding="utf-8") as fh:
             d = json.load(fh)
         for r in d["rows"]:
@@ -70,8 +71,9 @@ def vendor_rows():
 
 
 def row_entry(row):
-    """(family, hb, D, ae/D, values) for a row in scope, else None (calibrate_v2.evaluate's filters)."""
-    if row["tool"].get("end") != "square" or pl.missing_geometry(row):
+    """(family, hb, D, ae/D, values) for a row in scope, else None (calibrate_v2.evaluate's filters). Square-end and
+    high-feed (tool.end "high_feed") rows; a high-feed row goes to the high-feed chart classes (chart_class)."""
+    if row["tool"].get("end") not in ("square", "high_feed") or pl.missing_geometry(row):
         return None
     mat, info = cv.row_material(row)
     if mat is None:
@@ -85,7 +87,25 @@ def row_entry(row):
     D = tool.D
     fzd = [x / D for x in f]
     ffpf = [f[i] * 12.0 * s[i] / (math.pi * D) for i in range(3)]
-    return info["family"], info["hb"], D, ae / D, [round(x, 7) for x in (*s, *fzd, *ffpf, ae / D)]
+    z = int(row["tool"].get("flutes") or 0)   # 0: not published (no flute-aware scaling for this row)
+    return info["family"], info["hb"], D, ae / D, [round(x, 7) for x in (*s, *fzd, *ffpf, ae / D)] + [z]
+
+
+# High-feed end mills (tool.end "high_feed"): their own chart classes, never pooled with square-end charts (the engine reads
+# them for a high-feed tool only: optimize.HF_CHART_CLASSES). Slot rows -> hf_slot; roughing, pocketing, facing, HEM -> hf_rough.
+HF_CHART_CLASS = {"slot": "hf_slot", "rough": "hf_rough", "side": "hf_rough", "hem": "hf_rough", "pocket": "hf_rough",
+                  "face": "hf_rough"}
+
+
+def chart_class(row):
+    """(per-vendor chart class, cross-vendor class) of a row, or None for an operation outside the classes."""
+    op = row["operation"]
+    if row["tool"].get("end") == "high_feed":
+        c = HF_CHART_CLASS.get(op)
+        return (c, c) if c else None
+    if op not in CHART_CLASS:
+        return None
+    return CHART_CLASS[op], cv.OPERATION_CLASS[op]
 
 
 def cell_key(family, hb, D, ae_over_D, cls):
@@ -93,22 +113,23 @@ def cell_key(family, hb, D, ae_over_D, cls):
                      o.engagement_class(ae_over_D, cv.ENGAGEMENT_CLASSES)))
 
 
-def build():
+def build(paths=None):
     vendors = {k: {"name": brand.display_name(k), "vendor_group": None, "cells": collections.defaultdict(list), "rows": 0}
                for k in brand.VENDORS}
     cons = collections.defaultdict(lambda: collections.defaultdict(list))
     skipped = collections.Counter()
-    for key, group, row in vendor_rows():
+    for key, group, row in vendor_rows(paths):
         e = row_entry(row)
-        if e is None:
+        cc = chart_class(row)
+        if e is None or cc is None or key not in vendors:
             skipped[key] += 1
             continue
         fam, hb, D, aeD, vals = e
         v = vendors[key]
         v["vendor_group"] = group
-        v["cells"][cell_key(fam, hb, D, aeD, CHART_CLASS[row["operation"]])].append(vals)
+        v["cells"][cell_key(fam, hb, D, aeD, cc[0])].append(vals)
         v["rows"] += 1
-        cons[cell_key(fam, hb, D, aeD, cv.OPERATION_CLASS[row["operation"]])][group].append(vals)
+        cons[cell_key(fam, hb, D, aeD, cc[1])][group].append(vals)
     for v in vendors.values():
         v["cells"] = dict(v["cells"])
         v["chart_classes"] = dict(collections.Counter(k.split("|")[3] for k, rows in v["cells"].items() for _ in rows))
@@ -118,7 +139,7 @@ def build():
                   "otherwise; then the cross-vendor consensus; 50 % = middle of the vendor's range, 0 % its bottom, 100 % its top)",
         "source": "tests/benchmarks/v2 square-end rows on their own catalog geometry (the rows of data/model_v2/consensus.json)",
         "fields": ["sfm_lo", "sfm", "sfm_hi", "fz_over_D_lo", "fz_over_D", "fz_over_D_hi",
-                   "feed_per_flute_ipm_lo", "feed_per_flute_ipm", "feed_per_flute_ipm_hi", "ae_over_D"],
+                   "feed_per_flute_ipm_lo", "feed_per_flute_ipm", "feed_per_flute_ipm_hi", "ae_over_D", "flutes"],
         "single_value_spread": list(SINGLE_VALUE_SPREAD),
         "single_value_basis": "a value published as one number spans 0.76x-1.10x of it (the former consensus anchors at "
                               "0 % and 100 %: vendors' lower quartile, and 'may be increased 10-20 %', low end)",
@@ -138,6 +159,8 @@ def check(table):
     old = o.load_consensus(o.CONSENSUS_DEFAULT_PATH)["cells"]
     bad = []
     for key, groups in table["consensus"]["cells"].items():
+        if key.split("|")[3].startswith("hf_"):
+            continue   # high-feed classes are not in consensus.json (square-end rows only)
         if key not in old:
             bad.append((key, "missing in consensus.json"))
             continue

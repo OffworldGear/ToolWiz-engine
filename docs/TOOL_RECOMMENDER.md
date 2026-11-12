@@ -55,6 +55,17 @@ Infeasible candidates are dropped. Every alternative carries `feasible`, `limite
   normal-depth slots. What still makes more flutes look better is that the chip-load limit is the same for every flute count,
   while vendors run fewer-flute tools at higher chip loads in slots, most of all in aluminum (docs/research/chip_space.md).
   A flute-count increase in a full slot therefore carries the caveat "Flute-count gain is optimistic ...".
+  Since 2026-11-12 the engine's chip load depends on flute count for aluminium slots and roughing (fewer-flute tools get the
+  larger chip vendors publish; `data/model_v2/chip_by_flutes.json`). When both the current tool's and the candidate's results
+  carry `chip_space.flute_aware: true` (or `vendor_basis.flute_aware`), the caveat is dropped; every other material family keeps it.
+* High-feed end mill (2026-11-12). For a full slot or a pocket whose depth (`depth_in`, `min_reach_in` or `cut_depth`) is at
+  most 2 x D, one candidate is a generic solid-carbide high-feed end mill of the same diameter (4 flutes, geometry "High Feed",
+  lead angle and max ap assumed: 15 deg, 0.06 x D). It is labelled "(physics only)" (`source: "high_feed"`, `physics_only: true`):
+  ToolWiz has no high-feed vendor chart yet, so no vendor guardrail applies. Its caveats say so, that the tool is not center
+  cutting (no plunge; the ramp angle and minimum helix), the wall and floor stock its lead edge leaves, the assumed geometry
+  and, when its physics speed is over 1.1x the square-end chart's, that speed. A slot is scored on feed x depth per level as
+  any slot. It is always listed (in `below_threshold` when its gain is under `min_gain_pct`). No depth given: not compared
+  (a note in `skipped`).
 * When nothing passes, `not_recommended_reasons` say why in plain words, e.g. "spindle-limited at 16,000 rpm: brand makes no difference in Aluminum - Wrought (6061) at this diameter, because
   the machine's speed limit sets the feed, not a chart".
 

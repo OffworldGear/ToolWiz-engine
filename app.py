@@ -632,6 +632,9 @@ def calculate():
             runout=_runout_arg(data),
             holder=_holder_arg(data),
             brand=_brand_arg(data),
+            # high-feed end mills (geometry "High Feed"): the tool's max ap and lead angle (catalog values; optional)
+            max_ap=_optional_length(data, "maxAp", "apmx"),
+            lead_angle=_optional_length(data, "leadAngle"),
             cut_depth=cut_depth,
             cut_width=cut_width,
             engagement_explicit=(explicit_depth is not None or explicit_width is not None),
@@ -749,6 +752,9 @@ def calculate_for_fusion():
             runout=_runout_arg(data),
             holder=_holder_arg(data),
             brand=_brand_arg(data),
+            # high-feed end mills (geometry "High Feed"): the tool's max ap and lead angle (catalog values; optional)
+            max_ap=_optional_length(data, "maxAp", "apmx"),
+            lead_angle=_optional_length(data, "leadAngle"),
             cut_depth=user_depth,
             cut_width=user_width,
             **_finish_args(data),

@@ -40,6 +40,9 @@ OPERATION_MAP = {
     "3d finishing": "finish", "finishing (3d)": "finish", "scallop": "finish", "3d scallop": "finish", "parallel": "finish",
     "contour finishing": "finish", "3d contour": "finish", "3d contouring": "finish", "pencil": "finish",
 }
+# High-feed end mills (physics_v2/highfeed.py): an operation named for high-feed milling maps to a slot when it says so, else
+# to roughing (pocket / facing-style passes); only a high-feed tool runs it on v2 (a square or bull-nose tool keeps v1's rule).
+HIGH_FEED_OPERATIONS = ("high feed", "high-feed", "highfeed", "hfm")
 NOT_SQUARE = ("chamfer", "v-bit", "engrav", "taper", "dovetail", "lollipop",
               "t-slot", "keyseat", "woodruff", "thread", "drill", "ream", "tap", "saw", "face", "form")
 
@@ -98,6 +101,12 @@ def _families():
     return params.load()["families"]
 
 
+def is_high_feed(r):
+    """True when the request names a high-feed end mill (geometry "High Feed", or tool text with high feed / HF / HFM)."""
+    from physics_v2 import highfeed
+    return highfeed.is_high_feed(r.geometry, r.tool)
+
+
 def scope(r, res):
     """(v2 operation, None) when v2.0 covers this cut, else (None, reason)."""
     if res.is_hole_tool or res.is_tapping:
@@ -107,7 +116,16 @@ def scope(r, res):
         return None, "v2 covers square, bull-nose and ball end mills (chamfer, form, taper and other tools stay on v1)"
     if not r.is_carbide:
         return None, "v2.0 models solid carbide tools only"
-    op = OPERATION_MAP.get(str(r.operation).strip().lower())
+    name = str(r.operation).strip().lower()
+    op = OPERATION_MAP.get(name)
+    hf = is_high_feed(r)
+    if op is None and any(k in name for k in HIGH_FEED_OPERATIONS):
+        if not hf:
+            return None, ("high-feed milling with a square or bull-nose tool stays on v1 (v2 models it with a high-feed end "
+                          "mill: geometry \"High Feed\")")
+        op = "slot" if ("slot" in name or "window" in name) else "rough"
+    if hf and op == "finish":
+        return None, "a high-feed end mill roughs; v2 does not finish with it (v1 stands)"
     if op is None:
         return None, f"v2.0 doesn't model the {r.operation!r} operation yet (adaptive, roughing, slotting and wall finishing)"
     if r.family not in _families():
@@ -170,12 +188,24 @@ def corner_radius_in(r, diameter):
     return min(rc, diameter / 2.0)
 
 
+def high_feed_geometry(r):
+    """physics_v2.highfeed.Geometry of a high-feed request (max ap, lead angle or programming radius from the request,
+    defaults marked assumed), else None."""
+    if not is_high_feed(r):
+        return None
+    from physics_v2 import highfeed
+    D = float(r.profile.geometry.diameter)
+    return highfeed.resolve(D, getattr(r, "max_ap", None), getattr(r, "lead_angle", None), float(r.corner_radius or 0.0))
+
+
 def tool_for(r):
     from physics_v2 import optimize as o
     g = r.profile.geometry
+    hf = high_feed_geometry(r)
     return o.Tool(r.profile, float(g.diameter), int(g.flutes), float(g.flute_length),
-                  helix_deg=float(r.helix_angle or 35.0), corner_radius_in=corner_radius_in(r, float(g.diameter)),
-                  label=f"{g.diameter:.4f}\" {int(g.flutes)}FL")
+                  helix_deg=float(r.helix_angle or 35.0),
+                  corner_radius_in=0.0 if hf else corner_radius_in(r, float(g.diameter)),
+                  label=f"{g.diameter:.4f}\" {int(g.flutes)}FL" + (" high-feed" if hf else ""), high_feed=hf)
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +247,10 @@ def _cache_key(r, op, hb, machine, kw, extra=None):
         # C15 chip space reads flutes, D, family, operation, aggressiveness and the user's ap/ae (all above) and its
         # parameter file: a recalibrated file must not be answered from the cache
         "cs": _chip_space_version(),
+        # flute-aware chip load (C2 / C14 × F(flutes)): a refitted file must not be answered from the cache
+        "cf": _data_version("chip_by_flutes.json"),
+        # high-feed end mill: lead angle, max ap and the programming radius they came from (None for other tools)
+        "hf": (lambda g: [g.lead_deg, g.apmx_in, g.programming_radius_in, list(g.assumed)] if g else None)(high_feed_geometry(r)),
         "m": [machine.label, machine.max_rpm, machine.tir_in, machine.spindle.get("power_kw_continuous"),
               machine.holder_k_n_um, machine.holder_ktheta_nm_urad, machine.max_feed_ipm],
     }, sort_keys=True, default=str)
@@ -228,6 +262,15 @@ def _chip_space_version():
         from physics_v2 import chipspace
         p = chipspace.load()
         return [p.get("version"), sorted((g, v.get("K")) for g, v in (p.get("packing") or {}).items())]
+    except (OSError, ValueError):
+        return None
+
+
+def _data_version(name):
+    """A data/model_v2 file's version (None when absent)."""
+    try:
+        with open(os.path.join(ROOT, "data", "model_v2", name), encoding="utf-8") as fh:
+            return json.load(fh).get("version")
     except (OSError, ValueError):
         return None
 
@@ -272,9 +315,15 @@ def _optimize_user(physics, r, op, machine_profile, ap, ae):
 
 
 def _ramp(tool, material, machine, r, out):
-    """The helical entry for this tool and material (physics_v2/ramp.py), or {"error": ...}; never raises."""
+    """The helical entry for this tool and material (physics_v2/ramp.py), or {"error": ...}; never raises. A high-feed end
+    mill (not center cutting) gets its entry guidance from physics_v2/highfeed.py instead."""
     from physics_v2 import params, ramp
     cut = out.get("cut") or {}
+    if tool.high_feed is not None:
+        if not cut:
+            return {"feasible": False, "error": "no cut"}
+        from physics_v2 import highfeed
+        return highfeed.entry_guidance(tool.high_feed, float(cut["feed_ipm"]), float(cut["rpm"]))
     try:
         return ramp.optimize_ramp(tool, material, machine, float(r.aggressiveness), consensus=params.CONSENSUS_PATH,
                                   op_feed_ipm=cut.get("feed_ipm"), op_rpm=cut.get("rpm"), coating=r.coating)
@@ -285,7 +334,7 @@ def _ramp(tool, material, machine, r, out):
 def _ramp_details(rp):
     if not rp:
         return None
-    keys = ("feasible", "error", "ramp_angle_deg", "helix_diameter_over_D", "helix_diameter_in", "helix_min_diameter_over_D",
+    keys = ("feasible", "error", "high_feed", "basis", "ramp_angle_deg", "helix_diameter_over_D", "helix_diameter_in", "helix_min_diameter_over_D",
             "helix_min_diameter_in", "bore_diameter_in", "pitch_in", "rpm", "sfm", "spindle_rpm", "fz_in", "ramp_feed_ipm",
             "ramp_feed_at_c7_rpm_ipm", "descent_ipm", "plunge_feed_ipm", "end_chip_in", "end_chip_floor_in",
             "end_chip_cap_in", "edge_radius_mm", "edge_radius_basis", "r1_warning", "binding", "overridden", "warned",
@@ -364,7 +413,7 @@ def vendor_basis_block(vb, r, res=None, op=None):
     cls = vb.get("chart_class")
     word = CHART_WORDS.get(cls, cls or "")
     out.update({k: vb.get(k) for k in ("mode", "vendor", "chart_class", "rows", "sfm_range", "fz_range", "bucket",
-                                       "widening")})
+                                       "widening", "flute_aware", "flute_factor", "row_flutes")})
     out["vendor_name"] = _vendor_name(vb.get("vendor"))
     if not text:
         why = "no brand given"
@@ -381,6 +430,8 @@ def vendor_basis_block(vb, r, res=None, op=None):
         hh = "" if key in ("harvey", "helical") else "; Harvey/Helical have no chart for this cut"
         out["note"] = (f"Vendor basis: cross-vendor consensus of {rows} charts ({why}{hh})." if vb.get("sfm_range") else
                        f"Vendor basis: cross-vendor consensus of {rows} charts for this end form ({why}).")
+    elif r is not None and is_high_feed(r):
+        out["note"] = "Vendor basis: none: no vendor chart for high-feed tools yet; physics limits only."
     else:
         out["note"] = f"Vendor basis: none: no vendor chart matches this cut ({why}); physics limits only."
     return out
@@ -395,7 +446,7 @@ def chip_space_block(cs, res=None):
         return {"applies": False, "limiting": False, "utilisation": None, "note": why}
     keys = ("applies", "limiting", "utilisation", "limit", "fill_of_limit", "full_slot", "flutes", "material_group",
             "packing_K", "depth_factor", "core_ratio", "gullet_area_in2", "chip_area_in2", "max_fz_in",
-            "max_fz_by_flutes_in", "sentence", "basis", "note")
+            "max_fz_by_flutes_in", "sentence", "basis", "note", "flute_aware", "flute_factor", "flute_basis")
     return {k: cs[k] for k in keys if k in cs}
 
 
@@ -456,6 +507,22 @@ def _runout_tips(res, cut, tir_in, z):
                     + f"; the other flute(s) rub, which shortens tool life and roughens the wall. {need}: "
                       f"use a lower-runout holder or tool, or accept the reduced-flute cut."),
         "type": "warning", "fusion": True})
+
+
+def _high_feed_tips(r, res, cut, out):
+    """A high-feed end mill: entry (ramp / helix, no plunge), wall and floor stock, depth per level, assumed geometry and
+    the axial load, as plain tips; the stock to leave is the larger of the deflection rule's and the lead edge's."""
+    from physics_v2 import highfeed
+    g = high_feed_geometry(r)
+    rp = out.get("ramp") or highfeed.entry_guidance(g, float(cut["feed_ipm"]), float(cut["rpm"]))
+    radial, axial = highfeed.wall_stock(g, float(cut["ap_in"]), float(cut["ae_in"]))
+    res.recommended_radial_stock_in = max(res.recommended_radial_stock_in or 0.0, radial)
+    res.recommended_axial_stock_in = max(res.recommended_axial_stock_in or 0.0, axial)
+    res.tips = [t for t in res.tips if t.get("title") != "Stock to leave"]
+    cut_ref = dict(cut, _square_chart_sfm=(out.get("high_feed") or {}).get("square_end_chart_sfm"))
+    res.tips.extend(highfeed.tips(g, cut_ref, rp, (out.get("high_feed") or {}).get("axial_peak_n")))
+    if res.v2 is not None:
+        res.v2["high_feed"] = dict(out.get("high_feed") or {}, radial_stock_in=radial, axial_stock_in=axial)
 
 
 def apply(physics, r, res, machine_profile=None):
@@ -536,6 +603,7 @@ def apply(physics, r, res, machine_profile=None):
         res.deflection = float(c3["value"])
         res.rec_limit = float(c3.get("limit") or res.rec_limit)
     res.total_error = res.deflection + res.springback
+    hf = out.get("high_feed")
     if op in ("rough", "adaptive", "slot"):
         mm = 1.0 / 25.4
         radial = max(0.05 * mm, 1.5 * res.deflection + res.springback)
@@ -547,6 +615,8 @@ def apply(physics, r, res, machine_profile=None):
                                      f"{res.recommended_axial_stock_in:.4f}\" axial for the finish pass "
                                      f"(1.5 × the predicted wall deflection plus springback, never under 0.05 mm)."),
                          "type": "info", "fusion": True})
+    if hf:
+        _high_feed_tips(r, res, cut, out)
     res.flutes_cutting = cut.get("flutes_cutting")
     res.runout_regime = cut.get("runout_regime")
     res.tir_all_flutes_in = cut.get("tir_all_flutes_in")

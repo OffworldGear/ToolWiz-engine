@@ -642,8 +642,9 @@ BRAND_GAP = ("Known gap (docs/V4_ENGINE_NOTES.md, 'Brand first'): measured {}. T
              "the mark when it passes.")
 
 
-@pytest.mark.parametrize("which", [pytest.param("branded", marks=pytest.mark.xfail(strict=True, reason=BRAND_GAP.format(
-    "branded overall 89.9% of 526 groups (gate 90%)"))), "unbranded"])
+# Branded overall passes since the flute-aware chip load (2026-11-12: 89.9% -> 90.3% of 526 groups; the 2- and 3-flute
+# aluminium slot groups are no longer held under the vendors' chip), so its strict xfail mark was removed.
+@pytest.mark.parametrize("which", ["branded", "unbranded"])
 def test_brand_conformance_overall(brand_conformance, which):
     c = brand_conformance
     res = brand_report(c[which], c["b_out" if which == "branded" else "u_out"], which == "branded")

@@ -151,21 +151,31 @@ class TestPipeline(unittest.TestCase):
             fz.append(r["adj_ipt"])
             self.assertIn("chip_space", r)
             if z >= 5:
-                self.assertIn("C15", r["limited_by"], z)
-                self.assertTrue(r["chip_space"]["limiting"])
+                # since 2026-11-12 the flute-aware C2 (aluminium slots, chip_by_flutes.json) holds 5-7 flutes at or below
+                # the chip-room ceiling, so either limit may bind; C15 stays the ceiling
+                self.assertTrue("C15" in r["limited_by"] or ("C2" in r["limited_by"] and r["chip_space"]["flute_aware"]),
+                                (z, r["limited_by"]))
+                self.assertLessEqual(r["adj_ipt"], r["chip_space"]["max_fz_in"] * (1 + 1e-3))
         for a, b in zip(fz, fz[1:]):
             self.assertLessEqual(b, a * (1 + 1e-6), fz)
 
     def test_seven_flute_full_slot_in_6061_is_limited_and_says_why(self):
-        r = calc(flutes=7)
-        cs = r["chip_space"]
-        self.assertIn("C15", r["limited_by"])
+        # C15 on its own (the flute-agnostic C2 of before 2026-11-12): it limits the 7-flute slot and says why
+        def eng(z, **kw):
+            return params.optimize(tool(z), params.material(AL), "slot", 0.5, robust=False, robustness=False, **kw)
+        out = eng(7, chip_flutes=None)
+        cs = out["chip_space"]
+        self.assertIn("C15", out["binding"])
         self.assertTrue(cs["limiting"])
         self.assertIn("7 flutes leave too little chip room for a full slot in aluminum", cs["sentence"])
         self.assertIn("flute tool can take a larger chip", cs["sentence"])
-        r3 = calc(flutes=3)
+        r3 = eng(3, chip_flutes=None)
         self.assertFalse(r3["chip_space"]["limiting"])
         self.assertGreater(r3["chip_space"]["max_fz_in"], 2 * cs["max_fz_in"])
+        # with the flute-aware C2 (default) the 7-flute chip is no larger than C15 alone allowed
+        r = calc(flutes=7)
+        self.assertTrue(r["chip_space"]["flute_aware"])
+        self.assertLessEqual(r["adj_ipt"], out["cut"]["fz_in"] * (1 + 1e-3))
 
     def test_every_endpoint_returns_the_block(self):
         r = calc(flutes=4, model="v1")

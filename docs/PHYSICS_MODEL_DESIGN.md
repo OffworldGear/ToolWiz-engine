@@ -98,7 +98,7 @@ Every constraint names its source. "Empirical" means kept deliberately until it 
 | C3 | Deflection ≤ δ_allow(operation, D, aggressiveness) | Accuracy and breakage | Today's limits, reviewed |
 | C4 | σ_max ≤ s·σ_fatigue(carbide) | Breakage | Carbide transverse rupture strength (TRS) about 3–4.5 GPa; fatigue fraction from the literature |
 | C5 | P ≤ P_spindle(rpm) and T ≤ T_spindle(rpm) | Machine | Spindle curve (Speedio 16k) |
-| C6 | ap ≤ LCF; ae ≤ D; ae fixed for finishing passes (stock) | Geometry | — |
+| C6 | ap ≤ LCF (a high-feed tool: ≤ its max ap); ae ≤ D; ae fixed for finishing passes (stock) | Geometry | — |
 | C7 | v_c from Taylor tool life (v_c·T^n = C) at the chosen life; rpm ≤ machine max | Thermal and wear | C and n per material × tool material × coating, anchored to vendor SFM; GWizard SFM as a prior |
 | C8 | Full-slot micro depth ≤ k_slot·D | **Empirical:** chip packing (Harvey miniature guide: step down 5–15% of D when slotting) | Vendor slot depths |
 | C9 | Stickout-related speed reduction | **Empirical:** chatter. OSG overhang tables applied to the equivalent stickout. Replace with stability lobes if the user ever measures the tool's vibration response | — |
@@ -108,6 +108,27 @@ Every constraint names its source. "Empirical" means kept deliberately until it 
 C11–C14 (feed cap, every flute reaches the stock, program size, vendor guardrail) were added after this table; their
 sources are in `physics_v2/optimize.SRC`. C15 is reported in every v2 result as `chip_space` (utilisation, whether it
 limits, a plain sentence).
+
+**Flute-aware chip load (2026-11-12, owner decision: aluminium first).** C2's vendor-chip limit (and C14's chip-load and
+feed-per-flute range) is multiplied by F(z), the material group's median vendor chip for z flutes over its 4-flute chip, per
+chart class (slot; side milling and roughing), where the vendor rows show the trend: applied to aluminium slots
+(F = 2.53 / 1.13 / 1.00 for 2 / 3 / 4 flutes, falling with the gullet area per flute above 4) and aluminium roughing (1.48 for
+2-3 flutes, 1.00 for 4 and up). Steel, stainless, titanium and aluminium HEM stay flute-agnostic. Square-end tools only.
+`tools/fit_chip_by_flutes.py` writes `data/model_v2/chip_by_flutes.json` (sources, row counts, reasons); results carry
+`chip_space.flute_aware` and `vendor_basis.flute_aware`. C15 stays the ceiling; C1 and C3-C8 are unchanged.
+
+**High-feed end mills (2026-11-12).** Geometry "High Feed" (or tool text "high feed", "HF", "HFM") is modelled with its own
+end form (`physics_v2/endforms.HighFeedProfile`): a straight lead edge at the lead angle κ0 rising from radius r_in to the
+outer diameter at the tool's max ap (apmx). The force model is the shaped-tool slice model (`ShapedEngagement`) with
+sin κ = sin κ0, so the chip normal to the edge is fz·sin φ·sin κ0 (C1, C2 act on it), the in-plane radial force is scaled by
+sin κ0, and the edge-normal force's axial part (cos κ0) is reported as `loads.axial_peak_n` (no spindle axial-load check
+exists). C6 caps ap at apmx; C7 sets the speed at the effective diameter 2·r(ap); C15 uses the chip per unit edge length
+fz·sin κ0; the vendor engagement envelope (square-end rows) is not used. Inputs: max ap and lead angle or the CAM
+programming radius (tan κ0 = apmx / r_p); defaults 15° and 0.06·D, marked assumed (`physics_v2/highfeed.py`). Vendor
+guardrail: high-feed chart classes `hf_slot` / `hf_rough` built from rows with `tool.end = "high_feed"`, same brand ->
+default -> consensus order; none exist yet, so results say "no vendor chart for high-feed tools yet; physics limits only".
+Results carry entry guidance (no plunge; max ramp angle min(atan(apmx/D), 3°); helix tool-centre diameter ≥ 1.15·2·r_in)
+and the wall and floor stock the lead edge leaves.
 
 ### 3.6 Choosing the cut
 

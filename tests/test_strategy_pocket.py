@@ -170,7 +170,9 @@ def contour(count=4, so=0.06, feed="90 in/min", length=24):
 
 
 def test_multi_stepover_overloaded_slot_pass_is_a_stop_and_apply_plan_uses_slot_numbers():
-    o = advise(contour())
+    # 100 IPM at 12,000 rpm on 3 flutes is 0.0028"/tooth, over twice the full-slot chip (the 3-flute aluminium slot chip is
+    # flute-aware since 2026-11-12, 0.0013"; 90 IPM was 2.2x the former flute-agnostic 0.00115" and is 1.95x now)
+    o = advise(contour(feed="100 in/min"))
     ms = o["multi_stepover"]
     f = next(x for x in o["findings"] if x["code"] == "multi_stepover_overload")
     assert f["severity"] == "STOP" and "full slot" in f["detail"]

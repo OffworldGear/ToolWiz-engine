@@ -37,15 +37,13 @@ XFAIL_FEED_CONTINUITY = {
     "0.0312in-2fl-Steel-Adaptive": "1/32 in 4130 adaptive: the radial runout offset adds 1:1 to the worst-flute chip at ae = 0.15 D, so the feed falls 16% between TIR 0 and 0.1 x fz (limit 15%)",
     "0.0625in-2fl-Steel-Adaptive": "1/16 in 4130 adaptive: same 1:1 chip effect at ae = 0.15 D; feed 10.08 -> 8.35 IPM (17%) between TIR 0 and 0.1 x fz",
 }   # round 6: the three round-4 cases pass after the hardness recalibration; marks removed
+# 2026-11-12: the 1/16" and 1/32" 2-flute 6061 slot +10 % stickout cases pass with the flute-aware chip load (the 2-flute
+# chip is larger, so the cut is C2-limited at a shallower, less stiffness-sensitive depth); their marks were removed.
 XFAIL_PERTURB = {
-    ("stickout+10%", "0.0625in-2fl-Aluminum-Slotting"):
-        "1/16 in 6061 slot: +10% stickout cuts the stiffness about 30% (L^3); depth 0.0314 -> 0.0218 in (31%)",
     ("stickout+10%", "0.0625in-2fl-Steel-Adaptive"):
         "1/16 in 4130 adaptive: for a narrow cut the force stops growing with depth, so depth is free until deflection fails; "
         "the C3 margin at the 0.4 x median chip floor at 2 x D falls 12.9% -> 5.1% -> -3.2% over +0%, +5%, +10% stickout "
         "(the stiffness drops about 30%), and past zero the deep cut is infeasible: depth 0.125 -> 0.0127 in",
-    ("stickout+10%", "0.0312in-2fl-Aluminum-Slotting"):
-        "1/32 in 6061 slot: +10% stickout cuts the stiffness by about 25-30% (L^3), so the deflection-limited depth moves with it",
     ("aggressiveness+10%", "0.0200in-2fl-Steel-Adaptive"):
         "0.020 in 4130 adaptive: MRR is flat along a ridge of (ap, fz) pairs (ap x fz is constant to 4 %), and at 55 % the selector "
         "leaves the chip-floor candidate (ap 0.00285 in, fz 0.0000667 in, C14lo) for a thinner, faster one (ap 0.00236 in, fz 0.0000873 in): "

@@ -243,3 +243,145 @@ cross-vendor overall 84.1 % (slot 95.8, side 74.8, hem 88.7, rough 89.4, micro 7
 engagement cells 96.8 % of 157, branded 89.9 % of 526 (slot 94.1, side 82.2, hem 91.4, rough 100, micro 86.5; per vendor
 unchanged), unbranded 95.8 % of 48 (hem 80.0, rough 100). Stability (`tests/test_v2_stability.py`) 128 passed, 13 xfailed,
 before and after. Tests: `tests/test_v2_chip_space.py`.
+
+## Flute-aware chip load (branch `v4/i1-flutes-hf`, 2026-11-12; owner decision: yes, aluminium first)
+
+**Change.** C2's vendor-chip limit (and C2o's worst-flute limit) is multiplied by F(z) of the material group and chart class,
+and C14's chip-load and feed-per-flute range reads each vendor row of a z_row-flute tool at F(z)/F(z_row) (each row of
+`consensus_by_vendor.json` now carries its flute count, field 10), so the brand / default / consensus guardrail no longer holds
+a 2-flute tool to a 4-flute chart value. 0 / 50 / 100 % keep mapping to the (scaled) range's bottom / middle / top.
+`tools/fit_chip_by_flutes.py` writes `data/model_v2/chip_by_flutes.json`: per group, class and flute count the rows, vendors
+and the median of (row nominal chip fz·sin φe / D) / (C2's band value at the row's diameter); F(z) = that median / the
+4-flute median (4 flutes keep their limit). A flute count is used when at least 3 rows from 2 vendor groups chart it; below the
+lowest charted count F is held, above the highest it falls with the gullet area per flute (1 − c_z²)/z in full slots and is
+held in open-sided cuts; F never rises with flute count. Square-end tools only. C15 stays the ceiling; C1 and C3-C8 untouched.
+
+Applied (`python3 tools/fit_chip_by_flutes.py --table`):
+
+| group, class | 2FL | 3FL | 4FL | 5FL | 6FL | 7FL | rows (vendor groups) by flute count |
+|---|---|---|---|---|---|---|---|
+| aluminium slot | 2.53 | 1.13 | 1.00 | 0.74 (gullet) | 0.59 (gullet) | 0.46 (gullet) | 2FL 6 (2: Harvey, OSG), 3FL 9 (3), 4FL 11 (3) |
+| aluminium side / roughing | 1.48 (held) | 1.48 | 1.00 | 1.00 (held) | 1.00 | 1.00 | 2FL 2 (not charted), 3FL 9 (3), 4FL 24 (4) |
+
+Not applied, measured F (charted counts only): aluminium HEM (one vendor per flute count); steel slot 3FL 1.20, 5FL 0.80;
+stainless slot 2FL 4.12 (Seco, Kennametal, Harvey slots at 0.3·D depth), 3FL 1.14, 5FL 0.99; stainless side 0.95-1.25; titanium
+slot 3FL 1.15, 5FL 0.91; titanium side 0.94-0.96; HEM in steel, stainless and titanium mixed (0.6-1.6, no trend). Apart from
+the stainless 2-flute slots (shallow, three vendors) these are within ±20 % and inside the rows' own spread, so steels,
+stainless and titanium stay flute-agnostic.
+
+Results: `chip_space.flute_aware`, `chip_space.flute_factor`, `chip_space.flute_basis`, `vendor_basis.flute_aware`,
+`vendor_basis.row_flutes`. The tool recommender drops its "Flute-count gain is optimistic" caveat when both results are
+flute-aware (aluminium slots), and keeps it elsewhere. The v2 cache key carries the file's version.
+
+fz (in) / feed (IPM) / MRR (in³/min) at 50 %, `/api/calculate` model v2, Speedio 16k, stickout 4·D, LCF 3·D, no alloy given;
+"before → **after**" where it changed:
+
+| Case | 2FL | 3FL | 4FL | 5FL | 6FL | 7FL |
+|---|---|---|---|---|---|---|
+| 6061 slot 1/8" | 0.00051/16.3/0.254 → **0.00128/41.1/0.362** | 0.00051/24.4/0.381 → **0.00057/27.5/0.429** | 0.00051/32.5/0.508 | 0.00051/40.6/0.578 → **0.00038/30.0/0.469** | 0.00051/48.8/0.510 → **0.00030/28.7/0.449** | 0.00051/56.9/0.517 → **0.00023/25.9/0.405** |
+| 6061 slot 1/4" | 0.00115/36.8/2.30 → **0.00260/83.3/3.31** | 0.00115/55.2/3.45 → **0.00129/62.1/3.88** | 0.00115/73.5/4.60 | 0.00115/91.9/5.57 → **0.00085/67.8/4.24** | 0.00113/108.9/4.98 → **0.00067/64.7/4.04** | 0.00107/119.4/4.80 → **0.00052/58.6/3.66** |
+| 6061 slot 1/2" | 0.00235/51.1/12.8 → **0.00472/102.4/16.3** | 0.00234/76.1/14.4 → **0.00264/85.9/14.9** | 0.00233/101.2/14.4 → **0.00212/92.1/14.1** | 0.00220/119.1/14.2 → **0.00172/93.3/13.4** | 0.00215/139.6/14.1 → **0.00133/86.2/12.5** | 0.00219/166.0/14.2 → **0.00104/79.0/11.8** |
+| 6061 adaptive 1/8" | 0.00100/32.0/0.0982 | 0.00100/48.0/0.147 | 0.00100/64.1/0.196 | 0.00100/80.1/0.245 | 0.00100/96.1/0.295 | 0.00100/112.1/0.344 |
+| 6061 adaptive 1/4" | 0.00201/64.3/0.923 | 0.00201/96.5/1.38 | 0.00201/128.6/1.85 | 0.00201/161.2/2.30 | 0.00201/193.4/2.76 | 0.00178/199.7/2.91 |
+| 6061 adaptive 1/2" | 0.00376/120.3/7.37 | 0.00375/180.0/11.1 | 0.00313/200.0/12.5 | 0.00249/199.6/12.2 | 0.00207/199.0/11.7 | 0.00178/199.0/11.3 |
+
+17-4 and titanium (slot and adaptive, 1/8", 1/4", 1/2", 2-7 flutes): every value unchanged (flute-agnostic by decision).
+6061 adaptive: unchanged (HEM rows do not show the trend).
+
+Reading:
+* 1/2" slot: the 2-flute tool now removes the most (16.3 against 13.4 in³/min for 5 flutes; C3-limited), the 3-flute 14.9.
+* 1/8" and 1/4" slots at 4·D stickout: the 2-flute tool's chip doubled (0.0102·D) but C3 (deflection, 1 % of D at 50 %) binds
+  it at ap 0.77·D (1/4") and 0.59·D (1/8"): 3.31 against 4.24 (1/4") and 0.362 against 0.469 (1/8") for the 5-flute. The
+  3-flute is C2-limited at F 1.13 (3.88 / 0.429). The expected "2 or 3 flutes at least the 5-flute" holds at 1/2" and, at
+  3·D stickout, at 1/4" (2FL 5.80 against 4.24) and 1/8" (0.642 against 0.469) (`tests/test_v2_flute_aware.py`); at 4·D
+  stickout below 1/2" the stiffer 4- and 5-flute sections win on deflection, which is physics, not the chip limit.
+* 5-7 flute aluminium slots are now held by C2 at the 4-flute gullet fill (before: the same chip as 4 flutes, C15 only at 7).
+
+Conformance: see "Conformance after flute-aware chip load and high-feed tools" at the end.
+
+## High-feed end mills in v2 (branch `v4/i1-flutes-hf`, 2026-11-12)
+
+Before: geometry "High Feed" ran as an ordinary corner-radius end mill (1/8" 4FL Ti slot at 50 %: ap 0.050", fz 0.0002",
+3.4 IPM); v1 had a fixed-lead-angle rule. Now (`physics_v2/highfeed.py`, `endforms.HighFeedProfile`, design doc §3.5):
+straight lead edge at κ0 from r_in to the OD at apmx; chip normal to the edge fz·sin φ·sin κ0 through the shaped-tool slice
+model (C1, C2 on it), in-plane radial force × sin κ0, axial force reported (`loads.axial_peak_n`; no axial-load check exists),
+speed at the effective diameter, C6 ap ≤ apmx, C15 on fz·sin κ0, no square-end engagement envelope. Selection: geometry
+"High Feed" or tool text "high feed" / HF / HFM; operation names with "high feed" map to slot ("slot"/"window" in the name) or
+rough for a high-feed tool and stay on v1 for other tools; finishing with a high-feed tool stays on v1. Inputs `maxAp` /
+`apmx`, `leadAngle` (request), else the programming radius (`cornerRadius`: tan κ0 = apmx / r), else 15° and 0.06·D, marked
+assumed. Every input is in the v2 cache key. Tips: no plunge, max ramp angle min(atan(apmx/D), 3°), helix ≥ 1.15·2·r_in,
+stepped walls with the radial / axial stock to leave, depth per level, assumed geometry, axial load, and a warning when the
+physics speed is over 1.1× the square-end chart's (`high_feed.square_end_chart_sfm`, reference only).
+
+Vendor basis: mode "none", note "Vendor basis: none: no vendor chart for high-feed tools yet; physics limits only." The
+loader is ready: rows with `tool.end = "high_feed"` go to chart classes `hf_slot` (slot rows) and `hf_rough` (rough, side,
+HEM, pocket, face rows) in `consensus_by_vendor.json`, per vendor and cross-vendor, never pooled with square-end classes;
+a high-feed tool reads them in the brand -> default (Harvey + Helical) -> consensus (≥ 2 vendor groups) order with 0/50/100 %
+= bottom/middle/top (`tests/test_v2_high_feed.py::TestVendorPath`, on the SYNTHETIC fixture `tests/fixtures/highfeed_synthetic`).
+To use cited rows once they are checked:
+
+```
+git mv tests/benchmarks/v2_staged/highfeed_*.json tests/benchmarks/v2/   # file highfeed_<vendor>.json -> vendor key <vendor>
+python3 tools/build_vendor_consensus.py --check        # rebuilds consensus_by_vendor.json; square-end cross-vendor check must stay 0
+python3 tools/fit_chip_by_flutes.py --check            # square-end rows only: must still say "current"
+timeout 3000 python3 -m pytest -q -p no:cacheprovider tests/test_v2_high_feed.py tests/test_v2_benchmark_dataset.py
+```
+
+(`tests/test_v2_benchmark_dataset.py` checks `tool.end` against its END_TYPES; "high_feed" has to be accepted there by
+whoever adds the rows.) The square-end consumers (calibrate_v2, v2_invariants, calibrate_chip_space, the conformance harness,
+the recommender catalog) skip non-square rows already.
+
+1/8" 4-flute, slot, Speedio 16k, stickout 0.5", `/api/calculate` model v2; time for a 4.2" slot 0.15" deep = levels ×
+4.2" / feed (levels = ceil(0.15 / ap)). High-feed geometry assumed (15°, apmx 0.0075"). Ti = "Titanium Alloy", alloy
+Ti-6Al-4V (Grade 5, Annealed); 17-4 with no alloy given.
+
+| Material | Tool | a | rpm | SFM | fz (in) | feed IPM | ap (in) | levels | time min | limited by |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Ti-6Al-4V | HF 4FL | 0 | 3708 | 121 | 0.00162 | 24.1 | 0.0075 | 20 | 3.49 | C2, C6 |
+| Ti-6Al-4V | HF 4FL | 50 | 4489 | 147 | 0.00196 | 35.2 | 0.0075 | 20 | 2.39 | C2, C6 |
+| Ti-6Al-4V | HF 4FL | 100 | 5367 | 176 | 0.00234 | 50.3 | 0.0075 | 20 | 1.67 | C2, C6 |
+| Ti-6Al-4V | square 4FL | 0 | 2903 | 95 | 0.00020 | 2.4 | 0.0375 | 5 | 8.82 | C8, C14f, C14m, C14v |
+| Ti-6Al-4V | square 4FL | 50 | 3820 | 125 | 0.00041 | 6.2 | 0.0500 | 3 | 2.02 | C8, C14f, C14m, C14v |
+| Ti-6Al-4V | square 4FL | 100 | 4202 | 138 | 0.00052 | 8.7 | 0.1036 | 2 | 0.97 | C14f, C14m, C14v |
+| Ti-6Al-4V | square 3FL | 0 | 2903 | 95 | 0.00020 | 1.8 | 0.0375 | 5 | 11.73 | C8, C14f, C14m, C14v |
+| Ti-6Al-4V | square 3FL | 50 | 3820 | 125 | 0.00041 | 4.7 | 0.0500 | 3 | 2.69 | C8, C14f, C14m, C14v |
+| Ti-6Al-4V | square 3FL | 100 | 4202 | 138 | 0.00052 | 6.5 | 0.1051 | 2 | 1.29 | C14f, C14m, C14v |
+| 17-4 | HF 4FL | 0 | 11815 | 387 | 0.00162 | 76.7 | 0.0075 | 20 | 1.10 | C2, C6 |
+| 17-4 | HF 4FL | 50 | 14302 | 468 | 0.00196 | 112.2 | 0.0075 | 20 | 0.75 | C2, C6 |
+| 17-4 | HF 4FL | 100 | 16000 | 524 | 0.00234 | 150.1 | 0.0075 | 20 | 0.56 | C2, C6, C7 |
+| 17-4 | square 4FL | 0 | 3716 | 122 | 0.00023 | 3.4 | 0.0350 | 5 | 6.21 | C8, C14f, C14v |
+| 17-4 | square 4FL | 50 | 6112 | 200 | 0.00040 | 9.8 | 0.0625 | 3 | 1.29 | C8, C14f, C14m, C14v |
+| 17-4 | square 4FL | 100 | 6723 | 220 | 0.00049 | 13.3 | 0.0880 | 2 | 0.63 | C14f, C14m, C14v |
+| 17-4 | square 3FL | 0 | 3716 | 122 | 0.00023 | 2.5 | 0.0350 | 5 | 8.30 | C8, C14f, C14v |
+| 17-4 | square 3FL | 50 | 6112 | 200 | 0.00040 | 7.3 | 0.0611 | 3 | 1.72 | C8, C14f, C14m, C14v |
+| 17-4 | square 3FL | 100 | 6723 | 220 | 0.00049 | 10.0 | 0.0864 | 2 | 0.84 | C14f, C14m, C14v |
+
+Reading: in titanium the high-feed tool runs 4.8× the chip per tooth of the square tool (C2 on the thinned chip, sin 15° =
+0.26) and 5.7× the feed, but at 0.0075" per level it needs 20 levels against 2-5: at 50 % it is about 15 % slower than the
+square 4-flute (2.39 against 2.02 min) and faster than the 3-flute (2.69); at 0 % it is 2.5× faster (the square tools are
+held to the bottom of the vendor range), at 100 % 1.7× slower (the square tools take 2 levels). Its speed is C7's (147 SFM at
+50 %, no vendor cap).
+In 17-4 the square tools are held by the vendor charts (200 SFM at 50 %) and the high-feed tool is not: its 468 SFM is
+C7's physics value (warned in the result). The unverified Seco-style figure (7,640 rpm, 0.0035"/tooth, 107 IPM, ap 0.0079" in Ti)
+is 1.7× our rpm and 1.8× our chip per tooth: our C7 Ti slot speed and C2 (the square-end vendor chip invariant applied to
+the thinned chip) both sit below it; the binding limits are C2 and C6 (ap = max ap). Not calibrated to it.
+
+## Conformance after flute-aware chip load and high-feed tools (branch `v4/i1-flutes-hf`)
+
+Gated runs at 50 %, runout 0.0001", test machine 60k (`pytest tests/test_vendor_conformance.py -s`), before = this branch's
+base `850ec19` run the same way:
+
+| Gate | Before | After |
+|---|---|---|
+| Branded overall (gate 90 %, 526 groups) | 89.9 % (strict xfail) | **90.3 % (passes; xfail mark removed)** |
+| Branded slot / side / hem / rough / micro | 94.1 / 82.2 (xfail) / 91.4 / 100 / 86.5 | **95.4** / 82.2 (xfail) / 91.4 / 100 / 86.5 |
+| Branded OSG | 89.0 % (n 73) | 91.8 % (the two OSG 6061 slot groups, fz under OSG's minimum, now pass) |
+| Unbranded overall / hem / rough / micro | 95.8 / 80.0 (xfail) / 100 / 100 | unchanged |
+| Cross-vendor overall / slot / side / hem / rough / micro | 84.1 (xfail) / 95.8 / 74.8 (xfail) / 88.7 / 89.4 / 79.7 (xfail) | unchanged |
+| Recommended engagement cells | 96.8 % of 157 | unchanged |
+| Ball / bull-nose groups (not gated) | 71.4 % / 72.7 % | unchanged |
+
+The only other change in any listed group: the cross-vendor 6061 slot 1/16-1/8 group's fz rose 0.00051 -> 0.00057" (still
+under the 0.00060 floor). High-feed tools are not in the conformance data (no rows). Stability (`tests/test_v2_stability.py`):
+113 passed, 7 xfailed before; 115 passed, 5 xfailed after (the 1/16" and 1/32" 2-flute 6061 slot "+10 % stickout" cases now
+pass and their strict marks were removed). Tests: `tests/test_v2_flute_aware.py`, `tests/test_v2_high_feed.py`.

@@ -2571,6 +2571,11 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
         if geo_name not in ("Drill", "Spot Drill", "Parabolic"):
             geo_name = "Drill"
     else:
+        # A high-feed end mill named in the tool's description or type ("high feed", "HF", "HFM"): the server's v2 model runs
+        # it as one (lead-edge chip thinning, max ap, ramp guidance) when the geometry says "High Feed".
+        _desc = f"{(geo_payload or {}).get('desc', '')} {(geo_payload or {}).get('tool_type', '')}".lower()
+        if re.search(r"high[\s_-]?feed|\bhfm?\b", _desc):
+            geo_name = "High Feed"
         if "hp" in grade or "high performance" in grade:
             tool_category = "HP Carbide Endmill"  # bull nose / high feed is carried by "geometry"
         elif "hss" in grade:
