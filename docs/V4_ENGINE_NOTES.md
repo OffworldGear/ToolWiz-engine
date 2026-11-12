@@ -318,7 +318,12 @@ loader is ready: rows with `tool.end = "high_feed"` go to chart classes `hf_slot
 HEM, pocket, face rows) in `consensus_by_vendor.json`, per vendor and cross-vendor, never pooled with square-end classes;
 a high-feed tool reads them in the brand -> default (Harvey + Helical) -> consensus (≥ 2 vendor groups) order with 0/50/100 %
 = bottom/middle/top (`tests/test_v2_high_feed.py::TestVendorPath`, on the SYNTHETIC fixture `tests/fixtures/highfeed_synthetic`).
-To use cited rows once they are checked:
+**Done 2026-11-12:** 438 cited high-feed rows are in `tests/benchmarks/v2/highfeed_{harvey,helical,seco}.json` (Niagara Cutter
+SN200R/SN400R is filed under the Seco brand key; sources and gaps in `tests/benchmarks/v2/HIGHFEED_NOTES.md`). Harvey and
+Helical are one vendor group, so there are two independent sources. With the charts loaded the engine's titanium high-feed
+result stays below them (1/8" 4FL slot at 50%: 147 SFM and 0.0020 in/tooth against Niagara's 377 SFM and 0.0023; the speed is
+the square-end tool-life speed, the chip is C2): a level fit for the high-feed class from these rows is the open follow-up.
+The commands that were run:
 
 ```
 git mv tests/benchmarks/v2_staged/highfeed_*.json tests/benchmarks/v2/   # file highfeed_<vendor>.json -> vendor key <vendor>

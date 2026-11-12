@@ -10214,7 +10214,7 @@
     ]
    }
   },
-  "date": "2026-11-11",
+  "date": "2026-11-12",
   "engagement_classes": [
    [
     "light",
@@ -10255,7 +10255,10 @@
    "exact bucket",
    "+ neighbouring diameter band",
    "+ neighbouring engagement class",
-   "+ neighbouring hardness bin"
+   "+ neighbouring hardness bin",
+   "+ hardness bins within 100 HB",
+   "+ hardness bins within 200 HB",
+   "+ any engagement class"
   ]
  },
  "bull": {
@@ -19599,7 +19602,7 @@
     ]
    }
   },
-  "date": "2026-11-11",
+  "date": "2026-11-12",
   "engagement_classes": [
    [
     "light",
@@ -19640,7 +19643,10 @@
    "exact bucket",
    "+ neighbouring diameter band",
    "+ neighbouring engagement class",
-   "+ neighbouring hardness bin"
+   "+ neighbouring hardness bin",
+   "+ hardness bins within 100 HB",
+   "+ hardness bins within 200 HB",
+   "+ any engagement class"
   ]
  }
 }

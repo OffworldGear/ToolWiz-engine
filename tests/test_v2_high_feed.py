@@ -91,7 +91,7 @@ class TestEngine(unittest.TestCase):
         c = hf["cut"]
         self.assertAlmostEqual(c["h_max_nominal_in"], c["fz_in"] * g.sin_kappa, places=9)
         self.assertGreater(c["fz_in"], 2.0 * sq["cut"]["fz_in"])
-        self.assertEqual(hf["vendor_basis"]["mode"], "none")
+        self.assertEqual(hf["vendor_basis"]["chart_class"], "hf_slot")    # cited high-feed charts, never a square-end class
         self.assertEqual(c["end_form"], "high_feed")
 
     def test_force_is_mostly_axial_and_bending_is_small(self):
@@ -147,11 +147,14 @@ class TestVendorPath(unittest.TestCase):
             self.assertAlmostEqual(c14["limit"], want, places=6)
             self.assertLessEqual(outs[a]["cut"]["sfm"], want * (1 + 1e-6))
 
-    def test_without_rows_the_note_says_physics_only(self):
+    def test_real_rows_give_a_high_feed_chart_by_brand_and_by_default(self):
+        """Cited rows (tests/benchmarks/v2/highfeed_*.json): Harvey, Helical, and Niagara filed under the Seco brand key."""
         r = calc()
         self.assertEqual(r["model"], "v2")
-        self.assertEqual(r["vendor_basis"]["mode"], "none")
-        self.assertIn("no vendor chart for high-feed tools yet; physics limits only", r["vendor_basis"]["note"])
+        self.assertEqual((r["vendor_basis"]["mode"], r["vendor_basis"]["chart_class"]), ("default", "hf_slot"))
+        for brand, key in (("Harvey Tool", "harvey"), ("Niagara Cutter", "seco")):
+            vb = calc(brand=brand)["vendor_basis"]
+            self.assertEqual((vb["mode"], vb["vendor"], vb["chart_class"]), ("brand", key, "hf_slot"))
 
 
 class TestBridge(unittest.TestCase):

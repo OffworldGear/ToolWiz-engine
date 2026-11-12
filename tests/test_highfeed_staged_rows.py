@@ -1,4 +1,4 @@
-"""Sanity checks for the staged high-feed end mill benchmark rows (tests/benchmarks/v2_staged/highfeed_*.json)."""
+"""Sanity checks for the staged high-feed end mill benchmark rows (tests/benchmarks/v2/highfeed_*.json; staged copies in v2_staged are checked too)."""
 import glob
 import json
 import math
@@ -28,7 +28,7 @@ class TestHighFeedStaged(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.files = {}
-        for p in sorted(glob.glob(os.path.join(STAGED, "highfeed_*.json"))):
+        for p in sorted(glob.glob(os.path.join(STAGED, "highfeed_*.json")) + glob.glob(os.path.join(ROOT, "tests", "benchmarks", "v2", "highfeed_*.json"))):
             with open(p, encoding="utf-8") as fh:
                 cls.files[os.path.basename(p)] = json.load(fh)
         with open(os.path.join(ROOT, "materials_database_clean.json"), encoding="utf-8") as fh:

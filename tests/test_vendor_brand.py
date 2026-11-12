@@ -128,7 +128,7 @@ def test_real_table_hem_and_rough_buckets_are_separate():
     t = o._limits(o.VENDOR_TABLE_DEFAULT_PATH)
     for v in t["vendors"].values():
         for k in v["cells"]:
-            assert k.split("|")[3] in ("hem", "rough", "side", "slot", "finish")
+            assert k.split("|")[3] in ("hem", "rough", "side", "slot", "finish", "hf_slot", "hf_rough")
     assert any(k.split("|")[3] == "rough" for k in t["vendors"]["harvey"]["cells"])
     assert any(k.split("|")[3] == "hem" for k in t["vendors"]["helical"]["cells"])
     assert t["single_value_spread"] == [0.76, 1.10]
