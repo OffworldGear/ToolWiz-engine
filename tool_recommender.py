@@ -868,11 +868,15 @@ def _why(cut: Cut, c: Dict[str, Any], res: Any, ratio: float, sm: Dict[str, Any]
 
 
 def _chip_space_caveat(cut: Cut, c: Dict[str, Any], res: Any, cur_res: Any) -> Optional[str]:
-    """The flute-count caveat: only for a flute-count increase in a full slot, and only while the engine has no chip-space limit."""
+    """The flute-count caveat, for a flute-count increase in a full slot only. The engine's chip-room check (C15, result block
+    ``chip_space``) passes most normal-depth slots; what makes more flutes look better is that the chip-load limit is the same
+    for every flute count, while vendors run fewer-flute tools at higher chip loads in slots (docs/research/chip_space.md)."""
     if c["flutes"] <= cut.z0 or not cut.full_slot:
         return None
     if _has_chip_space(res) or _has_chip_space(cur_res):
-        return None
+        return (f"Flute-count gain is optimistic: ToolWiz checks chip room, but it gives a {c['flutes']}-flute and a {cut.z0}-flute tool "
+                "the same chip load per tooth. Vendors run fewer-flute tools at higher chip loads in full slots, most of all in "
+                "aluminum. Try the feed in steps and watch chip evacuation.")
     return ("ToolWiz does not yet limit chip space by flute count: in a full slot a " f"{c['flutes']}-flute tool has less room for chips than a "
             f"{cut.z0}-flute one, so this flute-count gain is optimistic. Check chip evacuation (flood or air blast) and try the feed in steps.")
 

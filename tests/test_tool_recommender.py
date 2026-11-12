@@ -2,7 +2,7 @@
 
 Every number is an engine number (pipeline.run_cut, model v2, 50 %). The honesty rules are tested as wording: a brand gain names the
 vendor chart and says it is published, not measured; a catalog tool is a cited geometry; an unbranded tool is compared on the default
-chart; the flute-count chip-space caveat disappears as soon as the engine result carries a ``chip_space`` block."""
+chart; the flute-count caveat stays for full slots (reworded once the engine result carries a ``chip_space`` block)."""
 import copy
 import json
 import os
@@ -233,13 +233,14 @@ def test_edge_break_radius_is_treated_as_square_like_the_setup_advisor():
     assert r["current"]["tool"]["geometry"] == "Square"
 
 
-def test_flute_count_caveat_in_a_full_slot_and_it_disappears_with_a_chip_space_block(monkeypatch):
+def test_flute_count_caveat_in_a_full_slot_with_and_without_a_chip_space_block(monkeypatch):
     body = haas_eighth(FTI, flutes=3, min_gain_pct=0)
     r = tr.recommend(body, physics=toolwiz_app.physics)
     more = [a for a in r["alternatives"] + r["below_threshold"] if a["flutes"] > 3]
     assert more
-    assert all(any("does not yet limit chip space by flute count" in c for c in a["caveats"]) for a in more)
-    assert not any("chip space" in c for a in r["alternatives"] + r["below_threshold"] if a["flutes"] <= 3 for c in a["caveats"])
+    # the engine now returns a chip_space block: the caveat names the real cause (one chip load for every flute count)
+    assert all(any("Flute-count gain is optimistic" in c for c in a["caveats"]) for a in more)
+    assert not any("Flute-count gain" in c or "chip space" in c for a in r["alternatives"] + r["below_threshold"] if a["flutes"] <= 3 for c in a["caveats"])
 
     import pipeline
     real = pipeline.run_cut
@@ -253,7 +254,7 @@ def test_flute_count_caveat_in_a_full_slot_and_it_disappears_with_a_chip_space_b
     r2 = tr.recommend(body, physics=toolwiz_app.physics)
     more2 = [a for a in r2["alternatives"] + r2["below_threshold"] if a["flutes"] > 3]
     assert more2
-    assert not any("chip space" in c for a in more2 for c in a["caveats"])
+    assert all(any("Flute-count gain is optimistic" in c for c in a["caveats"]) for a in more2)
     assert all(a.get("chip_space") for a in more2) and r2["current"].get("chip_space")
 
 
@@ -268,10 +269,10 @@ def test_flute_caveat_is_only_for_full_slots():
     assert "chip space" in tr._chip_space_caveat(cut2, cand, R(), R())
     r = R()
     r.chip_space = {"x": 1}
-    assert tr._chip_space_caveat(cut2, cand, r, R()) is None
+    assert "Flute-count gain is optimistic" in tr._chip_space_caveat(cut2, cand, r, R())
     r3 = R()
     r3.v2 = {"chip_space": {"x": 1}}
-    assert tr._chip_space_caveat(cut2, cand, R(), r3) is None
+    assert "Flute-count gain is optimistic" in tr._chip_space_caveat(cut2, cand, R(), r3)
     assert tr._chip_space_caveat(cut2, {"flutes": 2}, R(), R()) is None
 
 

@@ -51,9 +51,10 @@ Infeasible candidates are dropped. Every alternative carries `feasible`, `limite
 * A brand gain reflects that vendor's published chart for this material and operation ("the OSG chart allows 1.8x the removal rate"), not a measured tool test.
 * A catalog candidate is a geometry (flute count, flute length) from a cited catalog row, with the series and an example part number, not a guarantee that the part exists or is in stock.
 * A tool with no brand, or a brand ToolWiz has no chart for ("Haas", "Amazon"), is compared on the conservative default chart (Harvey and Helical); the result says so (`current.basis`, `disclaimers`).
-* ToolWiz does not (yet) limit chip space by flute count in the engine. A flute-count increase in a full slot therefore carries the caveat "ToolWiz does not yet limit chip space by
-  flute count ... this flute-count gain is optimistic". The recommender has no flute-count physics of its own: the caveat is dropped automatically when the engine result contains a
-  `chip_space` block (`res.chip_space`, or `res.v2["chip_space"]`), and that block is passed through.
+* Flute count in a full slot. The engine checks chip room (check C15, result block `chip_space`), and that check passes most
+  normal-depth slots. What still makes more flutes look better is that the chip-load limit is the same for every flute count,
+  while vendors run fewer-flute tools at higher chip loads in slots, most of all in aluminum (docs/research/chip_space.md).
+  A flute-count increase in a full slot therefore carries the caveat "Flute-count gain is optimistic ...".
 * When nothing passes, `not_recommended_reasons` say why in plain words, e.g. "spindle-limited at 16,000 rpm: brand makes no difference in Aluminum - Wrought (6061) at this diameter, because
   the machine's speed limit sets the feed, not a chart".
 
