@@ -748,8 +748,8 @@ HIGH_FEED_GAP = ("High-feed conformance below the 85 % gate: measured {}. The hi
 
 _HF_GAPS = {("branded", "overall"): None,
             ("unbranded", "overall"): "unbranded 77.4% of 53 Harvey + Helical groups",
-            ("branded", "slot"): "branded slot 82.0% of 50 groups (Harvey slot 10 of 18)",
-            ("unbranded", "slot"): "unbranded slot 65.7% of 35 groups"}
+            # branded slot passes since the Niagara SN200R rows were added (86.0% of 57 groups): its strict xfail was removed
+            ("unbranded", "slot"): "unbranded slot 62.9% of 35 groups"}
 
 
 def _hf_mark(which, what):
