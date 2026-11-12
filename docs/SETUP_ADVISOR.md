@@ -22,7 +22,7 @@ Units: lengths inches, feeds IPM, speeds rpm / SFM, times minutes, MRR in^3/min.
 * `aggressiveness`: a fraction 0..1 (0.5 = relatively safe) or a percentage above 1 (50). Default 0.5.
 * `runout`: holder TIR in inches (default: the active machine's). `model`: `v1`/`v2` (default: the app's selected model; the
   `setup_advisor.advise()` function itself defaults to v2, which is needed for stock-to-leave advice and the reduced-flute regime).
-* `strategies: false` skips the strategy planner (faster). `use_llm: true` adds the narrative; `apiKey` overrides `GEMINI_API_KEY`.
+* `strategies: false` skips the strategy planner (faster). `tool_alternatives: false` skips the tool recommender (see "Better tool" below). `use_llm: true` adds the narrative; `apiKey` overrides `GEMINI_API_KEY`.
 * 400 `{"success": false, "error"}` on bad input.
 
 Result:
@@ -101,11 +101,22 @@ Per operation, each with `severity`, `code`, `title`, `detail`, `recommendation`
 |---|---|
 | STOP | `toolwiz_infeasible` (no safe cut at ToolWiz's own recommendation), `infeasible_at_engagement` (none at the op's stepdown / stepover), `chip_load_high` (programmed chip load more than 2x ToolWiz's), `rpm_over_machine`, `stepdown_over_flute`, T-slot: `stepdown_over_kerf`, `tslot_radial_high` (> 2x ToolWiz per pass), `feed_high`, `tslot_critical` |
 | CAUTION | `chip_load_off`, `rpm_off`, `feed_off` (more than 40 % from ToolWiz), `stepdown_high`, `stepover_high` (> 1.4x recommended), `stock_radial_low`, `stock_axial_low` (below ToolWiz's recommended stock to leave), `reduced_flutes` (runout regime), `chip_near_rubbing`, `holder_runout` / `holder_type` (measured TIR or holder type against `holder_advice`), `tslot_provisional`, `tslot_warning`, plus the `oversight_*` findings of `oversight_engine` (tool / coating fit, shaft rub, deep slot, knife-edge window, unknown coating) |
-| INFO | `time_saving` (ToolWiz's recommended engagement removes material N x faster: both MRRs quoted), `strategy` (the planner's recommended strategy is at least 10 % faster at similar wear), `holder_unknown`, `not_analysed`, `no_tool`, `toolwiz_error` |
+| INFO | `time_saving` (ToolWiz's recommended engagement removes material N x faster: both MRRs quoted), `strategy` (the planner's recommended strategy is at least 10 % faster at similar wear), `better_tool` (another tool is at least 30 % faster; see below), `holder_unknown`, `not_analysed`, `no_tool`, `toolwiz_error` |
 
 Setup-level (`setup_findings`, from `oversight_engine.evaluate_setup_oversight` plus the add-in's `audit` issues when sent as `setup.audit`):
 micro tool after a much larger rougher without rest machining; finishing before roughing; roughing that leaves no stock for the finishing op or less
 than ToolWiz's recommended stock; stock left but no finishing operation; roughing to size with no finishing pass; avoidable tool changes.
+
+## Better tool (`better_tool`, `tool_alternatives`)
+
+For every milling operation (not probe, hole or T-slot) the advisor calls the tool recommender (`tool_recommender.py`,
+[TOOL_RECOMMENDER.md](TOOL_RECOMMENDER.md)) with the feature limits the add-in measured: the slot width (or channel width) is the widest tool that fits,
+2 x `pocket_min_corner_radius_in` also limits a pocket, `depth_in` is the reach the flutes must have, `toolpath_length_in` gives a cycle time. With no
+measured limit only same-diameter alternatives are tried. The op entry gets a `tool_alternatives` block (the best alternatives with ToolWiz's rpm, feed,
+ap, ae and rate, the reasons when none is worth a change, the assumptions) and, when an alternative gains 30 % or more, one INFO finding `better_tool`
+naming the best tool from the owner's library and the best catalog geometry when it gains more. Bounds: at most 18 engine runs per operation and 60 per
+setup (the advisor's run cache is reused; later operations are skipped with a note when the budget is used up). `tool_alternatives: false` (API,
+`advise()`) turns it off.
 
 ## Strategy suggestions
 
@@ -173,7 +184,7 @@ Allowed parameter names (`fusion_bridge.APPLY_ALLOWED_PARAMS`, enforced by the s
 `mcp_server.py` (stdio and `/api/mcp`): the `initialize` result carries `instructions` forbidding invented numbers (every number must come from a
 `toolwiz_*` call), and every tool description repeats the rule. Tools: `toolwiz_calculate_cut`, `toolwiz_predict_stock_compensation`,
 `toolwiz_search_materials`, `toolwiz_holistic_oversight`, `toolwiz_curate_tool_library`, `toolwiz_strategy_compare` (`/api/strategy/compare`),
-`toolwiz_holder_advice` (`/api/advice/holder`), `toolwiz_tool_advice` (`/api/advice/tools`), `toolwiz_setup_advisor` (`/api/setup_advisor`, live Fusion state when
+`toolwiz_holder_advice` (`/api/advice/holder`), `toolwiz_tool_advice` (`/api/advice/tools`), `toolwiz_alternative_tools` (`/api/advice/alternative_tools`), `toolwiz_setup_advisor` (`/api/setup_advisor`, live Fusion state when
 `setup` is omitted), `toolwiz_library_audit` (`/api/twin/audit`), `toolwiz_master_library_build` (`action: "start"` -> `/api/twin/build_sets`, `action: "status"` +
 `job_id` -> `/api/twin/build_sets/<job_id>`), and the Fusion bridge tools `fusion_get_setup_summary`, `fusion_inspect_operation`, `fusion_audit_setup_sequence`,
 `fusion_get_toolpath_status`, `fusion_apply_stock_to_leave`.

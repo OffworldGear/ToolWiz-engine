@@ -33,6 +33,11 @@ SAVINGS_MIN_SPEEDUP = 1.25   # INFO when ToolWiz's recommended engagement remove
 STRATEGY_MIN_SAVING = 0.10   # INFO when the recommended strategy saves at least this fraction of the cycle time
 MAX_STRATEGY_CANDIDATES = 4
 EDGE_BREAK_MAX_FRACTION = 0.15   # corner radius up to this fraction of D is an edge break; larger radii use the bull-nose path
+ALT_KINDS = ("adaptive", "slot", "contour", "pocket", "rough", "finish", "face")   # operations the tool recommender looks at
+ALT_RUNS_PER_SETUP = 60          # engine runs the tool recommender may spend on one setup
+ALT_RUNS_PER_OP = 18             # ... and on one operation
+ALT_LIBRARY_PER_OP = 4           # owner's library tools tried per operation
+ALT_ADAPTIVE_CHANNEL_OVER_D = 1.25   # an adaptive tool must be this much narrower than the channel (strategy_planner.ADAPTIVE_MIN_CHANNEL_OVER_D)
 
 #: Fusion parameters the apply step may write (mirrors ``fusion_bridge.APPLY_ALLOWED_PARAMS``).
 PARAM_KINDS = {
@@ -1042,6 +1047,102 @@ def _strategy_request(op: Dict[str, Any], tool: Dict[str, Any], others: List[Dic
     return dict(base, feature=feature, candidate_tools=cands[:MAX_STRATEGY_CANDIDATES]), None
 
 
+def _alt_request(op: Dict[str, Any], tool: Dict[str, Any], ctx: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    """The tool recommender request for an op and where each feature limit came from (measured by the add-in)."""
+    kind, g = op["kind"], op["geometry"]
+    body: Dict[str, Any] = {
+        "family": ctx["family"], "alloy": ctx["alloy"], "operation": _KIND_OPERATION.get(kind, "Roughing"),
+        "aggressiveness": ctx["aggressiveness"], "runout": ctx["runout"], "model": ctx["model"],
+        "diameter": tool["diameter_in"], "flutes": tool["flutes"], "flute_length": tool["flute_length_in"],
+        "shank_diameter": tool["shank_diameter_in"], "corner_radius": tool.get("corner_radius_in") or 0.0,
+        "coating": tool.get("coating"), "brand": tool.get("vendor"), "description": tool.get("description"),
+        "is_carbide": tool.get("is_carbide") is not False}
+    if not tool.get("stickout_assumed"):
+        body["stickout"] = tool["stickout_in"]
+    if ctx.get("finish_mode"):
+        body["finish_mode"] = ctx["finish_mode"]
+    src: Dict[str, str] = {}
+    limits = []
+    if g.get("slot_width_in"):
+        limits.append((g["slot_width_in"], "slot width"))
+    if kind == "slot":
+        if g.get("channel_width_in"):
+            limits.append((g["channel_width_in"], "channel width"))
+        body["full_slot"] = True
+    else:
+        body["full_slot"] = False
+        if g.get("channel_width_in"):
+            over = ALT_ADAPTIVE_CHANNEL_OVER_D if kind == "adaptive" else 1.0
+            limits.append((g["channel_width_in"] / over, "channel width" + (f" / {over:g}" if over != 1.0 else "")))
+        r = (g.get("pocket") or {}).get("min_corner_radius_in")
+        if r:
+            limits.append((2.0 * r, "2 x the pocket's smallest inside corner radius"))
+    if limits:
+        w, why = min(limits)
+        body["max_diameter_in"] = w
+        src["max_diameter_in"] = why
+    else:
+        body["include_larger"] = False
+    if g.get("depth_in"):
+        body["min_reach_in"] = g["depth_in"]
+        body["depth_in"] = g["depth_in"]
+        src["min_reach_in"] = "feature depth"
+    if g.get("toolpath_length_in"):
+        body["toolpath_length_in"] = g["toolpath_length_in"]
+    return {k: v for k, v in body.items() if v is not None}, src
+
+
+def _tool_alternatives(op, tool, ctx, physics, machine_profile, cache, state) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
+    """Run the tool recommender for one op: (the ``tool_alternatives`` block, one INFO ``better_tool`` finding or None)."""
+    import json as _json
+    import tool_recommender as tr
+    try:
+        body, src = _alt_request(op, tool, ctx)
+        body["max_runs"] = ALT_RUNS_PER_OP
+        memo_key = _json.dumps(body, sort_keys=True, default=str)
+        res = state["memo"].get(memo_key)
+        if res is None:
+            if state["library"] is None:
+                state["library"] = tr.load_library_tools()
+            lib = [t for t in state["library"]]
+            res = tr.recommend(body, physics=physics, machine_profile=machine_profile, library_tools=lib[:], run_cache=cache.setdefault("tool_recommender", {}),
+                               budget=state["budget"], max_library=ALT_LIBRARY_PER_OP)
+            state["memo"][memo_key] = res
+    except (ValueError, KeyError) as e:
+        return {"skipped": f"tool alternatives not computed: {e}"[:240]}, None
+    except Exception as e:      # the recommender must never break the advisor
+        return {"skipped": f"tool alternatives failed: {type(e).__name__}: {e}"[:240]}, None
+    blk = {k: res[k] for k in ("summary", "rate_metric", "rate_metric_label", "min_gain_pct", "current", "alternatives", "best_library",
+                               "best_catalog", "not_recommended_reasons", "assumptions", "disclaimers", "engine_runs", "feature")}
+    blk["limits_from"] = src
+    blk["alternatives"] = blk["alternatives"][:3]
+    lib, cat = res.get("best_library"), res.get("best_catalog")
+    best = lib or cat
+    if not best:
+        return blk, None
+    cur = res["current"]
+    parts = []
+    if lib:
+        parts.append("Best of your library: " + tr.describe_alternative(lib, cur) + f". {lib['why']}")
+    if cat and (not lib or cat["gain_pct"] > lib["gain_pct"]):
+        parts.append("Best catalog geometry" + (" (more gain than your library)" if lib else "") + ": " + tr.describe_alternative(cat, cur) + f". {cat['why']}")
+    if cat and not lib or (cat and lib and cat["gain_pct"] > lib["gain_pct"]):
+        parts.append("A catalog tool is a geometry from a cited vendor row, not a guarantee that the part number exists or is in stock.")
+    for a in (lib, cat):
+        for cv in (a or {}).get("caveats") or []:
+            if cv.startswith(("ToolWiz does not yet limit chip space", "Flute length", "No feature size limit")):
+                parts.append(cv)
+                break
+    rec = ("Consider the library tool for this operation, then re-run the advisor with it; ToolWiz's numbers for it are in tool_alternatives."
+           if lib else "Check that the catalog geometry is available from your supplier, then re-run the advisor with that tool; ToolWiz's numbers are "
+                       "in tool_alternatives.")
+    f = _f("INFO", "better_tool", f"A different tool is {best['gain_pct']:.0f}% faster for this cut ({tr.label_alternative(best)})",
+           " ".join(parts), rec, best_gain_pct=best["gain_pct"], current_rate=cur["rate"], best_rate=best["rate"],
+           best_rpm=best["rpm"], best_feed_ipm=best["feed"], best_ap_in=best["ap"], best_ae_in=best["ae"],
+           library_gain_pct=lib["gain_pct"] if lib else None, catalog_gain_pct=cat["gain_pct"] if cat else None)
+    return blk, f
+
+
 def _strategy_suggestion(op, tool, others, physics, machine_profile, ctx) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """Run the planner for one op; returns (suggestion, note)."""
     import strategy_planner
@@ -1529,14 +1630,17 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
            aggressiveness: float = 0.5, runout: Optional[float] = None, model: str = "v2", physics: Any = None,
            machine_profile: Optional[Dict[str, Any]] = None, use_llm: bool = False,
            llm: Optional[Callable[[str, str], Any]] = None, strategies: bool = True,
-           api_key: Optional[str] = None, assumptions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+           api_key: Optional[str] = None, assumptions: Optional[List[Dict[str, Any]]] = None,
+           tool_alternatives: bool = True) -> Dict[str, Any]:
     """Audit a Fusion setup snapshot against ToolWiz. See docs/SETUP_ADVISOR.md for the accepted ``setup`` and the result.
 
     ``aggressiveness`` 0..1 (a value above 1 is read as a percentage); ``runout`` inches (default 0.0002);
     ``llm`` is ``(system, prompt) -> text | {"text": ...}`` (default: Gemini through ``ai_machinist``).
     ``assumptions``: session assumptions (see ``normalize_assumption``) the owner gave that the snapshot lacks (coating, tool
     material, runout, material, ...); they override ``family`` / ``alloy`` / ``aggressiveness`` / ``runout`` when scoped to all
-    tools and are listed in the result (``assumptions``, per operation ``assumptions_applied``). Raises
+    tools and are listed in the result (``assumptions``, per operation ``assumptions_applied``).
+    ``tool_alternatives=False`` skips the tool recommender (docs/TOOL_RECOMMENDER.md): by default every milling operation gets a
+    ``tool_alternatives`` block and, when another tool is much faster, one INFO ``better_tool`` finding. Raises
     ValueError on bad input. The result is stored for ``get_last()``."""
     import strategy_planner
     norm = normalize_setup(setup)
@@ -1573,6 +1677,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
     strat_notes: List[str] = []
     setup_ops: List[Dict[str, Any]] = []
     cache: Dict[Any, Any] = {}
+    alt_state: Dict[str, Any] = {"budget": {"runs": ALT_RUNS_PER_SETUP}, "memo": {}, "library": None}
     ops = norm["ops"]
 
     for op in ops:
@@ -1687,6 +1792,12 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                         time_saved_min=sug["time_saved_min"], time_saved_pct=sug["time_saved_pct"]))
             elif note:
                 strat_notes.append(f"{op['name']}: {note}")
+        if tool_alternatives and kind in ALT_KINDS and tool0.get("diameter_in") \
+                and not any(f["code"] == "toolwiz_error" for f in entry["findings"]):
+            blk, fnd = _tool_alternatives(op, tool, ctx, physics, machine_profile, cache, alt_state)
+            entry["tool_alternatives"] = blk
+            if fnd:
+                entry["findings"].append(fnd)
         entry["geometry_sources"] = _geometry_sources(op, tool0)
         entry["findings"] = _order(entry["findings"])
         ops_out.append(entry)

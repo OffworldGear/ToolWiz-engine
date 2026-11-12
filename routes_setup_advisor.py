@@ -37,7 +37,7 @@ def _num(body: dict, key: str, default=None):
 
 @bp.route("/api/setup_advisor", methods=["POST"])
 def setup_advisor_run():
-    """Body: ``{setup, family, alloy, aggressiveness, runout, model, use_llm, strategies, apiKey, assumptions}``.
+    """Body: ``{setup, family, alloy, aggressiveness, runout, model, use_llm, strategies, tool_alternatives, apiKey, assumptions}``.
 
     ``setup`` is the add-in's snapshot; omit it (or send ``from_bridge: true``) to use the live state the add-in last
     pushed to ``/api/fusion_bridge/state``. ``aggressiveness`` is a fraction (0.5) or a percentage (50)."""
@@ -59,7 +59,7 @@ def setup_advisor_run():
             aggressiveness=_num(body, "aggressiveness", 0.5), runout=ro, model=A._request_model(body),
             physics=A.physics, machine_profile=A.active_machine(), use_llm=bool(body.get("use_llm")),
             strategies=body.get("strategies", True) is not False, api_key=(body.get("apiKey") or None),
-            assumptions=body.get("assumptions"))
+            assumptions=body.get("assumptions"), tool_alternatives=body.get("tool_alternatives", True) is not False)
     except ValueError as e:
         return _bad(str(e))
     except Exception as e:
