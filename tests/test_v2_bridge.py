@@ -157,7 +157,7 @@ class TestAddinMessage(unittest.TestCase):
         geo = {"diameter": 0.0625, "flutes": 4}
         msg = a.format_autoset_message("T12", geo, "17-4", "Adaptive", 11291, 13.8, 0.0003,
                                        limited_by="C2, C3", model="v2")
-        self.assertIn("Model: v2 (physics)", msg)
+        self.assertIn("Model: physics engine (current)", msg)
         self.assertIn("chip thickness (tooth strength), tool deflection", msg)
         msg = a.format_autoset_message("T12", geo, "17-4", "Adaptive", 1, 1, 0.001, model="v1",
                                        model_note="v2 selected; v1 used because x.")

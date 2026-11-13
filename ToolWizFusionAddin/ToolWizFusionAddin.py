@@ -853,7 +853,7 @@ def load_model_setting():
 
 def model_label(model=None):
     m = model or _model_cache.get("model")
-    return {"v2": "v2 (physics)", "v1": "v1 (GWizard tables + rules)"}.get(m, "server default")
+    return {"v2": "Physics engine (current; internal name v2)", "v1": "Legacy tables and rules (internal name v1)"}.get(m, "server default")
 
 
 ASYNC_EVENT_ID = 'ToolWizAsyncEvent'
@@ -1233,7 +1233,7 @@ def format_autoset_message(t_label, geo, material_label, strategy, rpm, feed, ip
         f"{rpm:,.0f} RPM · {feed:.1f} IPM · {ipt:.4f} IPT",
     ]
     if model:
-        lines.insert(1, "Model: v2 (physics)" if model == "v2" else "Model: v1 (GWizard tables + rules)")
+        lines.insert(1, "Model: physics engine (current)" if model == "v2" else "Model: legacy tables and rules")
         if model == "v1" and model_note:
             lines.insert(2, model_note)
     cuts = []
