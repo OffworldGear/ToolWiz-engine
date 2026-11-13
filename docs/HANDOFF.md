@@ -58,6 +58,22 @@ the measured number. Check the exit status directly; a pipe into `tail` hides fa
    removes the G-Wizard-derived code that blocks open-sourcing), or a separate project (part-number web lookup with an
    approval queue; whole-setup optimizer; spindle-speeder study).
 
+## Added 2026-11-13 (later)
+
+- **Ramp angle fixed** (`docs/V4_ENGINE_NOTES.md`, ramp section): the angle follows the brand-first rule and the
+  bottom / middle / top range like speeds; flute count and reach decide which vendor rows a tool may use; a tool no chart
+  covers gets the bottom of the range. Generic 4-flute in 7075: 6.4 deg at 50% (was 18.2). Not yet run in Fusion.
+- **Study in progress / done:** `docs/PHYSICS_VS_CHARTS_STUDY.md` (how often the vendor chart decides versus physics;
+  whether a "generic / import carbide" grade is worth adding). Owner's steer: unnamed tools should run somewhat more
+  conservatively, but "not too much lower": cheap carbide has been better than expected.
+- **Owner's tools:** T1 and the 1/16 in end mill are Haas-branded, which the owner says are made by YG-1; the 1/16 in ball
+  is a cheap import. Haas is not mapped to any vendor chart today (owner to decide: label those tools YG-1, or add an alias).
+- **Separate project the owner wants next (new chat):** clean up the tool libraries. Make the cloud / hub library the
+  master, then replace the document tools from it, and log every large change to axial depth, radial depth and ramp angle
+  with the reason. Existing pieces to build on: `master_library.py`, `library_audit.py`, `tool_library_curator.py`,
+  `docs/TOOL_LIBRARY_NOTES.md`, `docs/SHOP_LIBRARY_AUDIT.md`, the add-in's `update_tool_fields` bridge action (not yet
+  proven against live Fusion), and the description convention for coating / HSS in `docs/ADDIN_USER_GUIDE.md`.
+
 ## Things that bit us
 
 - The result cache key once lacked the flute count: every flute count got the first tool's answer. Any new engine input
