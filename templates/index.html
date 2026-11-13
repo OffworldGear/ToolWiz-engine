@@ -2568,7 +2568,7 @@
                     if (roEl) roEl.value = '';
                 } else if (Number.isFinite(Number(machineProfile.runout)) && machineProfile.runout !== null) {
                     runoutInches = Number(machineProfile.runout);
-                    if (roEl) roEl.value = isMetric ? (runoutInches * 25.4).toFixed(3) : runoutInches.toFixed(4);
+                    if (roEl) roEl.value = isMetric ? (runoutInches * 25.4).toFixed(4) : runoutInches.toFixed(4);
                 }
                 const nameEl = document.getElementById('machineProfileName');
                 if (nameEl) nameEl.innerText = machineProfile.machine || '';
@@ -3498,7 +3498,7 @@
             let roInput = document.getElementById('runout');
             if (roInput) {
                 // Display rounding only: the precise value lives in runoutInches (canonical inches).
-                roInput.value = runoutAuto ? '' : (isMetric ? (runoutInches * 25.4).toFixed(3) : runoutInches.toFixed(4));
+                roInput.value = runoutAuto ? '' : (isMetric ? (runoutInches * 25.4).toFixed(4) : runoutInches.toFixed(4));
                 roInput.step = isMetric ? '0.001' : '0.0001';
             }
 
