@@ -3,8 +3,11 @@
 Exposes both **ToolWiz Physics & Library Tools** and **Live Fusion 360 CAD/CAM Tools**
 over standard JSON-RPC 2.0 MCP (``stdio`` transport or HTTP ``/api/mcp``).
 
-Usage (stdio MCP server for Claude Desktop / Antigravity / Cursor):
-    python mcp_server.py
+Usage:
+    HTTP (reaches live Fusion): run ``python app.py``; MCP is served at http://127.0.0.1:5000/api/mcp
+        and clients must send the ``X-ToolWiz-Client`` header (see .mcp.json).
+    stdio (physics and library tools only; Fusion calls queue where the add-in never looks):
+        python mcp_server.py
 """
 from __future__ import annotations
 
@@ -786,6 +789,28 @@ def handle_mcp_message(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "id": msg_id,
         "error": {"code": -32601, "message": f"Method not found: {method!r}"},
     }
+
+
+def register_http(flask_app) -> None:
+    """Serve MCP at ``POST /api/mcp`` inside the running ToolWiz server (``python app.py``).
+
+    Only this transport reaches live Fusion: the add-in polls the Fusion bridge queue of the
+    server on 127.0.0.1:5000, and a separate stdio process has its own queue that nothing reads.
+    Replies are plain JSON (no SSE stream); notifications get 202. The app's guard still
+    requires the X-ToolWiz-Client header.
+    """
+    from flask import Response, jsonify, request
+
+    @flask_app.route("/api/mcp", methods=["POST"])
+    def mcp_http():
+        msg = request.get_json(silent=True)
+        if msg is None:
+            return jsonify({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}), 400
+        if isinstance(msg, list):
+            out = [r for r in (handle_mcp_message(m) for m in msg) if r is not None]
+            return jsonify(out) if out else Response(status=202)
+        resp = handle_mcp_message(msg)
+        return jsonify(resp) if resp is not None else Response(status=202)
 
 
 def run_stdio_server() -> None:

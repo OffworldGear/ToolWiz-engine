@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "toolwiz": {
-      "command": "python",
-      "args": ["mcp_server.py"]
+      "type": "http",
+      "url": "http://127.0.0.1:5000/api/mcp",
+      "headers": {
+        "X-ToolWiz-Client": "claude-code"
+      }
     }
   }
 }

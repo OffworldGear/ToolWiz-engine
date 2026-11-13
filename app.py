@@ -2125,6 +2125,11 @@ def api_library_curate():
 
 
 if __name__ == "__main__":
+    import sys
+    # mcp_server does "from app import app"; point that at this module so it is not loaded twice.
+    sys.modules.setdefault("app", sys.modules[__name__])
+    import mcp_server
+    mcp_server.register_http(app)
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="127.0.0.1", port=5000, debug=debug_mode)
 
