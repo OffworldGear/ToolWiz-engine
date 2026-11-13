@@ -135,8 +135,19 @@ def _first(d: Dict[str, Any], keys: Tuple[str, ...], kind: str) -> Optional[floa
 
 
 _COATINGS = (("altin", "AlTiN"), ("tialn", "TiAlN"), ("alcrn", "AlCrN"), ("zrn", "ZrN"), ("dlc", "DLC"),
-             ("diamond", "Diamond"), ("tisin", "TiSiN"), ("ticn", "TiCN"), ("tin", "TiN"), ("uncoated", "Uncoated"),
-             ("bright", "Uncoated"))
+             ("diamond", "Diamond"), ("tisin", "TiSiN"), ("ticn", "TiCN"), ("tib2", "TiB2"), ("tin", "TiN"),
+             ("uncoated", "Uncoated"), ("bright", "Uncoated"))
+
+
+def coating_in_text(text: str) -> Optional[str]:
+    """The coating a free text names, matched as WHOLE WORDS (a coating name is its own word: "AlTiN", "TiN coated", "ZrN"),
+    the longest name first, so "cutting", "fluting" or "tinted" are not TiN and "AlTiN" is not TiN. None when none.
+    The Fusion add-in's ``twlogic.coating_in_text`` is the same rule; keep both in step (tests/test_verify3_report_2026_11_13.py)."""
+    words = set(re.findall(r"[a-z0-9]+", str(text or "").lower()))
+    for key, name in sorted(_COATINGS, key=lambda kn: -len(kn[0])):
+        if key in words:
+            return name
+    return None
 
 
 def _coating_of(tool: Dict[str, Any], desc: str) -> Optional[str]:
@@ -144,10 +155,9 @@ def _coating_of(tool: Dict[str, Any], desc: str) -> Optional[str]:
     c = str(tool.get("coating") or "").strip()
     if c.lower() in ("none", "no coating", "uncoated", "bright"):
         return "Uncoated"               # an explicit "no coating" is a known coating
-    text = f"{c} {desc}".lower()
-    for key, name in _COATINGS:
-        if key in text:
-            return name
+    found = coating_in_text(f"{c} {desc}")
+    if found:
+        return found
     if re.search(r"\b(uncoated|bright)\b", f"{tool.get('BMC') or ''} {tool.get('GRADE') or ''}".lower()):
         return "Uncoated"
     return None
@@ -408,6 +418,8 @@ def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
         prm = _op_params(raw)
         rich = isinstance(raw.get("params"), dict)       # the add-in's snapshot lists only the parameters the op really has
         extra = {n: parse_quantity((raw.get("params") or {}).get(n), "feed") for n in ("tool_feedPlunge", "tool_feedRamp")} if rich else {}
+        if rich:
+            extra["tool_rampAngle"] = parse_quantity((raw.get("params") or {}).get("tool_rampAngle"), "angle")
         geom = _geometry_of(raw)
         strategy = str(raw.get("strategy") or "")
         name = str(raw.get("name") or f"Operation {idx + 1}")
@@ -920,6 +932,47 @@ _PLAN_NEEDS = {"maximumStepdown": ("stepdown_in", "stepdown"), "stepover": ("ste
                "optimalLoad": ("stepover_in", "stepover")}
 
 
+_STOCK_NONE_IN = 0.00005     # a stock to leave at or below this counts as "zero / not set" (as in classify_op)
+
+
+def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], notes: List[str]) -> Dict[str, Dict[str, str]]:
+    """The owner's own stock to leave and ramp angle are not ToolWiz's to change.
+
+    Stock to leave (radial / vertical) is proposed only on roughing-kind operations whose current stock is zero or not set;
+    with a non-zero stock it is kept and the note says what ToolWiz would leave. The ramp angle (and its ramp feed) is
+    proposed only when ToolWiz's angle is LOWER than the current one; a higher one is kept and noted; an unreadable current
+    angle means no proposal."""
+    cur = op["current"]
+    out = {k: dict(v) for k, v in plans.items()}
+    rough_kind = op.get("kind") in ("adaptive", "pocket", "rough", "contour")
+    for name, key, label in (("stockToLeave", "stock_radial_in", "Stock to leave"),
+                             ("verticalStockToLeave", "stock_axial_in", "Vertical stock to leave")):
+        have = cur.get(key)
+        for plan in out.values():
+            if name not in plan:
+                continue
+            if not rough_kind:
+                del plan[name]
+            elif have is not None and have > _STOCK_NONE_IN:
+                want = parse_quantity(plan.pop(name), "len")
+                note = f"{label} kept at your {have:.4f} in; ToolWiz would leave {want:.4f} in."
+                if note not in notes:
+                    notes.append(note)
+    cur_ramp = (op.get("current_extra") or {}).get("tool_rampAngle")
+    for plan in out.values():
+        if "tool_rampAngle" not in plan:
+            continue
+        want = parse_quantity(plan["tool_rampAngle"], "angle")
+        if cur_ramp is None or want is None or want > cur_ramp + 0.05:
+            plan.pop("tool_rampAngle")
+            plan.pop("tool_feedRamp", None)
+            if cur_ramp is not None and want is not None:
+                note = f"Ramp angle kept at your {cur_ramp:.1f} deg; ToolWiz's limit is {want:.1f} deg."
+                if note not in notes:
+                    notes.append(note)
+    return {k: v for k, v in out.items() if v}
+
+
 def _finalize_plans(op: Dict[str, Any], plans: Optional[Dict[str, Dict[str, str]]], notes: List[str]) -> Optional[Dict[str, Any]]:
     """Keep only real changes in the apply plans: drop parameters the operation does not have (the add-in snapshot lists
     a stepdown / stepover only when the operation has it enabled) and parameters whose value already equals the
@@ -927,6 +980,9 @@ def _finalize_plans(op: Dict[str, Any], plans: Optional[Dict[str, Dict[str, str]
     if not plans:
         return plans
     cur = op["current"]
+    plans = _keep_owner_choices(op, plans, notes)
+    if not plans:
+        return None
     have = {"tool_spindleSpeed": cur.get("rpm"), "tool_feedCutting": cur.get("feed_ipm"), "maximumStepdown": cur.get("stepdown_in"),
             "stepover": cur.get("stepover_in"), "optimalLoad": cur.get("stepover_in"), "stockToLeave": cur.get("stock_radial_in"),
             "verticalStockToLeave": cur.get("stock_axial_in"), **(op.get("current_extra") or {})}
@@ -1514,11 +1570,13 @@ def _oversight_findings(op, tool, res, ctx, woc_unknown: bool = False, skip_coat
         if skip_coating and f.title.startswith("Tool Coating Unknown"):
             continue
         detail, rec = f.detail, f.recommendation
+        if f.title.startswith("Tool Coating Unknown"):
+            rec = ("Write the coating as its own word in the tool description (for example AlTiN, TiN, ZrN or Uncoated; add HSS or "
+                   "cobalt if it is not carbide, see \"Recording coating and tool material\" in the add-in user guide), or tell the "
+                   "advisor chat your assumption (for example \"all my tools are AlTiN\").")
         if f.title.startswith("Tool Coating Unknown") and tool.get("coating_hint"):
             detail = ("The tool library says this cutter is coated (\"ti coated\") but not which coating: it could be TiN, TiCN, "
                       "TiAlN or AlTiN, so ToolWiz applied no coating factor and did not guess.")
-            rec = ("Fix the coating in the Fusion tool library, or tell the advisor chat your assumption "
-                   "(for example \"all my tools are AlTiN\").")
         out.append(_f(f.severity, f"oversight_{f.category}", f.title, detail, rec))
     return out
 
@@ -1536,7 +1594,7 @@ def _order(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 #: ``{"tools": [tool numbers]}``, ``{"diameter_in": 0.25}`` (or ``diameter_mm``) or ``{"op_ids": ["Setup > Op" or a name part]}``.
 #: Nothing here writes to Fusion: the values only change what the advisor and ToolWiz are run with.
 ASSUMPTION_KEYS = {
-    "coating": "tool coating (AlTiN, TiAlN, AlCrN, ZrN, DLC, Diamond, TiSiN, TiCN, TiN, Uncoated); fills in tools whose coating the snapshot does not know",
+    "coating": "tool coating (AlTiN, TiAlN, AlCrN, ZrN, DLC, Diamond, TiSiN, TiCN, TiB2, TiN, Uncoated); fills in tools whose coating the snapshot does not know",
     "tool_material": "tool substrate: carbide, hss or cobalt (changes the physics: carbide is the default)",
     "tool_grade": "carbide grade / vendor series text (recorded and shown; ToolWiz physics does not use it)",
     "family": "ToolWiz material family (e.g. 'Titanium Alloy')",

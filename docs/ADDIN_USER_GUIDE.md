@@ -95,6 +95,18 @@ ToolWiz builds the shop T-slot cutter list (`data/shop_tools.json`) from your Fu
 Library-derived cutters are marked `source: "fusion library"` and are regenerated on every refresh: correct the tool in Fusion, never in `shop_tools.json`. Planned (not owned)
 cutters such as the Harvey 867330 stay as they are.
 
+### Recording coating and tool material
+
+Fusion's base-material list offers only "ti coated", with no coating type, so ToolWiz reads the coating from the tool
+**description**. Write the coating name as its own word: AlTiN, TiAlN, TiN, TiCN, ZrN, DLC, Uncoated. Words that merely
+contain letters of a coating ("cutting", "fluting") are ignored. Write "HSS" or "cobalt" for a tool that is not carbide;
+without one of those words ToolWiz assumes carbide. Examples:
+
+- `1/4 3FL Endmill AlTiN`  (carbide, AlTiN)
+- `3/8 4FL Endmill HSS TiN`  (high-speed steel, TiN)
+
+If no coating is found the advisor flags "coating not set" once per tool and applies no coating factor.
+
 ### Master Library Builder
 Choose sources (every library found: local, cloud, hub, open documents; optionally the documents of hub projects), a tool filter (types,
 diameter range), material sets and materials, strategies, aggressiveness, runout, and where to import (local or cloud). The server builds in the

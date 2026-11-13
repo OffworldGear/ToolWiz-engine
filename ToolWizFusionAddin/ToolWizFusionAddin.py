@@ -1667,29 +1667,9 @@ def get_op_tool_info(op):
         runout_in, runout_source = twlogic.tool_runout_in(t_dict)
 
         detected_coating = "AlTiN" if is_carbide else "Uncoated"   # the Speeds & Feeds dialog's preselection only
-        stated_coating = None                                      # what the tool's own text says (the snapshot's coating)
-        if re.search(r"\b(uncoated|bright)\b", text_all):
-            stated_coating = "Uncoated"
-        else:
-            for _pat, _nm in ((r"altin", "AlTiN"), (r"tialn", "TiAlN"), (r"alcrn", "AlCrN"), (r"tisin", "TiSiN"),
-                              (r"ticn", "TiCN"), (r"\btin\b", "TiN"), (r"\bzrn\b", "ZrN"), (r"\bdlc\b|diamond", "Diamond")):
-                if re.search(_pat, text_all):
-                    stated_coating = _nm
-                    break
-        if "altin" in text_all:
-            detected_coating = "AlTiN"
-        elif "tialn" in text_all:
-            detected_coating = "TiAlN"
-        elif "ticn" in text_all:
-            detected_coating = "TiCN"
-        elif "tin" in text_all:
-            detected_coating = "TiN"
-        elif "zrn" in text_all:
-            detected_coating = "ZrN"
-        elif "dlc" in text_all or "diamond" in text_all:
-            detected_coating = "Diamond"
-        elif "uncoated" in text_all or "bright" in text_all:
-            detected_coating = "Uncoated"
+        stated_coating = twlogic.coating_in_text(text_all)         # whole words only: "cutting" / "tinted" are not TiN
+        if stated_coating in ("AlTiN", "TiAlN", "TiCN", "TiN", "ZrN", "Diamond", "Uncoated"):   # the dialog's own choices
+            detected_coating = stated_coating
 
         is_hole = is_hole_kind(geo.kind)
         is_tap = is_tap_kind(geo.kind)
@@ -5843,6 +5823,12 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     stock = _stock_values_in(op, doc_unit)
     plunge = parse_cam_feed_to_ipm(_param(params_obj, 'tool_feedPlunge'), doc_unit)
     ramp = parse_cam_feed_to_ipm(_param(params_obj, 'tool_feedRamp'), doc_unit)
+    ramp_deg = None      # current ramp angle: Fusion's evaluated value is in radians
+    for _rn in ('tool_rampAngle', 'rampAngle'):
+        _rv = _numeric_param_value(_param(params_obj, _rn)) if _param(params_obj, _rn) is not None else None
+        if _rv is not None and _rv > 0:
+            ramp_deg = math.degrees(_rv)
+            break
     params = {}
     if rpm:
         params["tool_spindleSpeed"] = f"{rpm:.0f} rpm"
@@ -5852,6 +5838,8 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
         params["tool_feedPlunge"] = f"{plunge:.3f} in/min"
     if ramp:
         params["tool_feedRamp"] = f"{ramp:.3f} in/min"
+    if ramp_deg:
+        params["tool_rampAngle"] = f"{ramp_deg:.2f} deg"
     if doc:
         params["maximumStepdown"] = _expr_in(doc)
     if woc:
@@ -5949,6 +5937,18 @@ def current_param_expressions(changes):
     return cur
 
 
+def current_param_values(changes):
+    """{op_id: {param: Fusion's evaluated value (internal units: cm, radians, mm/min, rpm) or None}} for the parameters in
+    `changes`. twlogic.display_current / expr_equal convert it the way parse_cam_feed_to_ipm and _signed_len_in do."""
+    vals = {}
+    for op_id, params in changes.items():
+        _, _, op = _op_by_id(op_id)
+        for name in params:
+            p = _param(getattr(op, 'parameters', None), name) if op is not None else None
+            vals.setdefault(op_id, {})[name] = _numeric_param_value(p) if p is not None else None
+    return vals
+
+
 _preapproved = {}   # (op_id, frozenset(params.items())) -> True: the user already confirmed in the advisor dialog
 
 
@@ -5957,10 +5957,10 @@ def preapprove_changes(changes):
         _preapproved[(op_id, frozenset(params.items()))] = True
 
 
-def format_apply_confirmation(path, old_new, skipped, reason):
+def format_apply_confirmation(path, old_new, skipped, reason, values=None):
     lines = [f"ToolWiz wants to change {len(old_new)} parameter(s) on:", f"  {path}", ""]
     for name, (old, new) in old_new.items():
-        lines.append(f"  {name}: {old} -> {new}")
+        lines.append(f"  {name}: {twlogic.display_current(name, old, new, (values or {}).get(name))} -> {new}")
     for name, why in skipped.items():
         lines.append(f"  (skipped {name}: {why})")
     lines += ["", f"Reason: {reason or 'ToolWiz recommendation'}",
@@ -5997,7 +5997,7 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
             skipped[name] = "parameter is disabled on this operation"
         else:
             cur_expr = _safe(lambda: p.expression)
-            if twlogic.expr_equal(cur_expr, expr):
+            if twlogic.expr_equal(cur_expr, expr, _numeric_param_value(p), name):
                 unchanged[name] = cur_expr          # already the recommended value: not a change, not a write
             else:
                 plan[name] = (p, cur_expr, expr)
@@ -6015,7 +6015,8 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
     pre = any(k[0] == op_id and k[1] >= frozenset(key[1]) for k in _preapproved)
     if confirm and not pre:
         text = format_apply_confirmation(path, {n: (o, e) for n, (_, o, e) in plan.items()}, skipped,
-                                         reason + (f" (advisor result of {advisor_generated_at})" if advisor_generated_at else ""))
+                                         reason + (f" (advisor result of {advisor_generated_at})" if advisor_generated_at else ""),
+                                         {n: _numeric_param_value(plan[n][0]) for n in plan})
         ans = ui.messageBox(text, "ToolWiz - apply recommended parameters", adsk.core.MessageBoxButtonTypes.YesNoButtonType,
                             adsk.core.MessageBoxIconTypes.QuestionIconType)
         if ans != adsk.core.DialogResults.DialogYes:
@@ -6028,6 +6029,8 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
     ac = AuditedCommand('apply_operation_parameters', target=path, targets=[path]).begin()
     audit({'event': 'apply_confirmed', 'op_path': path, 'reason': reason, 'advisor_generated_at': advisor_generated_at,
            'params': {n: plan[n][2] for n in plan}})
+    old_disp = {n: twlogic.display_current(n, plan[n][1], plan[n][2], _numeric_param_value(plan[n][0])) for n in plan}
+    audit({'event': 'apply_old_values', 'op_path': path, 'old': old_disp})
     applied, previous, error = {}, {}, None
     try:
         if any(n in plan for n in ('stockToLeave', 'verticalStockToLeave')) and not is_op_stock_to_leave_active(op):
@@ -6055,6 +6058,7 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
             _log("Could not write the revert file", ex)
     ok = bool(applied) and not error
     return {"ok": ok, "success": ok, "operation": path, "reason": reason, "applied": applied, "skipped": skipped,
+            "old_display": {n: old_disp[n] for n in applied if n in old_disp},
             "unchanged": unchanged, "previous": previous, "audit_note": note, "error": error or (None if applied else "nothing was applied")}
 
 
@@ -6513,7 +6517,7 @@ def _advisor_done(res, err):
         for r in recs:
             for op_id, params in r["changes"].items():
                 every.setdefault(op_id, {}).update(params)
-        recs, _same = twlogic.prune_unchanged_recs(recs, current_param_expressions(every))
+        recs, _same = twlogic.prune_unchanged_recs(recs, current_param_expressions(every), current_param_values(every))
     except Exception as ex:
         _log("Advisor: could not compare recommendations with current values", ex)
     _advisor_state.update(parsed=parsed, recs=recs, prev_sel=None)
@@ -6561,10 +6565,11 @@ def _changes_preview(inputs):
     if not changes:
         return changes, "Nothing selected."
     cur = current_param_expressions(changes)
-    changes, same = twlogic.drop_unchanged(changes, cur)
+    vals = current_param_values(changes)
+    changes, same = twlogic.drop_unchanged(changes, cur, vals)
     if not changes:
         return changes, f"No change: the {same} selected value(s) already match the operations."
-    lines = twlogic.summarize_changes(changes, cur)
+    lines = twlogic.summarize_changes(changes, cur, vals)
     if conflicts:
         lines += ["", "Conflicting recommendations (the later one wins):"] + conflicts
     return changes, "\n".join(lines)

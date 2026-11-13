@@ -675,9 +675,50 @@ _EQ_UNITS = {"": ("", 1.0), "in": ("len", 1.0), "inch": ("len", 1.0), '"': ("len
              "rpm": ("rpm", 1.0), "deg": ("angle", 1.0)}
 
 
-def expr_equal(current, new):
+_PARAM_KIND = {"tool_spindleSpeed": "rpm", "tool_feedCutting": "feed", "tool_feedPlunge": "feed", "tool_feedRamp": "feed",
+               "tool_rampAngle": "angle", "rampAngle": "angle"}
+
+
+def param_kind(name):
+    """'rpm' / 'feed' / 'angle' / 'len' for an allow-listed Fusion parameter name."""
+    return _PARAM_KIND.get(str(name), "len")
+
+
+def evaluated_to_base(name, value):
+    """Fusion's evaluated (internal-unit) value of a parameter -> inches / in/min / rpm / degrees, or None. Lengths are cm
+    (as in ToolWizFusionAddin._signed_len_in), feeds mm/min (as in parse_cam_feed_to_ipm), angles radians, rpm plain."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    k = param_kind(name)
+    return {"len": v / 2.54, "feed": v / 25.4, "angle": math.degrees(v), "rpm": v}[k]
+
+
+def _evaluated_equal(name, value, new):
+    mb = _EQ_QTY.match(str(new or ""))
+    base = evaluated_to_base(name, value)
+    if not mb or base is None:
+        return None
+    ub = _EQ_UNITS.get(mb.group(2).lower())
+    if ub is None or (ub[0] not in ("", param_kind(name))):
+        return False
+    dec = len(mb.group(1).split(".")[1]) if "." in mb.group(1) else 0
+    b = float(mb.group(1)) * ub[1]
+    return abs(base - b) <= max(0.005 * abs(b), 0.5 * 10.0 ** (-dec) * ub[1])
+
+
+def expr_equal(current, new, value=None, name=None):
     """True when two Fusion expressions are the same value (units converted; within 0.5 % or half the last digit of
-    `current`). False when either cannot be read (named expressions, formulas, "?"), so those are never dropped."""
+    `current`). When the current parameter's evaluated Fusion value (`value`, internal units) and `name` are given, that
+    value is compared instead of the text, so '0.1mm' equals '0.00394 in' and '2.' equals '2 deg'.
+    False when either cannot be read (named expressions, formulas, "?") and no evaluated value is known."""
+    if value is not None and name is not None:
+        r = _evaluated_equal(name, value, new)
+        if r is not None:
+            return r
     ma, mb = _EQ_QTY.match(str(current or "")), _EQ_QTY.match(str(new or ""))
     if not ma or not mb:
         return False
@@ -689,15 +730,64 @@ def expr_equal(current, new):
     return abs(a - b) <= max(0.005 * abs(b), 0.5 * 10.0 ** (-dec) * ua[1])
 
 
-def drop_unchanged(changes, current):
+_NAME_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*$")
+
+
+def current_note(current_expr):
+    """'' for a plain number (optionally with a unit) or an unknown ('?'); otherwise a short plain note that applying
+    breaks a link or drops a formula."""
+    c = str(current_expr or "").strip()
+    if not c or c == "?":
+        return ""
+    m = _EQ_QTY.match(c)
+    if m and m.group(2).lower() in _EQ_UNITS:
+        return ""
+    n = _NAME_RE.match(c)
+    return f"(replaces the link to {n.group(1)})" if n else "(replaces a formula)"
+
+
+def display_current(name, current_expr, new, value=None):
+    """The current side of an 'old -> new' line: the evaluated value in the new value's unit, rounded like the new value
+    ('0.00394 in', '50.19 in/min', '2.0 deg', '11999 rpm'), plus current_note() when the expression is a link or formula.
+    Without an evaluated value a plain-number expression is converted the same way; otherwise the expression text is shown."""
+    kind = param_kind(name)
+    base = evaluated_to_base(name, value)
+    if base is None:
+        mc = _EQ_QTY.match(str(current_expr or ""))
+        uc = _EQ_UNITS.get(mc.group(2).lower()) if mc else None
+        if mc and uc and uc[0] in ("", kind) and uc[0] != "":
+            base = float(mc.group(1)) * uc[1]
+        elif mc and uc and uc[0] == "":
+            base = float(mc.group(1))
+    mn = _EQ_QTY.match(str(new or ""))
+    un = _EQ_UNITS.get(mn.group(2).lower()) if mn else None
+    if base is None or not mn or un is None or un[0] not in ("", kind):
+        text = str(current_expr if current_expr not in (None, "") else "?")
+    else:
+        dec = len(mn.group(1).split(".")[1]) if "." in mn.group(1) else 0
+        dec = max(dec, {"len": 2, "feed": 2, "angle": 1, "rpm": 0}[kind])     # never show "0.2" for a 0.25 in current value
+        label = mn.group(2)
+        if not label:
+            label = {"len": "in", "feed": "in/min", "angle": "deg", "rpm": "rpm"}[kind]
+            factor = 1.0
+        else:
+            factor = un[1]
+        text = f"{base / factor:.{dec}f} {label}"
+    note = current_note(current_expr)
+    return f"{text} {note}" if note else text
+
+
+def drop_unchanged(changes, current, values=None):
     """(real_changes, n_unchanged): `changes` {op_id: {param: expr}} without the parameters whose new value equals the
-    operation's current expression (`current` {op_id: {param: expr}}); operations left empty are removed."""
+    operation's current expression (`current` {op_id: {param: expr}}, or, when `values` {op_id: {param: evaluated value}}
+    is given, the evaluated value); operations left empty are removed."""
     out, same = {}, 0
     for op_id, params in (changes or {}).items():
         cur = (current or {}).get(op_id) or {}
+        vals = (values or {}).get(op_id) or {}
         keep = {}
         for k, v in params.items():
-            if expr_equal(cur.get(k), v):
+            if expr_equal(cur.get(k), v, vals.get(k), k):
                 same += 1
             else:
                 keep[k] = v
@@ -706,12 +796,12 @@ def drop_unchanged(changes, current):
     return out, same
 
 
-def prune_unchanged_recs(recs, current):
+def prune_unchanged_recs(recs, current, values=None):
     """The recommendations that still change something: each rec's `changes` loses its no-op parameters; a rec with nothing
     left is dropped. Returns (recs, n_unchanged_parameters)."""
     out, same = [], 0
     for r in recs:
-        ch, n = drop_unchanged(r["changes"], current)
+        ch, n = drop_unchanged(r["changes"], current, values)
         same += n
         if ch:
             out.append(dict(r, changes=ch))
@@ -759,13 +849,14 @@ def merge_selected_changes(recs, selected_ids):
     return merged, conflicts
 
 
-def summarize_changes(changes, current=None):
+def summarize_changes(changes, current=None, values=None):
     """Exactly which parameters will change: lines 'Op: param: old -> new'. `current` is
-    {op_id: {param: current expression}} (from Fusion); unknown olds show '?'."""
+    {op_id: {param: current expression}} (from Fusion); unknown olds show '?'. `values` {op_id: {param: evaluated value}}
+    makes the old side the evaluated value in the new value's unit (see display_current)."""
     lines = []
     for op_id, params in changes.items():
         for k, v in params.items():
-            old = ((current or {}).get(op_id) or {}).get(k, "?")
+            old = display_current(k, ((current or {}).get(op_id) or {}).get(k, "?"), v, ((values or {}).get(op_id) or {}).get(k))
             lines.append(f"{op_id}: {k}: {old} -> {v}")
     return lines
 
@@ -1153,4 +1244,25 @@ def find_tool_index_by_guid(tools, guid):
     for i, t in enumerate(tools or []):
         if tool_guid(t) == guid:
             return i
+    return None
+
+
+# ==============================================================================
+# coating named in a tool's text
+# ==============================================================================
+
+# Mirrors setup_advisor._COATINGS / coating_in_text (the add-in cannot import server modules); the names are the add-in's own
+# (DLC and diamond both read "Diamond"). tests/test_verify3_report_2026_11_13.py checks both rules give the same answers.
+_COATING_WORDS = (("altin", "AlTiN"), ("tialn", "TiAlN"), ("alcrn", "AlCrN"), ("tisin", "TiSiN"), ("ticn", "TiCN"),
+                  ("tib2", "TiB2"), ("zrn", "ZrN"), ("dlc", "Diamond"), ("diamond", "Diamond"), ("tin", "TiN"),
+                  ("uncoated", "Uncoated"), ("bright", "Uncoated"))
+
+
+def coating_in_text(text):
+    """The coating a text names, matched as whole words with the longest name first ("cutting", "fluting", "tinted" are not
+    TiN; "AlTiN" is not TiN). None when the text names none."""
+    words = set(re.findall(r"[a-z0-9]+", str(text or "").lower()))
+    for key, name in sorted(_COATING_WORDS, key=lambda kn: -len(kn[0])):
+        if key in words:
+            return name
     return None
