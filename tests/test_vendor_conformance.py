@@ -279,7 +279,8 @@ def run_job(args):
 
 
 def _pool_map(items):
-    ctx = multiprocessing.get_context("fork")
+    # Windows has no "fork" start method: use "spawn" there (the worker is a module-level function)
+    ctx = multiprocessing.get_context(os.environ.get("TOOLWIZ_MP_START") or ("fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"))
     workers = int(os.environ.get("TOOLWIZ_CONFORMANCE_WORKERS") or max(1, min(os.cpu_count() or 1, 8)))
     with concurrent.futures.ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as ex:
         return list(ex.map(run_job, items, chunksize=2))

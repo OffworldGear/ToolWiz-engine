@@ -25,3 +25,13 @@ def _isolate_ai_settings(tmp_path, monkeypatch):
     monkeypatch.setenv("TOOLWIZ_ADVISOR_CHATS_DIR", str(tmp_path / "advisor_chats"))
     for k in ("ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
         monkeypatch.delenv(k, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_machine_settings(tmp_path, monkeypatch):
+    """The owner's own machine overrides (data/machine_settings.json, e.g. a saved runout) and custom machines
+    (data/machines/) must not change test results, and tests must never write to them."""
+    import app as toolwiz_app
+    import machine_profiles
+    monkeypatch.setattr(toolwiz_app, "MACHINE_SETTINGS_PATH", str(tmp_path / "machine_settings.json"))
+    monkeypatch.setattr(machine_profiles, "USER_DIR", str(tmp_path / "machines"))

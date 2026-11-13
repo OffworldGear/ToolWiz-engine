@@ -350,7 +350,8 @@ def test_keys_are_write_only_over_the_api(monkeypatch):
     st = c.get("/api/advisor_chat/settings").get_json()["settings"]
     assert st["keys"]["anthropic"] == {"set": True, "last4": KEY[-4:], "source": "saved"} and KEY not in json.dumps(st)
     assert KEY in open(aisettings.settings_path()).read()                    # saved server side only
-    assert oct(os.stat(aisettings.settings_path()).st_mode & 0o777) == "0o600"
+    if os.name != "nt":        # Windows has no POSIX file modes (the file sits in the user's own profile there)
+        assert oct(os.stat(aisettings.settings_path()).st_mode & 0o777) == "0o600"
     monkeypatch.setattr(ap.anthropic, "Anthropic", lambda **kw: SimpleNamespace(models=SimpleNamespace(list=lambda: (_ for _ in ()).throw(RuntimeError("bad " + KEY)))))
     m = c.get("/api/advisor_chat/models?provider=anthropic")
     assert KEY not in m.get_data(as_text=True)

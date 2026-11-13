@@ -81,7 +81,8 @@ def run_case(args):
 
 
 def _run_all(jobs):
-    ctx = multiprocessing.get_context("fork")
+    # Windows has no "fork" start method: use "spawn" there (the worker is a module-level function)
+    ctx = multiprocessing.get_context(os.environ.get("TOOLWIZ_MP_START") or ("fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"))
     with concurrent.futures.ProcessPoolExecutor(max_workers=max(1, min(os.cpu_count() or 1, 8)), mp_context=ctx) as ex:
         return list(ex.map(run_case, jobs, chunksize=2))
 
