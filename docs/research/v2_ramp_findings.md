@@ -4,7 +4,8 @@ _2026-10-18. Branch `toolwiz/v2-ramp` from `toolwiz/hardening` (ca5c1cf). v1 is 
 
 ## Round 2 (2026-10-18): the user's decisions applied
 
-Sections 1–7 below are Round 1. Where they differ from this section, Round 2 governs.
+Sections 1–7 below are Round 1. Where they differ from this section, Round 2 governs; where Round 3 (R14a by vendor,
+2026-11-13, at the end of this round) differs from both, Round 3 governs.
 
 | # | Decision | Applied as |
 |---|---|---|
@@ -108,6 +109,79 @@ Setup: `run_cut` with model v2, AlTiN, 4 flutes, helix 30° (the request default
 2. **About half of the 1/16" ramps carry the rubbing warning** (and T12 does). The ways out are a measured r_β for the user's tools, or a higher ramp chip than C2's slot limit allows.
 
 
+## Round 3 (2026-11-13): R14a follows the vendor ranges by brand
+
+**Why.** The owner got 18.2–18.8° for a generic 4-flute AlTiN end mill (1/8" and 1/4") in 7075 at 60 %. R14a capped the angle
+at s(a) × the median over vendor groups of each vendor's *maximum* (Harvey/Helical 10°, Sandvik 20°, YG-1 20° → 20 × 0.95),
+and physics let the angle run to the cap. The rows behind the 20° are aluminium-specific 3-flute tools (Sandvik CoroMill Dura
+1K223/1K233, YG-1 Alu-Power); Sandvik's 3·D version 1K253 is 5°. Three faults: a vendor maximum used as the working value at
+50 %; no brand-first order (the cutting guardrail C14 has it since 2026-11-12); no conditioning on flutes or reach.
+
+**Rule now (`physics_v2/ramp.py` `angle_lookup`, `angle_cap`, `r14_angle`; table `data/model_v2/ramp.json` `angle`).**
+- Source order as C14: the tool's brand (`brand_key`), else the unbranded default **Harvey + Helical**, else the cross-vendor
+  consensus (≥ 2 vendor groups); each widened stepwise (diameter band, hardness, family-wide).
+- A row is used for a tool only when its tool has **at least as many flutes** (the ramp's side cut is full width; more flutes
+  means less chip room) and **at least the reach** (flute length, or neck length when necked, over D, 10 % tolerance; the
+  taper to a larger shank is not reach). Of the covering rows each vendor group keeps those nearest the tool per catalog
+  diameter (fewest flutes, then shortest reach), so Sandvik's 1.5·D and 2·D tools read 20° and its 3·D tool 5°.
+- Each row carries lo / mid / hi. A published range gives lo and hi, mid = its middle (Helical 3–10° → 6.5°). **A maximum
+  only** (or one angle, read as the maximum, as before): lo = 0.50 × max, mid = halfway. The ratio is fitted from the 83 rows
+  that publish a range: each vendor group's median lo/hi (Emuge-Franken 0.60, Harvey Performance 0.33, Kyocera 0.50), then
+  the median over the groups, 0.50 (the row median is 0.33). Under 20 rows or 2 groups the tool falls back to 1/3.
+- One source (brand or default): lo = smallest bottom, mid = median of the middles, hi = largest top. Consensus: lowest bottom,
+  median of the groups' middles, median of the groups' tops (one vendor's high maximum does not set the consensus top).
+- Cap at aggressiveness a: `optimize.range_at` (0 % bottom, 50 % middle, 100 % top), as for speeds and chip loads.
+- **No factor is invented.** When the only rows are for larger tools than the tool's diameter band (a micro tool reading
+  1/8"+ rows), or no chart covers the tool's flutes or reach, the bottom of the range is used at every aggressiveness and the
+  check detail says so.
+- The result says which chart in plain words: `ramp.angle_basis.text` and `v2.ramp_basis`, e.g. "Ramp angle from the Helical
+  chart for aluminum (no brand given; conservative default): 3 to 10 deg, 6.5 at 50% …". R1, R2, R6, C1–C5, C15 still cap
+  the result; D2 (the vendor cap wins over R1, which is then a warning) is unchanged.
+
+**What the data supports and what it doesn't.** Flute count and reach: yes, as coverage rules (Sandvik's 2·D / 3·D split;
+Sandvik's 17-4 rows fall from 20° at 2–4 flutes to 3–5° at 7 flutes). Aluminium-specific vs general-purpose geometry: no
+general-purpose aluminium ramp rows exist, so a 4-flute tool in aluminium reads the 5-flute Helical HVAL-5 row (3–10°, the
+conservative default) and a Sandvik-branded 4-flute tool falls back to it (Sandvik charts aluminium only for 3 flutes).
+Diameter: no vendor varies the angle with diameter within a series (Harvey, Helical, Emuge: same angle from 1/16" to 1/2");
+Kyocera SGS's M4 micro series (0.016–0.062") says "1° or less" in steels and 17-4, but that is a series, not a size rule.
+
+**Micro tools (1/8" and under; rows that publish an angle under 45°).** 17-4: 28 rows (Harvey 1–3° at 1/16" and 1/8",
+Helical 1–3°, Emuge 3–5°, Kyocera SGS M4 ≤ 1° at 0.016/0.031/0.062" and 1–7° at 1/8", Sandvik/Seco 4–20° at 2–3 mm).
+4130: 17, H13: 15 (the same vendors). Titanium: 1 (Emuge 1–3° at 1/8"). Aluminium: 4 (1/8": Helical 3–10°, Sandvik and YG-1
+20° max). 316: 1. Graphite: 4 (OSG 3°). So a 1/16" tool in 17-4 reads Harvey's own 1/16" rows (1–3°, 2° at 50 %); a 1/32" tool
+in 17-4 and any micro tool in titanium only find larger-tool rows and get the bottom, 1°.
+
+**Physics for micro tools.** For 1/32" 4FL in 17-4 at 4.5° (D_h = D, 50 %, C7 speed): fz is held by the vendor slot chip
+C14f (9.1e-5"); C3 deflection is at 82 % of its limit (0.00026" of 0.00031"), C4 at 59 %, R2 at 14 %, and R1 is not met
+(h_a 0.18 µm vs λ·r_β 0.36 µm: the end teeth rub, a D2 warning). C3 would bind near 5.5° at that fz (estimated from the 82 %) (it scales with the slot
+depth p = π·D_h·tan α), and R2 only at 7× that fz (C3 fails at 2.0× it, C4 at 3.5×). So C3 does bite, just above 4.5°: the old 4.1–4.9° sat under it only
+because C14f held fz low; the angle limit at the working values was R14a.
+
+**Side cut.** The ramp's side cut used the plain consensus C14, no flute-aware chip load and no C15. It now gets the slot
+cut's C14 by brand (slot chart), C2 × F(z) (aluminium 3-flute 1.13, 4-flute 1.00) and C15 at the helix pitch (the full-slot
+depth term grows with p; the fast window caps fz by C15 in closed form). C15 does not bind in these cases (31–39 % used
+against an 84 % limit at 50 % for 1/4" in 7075): the pitch is shallow.
+
+**Calibration rerun (version 2026-11-13.1).** Residuals of the angle against each row's vendor range (rows now run with their
+own vendor as the brand and the bridge's side-cut options):
+
+| Run | Median log ratio (model / vendor max) | Median abs log | Inside vendor range | R1 warning |
+|---|---|---|---|---|
+| All rows, 75 % (before → after) | −0.010 → −0.144 | 0.42 → 0.14 | 15 % → 31 % | 5 % → 18 % |
+| All rows, 50 % | −0.093 → −0.298 | 0.42 → 0.30 | 15 % → 31 % | 12 % → 25 % |
+| Hold-out (tables from training rows), 75 % | −0.23 → −0.70 | 0.69 → 0.70 | 6 % → 11 % | 2 % → 19 % |
+| Physics only (R14 off), 75 % | +1.53 → +1.73 | 1.53 → 1.73 | 0 % → 0 % | 0 → 0 |
+
+(255 rows now against 248: the rows run with their own brand and the slot-cut side checks; "inside" counts a max-only row as
+inside only at its maximum, as before. Physics only moved up because the side cut's slot charts by brand allow a larger fz.)
+
+T1 / T12 in 17-4 H1025 (AlTiN, bridge side-cut options): T12 (1/16", 3·D) 1.98° at 50 %, 2.48° at 75 % (Harvey 1–3°); T1
+(1/8" 4FL, 0.5" flutes = 4·D) 0.99° at 50 % and 75 %: no 17-4 chart covers a 4·D tool, so the bottom of Harvey's 1–3°.
+
+The 75 % ratio is now below 0 by design (75 % is between the middle and the top). The hold-out moved down: a held-out row's
+own vendor chart is not in the training table, so it reads the conservative default or the bottom. More ramps carry the R1
+rubbing warning because the angles are lower (D2: the vendor cap wins and says so).
+
 ## 1. Summary
 
 - **Data.** 568 ramp rows from 7 independent vendor groups were added to `tests/benchmarks/v2` (new `operation: "ramp"`, schema in `SCHEMA.md`, validator in `tests/test_v2_benchmark_dataset.py`). They include the two Sandvik CoroPlus ToolGuide helical readings.
@@ -187,8 +261,8 @@ Setup: `run_cut` with model v2, AlTiN, 4 flutes, helix 30° (the request default
 | R1 | h_a ≥ λ·r_β | C1's sources (λ 0.2–0.4; r_β 0.4–3.5 µm). λ is fixed at 0.3 by the consensus scheme. **Never relaxed.** |
 | R2 | end-tooth chip ≤ vendor-median plunge chip h_p/D (by diameter band) × the C2 aggressiveness scale | Vendor plunge tables are the only published loads on the end edges alone: OSG, Kennametal, Kyocera, Seco drilling factors |
 | R6 | 0.2·D ≤ D_h ≤ D | Upper bound: no standing core for a centre-cutting tool (bore ≤ 2·D). Lower bound: vendor-median minimum bore 1.2·D (Harvey 1.1, Seco 1.3) |
-| C1–C5, C7, C8, C11, C14 | side cut as a slot of depth p | as for slots (C8 caps micro slot depth at p ≤ 0.35·D) |
-| R14a | α ≤ s(a) × vendor-median maximum ramp angle | ≥ 2 vendor groups. Widening: diameter band → neighbouring hardness bins (rows without hardness join here) → family-wide |
+| C1–C5, C7, C8, C11, C14, C15 | side cut as a slot of depth p | as for slots (C8 caps micro slot depth at p ≤ 0.35·D); since 2026-11-13 with the slot cut's C14 by brand, C2 × F(flutes) and C15 chip space (`params.ramp_defaults`) |
+| R14a | α ≤ the vendor's published angle range at the aggressiveness (0 % bottom, 50 % middle, 100 % top) | **Replaced 2026-11-13 (Round 3 below).** Was: s(a) × the median over ≥ 2 vendor groups of their maximum angle. Now: brand → Harvey + Helical → cross-vendor consensus, rows that cover the tool's flutes and reach, max-only rows' bottom from the fitted ratio, bottom only for larger-tool rows or no covering row |
 | R14p | plunge feed ≤ s(a) × vendor-median plunge/slot factor × the ramp feed | The ramp's side cut is a slot, so its feed is the slot feed at the ramp speed |
 | R1p, R2p | the plunge's axial chip within R1 and R2 | — |
 

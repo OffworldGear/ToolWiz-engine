@@ -249,6 +249,8 @@ def _cache_key(r, op, hb, machine, kw, extra=None):
         "cs": _chip_space_version(),
         # flute-aware chip load (C2 / C14 × F(flutes)): a refitted file must not be answered from the cache
         "cf": _data_version("chip_by_flutes.json"),
+        # the ramp (R14a by brand, flutes and reach; R2, R6, R14p): a recalibrated ramp table must not be answered from the cache
+        "rp": _data_version("ramp.json"),
         # high-feed chart class level (C7 and C2 for high-feed tools): a refitted file must not be answered from the cache
         "hl": _data_version("high_feed_level.json"),
         # high-feed end mill: lead angle, max ap and the programming radius they came from (None for other tools)
@@ -327,8 +329,9 @@ def _ramp(tool, material, machine, r, out):
         from physics_v2 import highfeed
         return highfeed.entry_guidance(tool.high_feed, float(cut["feed_ipm"]), float(cut["rpm"]))
     try:
-        return ramp.optimize_ramp(tool, material, machine, float(r.aggressiveness), consensus=params.CONSENSUS_PATH,
-                                  op_feed_ipm=cut.get("feed_ipm"), op_rpm=cut.get("rpm"), coating=r.coating)
+        return ramp.optimize_ramp(tool, material, machine, float(r.aggressiveness), op_feed_ipm=cut.get("feed_ipm"),
+                                  op_rpm=cut.get("rpm"), coating=r.coating, brand=getattr(r, "brand_key", None),
+                                  **params.ramp_defaults())
     except Exception as ex:   # the cut stands; the ramp falls back to v1's rule
         return {"feasible": False, "error": f"{type(ex).__name__}: {ex}"}
 
@@ -340,10 +343,11 @@ def _ramp_details(rp):
             "helix_min_diameter_in", "bore_diameter_in", "pitch_in", "rpm", "sfm", "spindle_rpm", "fz_in", "ramp_feed_ipm",
             "ramp_feed_at_c7_rpm_ipm", "descent_ipm", "plunge_feed_ipm", "end_chip_in", "end_chip_floor_in",
             "end_chip_cap_in", "edge_radius_mm", "edge_radius_basis", "r1_warning", "binding", "overridden", "warned",
-            "conflicts", "warnings", "plunge_note", "provenance", "eliminated_by")
+            "conflicts", "warnings", "plunge_note", "provenance", "eliminated_by", "angle_basis", "chip_space",
+            "side_flute_factor")
     out = {k: rp.get(k) for k in keys if k in rp}
     checks = rp.get("checks") or {}
-    shown = list(rp.get("binding") or []) + [k for k in ("R1", "R2", "R6", "R14a", "R1p") if k in checks]
+    shown = list(rp.get("binding") or []) + [k for k in ("R1", "R2", "R6", "R14a", "R1p", "C15") if k in checks]
     out["checks"] = {k: _check_summary(checks[k]) for k in dict.fromkeys(shown) if k in checks}
     return out
 
@@ -381,6 +385,8 @@ def _v2_details(out, hb, notes, recommended=None):
         "max_feasible_tir_in": out.get("max_feasible_tir_in"),
         "hardness_hb": hb,
         "ramp": _ramp_details(out.get("ramp")),
+        # which vendor chart set the ramp angle (R14a), in plain words
+        "ramp_basis": (((out.get("ramp") or {}).get("angle_basis") or {}).get("text")),
     }
 
 

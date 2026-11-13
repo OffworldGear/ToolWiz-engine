@@ -1,7 +1,7 @@
 {
- "version": "2026-10-18.2",
+ "version": "2026-11-13.1",
  "generated_by": "tools/calibrate_v2_ramp.py",
- "date": "2026-10-18",
+ "date": "2026-11-13",
  "rows": 568,
  "vendor_groups": [
   "Emuge-Franken",
@@ -47,8 +47,8 @@
   "1/64-3/64": 6
  },
  "end_chip_basis": {
-  "assumed": 158,
-  "none": 339,
+  "assumed": 161,
+  "none": 336,
   "stated": 32,
   "rule": 39
  },
@@ -401,10 +401,10 @@
    "band": "1/64-3/64",
    "d_min": 0.0,
    "d_max": 0.05,
-   "h_a_over_D": 0.00017295,
+   "h_a_over_D": 0.00017504,
    "group_medians": {
     "Emuge-Franken": 0.00026216,
-    "Harvey Performance": 8.3738e-05,
+    "Harvey Performance": 8.7924e-05,
     "Kyocera": 4.0123e-05,
     "Sandvik": 0.00032226
    },
@@ -423,10 +423,10 @@
    "band": "1/16-3/32",
    "d_min": 0.05,
    "d_max": 0.1,
-   "h_a_over_D": 0.00017295,
+   "h_a_over_D": 0.00017504,
    "group_medians": {
     "Emuge-Franken": 0.00026216,
-    "Harvey Performance": 8.3738e-05,
+    "Harvey Performance": 8.7924e-05,
     "Kyocera": 4.0847e-05,
     "Sandvik": 0.00032226
    },
@@ -448,7 +448,7 @@
    "h_a_over_D": 0.00026147,
    "group_medians": {
     "Emuge-Franken": 0.00026147,
-    "Harvey Performance": 0.00016748,
+    "Harvey Performance": 0.00016957,
     "Kyocera": 0.00021615,
     "Sandvik": 0.00070504,
     "YG-1": 0.0027362
@@ -462,7 +462,7 @@
    ],
    "n": 38,
    "widening": "band",
-   "p10": 7.5364e-05,
+   "p10": 8.7093e-05,
    "p90": 0.0015637
   },
   {
@@ -488,7 +488,7 @@
    ],
    "n": 80,
    "widening": "band",
-   "p10": 7.8984e-05,
+   "p10": 9.4999e-05,
    "p90": 0.0015927
   },
   {
@@ -498,7 +498,7 @@
    "h_a_over_D": 0.00030114,
    "group_medians": {
     "Emuge-Franken": 0.00026147,
-    "Harvey Performance": 0.00012613,
+    "Harvey Performance": 0.00018108,
     "Kennametal": 0.00013867,
     "Kyocera": 0.00034081,
     "Sandvik": 0.00052592,
@@ -512,10 +512,10 @@
     "Sandvik",
     "YG-1"
    ],
-   "n": 88,
+   "n": 91,
    "widening": "band",
-   "p10": 0.00010151,
-   "p90": 0.001174
+   "p10": 0.0001154,
+   "p90": 0.0013202
   },
   {
    "band": "1 and up",
@@ -524,7 +524,7 @@
    "h_a_over_D": 0.00030114,
    "group_medians": {
     "Emuge-Franken": 0.00026147,
-    "Harvey Performance": 0.00012613,
+    "Harvey Performance": 0.00018108,
     "Kennametal": 0.00013774,
     "Kyocera": 0.00034081,
     "Sandvik": 0.00052592,
@@ -538,10 +538,10 @@
     "Sandvik",
     "YG-1"
    ],
-   "n": 93,
+   "n": 96,
    "widening": "+ neighbouring bands",
-   "p10": 0.00010135,
-   "p90": 0.0011113
+   "p10": 0.00010907,
+   "p90": 0.0012158
   }
  ],
  "plunge_chips": {
@@ -710,105 +710,117 @@
    "tool": "T1",
    "aggressiveness": 0.5,
    "adaptive": {
-    "ap_in": 0.5,
-    "ae_in": 0.0070116,
-    "rpm": 6521.2,
-    "feed_ipm": 15.44,
-    "fz_in": 0.00059192
+    "ap_in": 0.25,
+    "ae_in": 0.0090573,
+    "rpm": 8119.9,
+    "feed_ipm": 19.949,
+    "fz_in": 0.0006142
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 2.7326,
+    "ramp_angle_deg": 0.99006,
     "helix_diameter_over_D": 1.0,
     "helix_diameter_in": 0.125,
     "helix_min_diameter_in": 0.025,
     "bore_diameter_in": 0.25,
-    "pitch_in": 0.018743,
-    "rpm": 3935.8,
-    "sfm": 128.8,
-    "spindle_rpm": 6521.2,
-    "fz_in": 0.00039144,
-    "ramp_feed_ipm": 10.211,
-    "ramp_feed_at_c7_rpm_ipm": 6.1626,
-    "descent_ipm": 0.48679,
-    "plunge_feed_ipm": 1.7614,
-    "end_chip_in": 1.8662e-05,
+    "pitch_in": 0.0067865,
+    "rpm": 3055.8,
+    "sfm": 100.0,
+    "spindle_rpm": 8119.9,
+    "fz_in": 0.00036498,
+    "ramp_feed_ipm": 11.854,
+    "ramp_feed_at_c7_rpm_ipm": 4.4612,
+    "descent_ipm": 0.20483,
+    "plunge_feed_ipm": 2.0449,
+    "end_chip_in": 6.3065e-06,
     "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 0.0001991,
     "edge_radius_mm": 0.0012,
     "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
-    "r1_warning": false,
+    "r1_warning": true,
     "binding": [
      "C14v",
      "C14f",
+     "C14m",
      "R14a",
      "R14p"
     ],
-    "warned": [],
-    "conflicts": [],
+    "warned": [
+     "R1"
+    ],
+    "conflicts": [
+     "R1: no angle under the vendor cap 1.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
+    ],
     "warnings": [
      "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
-     "the ramp runs at the operation's 6521 rpm (213 SFM), above C7's slot-engagement speed 3936 rpm (129 SFM); fz and the chips are as designed, tool life in the entry is shorter"
+     "WARNING: the end teeth run under the minimum chip: h_a 0.16 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
+     "R1: no angle under the vendor cap 1.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
+     "the ramp runs at the operation's 8120 rpm (266 SFM), above C7's slot-engagement speed 3056 rpm (100 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0063505,
+     "value": 0.0095055,
      "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.013535,
-     "limit": 0.014496,
+     "value": 0.012863,
+     "limit": 0.017396,
      "ok": true
     },
     "C3": {
-     "value": 0.00094402,
-     "limit": 0.00098425,
+     "value": 0.00033393,
+     "limit": 0.00125,
      "ok": true
     },
     "C4": {
-     "value": 314.5,
+     "value": 110.68,
      "limit": 1339.5,
      "ok": true
     },
     "C5": {
-     "value": 0.0078242,
+     "value": 0.0036265,
      "limit": 0.9,
      "ok": true
     },
     "C7": {
-     "value": 4155.6,
+     "value": 4567.0,
      "limit": 16000.0,
      "ok": true
     },
     "C11": {
-     "value": 10.211,
+     "value": 11.854,
      "limit": 1181.1,
      "ok": true
     },
     "C14v": {
-     "value": 128.8,
-     "limit": 128.8,
+     "value": 100.0,
+     "limit": 100.0,
      "ok": true
     },
     "C14f": {
-     "value": 0.00039144,
-     "limit": 0.00039146,
+     "value": 0.00036498,
+     "limit": 0.000365,
      "ok": true
     },
     "C14m": {
-     "value": 0.014438,
-     "limit": 0.016398,
+     "value": 0.0037845,
+     "limit": 0.0038365,
+     "ok": true
+    },
+    "C15": {
+     "value": 0.20274,
+     "limit": 0.83636,
      "ok": true
     },
     "R1": {
-     "value": 0.00047401,
+     "value": 0.00016019,
      "limit": 0.00036,
-     "ok": true
+     "ok": false
     },
     "R2": {
-     "value": 0.00047401,
+     "value": 0.00016019,
      "limit": 0.0050572,
      "ok": true
     },
@@ -818,206 +830,219 @@
      "ok": true
     },
     "R14a": {
-     "value": 2.7326,
-     "limit": 2.76,
+     "value": 0.99006,
+     "limit": 1.0,
      "ok": true
     },
     "R14p": {
-     "value": 1.7614,
-     "limit": 1.7614,
+     "value": 2.0449,
+     "limit": 2.0449,
      "ok": true
     },
     "R1p": {
-     "value": 0.0017151,
+     "value": 0.0015992,
      "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0017151,
+     "value": 0.0015992,
      "limit": 0.0050572,
      "ok": true
     }
    },
    "v1": {
     "ramp_angle_deg": 2.0,
-    "ramp_feed_ipm_v1_rule_on_v2_feed": 9.2641,
-    "plunge_feed_ipm_v1_rule_on_v2_feed": 5.4041,
-    "end_chip_in_at_v2_ramp_fz": 1.3661e-05
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 11.969,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 6.9821,
+    "end_chip_in_at_v2_ramp_fz": 1.2738e-05
    }
   },
   {
    "tool": "T1",
    "aggressiveness": 0.75,
    "adaptive": {
-    "ap_in": 0.5,
-    "ae_in": 0.0066306,
-    "rpm": 7150.5,
-    "feed_ipm": 18.411,
-    "fz_in": 0.00064369
+    "ap_in": 0.29055,
+    "ae_in": 0.0085266,
+    "rpm": 8942.0,
+    "feed_ipm": 34.652,
+    "fz_in": 0.0009688
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 2.9701,
-    "helix_diameter_over_D": 0.8,
-    "helix_diameter_in": 0.1,
+    "ramp_angle_deg": 0.99006,
+    "helix_diameter_over_D": 1.0,
+    "helix_diameter_in": 0.125,
     "helix_min_diameter_in": 0.025,
-    "bore_diameter_in": 0.225,
-    "pitch_in": 0.0163,
-    "rpm": 4278.1,
-    "sfm": 140.0,
-    "spindle_rpm": 7150.5,
-    "fz_in": 0.0004255,
-    "ramp_feed_ipm": 12.17,
-    "ramp_feed_at_c7_rpm_ipm": 7.2813,
-    "descent_ipm": 0.6306,
-    "plunge_feed_ipm": 2.2819,
-    "end_chip_in": 2.2047e-05,
+    "bore_diameter_in": 0.25,
+    "pitch_in": 0.0067865,
+    "rpm": 3964.9,
+    "sfm": 129.75,
+    "spindle_rpm": 8942.0,
+    "fz_in": 0.00041302,
+    "ramp_feed_ipm": 14.773,
+    "ramp_feed_at_c7_rpm_ipm": 6.5502,
+    "descent_ipm": 0.25526,
+    "plunge_feed_ipm": 2.7699,
+    "end_chip_in": 7.1365e-06,
     "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 0.00021641,
     "edge_radius_mm": 0.0012,
     "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
-    "r1_warning": false,
+    "r1_warning": true,
     "binding": [
      "C14v",
-     "C14f",
+     "C14m",
      "R14a",
      "R14p"
     ],
-    "warned": [],
-    "conflicts": [],
+    "warned": [
+     "R1"
+    ],
+    "conflicts": [
+     "R1: no angle under the vendor cap 1.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
+    ],
     "warnings": [
      "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
-     "the ramp runs at the operation's 7151 rpm (234 SFM), above C7's slot-engagement speed 4278 rpm (140 SFM); fz and the chips are as designed, tool life in the entry is shorter"
+     "WARNING: the end teeth run under the minimum chip: h_a 0.181 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
+     "R1: no angle under the vendor cap 1.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
+     "the ramp runs at the operation's 8942 rpm (293 SFM), above C7's slot-engagement speed 3965 rpm (130 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0072156,
+     "value": 0.010726,
      "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.0144,
-     "limit": 0.015757,
+     "value": 0.014083,
+     "limit": 0.018908,
      "ok": true
     },
     "C3": {
-     "value": 0.00086495,
-     "limit": 0.00098425,
+     "value": 0.00035863,
+     "limit": 0.0015625,
      "ok": true
     },
     "C4": {
-     "value": 288.35,
+     "value": 119.1,
      "limit": 1382.2,
      "ok": true
     },
     "C5": {
-     "value": 0.0083087,
+     "value": 0.0044103,
      "limit": 0.95,
      "ok": true
     },
     "C7": {
-     "value": 4517.0,
+     "value": 4964.1,
      "limit": 16000.0,
      "ok": true
     },
     "C11": {
-     "value": 12.17,
+     "value": 14.773,
      "limit": 1181.1,
      "ok": true
     },
     "C14v": {
-     "value": 140.0,
-     "limit": 140.0,
+     "value": 129.75,
+     "limit": 129.75,
      "ok": true
     },
     "C14f": {
-     "value": 0.0004255,
-     "limit": 0.0004255,
+     "value": 0.00041302,
+     "limit": 0.00043,
      "ok": true
     },
     "C14m": {
-     "value": 0.014836,
-     "limit": 0.015501,
+     "value": 0.0055566,
+     "limit": 0.0055567,
+     "ok": true
+    },
+    "C15": {
+     "value": 0.22942,
+     "limit": 0.90909,
      "ok": true
     },
     "R1": {
-     "value": 0.00056,
+     "value": 0.00018127,
      "limit": 0.00036,
-     "ok": true
+     "ok": false
     },
     "R2": {
-     "value": 0.00056,
+     "value": 0.00018127,
      "limit": 0.0054969,
      "ok": true
     },
     "R6": {
-     "value": 0.8,
+     "value": 1.0,
      "limit": 0.2,
      "ok": true
     },
     "R14a": {
-     "value": 2.9701,
-     "limit": 3.0,
+     "value": 0.99006,
+     "limit": 1.0,
      "ok": true
     },
     "R14p": {
-     "value": 2.2819,
-     "limit": 2.2819,
+     "value": 2.7699,
+     "limit": 2.7699,
      "ok": true
     },
     "R1p": {
-     "value": 0.0020264,
+     "value": 0.001967,
      "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0020264,
+     "value": 0.001967,
      "limit": 0.0054969,
      "ok": true
     }
    },
    "v1": {
     "ramp_angle_deg": 2.3,
-    "ramp_feed_ipm_v1_rule_on_v2_feed": 11.047,
-    "plunge_feed_ipm_v1_rule_on_v2_feed": 6.4438,
-    "end_chip_in_at_v2_ramp_fz": 1.7076e-05
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 20.791,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 12.128,
+    "end_chip_in_at_v2_ramp_fz": 1.6575e-05
    }
   },
   {
    "tool": "T12",
    "aggressiveness": 0.5,
    "adaptive": {
-    "ap_in": 0.1875,
-    "ae_in": 0.013059,
-    "rpm": 11018.0,
-    "feed_ipm": 12.669,
-    "fz_in": 0.00028745
+    "ap_in": 0.125,
+    "ae_in": 0.00937,
+    "rpm": 14765.0,
+    "feed_ipm": 13.443,
+    "fz_in": 0.00022762
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 2.7326,
+    "ramp_angle_deg": 1.9802,
     "helix_diameter_over_D": 1.0,
     "helix_diameter_in": 0.0625,
     "helix_min_diameter_in": 0.023438,
     "bore_diameter_in": 0.125,
-    "pitch_in": 0.0093715,
-    "rpm": 8624.7,
-    "sfm": 141.12,
-    "spindle_rpm": 11018.0,
-    "fz_in": 0.00023196,
-    "ramp_feed_ipm": 10.223,
-    "ramp_feed_at_c7_rpm_ipm": 8.0022,
-    "descent_ipm": 0.48737,
-    "plunge_feed_ipm": 1.8622,
-    "end_chip_in": 1.1059e-05,
+    "pitch_in": 0.0067886,
+    "rpm": 6111.5,
+    "sfm": 100.0,
+    "spindle_rpm": 14765.0,
+    "fz_in": 0.00018649,
+    "ramp_feed_ipm": 11.014,
+    "ramp_feed_at_c7_rpm_ipm": 4.5589,
+    "descent_ipm": 0.38058,
+    "plunge_feed_ipm": 2.0063,
+    "end_chip_in": 6.4438e-06,
     "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 9.955e-05,
     "edge_radius_mm": 0.0012,
     "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
     "r1_warning": true,
     "binding": [
-     "C2",
+     "C14v",
+     "C14f",
+     "C14m",
      "R14a",
      "R14p"
     ],
@@ -1025,78 +1050,83 @@
      "R1"
     ],
     "conflicts": [
-     "R1: no angle under the vendor cap 2.76° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
+     "R1: no angle under the vendor cap 2.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
     ],
     "warnings": [
      "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
-     "WARNING: the end teeth run under the minimum chip: h_a 0.281 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
-     "R1: no angle under the vendor cap 2.76° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
-     "the ramp runs at the operation's 11018 rpm (180 SFM), above C7's slot-engagement speed 8625 rpm (141 SFM); fz and the chips are as designed, tool life in the entry is shorter"
+     "WARNING: the end teeth run under the minimum chip: h_a 0.164 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
+     "R1: no angle under the vendor cap 2.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
+     "the ramp runs at the operation's 14765 rpm (242 SFM), above C7's slot-engagement speed 6112 rpm (100 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0022996,
+     "value": 0.0049718,
      "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.0094838,
-     "limit": 0.0094839,
+     "value": 0.0083289,
+     "limit": 0.011381,
      "ok": true
     },
     "C3": {
-     "value": 0.00033891,
-     "limit": 0.00098425,
+     "value": 0.00022396,
+     "limit": 0.000625,
      "ok": true
     },
     "C4": {
-     "value": 352.92,
+     "value": 232.1,
      "limit": 1339.5,
      "ok": true
     },
     "C5": {
-     "value": 0.0021575,
+     "value": 0.0017933,
      "limit": 0.9,
      "ok": true
     },
     "C7": {
-     "value": 8624.7,
+     "value": 9719.2,
      "limit": 16000.0,
      "ok": true
     },
     "C8": {
-     "value": 0.0093715,
+     "value": 0.0067886,
      "limit": 0.021875,
      "ok": true
     },
     "C11": {
-     "value": 10.223,
+     "value": 11.014,
      "limit": 1181.1,
      "ok": true
     },
     "C14v": {
-     "value": 141.12,
-     "limit": 167.9,
+     "value": 100.0,
+     "limit": 100.0,
      "ok": true
     },
     "C14f": {
-     "value": 0.00023196,
-     "limit": 0.00028129,
+     "value": 0.00018649,
+     "limit": 0.00018649,
      "ok": true
     },
     "C14m": {
-     "value": 0.0046871,
-     "limit": 0.0076379,
+     "value": 0.0019343,
+     "limit": 0.0019343,
+     "ok": true
+    },
+    "C15": {
+     "value": 0.20718,
+     "limit": 0.83636,
      "ok": true
     },
     "R1": {
-     "value": 0.00028089,
+     "value": 0.00016367,
      "limit": 0.00036,
      "ok": false
     },
     "R2": {
-     "value": 0.00028089,
+     "value": 0.00016367,
      "limit": 0.0025286,
      "ok": true
     },
@@ -1106,67 +1136,69 @@
      "ok": true
     },
     "R14a": {
-     "value": 2.7326,
-     "limit": 2.76,
+     "value": 1.9802,
+     "limit": 2.0,
      "ok": true
     },
     "R14p": {
-     "value": 1.8622,
-     "limit": 1.8622,
+     "value": 2.0063,
+     "limit": 2.0063,
      "ok": true
     },
     "R1p": {
-     "value": 0.0010732,
+     "value": 0.00086286,
      "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0010732,
+     "value": 0.00086286,
      "limit": 0.0025286,
      "ok": true
     }
    },
    "v1": {
     "ramp_angle_deg": 1.0,
-    "ramp_feed_ipm_v1_rule_on_v2_feed": 7.6012,
-    "plunge_feed_ipm_v1_rule_on_v2_feed": 4.434,
-    "end_chip_in_at_v2_ramp_fz": 4.0482e-06
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 8.066,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 4.7052,
+    "end_chip_in_at_v2_ramp_fz": 3.2547e-06
    }
   },
   {
    "tool": "T12",
    "aggressiveness": 0.75,
    "adaptive": {
-    "ap_in": 0.1875,
-    "ae_in": 0.01163,
-    "rpm": 12195.0,
-    "feed_ipm": 16.684,
-    "fz_in": 0.00034202
+    "ap_in": 0.125,
+    "ae_in": 0.00937,
+    "rpm": 16000.0,
+    "feed_ipm": 21.107,
+    "fz_in": 0.0003298
    },
    "v2_ramp": {
     "feasible": true,
-    "ramp_angle_deg": 2.9701,
+    "ramp_angle_deg": 2.4751,
     "helix_diameter_over_D": 1.0,
     "helix_diameter_in": 0.0625,
     "helix_min_diameter_in": 0.023438,
     "bore_diameter_in": 0.125,
-    "pitch_in": 0.010188,
-    "rpm": 9374.6,
-    "sfm": 153.39,
-    "spindle_rpm": 12195.0,
-    "fz_in": 0.00026442,
-    "ramp_feed_ipm": 12.898,
-    "ramp_feed_at_c7_rpm_ipm": 9.9152,
-    "descent_ipm": 0.66833,
-    "plunge_feed_ipm": 2.5539,
-    "end_chip_in": 1.3701e-05,
+    "pitch_in": 0.0084874,
+    "rpm": 6417.1,
+    "sfm": 105.0,
+    "spindle_rpm": 16000.0,
+    "fz_in": 0.00022076,
+    "ramp_feed_ipm": 14.129,
+    "ramp_feed_at_c7_rpm_ipm": 5.6665,
+    "descent_ipm": 0.61015,
+    "plunge_feed_ipm": 2.7975,
+    "end_chip_in": 9.5336e-06,
     "end_chip_floor_in": 1.4173e-05,
     "end_chip_cap_in": 0.00010821,
     "edge_radius_mm": 0.0012,
     "edge_radius_basis": "micro end mill, AlTiN/TiAlN: 1.2 µm (Liang et al. 2018, D 0.5 mm, ~1 µm coating)",
     "r1_warning": true,
     "binding": [
-     "C2",
+     "C14v",
+     "C14f",
+     "C14m",
      "R14a",
      "R14p"
     ],
@@ -1174,78 +1206,83 @@
      "R1"
     ],
     "conflicts": [
-     "R1: no angle under the vendor cap 3.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
+     "R1: no angle under the vendor cap 2.50° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)"
     ],
     "warnings": [
      "C3 includes the spindle/holder compliance in series with the tool: k 31.4 N/µm, k_θ 0.126 N·m/µrad (PROVISIONAL (user to measure: dial indicator + push-load test). Spindle radial >=80 N/um (NK Enginex ATC-BT30 spindle spec, vendor minimum, not Brother) in series with a holder-tool joint 51.6 N/um and 0.126 N*m/urad (Ozsahin, Erturk, Ozguven, Budak 2009, IJMTM 49:25, Table 2: BT40, 16 mm carbide tool))",
-     "WARNING: the end teeth run under the minimum chip: h_a 0.348 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
-     "R1: no angle under the vendor cap 3.00° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
-     "the ramp runs at the operation's 12195 rpm (200 SFM), above C7's slot-engagement speed 9375 rpm (153 SFM); fz and the chips are as designed, tool life in the entry is shorter"
+     "WARNING: the end teeth run under the minimum chip: h_a 0.242 µm < λ·r_β 0.36 µm (rubbing; the vendor angle cap wins)",
+     "R1: no angle under the vendor cap 2.50° (R14a) gives the end teeth λ·r_β = 0.36 µm with fz under C2/C14f; the vendor cap wins (user decision 2026-10-18) and the end teeth run under the minimum chip (rubbing warning)",
+     "the ramp runs at the operation's 16000 rpm (262 SFM), above C7's slot-engagement speed 6417 rpm (105 SFM); fz and the chips are as designed, tool life in the entry is shorter"
     ]
    },
    "v2_ramp_checks": {
     "C1": {
-     "value": 0.0031241,
+     "value": 0.0058422,
      "limit": 0.00036,
      "ok": true
     },
     "C2": {
-     "value": 0.010308,
-     "limit": 0.010309,
+     "value": 0.0091994,
+     "limit": 0.01237,
      "ok": true
     },
     "C3": {
-     "value": 0.00039205,
-     "limit": 0.00098425,
+     "value": 0.00030058,
+     "limit": 0.00078125,
      "ok": true
     },
     "C4": {
-     "value": 409.31,
+     "value": 312.69,
      "limit": 1382.2,
      "ok": true
     },
     "C5": {
-     "value": 0.0028727,
+     "value": 0.0027494,
      "limit": 0.95,
      "ok": true
     },
     "C7": {
-     "value": 9374.6,
+     "value": 10564.0,
      "limit": 16000.0,
      "ok": true
     },
     "C8": {
-     "value": 0.010188,
+     "value": 0.0084874,
      "limit": 0.021875,
      "ok": true
     },
     "C11": {
-     "value": 12.898,
+     "value": 14.129,
      "limit": 1181.1,
      "ok": true
     },
     "C14v": {
-     "value": 153.39,
-     "limit": 182.5,
+     "value": 105.0,
+     "limit": 105.0,
      "ok": true
     },
     "C14f": {
-     "value": 0.00026442,
-     "limit": 0.00030575,
+     "value": 0.00022076,
+     "limit": 0.00022076,
      "ok": true
     },
     "C14m": {
-     "value": 0.0063132,
-     "limit": 0.009025,
+     "value": 0.0030059,
+     "limit": 0.0030282,
+     "ok": true
+    },
+    "C15": {
+     "value": 0.24525,
+     "limit": 0.90909,
      "ok": true
     },
     "R1": {
-     "value": 0.000348,
+     "value": 0.00024215,
      "limit": 0.00036,
      "ok": false
     },
     "R2": {
-     "value": 0.000348,
+     "value": 0.00024215,
      "limit": 0.0027485,
      "ok": true
     },
@@ -1255,31 +1292,31 @@
      "ok": true
     },
     "R14a": {
-     "value": 2.9701,
-     "limit": 3.0,
+     "value": 2.4751,
+     "limit": 2.5,
      "ok": true
     },
     "R14p": {
-     "value": 2.5539,
-     "limit": 2.5539,
+     "value": 2.7975,
+     "limit": 2.7975,
      "ok": true
     },
     "R1p": {
-     "value": 0.0013298,
+     "value": 0.0011102,
      "limit": 0.00036,
      "ok": true
     },
     "R2p": {
-     "value": 0.0013298,
+     "value": 0.0011102,
      "limit": 0.0027485,
      "ok": true
     }
    },
    "v1": {
     "ramp_angle_deg": 1.15,
-    "ramp_feed_ipm_v1_rule_on_v2_feed": 10.01,
-    "plunge_feed_ipm_v1_rule_on_v2_feed": 5.8394,
-    "end_chip_in_at_v2_ramp_fz": 5.3068e-06
+    "ramp_feed_ipm_v1_rule_on_v2_feed": 12.664,
+    "plunge_feed_ipm_v1_rule_on_v2_feed": 7.3875,
+    "end_chip_in_at_v2_ramp_fz": 4.4306e-06
    }
   }
  ],
@@ -1927,112 +1964,118 @@
  "search_check_fast_vs_exhaustive": {
   "rows": 24,
   "worst_difference": {
-   "angle_deg": 0.00045659,
+   "angle_deg": 0.00076909,
    "helix_over_D": 0.0,
-   "fz_rel": 6.7965e-05,
-   "ramp_feed_rel": 6.7965e-05,
-   "plunge_rel": 6.7965e-05
+   "fz_rel": 6.2105e-05,
+   "ramp_feed_rel": 6.2105e-05,
+   "plunge_rel": 6.2105e-05
   },
   "binding_or_feasibility_mismatch": [],
-  "median_s_fast": 0.069703,
-  "max_s_fast": 0.26806,
-  "median_s_exhaustive": 2.8717
+  "median_s_fast": 0.058599,
+  "max_s_fast": 0.11292,
+  "median_s_exhaustive": 2.3296
  },
  "residuals": {
   "all_0.75": {
    "label": "all rows, tables from all rows, 75%",
    "aggressiveness": 0.75,
    "overall": {
-    "n": 248,
-    "r1_warning_share": 0.052419,
-    "median_log_ratio": -0.010078,
-    "median_abs_log": 0.41551,
-    "inside_vendor_range": 0.15323
+    "n": 255,
+    "r1_warning_share": 0.18431,
+    "median_log_ratio": -0.14357,
+    "median_abs_log": 0.14357,
+    "inside_vendor_range": 0.3098
    },
    "skipped": {
     "no calibrated v2 family 'Nickel Alloy'": 5,
-    "infeasible": 7,
     "no calibrated v2 family 'Graphite'": 8,
     "no calibrated v2 family 'Aluminum - Cast'": 3
    },
    "by_vendor": {
     "Emuge-Franken": {
      "n": 39,
-     "r1_warning_share": 0.025641,
-     "median_log_ratio": -0.010014,
-     "median_abs_log": 0.23319,
-     "inside_vendor_range": 0.66667
+     "r1_warning_share": 0.17949,
+     "median_log_ratio": -0.11543,
+     "median_abs_log": 0.11543,
+     "inside_vendor_range": 0.97436
     },
     "Harvey Performance": {
      "n": 41,
-     "r1_warning_share": 0.17073,
-     "median_log_ratio": 0.50081,
-     "median_abs_log": 0.50081,
-     "inside_vendor_range": 0.29268
+     "r1_warning_share": 0.41463,
+     "median_log_ratio": -0.19232,
+     "median_abs_log": 0.19232,
+     "inside_vendor_range": 1.0
     },
     "Kennametal": {
      "n": 20,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 0.44883,
-     "median_abs_log": 0.54962,
+     "median_log_ratio": -0.14357,
+     "median_abs_log": 0.14357,
      "inside_vendor_range": 0.0
     },
     "Kyocera": {
-     "n": 63,
-     "r1_warning_share": 0.031746,
-     "median_log_ratio": -0.23319,
-     "median_abs_log": 0.41551,
+     "n": 70,
+     "r1_warning_share": 0.27143,
+     "median_log_ratio": -0.14352,
+     "median_abs_log": 0.14352,
      "inside_vendor_range": 0.0
     },
     "Sandvik": {
      "n": 82,
-     "r1_warning_share": 0.036585,
-     "median_log_ratio": -0.15681,
-     "median_abs_log": 0.68318,
+     "r1_warning_share": 0.04878,
+     "median_log_ratio": -0.14362,
+     "median_abs_log": 0.14362,
      "inside_vendor_range": 0.0
     },
     "YG-1": {
      "n": 3,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.0104,
-     "median_abs_log": 0.0104,
+     "median_log_ratio": -0.15585,
+     "median_abs_log": 0.15585,
      "inside_vendor_range": 0.0
     }
    },
    "by_band": {
+    "1/64-3/64": {
+     "n": 6,
+     "r1_warning_share": 1.0,
+     "median_log_ratio": -0.14357,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.0
+    },
     "1/16-3/32": {
-     "n": 18,
-     "r1_warning_share": 0.44444,
-     "median_log_ratio": 0.2454,
-     "median_abs_log": 0.50081,
-     "inside_vendor_range": 0.27778
+     "n": 19,
+     "r1_warning_share": 0.63158,
+     "median_log_ratio": -0.18566,
+     "median_abs_log": 0.18566,
+     "inside_vendor_range": 0.63158
     },
     "1/8-3/16": {
      "n": 45,
      "r1_warning_share": 0.022222,
-     "median_log_ratio": -0.11543,
-     "median_abs_log": 0.50081,
-     "inside_vendor_range": 0.13333
+     "median_log_ratio": -0.14383,
+     "median_abs_log": 0.19232,
+     "inside_vendor_range": 0.33333
     },
     "1/4-3/8": {
      "n": 90,
-     "r1_warning_share": 0.044444,
-     "median_log_ratio": -0.010014,
-     "median_abs_log": 0.41551,
-     "inside_vendor_range": 0.17778
+     "r1_warning_share": 0.24444,
+     "median_log_ratio": -0.14357,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.33333
     },
     "1/2-3/4": {
      "n": 90,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.010078,
-     "median_abs_log": 0.41551,
-     "inside_vendor_range": 0.12222
+     "r1_warning_share": 0.066667,
+     "median_log_ratio": -0.14355,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.24444
     },
     "1 and up": {
      "n": 5,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.23434,
-     "median_abs_log": 0.30574,
+     "median_log_ratio": -0.39882,
+     "median_abs_log": 0.39882,
      "inside_vendor_range": 0.0
     }
    },
@@ -2040,162 +2083,170 @@
     "Aluminum - Wrought (6061)": {
      "n": 16,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.0104,
-     "median_abs_log": 0.0104,
-     "inside_vendor_range": 0.0
+     "median_log_ratio": -0.20243,
+     "median_abs_log": 0.20243,
+     "inside_vendor_range": 0.3125
     },
     "High Temp Nickel Alloy": {
      "n": 10,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 0.2454,
-     "median_abs_log": 0.25541,
+     "r1_warning_share": 0.3,
+     "median_log_ratio": -0.14348,
+     "median_abs_log": 0.14348,
      "inside_vendor_range": 0.3
     },
     "Stainless - 300 Series (316)": {
      "n": 20,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.010078,
-     "median_abs_log": 0.3954,
-     "inside_vendor_range": 0.0
+     "r1_warning_share": 0.05,
+     "median_log_ratio": -0.14357,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.15
     },
     "Stainless - PH Series (17-4)": {
-     "n": 91,
-     "r1_warning_share": 0.010989,
-     "median_log_ratio": -0.010014,
-     "median_abs_log": 0.47999,
-     "inside_vendor_range": 0.076923
+     "n": 94,
+     "r1_warning_share": 0.14894,
+     "median_log_ratio": -0.14357,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.23404
     },
     "Steel - Medium Carbon Alloy (4130)": {
-     "n": 48,
-     "r1_warning_share": 0.020833,
-     "median_log_ratio": -0.1216,
-     "median_abs_log": 0.50081,
-     "inside_vendor_range": 0.14583
+     "n": 50,
+     "r1_warning_share": 0.16,
+     "median_log_ratio": -0.14383,
+     "median_abs_log": 0.14383,
+     "inside_vendor_range": 0.38
     },
     "Steel - Tool (H13)": {
-     "n": 38,
-     "r1_warning_share": 0.28947,
-     "median_log_ratio": -0.41544,
-     "median_abs_log": 0.41544,
-     "inside_vendor_range": 0.47368
+     "n": 40,
+     "r1_warning_share": 0.45,
+     "median_log_ratio": -0.14357,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.475
     },
     "Titanium Alloy": {
      "n": 25,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.11543,
-     "median_abs_log": 0.41551,
-     "inside_vendor_range": 0.12
+     "r1_warning_share": 0.12,
+     "median_log_ratio": -0.14346,
+     "median_abs_log": 0.14357,
+     "inside_vendor_range": 0.32
     }
    },
    "binding": {
-    "C14v": 131,
-    "C14f": 142,
-    "C14m": 90,
-    "R14a": 236,
-    "R14p": 212,
-    "C2": 111,
-    "C7": 25,
-    "R2p": 36,
-    "C3": 11,
-    "R6": 50,
-    "C5": 8,
-    "R1": 2
+    "C7": 44,
+    "C14f": 210,
+    "R14a": 246,
+    "R14p": 239,
+    "C14v": 119,
+    "C14m": 115,
+    "C2": 49,
+    "R2p": 16,
+    "C5": 9,
+    "R6": 11,
+    "C15": 3,
+    "R1": 1,
+    "R2": 7,
+    "C3": 1
    }
   },
   "all_0.5": {
    "label": "all rows, tables from all rows, 50%",
    "aggressiveness": 0.5,
    "overall": {
-    "n": 248,
-    "r1_warning_share": 0.12097,
-    "median_log_ratio": -0.093429,
-    "median_abs_log": 0.4174,
-    "inside_vendor_range": 0.15323
+    "n": 255,
+    "r1_warning_share": 0.25098,
+    "median_log_ratio": -0.2977,
+    "median_abs_log": 0.2977,
+    "inside_vendor_range": 0.30588
    },
    "skipped": {
     "no calibrated v2 family 'Nickel Alloy'": 5,
-    "infeasible": 7,
     "no calibrated v2 family 'Graphite'": 8,
     "no calibrated v2 family 'Aluminum - Cast'": 3
    },
    "by_vendor": {
     "Emuge-Franken": {
      "n": 39,
-     "r1_warning_share": 0.025641,
-     "median_log_ratio": -0.093429,
-     "median_abs_log": 0.3165,
-     "inside_vendor_range": 0.66667
+     "r1_warning_share": 0.30769,
+     "median_log_ratio": -0.23319,
+     "median_abs_log": 0.23319,
+     "inside_vendor_range": 0.94872
     },
     "Harvey Performance": {
      "n": 41,
-     "r1_warning_share": 0.21951,
-     "median_log_ratio": 0.4174,
-     "median_abs_log": 0.4174,
-     "inside_vendor_range": 0.29268
+     "r1_warning_share": 0.56098,
+     "median_log_ratio": -0.41544,
+     "median_abs_log": 0.41544,
+     "inside_vendor_range": 1.0
     },
     "Kennametal": {
      "n": 20,
-     "r1_warning_share": 0.05,
-     "median_log_ratio": 0.39265,
-     "median_abs_log": 0.49414,
+     "r1_warning_share": 0.1,
+     "median_log_ratio": -0.29764,
+     "median_abs_log": 0.29764,
      "inside_vendor_range": 0.0
     },
     "Kyocera": {
-     "n": 63,
-     "r1_warning_share": 0.2381,
-     "median_log_ratio": -0.3165,
-     "median_abs_log": 0.49882,
+     "n": 70,
+     "r1_warning_share": 0.31429,
+     "median_log_ratio": -0.29763,
+     "median_abs_log": 0.29769,
      "inside_vendor_range": 0.0
     },
     "Sandvik": {
      "n": 82,
-     "r1_warning_share": 0.04878,
-     "median_log_ratio": -0.19864,
-     "median_abs_log": 0.59975,
+     "r1_warning_share": 0.060976,
+     "median_log_ratio": -0.2977,
+     "median_abs_log": 0.2977,
      "inside_vendor_range": 0.0
     },
     "YG-1": {
      "n": 3,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.09374,
-     "median_abs_log": 0.09374,
+     "median_log_ratio": -0.29794,
+     "median_abs_log": 0.29794,
      "inside_vendor_range": 0.0
     }
    },
    "by_band": {
+    "1/64-3/64": {
+     "n": 6,
+     "r1_warning_share": 1.0,
+     "median_log_ratio": -0.29763,
+     "median_abs_log": 0.29763,
+     "inside_vendor_range": 0.0
+    },
     "1/16-3/32": {
-     "n": 18,
-     "r1_warning_share": 0.5,
-     "median_log_ratio": 0.16198,
-     "median_abs_log": 0.49886,
-     "inside_vendor_range": 0.27778
+     "n": 19,
+     "r1_warning_share": 0.68421,
+     "median_log_ratio": -0.29794,
+     "median_abs_log": 0.29794,
+     "inside_vendor_range": 0.63158
     },
     "1/8-3/16": {
      "n": 45,
-     "r1_warning_share": 0.11111,
-     "median_log_ratio": -0.19864,
-     "median_abs_log": 0.4174,
-     "inside_vendor_range": 0.13333
+     "r1_warning_share": 0.17778,
+     "median_log_ratio": -0.29794,
+     "median_abs_log": 0.41544,
+     "inside_vendor_range": 0.33333
     },
     "1/4-3/8": {
      "n": 90,
-     "r1_warning_share": 0.16667,
-     "median_log_ratio": -0.093429,
-     "median_abs_log": 0.4174,
-     "inside_vendor_range": 0.17778
+     "r1_warning_share": 0.31111,
+     "median_log_ratio": -0.29767,
+     "median_abs_log": 0.29768,
+     "inside_vendor_range": 0.32222
     },
     "1/2-3/4": {
      "n": 90,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.093429,
-     "median_abs_log": 0.4174,
-     "inside_vendor_range": 0.12222
+     "r1_warning_share": 0.088889,
+     "median_log_ratio": -0.29768,
+     "median_abs_log": 0.29769,
+     "inside_vendor_range": 0.24444
     },
     "1 and up": {
      "n": 5,
      "r1_warning_share": 0.2,
-     "median_log_ratio": -0.21929,
-     "median_abs_log": 0.31892,
+     "median_log_ratio": -0.41263,
+     "median_abs_log": 0.41263,
      "inside_vendor_range": 0.0
     }
    },
@@ -2203,153 +2254,159 @@
     "Aluminum - Wrought (6061)": {
      "n": 16,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.09374,
-     "median_abs_log": 0.09374,
-     "inside_vendor_range": 0.0
+     "median_log_ratio": -0.29794,
+     "median_abs_log": 0.29794,
+     "inside_vendor_range": 0.3125
     },
     "High Temp Nickel Alloy": {
      "n": 10,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 0.16198,
-     "median_abs_log": 0.25541,
+     "r1_warning_share": 0.3,
+     "median_log_ratio": -0.29758,
+     "median_abs_log": 0.29758,
      "inside_vendor_range": 0.3
     },
     "Stainless - 300 Series (316)": {
      "n": 20,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.093354,
-     "median_abs_log": 0.3121,
-     "inside_vendor_range": 0.0
+     "r1_warning_share": 0.1,
+     "median_log_ratio": -0.2977,
+     "median_abs_log": 0.2977,
+     "inside_vendor_range": 0.15
     },
     "Stainless - PH Series (17-4)": {
-     "n": 91,
-     "r1_warning_share": 0.098901,
-     "median_log_ratio": -0.093429,
-     "median_abs_log": 0.4174,
-     "inside_vendor_range": 0.076923
+     "n": 94,
+     "r1_warning_share": 0.21277,
+     "median_log_ratio": -0.29769,
+     "median_abs_log": 0.2977,
+     "inside_vendor_range": 0.23404
     },
     "Steel - Medium Carbon Alloy (4130)": {
-     "n": 48,
-     "r1_warning_share": 0.020833,
-     "median_log_ratio": -0.20496,
-     "median_abs_log": 0.4174,
-     "inside_vendor_range": 0.14583
+     "n": 50,
+     "r1_warning_share": 0.24,
+     "median_log_ratio": -0.29794,
+     "median_abs_log": 0.29794,
+     "inside_vendor_range": 0.38
     },
     "Steel - Tool (H13)": {
-     "n": 38,
-     "r1_warning_share": 0.52632,
-     "median_log_ratio": -0.49886,
-     "median_abs_log": 0.49886,
-     "inside_vendor_range": 0.47368
+     "n": 40,
+     "r1_warning_share": 0.5,
+     "median_log_ratio": -0.29763,
+     "median_abs_log": 0.29763,
+     "inside_vendor_range": 0.475
     },
     "Titanium Alloy": {
      "n": 25,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.19864,
-     "median_abs_log": 0.49882,
-     "inside_vendor_range": 0.12
+     "r1_warning_share": 0.28,
+     "median_log_ratio": -0.29775,
+     "median_abs_log": 0.29775,
+     "inside_vendor_range": 0.28
     }
    },
    "binding": {
-    "C14v": 132,
-    "C14f": 148,
-    "R14a": 236,
-    "R14p": 212,
-    "C2": 122,
-    "C7": 24,
-    "R2p": 36,
-    "C3": 9,
-    "C14m": 8,
-    "R6": 36,
-    "R1": 1,
-    "C5": 8
+    "C7": 30,
+    "C14f": 202,
+    "R14a": 251,
+    "R14p": 239,
+    "C14v": 127,
+    "C14m": 116,
+    "C2": 49,
+    "R1": 2,
+    "R2p": 16,
+    "C5": 10,
+    "R6": 5,
+    "C15": 4
    }
   },
   "holdout_0.75": {
    "label": "hold-out rows, tables from training rows, 75%",
    "aggressiveness": 0.75,
    "overall": {
-    "n": 52,
-    "r1_warning_share": 0.019231,
-    "median_log_ratio": -0.23319,
-    "median_abs_log": 0.69313,
-    "inside_vendor_range": 0.057692
+    "n": 54,
+    "r1_warning_share": 0.18519,
+    "median_log_ratio": -0.70314,
+    "median_abs_log": 0.70314,
+    "inside_vendor_range": 0.11111
    },
    "skipped": {
-    "infeasible": 2,
     "no calibrated v2 family 'Graphite'": 8
    },
    "by_vendor": {
     "Emuge-Franken": {
      "n": 3,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.23319,
-     "median_abs_log": 0.23319,
+     "r1_warning_share": 0.33333,
+     "median_log_ratio": -0.36667,
+     "median_abs_log": 0.36667,
      "inside_vendor_range": 1.0
     },
     "Harvey Performance": {
      "n": 5,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 0.68275,
-     "median_abs_log": 0.68275,
-     "inside_vendor_range": 0.0
+     "median_log_ratio": -0.010085,
+     "median_abs_log": 0.010085,
+     "inside_vendor_range": 0.6
     },
     "Kennametal": {
      "n": 8,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 0.6831,
-     "median_abs_log": 0.6831,
+     "r1_warning_share": 0.25,
+     "median_log_ratio": -0.70313,
+     "median_abs_log": 0.70313,
      "inside_vendor_range": 0.0
     },
     "Kyocera": {
-     "n": 16,
-     "r1_warning_share": 0.0625,
-     "median_log_ratio": -0.70316,
-     "median_abs_log": 0.78024,
+     "n": 18,
+     "r1_warning_share": 0.38889,
+     "median_log_ratio": -0.70314,
+     "median_abs_log": 0.76991,
      "inside_vendor_range": 0.0
     },
     "Sandvik": {
      "n": 20,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -1.6195,
-     "median_abs_log": 1.6195,
+     "median_log_ratio": -2.0894,
+     "median_abs_log": 2.0894,
      "inside_vendor_range": 0.0
     }
    },
    "by_band": {
+    "1/64-3/64": {
+     "n": 2,
+     "r1_warning_share": 1.0,
+     "median_log_ratio": 0.9063,
+     "median_abs_log": 0.9063,
+     "inside_vendor_range": 0.0
+    },
     "1/16-3/32": {
      "n": 2,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.12162,
+     "r1_warning_share": 0.5,
+     "median_log_ratio": -0.59157,
      "median_abs_log": 1.4979,
      "inside_vendor_range": 0.0
     },
     "1/8-3/16": {
      "n": 10,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -1.4411,
-     "median_abs_log": 1.4411,
-     "inside_vendor_range": 0.0
+     "median_log_ratio": -1.5645,
+     "median_abs_log": 1.5645,
+     "inside_vendor_range": 0.1
     },
     "1/4-3/8": {
      "n": 19,
-     "r1_warning_share": 0.052632,
-     "median_log_ratio": -0.23319,
-     "median_abs_log": 0.68275,
-     "inside_vendor_range": 0.10526
+     "r1_warning_share": 0.26316,
+     "median_log_ratio": -0.70314,
+     "median_abs_log": 0.70314,
+     "inside_vendor_range": 0.15789
     },
     "1/2-3/4": {
      "n": 19,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.010014,
-     "median_abs_log": 0.6831,
-     "inside_vendor_range": 0.052632
+     "r1_warning_share": 0.10526,
+     "median_log_ratio": -0.70313,
+     "median_abs_log": 0.70313,
+     "inside_vendor_range": 0.10526
     },
     "1 and up": {
      "n": 2,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.28514,
-     "median_abs_log": 0.28514,
+     "median_log_ratio": -0.70313,
+     "median_abs_log": 0.70313,
      "inside_vendor_range": 0.0
     }
    },
@@ -2357,152 +2414,160 @@
     "Aluminum - Wrought (6061)": {
      "n": 5,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 0.68275,
-     "median_abs_log": 0.68275,
-     "inside_vendor_range": 0.0
+     "median_log_ratio": -0.010085,
+     "median_abs_log": 0.010085,
+     "inside_vendor_range": 0.6
     },
     "High Temp Nickel Alloy": {
      "n": 3,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.23319,
-     "median_abs_log": 0.23319,
+     "r1_warning_share": 0.33333,
+     "median_log_ratio": -0.36667,
+     "median_abs_log": 0.36667,
      "inside_vendor_range": 1.0
     },
     "Stainless - 300 Series (316)": {
      "n": 4,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 0.97345,
-     "median_abs_log": 0.97345,
+     "r1_warning_share": 0.25,
+     "median_log_ratio": -0.70313,
+     "median_abs_log": 0.70313,
      "inside_vendor_range": 0.0
     },
     "Stainless - PH Series (17-4)": {
      "n": 11,
-     "r1_warning_share": 0.090909,
-     "median_log_ratio": -0.010014,
-     "median_abs_log": 0.010014,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": -0.70314,
+     "median_abs_log": 0.70314,
      "inside_vendor_range": 0.0
     },
     "Steel - Medium Carbon Alloy (4130)": {
      "n": 28,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": -0.85731,
-     "median_abs_log": 1.0074,
+     "r1_warning_share": 0.17857,
+     "median_log_ratio": -1.0396,
+     "median_abs_log": 1.0396,
      "inside_vendor_range": 0.0
     },
     "Steel - Tool (H13)": {
-     "n": 1,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 1.3762,
-     "median_abs_log": 1.3762,
+     "n": 3,
+     "r1_warning_share": 1.0,
+     "median_log_ratio": 0.9063,
+     "median_abs_log": 0.9063,
      "inside_vendor_range": 0.0
     }
    },
    "binding": {
-    "C14v": 26,
-    "C14m": 13,
-    "R14a": 45,
-    "R14p": 37,
-    "C2": 35,
-    "C7": 4,
-    "R2p": 15,
-    "R2": 2,
-    "R6": 12,
-    "C14f": 20,
-    "C5": 4,
-    "C3": 3
+    "C14v": 20,
+    "C14f": 30,
+    "C14m": 15,
+    "R14a": 52,
+    "R14p": 49,
+    "C2": 27,
+    "C7": 8,
+    "R2p": 5,
+    "R2": 1,
+    "R6": 2,
+    "C15": 3,
+    "R1": 1,
+    "C5": 1
    }
   },
   "physics_only_0.75": {
    "label": "physics only (R14 off), 75%",
    "aggressiveness": 0.75,
    "overall": {
-    "n": 248,
+    "n": 254,
     "r1_warning_share": 0.0,
-    "median_log_ratio": 1.5263,
-    "median_abs_log": 1.5263,
+    "median_log_ratio": 1.7287,
+    "median_abs_log": 1.7287,
     "inside_vendor_range": 0.0
    },
    "skipped": {
-    "infeasible": 7
+    "infeasible": 1
    },
    "by_vendor": {
     "Emuge-Franken": {
      "n": 39,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.7647,
-     "median_abs_log": 1.7647,
+     "median_log_ratio": 1.7808,
+     "median_abs_log": 1.7808,
      "inside_vendor_range": 0.0
     },
     "Harvey Performance": {
      "n": 41,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 2.0471,
-     "median_abs_log": 2.0471,
+     "median_log_ratio": 2.2395,
+     "median_abs_log": 2.2395,
      "inside_vendor_range": 0.0
     },
     "Kennametal": {
      "n": 20,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.1026,
-     "median_abs_log": 1.1026,
+     "median_log_ratio": 1.1248,
+     "median_abs_log": 1.1248,
      "inside_vendor_range": 0.0
     },
     "Kyocera": {
-     "n": 63,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 1.4705,
-     "median_abs_log": 1.4705,
-     "inside_vendor_range": 0.0
-    },
-    "Sandvik": {
-     "n": 82,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 0.90844,
-     "median_abs_log": 0.90844,
-     "inside_vendor_range": 0.0
-    },
-    "YG-1": {
-     "n": 3,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 0.20655,
-     "median_abs_log": 0.20655,
-     "inside_vendor_range": 0.0
-    }
-   },
-   "by_band": {
-    "1/16-3/32": {
-     "n": 18,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 2.0753,
-     "median_abs_log": 2.0753,
-     "inside_vendor_range": 0.0
-    },
-    "1/8-3/16": {
-     "n": 45,
-     "r1_warning_share": 0.0,
-     "median_log_ratio": 1.6967,
-     "median_abs_log": 1.6967,
-     "inside_vendor_range": 0.0
-    },
-    "1/4-3/8": {
-     "n": 90,
+     "n": 69,
      "r1_warning_share": 0.0,
      "median_log_ratio": 1.5984,
      "median_abs_log": 1.5984,
      "inside_vendor_range": 0.0
     },
+    "Sandvik": {
+     "n": 82,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": 1.0433,
+     "median_abs_log": 1.0433,
+     "inside_vendor_range": 0.0
+    },
+    "YG-1": {
+     "n": 3,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": -0.15587,
+     "median_abs_log": 0.15587,
+     "inside_vendor_range": 0.0
+    }
+   },
+   "by_band": {
+    "1/64-3/64": {
+     "n": 5,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": 3.0716,
+     "median_abs_log": 3.0716,
+     "inside_vendor_range": 0.0
+    },
+    "1/16-3/32": {
+     "n": 19,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": 2.2916,
+     "median_abs_log": 2.2916,
+     "inside_vendor_range": 0.0
+    },
+    "1/8-3/16": {
+     "n": 45,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": 1.7442,
+     "median_abs_log": 1.7442,
+     "inside_vendor_range": 0.0
+    },
+    "1/4-3/8": {
+     "n": 90,
+     "r1_warning_share": 0.0,
+     "median_log_ratio": 1.7808,
+     "median_abs_log": 1.7808,
+     "inside_vendor_range": 0.0
+    },
     "1/2-3/4": {
      "n": 90,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.232,
-     "median_abs_log": 1.232,
+     "median_log_ratio": 1.4544,
+     "median_abs_log": 1.4544,
      "inside_vendor_range": 0.0
     },
     "1 and up": {
      "n": 5,
      "r1_warning_share": 0.0,
-     "median_log_ratio": -0.11257,
-     "median_abs_log": 0.30574,
+     "median_log_ratio": -0.26869,
+     "median_abs_log": 0.26869,
      "inside_vendor_range": 0.0
     }
    },
@@ -2510,64 +2575,66 @@
     "Aluminum - Wrought (6061)": {
      "n": 16,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 0.38389,
-     "median_abs_log": 0.38389,
+     "median_log_ratio": -0.048318,
+     "median_abs_log": 0.21468,
      "inside_vendor_range": 0.0
     },
     "High Temp Nickel Alloy": {
      "n": 10,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.5459,
-     "median_abs_log": 1.5459,
+     "median_log_ratio": 1.7808,
+     "median_abs_log": 1.7808,
      "inside_vendor_range": 0.0
     },
     "Stainless - 300 Series (316)": {
      "n": 20,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.4391,
-     "median_abs_log": 1.4391,
+     "median_log_ratio": 1.4511,
+     "median_abs_log": 1.4511,
      "inside_vendor_range": 0.0
     },
     "Stainless - PH Series (17-4)": {
-     "n": 91,
+     "n": 93,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.6016,
-     "median_abs_log": 1.6016,
+     "median_log_ratio": 1.7287,
+     "median_abs_log": 1.7287,
      "inside_vendor_range": 0.0
     },
     "Steel - Medium Carbon Alloy (4130)": {
-     "n": 48,
+     "n": 50,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.4946,
-     "median_abs_log": 1.4946,
+     "median_log_ratio": 1.5647,
+     "median_abs_log": 1.5647,
      "inside_vendor_range": 0.0
     },
     "Steel - Tool (H13)": {
-     "n": 38,
+     "n": 40,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.7798,
-     "median_abs_log": 1.7798,
+     "median_log_ratio": 2.1883,
+     "median_abs_log": 2.1883,
      "inside_vendor_range": 0.0
     },
     "Titanium Alloy": {
      "n": 25,
      "r1_warning_share": 0.0,
-     "median_log_ratio": 1.5164,
-     "median_abs_log": 1.5164,
+     "median_log_ratio": 1.5464,
+     "median_abs_log": 1.5464,
      "inside_vendor_range": 0.0
     }
    },
    "binding": {
-    "C14v": 131,
-    "C14f": 142,
-    "C14m": 90,
-    "R6": 225,
-    "R2p": 248,
-    "C2": 111,
-    "C7": 25,
-    "R2": 122,
-    "C5": 19,
-    "C3": 10
+    "C7": 43,
+    "C14f": 209,
+    "R6": 125,
+    "R2p": 254,
+    "R2": 141,
+    "C3": 10,
+    "C5": 37,
+    "C14v": 119,
+    "C14m": 115,
+    "C2": 49,
+    "C15": 3,
+    "C4": 1
    }
   }
  }

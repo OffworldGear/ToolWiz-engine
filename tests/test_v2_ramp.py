@@ -198,6 +198,178 @@ class TestCalibratedTable(unittest.TestCase):
         self.assertGreaterEqual(len(c["angle_deg"]["group_medians"]), 2)
 
 
+AL = "Aluminum - Wrought (6061)"
+TI = "Titanium Alloy"
+ST = "Steel - Medium Carbon Alloy (4130)"
+HB = {AL: 150.0, TI: 334.0, FAM: 356.0, ST: 217.0}
+# The engine before the R14a fix (2026-11-13 owner report; Speedio, AlTiN, 1/4" 4FL 2xD, optimize_ramp at C7's speed is
+# close to the bridge): 7075 18.2 / 18.8 deg at 50 / 60 %; Ti 4.10 / 4.24, 17-4 H1025 2.73 / 2.83, 4130 4.55 / 4.71.
+BEFORE_50_60 = {TI: (4.10, 4.24), FAM: (2.73, 2.83), ST: (4.55, 4.71)}
+
+
+def _ramp(D, z, lcf, family, a, brand=None, shank=None, stickout=None):
+    tool = o.Tool.build(D, z, lcf, stickout or lcf + 0.5, shank=shank or D)
+    mat = params.material(family, hb=HB[family], coating="AlTiN")
+    return ramp.optimize_ramp(tool, mat, params.machine(), a, coating="AlTiN", brand=brand, **params.ramp_defaults())
+
+
+class TestAngleLookupRules(unittest.TestCase):
+    """R14a's selection on a synthetic table: brand -> Harvey + Helical -> consensus, flute and reach coverage, larger-tool
+    rows, a missing chart."""
+    BANDS = [{"band": "s", "d_min": 0.0, "d_max": 0.1}, {"band": "m", "d_min": 0.1, "d_max": 0.4},
+             {"band": "l", "d_min": 0.4, "d_max": 1e9}]
+
+    def table(self):
+        def row(lo, hi, z, reach, D, rid, derived=0):
+            return [lo, 0.5 * (lo + hi), hi, z, reach, D, derived, rid]
+        return {"angle": {"bands": self.BANDS, "hb_bin": 50, "min_vendor_groups": 2, "default_sources": ["harvey", "helical"],
+                          "max_only_rule": {"text": "bottom = 0.50 × max"},
+                          "vendors": {
+                              "sandvik": {"group": "Sandvik", "cells": {"A|x|m": [row(10, 20, 3, 1.5, 0.25, "s15", 1),
+                                                                                   row(10, 20, 3, 2.17, 0.25, "s2", 1),
+                                                                                   row(2.5, 5, 3, 3.0, 0.25, "s3", 1)]}},
+                              "helical": {"group": "Harvey Performance", "cells": {"A|x|m": [row(3, 10, 5, 2.0, 0.25, "h5"),
+                                                                                            row(3, 10, 3, 2.0, 0.25, "h3")]}},
+                              "yg1": {"group": "YG-1", "cells": {"A|x|m": [row(10, 20, 3, 2.0, 0.25, "y", 1)],
+                                                                "B|x|l": [row(4, 8, 4, 2.0, 0.5, "yb", 1)]}},
+                              "osg": {"group": "OSG", "cells": {"B|x|l": [row(2, 6, 4, 2.0, 0.5, "ob")]}}}}}
+
+    def test_brand_first_then_default(self):
+        t = self.table()
+        b = ramp.angle_lookup(t, "sandvik", "A", None, 0.25, 3, 1.5)
+        self.assertEqual((b["mode"], b["range"], b["row_ids"]), ("brand", (10, 15, 20), ["s15"]))
+        b = ramp.angle_lookup(t, None, "A", None, 0.25, 3, 1.5)
+        self.assertEqual((b["mode"], b["vendor"]), ("default", "helical"))
+        self.assertEqual(b["range"], (3, 6.5, 10))
+        self.assertAlmostEqual(ramp.angle_cap(b, 0.5), 6.5)
+        self.assertAlmostEqual(ramp.angle_cap(b, 1.0), 10)
+        self.assertIn("no brand given", ramp.angle_text(b, 0.5))
+
+    def test_reach_class(self):
+        t = self.table()
+        self.assertEqual(ramp.angle_lookup(t, "sandvik", "A", None, 0.25, 3, 2.0)["row_ids"], ["s2"])
+        b = ramp.angle_lookup(t, "sandvik", "A", None, 0.25, 3, 3.0)
+        self.assertEqual((b["row_ids"], b["range"][2]), (["s3"], 5))
+
+    def test_more_flutes_than_the_brand_charts_falls_back(self):
+        b = ramp.angle_lookup(self.table(), "sandvik", "A", None, 0.25, 4, 1.5)
+        self.assertEqual((b["mode"], b["row_ids"]), ("default", ["h5"]))
+        self.assertIn("up to 3 flutes", b["brand_missing"])
+
+    def test_no_covering_chart_takes_the_bottom(self):
+        b = ramp.angle_lookup(self.table(), None, "A", None, 0.25, 6, 2.0)   # nobody charts 6 flutes
+        self.assertTrue(b["uncovered"])
+        self.assertEqual(ramp.angle_cap(b, 1.0), b["range"][0])
+        self.assertIn("bottom of their range", ramp.angle_text(b, 1.0))
+
+    def test_larger_tool_rows_only_take_the_bottom(self):
+        b = ramp.angle_lookup(self.table(), None, "B", None, 0.0625, 4, 2.0)
+        self.assertEqual(b["mode"], "consensus")
+        self.assertTrue(b["larger_only"])
+        for a in (0.0, 0.5, 1.0):
+            self.assertEqual(ramp.angle_cap(b, a), 2)
+        self.assertIn("larger tools only", ramp.angle_text(b, 0.5))
+        self.assertIsNone(ramp.angle_lookup(self.table(), None, "C", None, 0.25, 4, 2.0))
+
+
+class TestCalibratedAngleTable(unittest.TestCase):
+    def test_max_only_rule_is_fitted_from_published_ranges(self):
+        rule = ramp.load_table()["angle"]["max_only_rule"]
+        self.assertTrue(rule["fitted"])
+        self.assertGreaterEqual(rule["rows"], 20)
+        self.assertGreaterEqual(len(rule["groups"]), 2)
+        self.assertTrue(0.0 < rule["lo_over_hi"] < 1.0)
+
+    def test_rows_carry_lo_mid_hi(self):
+        for v in ramp.load_table()["angle"]["vendors"].values():
+            for rows in v["cells"].values():
+                for r in rows:
+                    self.assertLessEqual(r[0], r[1])
+                    self.assertLessEqual(r[1], r[2])
+
+
+class TestVendorRampAngle(unittest.TestCase):
+    """The owner's 2026-11-13 report: a generic 4-flute AlTiN end mill in 7075 got 18.2-18.8 deg (a vendor maximum for
+    3-flute aluminium tools, used near 50 %)."""
+
+    def test_unbranded_4fl_aluminium_is_in_the_harvey_helical_range(self):
+        for D in (0.25, 0.125):
+            r50 = _ramp(D, 4, 2 * D, AL, 0.5)
+            self.assertTrue(r50["feasible"])
+            self.assertEqual(r50["angle_basis"]["mode"], "default")
+            self.assertEqual(r50["angle_basis"]["range_deg"], [3.0, 6.5, 10.0])
+            self.assertTrue(3.0 * 0.95 <= r50["ramp_angle_deg"] <= 6.5 + 1e-6, r50["ramp_angle_deg"])
+            self.assertIn("no brand given", r50["checks"]["R14a"]["detail"])
+            self.assertLessEqual(_ramp(D, 4, 2 * D, AL, 1.0)["ramp_angle_deg"], 10.0 + 1e-6)
+
+    def test_sandvik_short_tool_reaches_its_top_only_at_100(self):
+        top = 20.0
+        for a in (0.0, 0.5, 0.75):
+            r = _ramp(0.25, 3, 0.375, AL, a, brand="sandvik")
+            self.assertEqual(r["angle_basis"]["mode"], "brand")
+            self.assertLessEqual(r["ramp_angle_deg"], o.range_at(r["angle_basis"]["range_deg"], a) + 1e-6)
+            self.assertLess(r["ramp_angle_deg"], top)
+        self.assertLessEqual(_ramp(0.25, 3, 0.375, AL, 1.0, brand="sandvik")["ramp_angle_deg"], top + 1e-6)
+
+    def test_long_reach_row_limits_the_long_tool(self):
+        for a in (0.5, 1.0):
+            r = _ramp(0.25, 3, 0.75, AL, a, brand="sandvik")       # 3·D: Sandvik's 1K253 row, 5 deg maximum
+            self.assertLessEqual(r["ramp_angle_deg"], 5.0 + 1e-6)
+            self.assertAlmostEqual(r["angle_basis"]["row_reach_over_D"][0], 3.0, places=6)
+
+    def test_monotonic_in_aggressiveness(self):
+        for fam, brand, z in ((AL, None, 4), (AL, "sandvik", 3), (FAM, None, 4), (TI, None, 4)):
+            rs = [_ramp(0.25, z, 0.5 if z == 4 else 0.375, fam, a, brand=brand) for a in (0.0, 0.25, 0.5, 0.75, 1.0)]
+            caps = [r["checks"]["R14a"]["limit"] for r in rs]
+            angles = [r["ramp_angle_deg"] for r in rs]
+            for x, y in zip(caps, caps[1:]):
+                self.assertLessEqual(x, y * (1 + 1e-9), (fam, brand, caps))     # the vendor cap: strictly monotone
+            for (x, y, ry) in zip(angles, angles[1:], rs[1:]):
+                # the angle too, except where a physics limit (not R14a) takes over at the higher setting: Sandvik's
+                # 1.5·D aluminium tool at 100 % stops at R2 (end-edge chip) at 16.9 deg against 17.1 at 75 %
+                # (fz rises, so the end chip fz·sin α reaches R2 at a slightly smaller angle)
+                if y < x * (1 - 1e-6):
+                    self.assertNotIn("R14a", ry["binding"], (fam, brand, angles))
+                    self.assertIn("R2", ry["binding"], (fam, brand, angles))
+                    self.assertGreater(ry["descent_ipm"], 0)
+
+    def test_hard_materials_do_not_rise_at_the_working_settings(self):
+        # At 50 % and 60 % the new ranges are at or under the old consensus caps; at 100 % titanium may reach the
+        # consensus top (5.5 deg, median of the groups' maxima) against 4.9 before: the range rule's top, reported.
+        for fam, before in BEFORE_50_60.items():
+            for a, old in zip((0.5, 0.6), before):
+                self.assertLessEqual(_ramp(0.25, 4, 0.5, fam, a)["ramp_angle_deg"], old + 0.01, (fam, a))
+            r = _ramp(0.25, 4, 0.5, fam, 1.0)
+            self.assertLessEqual(r["ramp_angle_deg"], r["angle_basis"]["range_deg"][2] + 1e-6)
+
+    def test_micro_tool_angle_not_above_the_larger_tool(self):
+        for fam in (FAM, TI):
+            for a in (0.5, 1.0):
+                big = _ramp(0.25, 4, 0.5, fam, a)["ramp_angle_deg"]
+                for D, z, so in ((0.0625, 4, 0.25), (0.0625, 2, 0.25), (0.03125, 4, 0.15), (0.03125, 2, 0.15)):
+                    r = _ramp(D, z, 3 * D, fam, a, shank=0.125, stickout=so)
+                    self.assertLessEqual(r["ramp_angle_deg"], big + 1e-6, (fam, D, z, a))
+                    self.assertLessEqual(r["ramp_angle_deg"], 3.0 + 1e-6, (fam, D, z, a))
+
+    def test_micro_tool_reading_larger_tool_rows_takes_the_bottom(self):
+        # Titanium: no vendor charts a ramp angle under 1/8"; 1/32" in 17-4: Harvey + Helical chart 1/16" and up.
+        for fam, D in ((TI, 0.0625), (TI, 0.03125), (FAM, 0.03125)):
+            for a in (0.5, 1.0):
+                r = _ramp(D, 4, 3 * D, fam, a, shank=0.125, stickout=0.25)
+                b = r["angle_basis"]
+                self.assertTrue(b["larger_only"], (fam, D))
+                self.assertAlmostEqual(r["checks"]["R14a"]["limit"], b["range_deg"][0])
+                self.assertIn("larger tools only", r["checks"]["R14a"]["detail"])
+
+    def test_side_cut_is_the_slot_cut(self):
+        # flute-aware chip load (C2 × F(z)) and chip space C15 on the full-width side cut, as the slot cut has them
+        r3, r4 = _ramp(0.25, 3, 0.5, AL, 0.5), _ramp(0.25, 4, 0.5, AL, 0.5)
+        self.assertIn("C15", r4["checks"])
+        self.assertTrue(r4["checks"]["C15"]["applies"])
+        self.assertGreater(r3["side_flute_factor"], r4["side_flute_factor"])
+        self.assertIn("for 3 flutes", r3["checks"]["C2"]["detail"])
+
+
 class TestBridge(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -236,6 +408,21 @@ class TestBridge(unittest.TestCase):
         self.assertAlmostEqual(rp["edge_radius_mm"], 0.0012)       # AlTiN request → Liang 2018 micro value (D1)
         # D6: the plunge-feed note reaches Fusion
         self.assertTrue(any(t["title"] == "Plunge feed" and "feed height" in t["message"] for t in r.tips))
+        # which chart set the angle, in plain words, in the ramp block and the v2 result
+        self.assertTrue(r.v2["ramp_basis"].startswith("Ramp angle from "))
+        self.assertEqual(rp["angle_basis"]["text"], r.v2["ramp_basis"])
+        self.assertIn("C15", rp["checks"])
+
+    def test_cache_key_has_the_ramp_inputs(self):
+        import json
+        import v2_bridge
+        from test_v2_bridge import req
+        from pipeline import _normalize
+        r = _normalize(req(model="v2"))
+        k = json.loads(v2_bridge._cache_key(r, "adaptive", 356.0, params.machine(), {}))
+        for f in ("rp", "brand", "z", "d", "prof", "a", "fam", "hb"):
+            self.assertIn(f, k)
+        self.assertEqual(k["rp"], ramp.load_table()["version"])
 
     def test_fusion_endpoint_returns_ramp_fields(self):
         from test_v2_bridge import T12

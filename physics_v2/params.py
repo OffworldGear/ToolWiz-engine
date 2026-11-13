@@ -192,6 +192,13 @@ def optimize(tool, material_, operation="adaptive", aggressiveness=0.5, machine_
     return o.optimize(tool, material_, machine_ or machine(), operation, margins=margins(aggressiveness), **kw)
 
 
+def ramp_defaults():
+    """optimize_ramp's calibrated side-cut options (the ramp's side cut is a full slot): C14 by brand, C2 × F(flutes) and
+    C15 chip space, as optimize() gives a slot."""
+    return {"consensus": CONSENSUS_PATH, "vendor_table": VENDOR_TABLE_PATH, "chip_flutes": CHIP_FLUTES_PATH,
+            "chip_space": CHIP_SPACE_PATH}
+
+
 def evaluate_user_engagement(tool, material_, operation, ap_in, ae_in, aggressiveness=0.5, machine_=None, **kw):
     """optimize.evaluate_user_engagement with the same calibrated defaults: rpm and fz for the user's own ap and ae."""
     kw.setdefault("consensus", CONSENSUS_PATH)

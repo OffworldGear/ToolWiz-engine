@@ -471,3 +471,61 @@ rough 1.85 / 3.08 to 1.64 / 2.46; 1020 slot 2.17 / 2.48 to 2.20 / 2.13; 1045 slo
 (`docs/SLOT_ROUGHING_STUDY.md`) now lists Seco JHF980 3 mm (2FL, 4FL), SHF712 3 mm and JHF980 1.5 mm as charted options at
 their true metric diameters. In the engine the Seco brand cell pools the Niagara and the Seco-catalog rows (one vendor key),
 so a branded Seco high-feed run reads the median of all of them in its hardness bin.
+
+
+## Ramp angle by vendor range (branch `v4/p1-ramp-fix`, 2026-11-13; owner's live-use report)
+
+**Cause.** A generic 4-flute AlTiN end mill (1/8" and 1/4") in 7075 got an 18.2-18.8 deg helical ramp at 60 % on the Speedio.
+R14a capped the angle at consensus_scale(a) x the median over vendor groups of each vendor's *maximum* ramp angle (Harvey /
+Helical 10, Sandvik 20, YG-1 20 in aluminium: 0.95 x 20 = 19.0), and the physics let it run up to the cap. The 20 deg rows are
+Sandvik's and YG-1's 3-flute aluminium tools at 1.5-2 x D (Sandvik's 3 x D version is 5 deg). So a vendor maximum was used near
+50 %, the brand-first order of the cutting guardrail was not used, and flutes and reach were ignored. Micro tools (owner
+addition): 1/16" and 1/32" in 17-4 and Ti read the same family-wide cell as a 1/4" tool (2.7-4.1 deg at 50 %).
+
+**Rule.** As C14 (owner decisions 2026-11-12): the tool's brand, else Harvey + Helical (no brand or an uncharted brand), else the
+cross-vendor consensus; 0 / 50 / 100 % = bottom / middle / top of the published angle range (`optimize.range_at`). A row counts
+only for a tool with no more flutes and no longer reach (flute or neck length / D, 10 % tolerance) than the row's tool; the
+nearest such rows per vendor and diameter are used. A row that publishes only a maximum gets bottom = 0.50 x max (median over 3
+vendor groups of the bottom/top ratio of the 83 rows that publish a range; the row median is 0.33) and middle = halfway. When only
+rows for larger tools than the tool's diameter band exist (micro tools), or no row covers its flutes or reach, the bottom of the
+range is used at every aggressiveness and the detail says so; no size or flute factor is invented. Physics (R1, R2, R6, C1-C5,
+C15) still caps the result. The ramp's side cut now also uses the slot cut's C14 by brand, C2 x F(flutes) and C15 (it had
+none of them). The result names the chart: `v2.ramp_basis` and `v2.ramp.angle_basis.text`, e.g. "Ramp angle from the Helical
+chart for aluminum (no brand given; conservative default): 3 to 10 deg, 6.5 at 50% ...". Details, data counts and the
+calibration rerun: `docs/research/v2_ramp_findings.md` Round 3.
+
+**Before / after** (bridge, v2, Speedio 16k, Adaptive Roughing, AlTiN unless named; 7075-T6 150 HB, Ti-6Al-4V 334 HB, 17-4
+H1025 356 HB, 4130 217 HB; generic = no brand; 1/4" and 1/8" tools 2 x D flutes; micro tools 3 x D flutes on a 1/8" shank,
+stickout 0.25" (1/16") and 0.15" (1/32")):
+
+| Tool, material | Angle deg 0 / 50 / 60 / 100 % before | after | Ramp feed IPM before | after | Plunge IPM before | after |
+|---|---|---|---|---|---|---|
+| 1/4 4FL generic 2xD | 15.05 / 18.21 / 18.83 / 19 | 2.97 / 6.44 / 7.13 / 9.9 | 60.32 / 74.92 / 77.76 / 91.35 | 60.32 / 74.92 / 77.76 / 91.35 | 20.75 / 25.12 / 25.97 / 30.04 | 20.75 / 25.12 / 25.97 / 30.04 |
+| 1/8 4FL generic 2xD | 15.05 / 18.21 / 18.65 / 18.36 | 2.97 / 6.44 / 7.13 / 9.9 | 31.68 / 39.31 / 40.79 / 47.88 | 31.68 / 39.31 / 40.79 / 47.88 | 10.53 / 12.74 / 13.17 / 15.24 | 10.53 / 12.74 / 13.17 / 15.24 |
+| 1/4 4FL Sandvik | 15.05 / 18.21 / 18.83 / 19 | 2.97 / 6.44 / 7.13 / 9.9 | 60.32 / 74.92 / 77.76 / 91.35 | 60.32 / 74.92 / 77.76 / 91.35 | 20.75 / 25.12 / 25.97 / 30.04 | 20.75 / 25.12 / 25.97 / 30.04 |
+| 1/8 4FL Sandvik | 15.05 / 18.21 / 18.65 / 18.36 | 2.97 / 6.44 / 7.13 / 9.9 | 31.68 / 39.31 / 40.79 / 47.88 | 31.68 / 39.31 / 40.79 / 47.88 | 10.53 / 12.74 / 13.17 / 15.24 | 10.53 / 12.74 / 13.17 / 15.24 |
+| 1/4 3FL Sandvik 1.5xD | 15.05 / 18.21 / 18.83 / 19.45 | 9.9 / 14.85 / 15.84 / 16.92 | 43.71 / 54.67 / 56.8 / 66.99 | 50.37 / 62.73 / 65.13 / 76.62 | 15.56 / 18.84 / 19.48 / 22.53 | 15.56 / 18.84 / 19.48 / 22.53 |
+| 1/4 4FL Helical | 15.05 / 18.21 / 18.83 / 19 | 2.97 / 6.44 / 7.13 / 9.9 | 60.32 / 74.92 / 77.76 / 91.35 | 60.32 / 74.92 / 77.76 / 91.35 | 20.75 / 25.12 / 25.97 / 30.04 | 20.75 / 25.12 / 25.97 / 30.04 |
+| 1/8 4FL Helical | 15.05 / 18.21 / 18.65 / 18.36 | 2.97 / 6.44 / 7.13 / 9.9 | 31.68 / 39.31 / 40.79 / 47.88 | 31.68 / 39.31 / 40.79 / 47.88 | 10.53 / 12.74 / 13.17 / 15.24 | 10.53 / 12.74 / 13.17 / 15.24 |
+| 1/4 3FL alu 2xD | 15.05 / 18.21 / 18.83 / 19.45 | 2.97 / 6.44 / 7.13 / 9.9 | 43.71 / 54.67 / 56.8 / 66.99 | 50.37 / 62.73 / 65.13 / 76.62 | 15.56 / 18.84 / 19.48 / 22.53 | 15.56 / 18.84 / 19.48 / 22.53 |
+| 1/4 4FL generic 3xD | 15.05 / 18.21 / 18.83 / 19 | 2.97 / 2.97 / 2.97 / 2.97 | 60.32 / 74.92 / 77.76 / 91.35 | 60.32 / 74.92 / 77.76 / 91.35 | 20.75 / 25.12 / 25.97 / 30.04 | 20.75 / 25.12 / 25.97 / 30.04 |
+| 1/4 3FL Sandvik 3xD | 15.05 / 18.21 / 18.83 / 19.45 | 2.48 / 3.71 / 3.96 / 4.95 | 43.71 / 54.67 / 56.8 / 66.99 | 50.37 / 62.73 / 65.13 / 76.62 | 15.56 / 18.84 / 19.48 / 22.53 | 15.56 / 18.84 / 19.48 / 22.53 |
+| 1/4 4FL Ti-6Al-4V | 3.4 / 4.1 / 4.24 / 4.9 | 0.99 / 3.71 / 4.06 / 5.45 | 5.18 / 9.28 / 9.79 / 11.91 | 2.43 / 8.86 / 8.94 / 9.32 | 0.74 / 1.6 / 1.74 / 2.45 | 0.35 / 1.52 / 1.59 / 1.92 |
+| 1/4 4FL 17-4 H1025 | 2.26 / 2.73 / 2.83 / 3.27 | 0.99 / 1.98 / 2.18 / 2.97 | 8.03 / 12.52 / 13.1 / 17.3 | 1.96 / 10.56 / 11.33 / 13.42 | 1.19 / 2.25 / 2.43 / 3.71 | 0.29 / 1.9 / 2.1 / 2.88 |
+| 1/4 4FL 4130 | 3.76 / 4.55 / 4.71 / 5.45 | 0.99 / 1.98 / 2.18 / 2.97 | 28.09 / 45.93 / 43.54 / 51.67 | 28.57 / 47.93 / 45.63 / 60.86 | 4.43 / 8.77 / 8.59 / 11.79 | 4.41 / 8.95 / 8.81 / 13.59 |
+| 1/16 4FL 17-4 so.25 | 2.26 / 2.73 / 2.83 / 3.27 | 0.99 / 1.98 / 2.18 / 2.97 | 10.42 / 15.27 / 16.32 / 18.83 | 5.09 / 11.54 / 12.8 / 16.32 | 1.57 / 2.78 / 3.07 / 4.1 | 0.77 / 2.1 / 2.41 / 3.55 |
+| 1/32 4FL 17-4 so.15 | 2.26 / 2.73 / 2.83 / 3.27 | 0.99 / 0.99 / 0.99 / 0.99 | 6.46 / 7.82 / 8.09 / 9.35 | 2.94 / 5.81 / 6.35 / 8.52 | 0.97 / 1.42 / 1.52 / 2.04 | 0.44 / 1.06 / 1.2 / 1.85 |
+| 1/16 2FL 17-4 so.25 | 2.26 / 2.73 / 2.83 / 3.27 | 0.99 / 1.98 / 2.18 / 2.97 | 5.21 / 7.63 / 8.16 / 9.41 | 2.54 / 5.77 / 6.4 / 8.16 | 0.78 / 1.39 / 1.54 / 2.05 | 0.38 / 1.05 / 1.21 / 1.78 |
+| 1/32 2FL 17-4 so.15 | 2.26 / 2.73 / 2.83 / 3.27 | 0.99 / 0.99 / 0.99 / 0.99 | 3.23 / 3.91 / 4.04 / 4.68 | 1.47 / 2.9 / 3.17 / 4.26 | 0.49 / 0.71 / 0.76 / 1.02 | 0.22 / 0.53 / 0.6 / 0.93 |
+| 1/16 4FL Ti so.25 | 3.39 / 4.1 / 4.24 / 4.9 | 0.99 / 0.99 / 0.99 / 0.99 | 4.55 / 8.16 / 8.61 / 9.38 | 2.96 / 8.87 / 9.73 / 13.42 | 0.69 / 1.49 / 1.62 / 2.05 | 0.45 / 1.62 / 1.83 / 2.93 |
+| 1/32 4FL Ti so.15 | 3.39 / 4.1 / 4.24 / 4.9 | 0.99 / 0.99 / 0.99 / 0.99 | 4.71 / 6.13 / 6.34 / 7 | 2.73 / 6.67 / 7.09 / 8.8 | 0.71 / 1.12 / 1.2 / 1.53 | 0.41 / 1.22 / 1.34 / 1.92 |
+| 1/16 2FL Ti so.25 | 3.39 / 4.1 / 4.24 / 4.9 | 0.99 / 0.99 / 0.99 / 0.99 | 2.28 / 4.08 / 4.3 / 4.69 | 1.48 / 4.44 / 4.86 / 6.71 | 0.34 / 0.74 / 0.81 / 1.02 | 0.22 / 0.81 / 0.92 / 1.46 |
+| 1/32 2FL Ti so.15 | 3.39 / 4.1 / 4.24 / 4.9 | 0.99 / 0.99 / 0.99 / 0.99 | 2.35 / 3.07 / 3.17 / 3.5 | 1.37 / 3.33 / 3.55 / 4.4 | 0.35 / 0.56 / 0.6 / 0.76 | 0.21 / 0.61 / 0.67 / 0.96 |
+
+Notes. Angles sit up to 1 % under the cap (the optimizer takes the gentlest angle within 1 % of the fastest descent). A Sandvik
+or Helical brand on a 4-flute tool in aluminium reads the Helical HVAL-5 (5-flute) row: Sandvik charts aluminium only for 3-flute
+tools, so it falls back to the conservative default and says so. Sandvik 3-flute 1.5 x D stops at 16.9 deg at 100 % on R2 (end-edge
+chip), not at the chart's 20. The generic 4-flute 3 x D tool: no chart covers a 4-flute tool at 3 x D in aluminium, so the bottom
+of the nearest (Helical) chart, 3 deg, at every setting. Titanium at 100 % rises from 4.9 to 5.45 deg: the consensus top is the
+median of the groups' maxima (Emuge 5, Kennametal 2, Kyocera 6, Sandvik group / Seco JHP770 15), which the range rule allows at 100 %. Feeds move with
+the side cut's new slot rules: aluminium 3-flute ramps +15 % (F(3) = 1.13), steels and titanium follow their slot charts by brand.

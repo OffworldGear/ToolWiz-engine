@@ -41,7 +41,7 @@ from physics_v2 import params  # noqa: E402
 from physics_v2 import ramp  # noqa: E402
 from tools import calibrate_v2 as cv  # noqa: E402
 
-VERSION = "2026-10-18.2"
+VERSION = "2026-11-13.1"   # .1: R14a by vendor (brand, Harvey + Helical, consensus) with lo / mid / hi per row
 OUT_DIR = os.path.join(ROOT, "data", "model_v2")
 BANDS = cv.BANDS
 HB_BIN = 50
@@ -49,6 +49,9 @@ PLUNGE_CAPABLE_DEG = 45.0
 HOLDOUT_FRACTION = cv.HOLDOUT_FRACTION
 FAMILY_174 = "Stainless - PH Series (17-4)"
 T1_T12_COATING = "AlTiN"   # the user's T1/T12 (as in tests/test_v2_bridge.py); sets r_β (ramp.edge_radius)
+FILE_VENDOR = {"harvey_ball_cr": "harvey", "osg_ball": "osg"}   # as tools/build_vendor_consensus.py
+MIN_RANGE_ROWS = 20          # fewer rows publishing a range: the conservative default ratio below
+DEFAULT_LO_OVER_HI = 1.0 / 3.0   # conservative default (Harvey's 1-3 deg, the lowest published bottom/top ratio but one)
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +64,8 @@ def load_all():
         with open(path, encoding="utf-8") as fh:
             d = json.load(fh)
         for r in d["rows"]:
-            r = dict(r, _vendor_group=d["vendor_group"], _file=os.path.basename(path))
+            stem = os.path.basename(path)[:-5]
+            r = dict(r, _vendor_group=d["vendor_group"], _file=os.path.basename(path), _vendor=FILE_VENDOR.get(stem, stem))
             (ramp_rows if r["operation"] == "ramp" else other).append(r)
     return ramp_rows, other
 
@@ -121,7 +125,14 @@ def features(row, slots):
     hb = cv.row_hb(row["material"].get("hardness"), row["material"].get("toolwiz_family"))
     a_hi = upper(rp, "angle_deg")
     plunge_capable = bool(a_hi and a_hi >= PLUNGE_CAPABLE_DEG)
-    e = {"id": row["id"], "vendor_group": row["_vendor_group"], "doc": row["source"]["doc_id"],
+    a_blk = rp.get("angle_deg") or {}
+    published = ("range" if a_blk.get("min") is not None and a_blk.get("max") is not None else
+                 "max" if a_blk.get("max") is not None else "single" if a_blk.get("nominal") is not None else
+                 "min" if a_blk.get("min") is not None else None)
+    reach = max(float(t.get("LB") or 0.0), float(t.get("LCF") or 0.0))   # length below the shank (pl.row_tool)
+    e = {"id": row["id"], "vendor_group": row["_vendor_group"], "vendor": row.get("_vendor"), "doc": row["source"]["doc_id"],
+         "z": int(t["flutes"]) if t.get("flutes") else None, "reach_over_D": reach / D if reach else None,
+         "angle_published": published,
          "family": row["material"]["toolwiz_family"], "hb": hb, "D": D, "band": cv.band_of(D),
          "kind": rp["kind"], "angle_hi": a_hi, "angle_lo": lower(rp, "angle_deg"),
          "plunge_capable": plunge_capable, "hole_min": lower(rp, "hole_diameter_over_D"),
@@ -198,6 +209,57 @@ def consensus_cells(items):
     return {k: dict(v) for k, v in cells.items()}
 
 
+def _angle_rows(items):
+    """Rows that publish a ramp angle (not plunge-capable, not plunge rows), as R14a reads them."""
+    return [e for e in items if e["angle_hi"] and not e["plunge_capable"] and e["kind"] != "plunge"]
+
+
+def max_only_rule(items):
+    """The bottom / top ratio for rows that publish only a maximum (or one angle): fitted from the rows that publish a
+    range (min and max). Each vendor group's median of min/max, then the median over groups (the consensus rule); fewer
+    than MIN_RANGE_ROWS such rows or fewer than 2 groups: DEFAULT_LO_OVER_HI."""
+    rng = [e for e in _angle_rows(items) if e["angle_published"] == "range" and e["angle_lo"] and e["angle_hi"] > e["angle_lo"]]
+    by = collections.defaultdict(list)
+    for e in rng:
+        by[e["vendor_group"]].append(e["angle_lo"] / e["angle_hi"])
+    meds = {g: statistics.median(v) for g, v in by.items()}
+    fitted = len(rng) >= MIN_RANGE_ROWS and len(meds) >= 2
+    ratio = statistics.median(meds.values()) if fitted else DEFAULT_LO_OVER_HI
+    ratios = sorted(e["angle_lo"] / e["angle_hi"] for e in rng)
+    return {"lo_over_hi": ratio, "fitted": fitted, "rows": len(rng), "groups": meds,
+            "row_median": statistics.median(ratios) if ratios else None,
+            "row_range": [ratios[0], ratios[-1]] if ratios else None,
+            "text": (f"bottom = {ratio:.2f} × the published maximum (median over {len(meds)} vendor groups of each group's "
+                     f"median bottom/top ratio, {len(rng)} rows that publish a range"
+                     + (")" if fitted else f"; too few rows, the conservative default {DEFAULT_LO_OVER_HI:.2f})")
+                     + ", middle = halfway between bottom and top, as for a published range; a single published angle "
+                       "counts as the maximum")}
+
+
+def angle_triple(e, ratio):
+    """(lo, mid, hi, derived) of a row's ramp angle: a published range as is (mid = its middle); a maximum or a single
+    angle: lo = ratio × hi (derived)."""
+    hi = e["angle_hi"]
+    if e["angle_published"] == "range" and e["angle_lo"] is not None and e["angle_lo"] < hi:
+        lo, derived = e["angle_lo"], False
+    else:
+        lo, derived = ratio * hi, True
+    return lo, 0.5 * (lo + hi), hi, derived
+
+
+def angle_by_vendor(items, rule):
+    """R14a's table: per vendor key (benchmark file), cells "family|HB bin|band" -> rows [lo, mid, hi, flutes,
+    reach/D, D, derived (1/0), row id]."""
+    out = {}
+    for e in _angle_rows(items):
+        lo, mid, hi, derived = angle_triple(e, rule["lo_over_hi"])
+        hbin = str(int(e["hb"] // HB_BIN)) if e["hb"] else "x"
+        v = out.setdefault(e["vendor"], {"group": e["vendor_group"], "cells": collections.defaultdict(list)})
+        v["cells"]["|".join((e["family"], hbin, e["band"]))].append(
+            [lo, mid, hi, e["z"], e["reach_over_D"], e["D"], int(derived), e["id"]])
+    return {k: {"group": v["group"], "cells": dict(v["cells"])} for k, v in sorted(out.items())}
+
+
 def build_table(items, end_key="h_a"):
     return {
         "version": VERSION, "status": "PROPOSED (ramp calibration)", "generated_by": "tools/calibrate_v2_ramp.py",
@@ -212,7 +274,17 @@ def build_table(items, end_key="h_a"):
                       "bands": [{"band": b, "d_min": lo, "d_max": hi if math.isfinite(hi) else 1e9}
                                 for b, lo, hi in BANDS],
                       "hb_bin": HB_BIN, "plunge_capable_deg": PLUNGE_CAPABLE_DEG, "cells": consensus_cells(items)},
+        "angle": _angle_section(items),
     }
+
+
+def _angle_section(items):
+    rule = max_only_rule(items)
+    return {"basis": ramp.SRC["R14"], "row_fields": ["lo", "mid", "hi", "flutes", "reach_over_D", "D", "derived", "id"],
+            "max_only_rule": rule, "default_sources": list(ramp.DEFAULT_ANGLE_SOURCES), "reach_tol": ramp.REACH_TOL,
+            "min_vendor_groups": 2, "hb_bin": HB_BIN,
+            "bands": [{"band": b, "d_min": lo, "d_max": hi if math.isfinite(hi) else 1e9} for b, lo, hi in BANDS],
+            "vendors": angle_by_vendor(items, rule)}
 
 
 # ---------------------------------------------------------------------------
@@ -230,8 +302,10 @@ def run_model(e, table, aggressiveness, consensus_c14, method="fast"):
         return {"skip": f"no calibrated v2 family {fam!r}"}
     mat = params.material(fam, hb=e["hb"], coating=row["tool"].get("coating"))
     try:
+        # the row's own vendor as the brand (R14a reads that vendor's chart first) and the bridge's side-cut options
+        side = {k: v for k, v in params.ramp_defaults().items() if k != "consensus"}
         r = ramp.optimize_ramp(tool, mat, params.machine(), aggressiveness, table=table, consensus=consensus_c14,
-                               coating=row["tool"].get("coating"), method=method)
+                               coating=row["tool"].get("coating"), method=method, brand=e.get("vendor"), **side)
     except Exception as ex:   # report, never hide
         return {"skip": f"error: {type(ex).__name__}: {ex}"}
     if not r.get("feasible") and "ramp_angle_deg" not in r:
@@ -297,8 +371,9 @@ def t1_t12(table, consensus_c14):
         for a in (0.5, 0.75):
             op = params.optimize(tool, mat, "adaptive", a, robustness=False, find_tir=False)
             c = op["cut"]
+            side = {k: v for k, v in params.ramp_defaults().items() if k != "consensus"}
             r = ramp.optimize_ramp(tool, mat, params.machine(), a, table=table, consensus=consensus_c14,
-                                   op_feed_ipm=c["feed_ipm"], op_rpm=c["rpm"], coating=T1_T12_COATING)
+                                   op_feed_ipm=c["feed_ipm"], op_rpm=c["rpm"], coating=T1_T12_COATING, **side)
             v1_angle, v1_ramp, v1_plunge = phys.calc_ramping(FAMILY_174, tool.D, c["feed_ipm"], "Square", tool.z, a)
             out.append({
                 "tool": tool.label, "aggressiveness": a,
@@ -384,6 +459,9 @@ def main(argv=None):
     basis = collections.Counter(e["h_basis"].split(" ")[0] if e["h_basis"] else
                                 ("assumed" if e.get("h_a_assumed") else "none") for e in items)
     print(f"end chip basis: {dict(basis)}")
+    rule = max_only_rule(items)
+    print(f"R14a max-only rule: {rule['text']}; groups {json.dumps(_round(rule['groups'], 3))}, row median "
+          f"{rule['row_median']:.3f}")
 
     table_all = build_table(items)
     table_train = build_table([e for e in items if not e["holdout"]])
@@ -446,7 +524,7 @@ def main(argv=None):
         res["holdout_0.75"] = s
         print(f"residuals [{s['label']}]: {json.dumps(_round(s['overall'], 3))}")
         s, _ = residuals([e for e in items if e["family"] in params.load()["families"]],
-                         dict(table_all, consensus=None), 0.75, c14, "physics only (R14 off), 75%")
+                         dict(table_all, consensus=None, angle=None), 0.75, c14, "physics only (R14 off), 75%")
         res["physics_only_0.75"] = s
         print(f"residuals [{s['label']}]: {json.dumps(_round(s['overall'], 3))}")
         report["residuals"] = res

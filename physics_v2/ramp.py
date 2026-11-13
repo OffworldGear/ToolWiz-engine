@@ -47,11 +47,22 @@ Constraints (each a `optimize.Check`)
          alone), scaled by aggressiveness like C2. Vendors' ramp-angle limits put 3–5× less chip on the end edges
          than their plunge tables, so the angle limit is R14a's business, not R2's
     R6   helix: D_h ≤ D (no standing core for a centre-cutting tool) and the vendor-consensus bore range
-    C1–C5, C7, C8, C11, C14 on the side cut (slot, ap = p); C5 includes the end-tooth torque
-    R14  vendor-consensus ramp guardrail (≥ 2 independent vendor groups, widened stepwise): R14a α ≤ s·median of
-         the vendors' (maximum) ramp angle; R14p plunge feed ≤ s·median plunge/slot feed factor × the ramp feed (the
-         ramp's side cut is a slot, so its feed is the slot feed at the ramp speed). The vendors' ramp/slot feed
-         factor (median ≈ 1) is not a separate check: the ramp fz already sits at the slot limits (C2, C14f)
+    C1–C5, C7, C8, C11, C14, C15 on the side cut (slot, ap = p) with the slot cut's C14 by brand, flute-aware chip
+         load C2 × F(z) and chip space C15 when the caller passes them (params.ramp_defaults; v2_bridge does);
+         C5 includes the end-tooth torque
+    R14  vendor ramp guardrail. R14a (owner decisions 2026-11-12/13, as C14 for the cut): α ≤ the vendor's published
+         ramp-angle range at the aggressiveness, 0 % = bottom, 50 % = middle, 100 % = top (optimize.range_at). Source
+         order: the tool's brand, else the unbranded default Harvey + Helical charts, else the cross-vendor consensus
+         (≥ 2 vendor groups; lowest bottom, median of the groups' middles and tops), each widened stepwise (diameter band,
+         hardness, family-wide) until rows that cover the tool are found: a row covers a tool with no more flutes (chip
+         room in the full-width cut) and no longer reach (flute or neck length / D within 10 %; Sandvik: 20° to 2·D,
+         5° at 3·D). Rows that publish only a maximum get bottom = r × max (r fitted from the rows that publish a range,
+         data/model_v2/ramp.json `angle.max_only_rule`) and middle = halfway. When only rows for larger tools than the
+         tool's diameter band exist, or no row covers its flutes or reach, the bottom of the range is used at every
+         aggressiveness (no factor is invented). The check detail and `angle_basis` say which chart, in plain words.
+         R14p: plunge feed ≤ s·median plunge/slot feed factor × the ramp feed (the ramp's side cut is a slot, so its feed
+         is the slot feed at the ramp speed). The vendors' ramp/slot feed factor (median ≈ 1) is not a separate check:
+         the ramp fz already sits at the slot limits (C2 × F(flutes), C14f, C15)
 """
 import json
 import math
@@ -74,9 +85,11 @@ SRC = {
           "data/model_v2/ramp.json, tools/calibrate_v2_ramp.py), × the aggressiveness scale as C2",
     "R6": "Helix: D_h ≤ D so no core stands in a bore over 2·D (centre-cutting tool); bore within the vendor-consensus "
           "minimum/maximum bore/D (data/model_v2/ramp.json)",
-    "R14": "Vendor ramp consensus (user rule 2026-10-17 as C14): ramp angle ≤ consensus_scale(a) × the median over "
-           "≥ 2 independent vendor groups of their (maximum) ramp angle, widened stepwise (diameter band, hardness, "
-           "family-wide); plunge feed ≤ scale × median plunge/slot feed factor × the ramp (slot-like) feed",
+    "R14": "Vendor ramp guardrail (owner decisions 2026-11-12/13, as C14): ramp angle ≤ the vendor's published range at "
+           "the aggressiveness (0 % bottom, 50 % middle, 100 % top), from the tool's brand, else Harvey + Helical, else the "
+           "cross-vendor consensus, using rows whose tool has no more flutes and no longer reach; a published maximum "
+           "only: bottom from the fitted bottom/top ratio; larger-tool rows only or no covering row: the bottom. Plunge "
+           "feed ≤ scale × median plunge/slot feed factor × the ramp (slot-like) feed (data/model_v2/ramp.json)",
 }
 
 ALPHA_MIN_DEG = 0.25
@@ -208,6 +221,248 @@ def consensus_lookup(table, family, hb, D_in, min_groups=None):
 
 
 # ---------------------------------------------------------------------------
+# R14a: the vendor ramp angle by brand (owner decisions 2026-11-12/13, as C14)
+# ---------------------------------------------------------------------------
+
+DEFAULT_ANGLE_SOURCES = ("harvey", "helical")   # unbranded default: the conservative Harvey Performance charts
+REACH_TOL = 0.10    # a row covers a tool whose reach/D is at most 10 % over the row's (catalog "2 x D" is 2.0-2.2·D)
+ANGLE_FIELDS = ("lo", "mid", "hi", "flutes", "reach_over_D", "D", "derived", "id")
+
+
+def tool_reach(tool):
+    """The tool's reach (in), compared with the rows' LB (necked tools) or LCF: the end of the last flute or relieved-neck
+    segment. The taper up to a larger shank is not reach (a micro tool's 1/8" shank taper; the rows' LCF excludes it)."""
+    ends = [sg.end for sg in tool.segments if getattr(sg, "kind", "flute") in ("flute", "neck")]
+    return max(ends) if ends else float(tool.lcf)
+
+
+def _family_word(family):
+    return "aluminum" if str(family).lower().startswith("alum") else str(family)
+
+
+def _vendor_words(keys):
+    from toolwiz_common import brand
+    return " + ".join(brand.short_name(k) for k in keys)
+
+
+def _fmt(x):
+    return f"{x:.2f}".rstrip("0").rstrip(".")
+
+
+def _covers(row, z, reach):
+    """A row vouches for a tool with no more flutes (chip room in the full-width ramp cut) and no longer reach."""
+    rz, rr = row[3], row[4]
+    return (rz is None or z is None or rz >= z) and (not rr or not reach or rr * (1.0 + REACH_TOL) >= reach)
+
+
+def _nearest(rows):
+    """Of one vendor group's covering rows, those closest to the tool, per catalog diameter: the fewest flutes, then the
+    shortest reach (a vendor that charts 1.5·D and 3·D versions of a tool gives the 1.5·D tool the 1.5·D value)."""
+    by_d = {}
+    for r in rows:
+        by_d.setdefault(round(r[5], 3), []).append(r)
+    return [r for rs in by_d.values() for r in _nearest_one(rs)]
+
+
+def _nearest_one(rows):
+    zs = [r[3] for r in rows if r[3] is not None]
+    if zs:
+        rows = [r for r in rows if r[3] is None or r[3] == min(zs)]
+    rs = [r[4] for r in rows if r[4]]
+    if rs:
+        rows = [r for r in rows if not r[4] or r[4] <= min(rs) * (1.0 + REACH_TOL)]
+    return rows
+
+
+def _angle_pool(sec, keys, family, hb, band, step):
+    """{vendor group: [(vendor key, row), ...]} of `keys` at widening step (RAMP_WIDENING)."""
+    bands = [b["band"] for b in sec["bands"]]
+    if step == 3:
+        want = None
+    else:
+        bset = o._neighbours(bands, band["band"], step >= 1)
+        if hb is None:
+            hset = ["x"]
+        else:
+            hbin = int(hb // sec["hb_bin"])
+            hset = [str(hbin - 1), str(hbin), str(hbin + 1), "x"] if step >= 2 else [str(hbin)]
+        want = {"|".join((family, h, b)) for b in bset for h in hset}
+    out = {}
+    for k in keys:
+        v = sec["vendors"].get(k)
+        if not v:
+            continue
+        for cell, rows in v["cells"].items():
+            if (cell.split("|")[0] == family) if want is None else (cell in want):
+                out.setdefault(v["group"], []).extend((k, r) for r in rows)
+    return out
+
+
+def _range(groups, by_group):
+    """(lo, mid, hi). One source (brand / default): the bottom and top over its rows, the median of the middles. Cross-vendor
+    consensus: the lowest bottom, the median over groups of each group's middle and of each group's top (one vendor's
+    high maximum does not set the consensus top)."""
+    if not by_group:
+        rows = [r for rs in groups.values() for _, r in rs]
+        return min(r[0] for r in rows), o._median([r[1] for r in rows]), max(r[2] for r in rows)
+    lo = min(r[0] for rs in groups.values() for _, r in rs)
+    mid = o._median([o._median([r[1] for _, r in rs]) for rs in groups.values()])
+    hi = o._median([max(r[2] for _, r in rs) for rs in groups.values()])
+    return lo, mid, hi
+
+
+def angle_lookup(table, brand, family, hb, D_in, z, reach_over_D):
+    """R14a's vendor ramp-angle range for a tool, in the C14 order (owner decisions 2026-11-12): the brand's own ramp charts,
+    else the unbranded default (Harvey + Helical), else the cross-vendor consensus (≥ 2 vendor groups); each widened
+    stepwise (diameter band, hardness, family-wide) until rows that cover the tool are found. A row covers the tool when
+    its tool has at least as many flutes and at least the reach/D (within REACH_TOL); of the covering rows each vendor
+    group keeps those nearest the tool (fewest flutes, then shortest reach). When no chart covers the tool, the most
+    conservative chart of the material (smallest top) is used ("conservative"). Returns None without vendor angle data,
+    else {mode, vendor, range (lo, mid, hi), rows, groups, widening, step, derived, larger_only, brand_missing,
+    uncovered, text_parts...}."""
+    sec = (table or {}).get("angle")
+    if not sec or not family or not sec.get("vendors"):
+        return None
+    band = o._band_for(sec["bands"], D_in)
+    vendors = sec["vendors"]
+    sources = []
+    if brand:
+        sources.append(("brand", (brand,), 1))
+    sources.append(("default", tuple(sec.get("default_sources") or DEFAULT_ANGLE_SOURCES), 1))
+    sources.append(("consensus", tuple(vendors), int(sec.get("min_vendor_groups", 2))))
+    misses = {}
+    family_rows = _angle_pool(sec, tuple(vendors), family, hb, band, 3)
+    if not family_rows:
+        return None
+    for mode, keys, min_groups in sources:
+        if mode == "default" and brand in keys:
+            continue   # the brand's own charts were tried
+        fam = _angle_pool(sec, keys, family, hb, band, 3)
+        if not fam:
+            misses[mode] = ("no ramp charts in the benchmark data" if mode == "brand" and brand not in vendors
+                            else "no ramp chart for this material")
+            continue
+        for step, label in enumerate(RAMP_WIDENING):
+            pool = _angle_pool(sec, keys, family, hb, band, step)
+            groups = {}
+            for g, rows in pool.items():
+                cov = [(k, r) for k, r in rows if _covers(r, z, reach_over_D)]
+                if cov:
+                    near = _nearest([r for _, r in cov])
+                    groups[g] = [(k, r) for k, r in cov if r in near]
+            if len(groups) >= min_groups:
+                return _angle_result(sec, mode, groups, step, label, band, misses, family, z, reach_over_D)
+        rows = [r for rs in fam.values() for _, r in rs]
+        zmax = max((r[3] for r in rows if r[3] is not None), default=None)
+        rmax = max((r[4] for r in rows if r[4]), default=None)
+        if mode == "consensus":
+            misses[mode] = f"fewer than {min_groups} vendor groups chart a tool like this"
+        elif z is not None and zmax is not None and zmax < z:
+            misses[mode] = f"ramp charts in {_family_word(family)} only for tools with up to {zmax} flutes"
+        elif reach_over_D and rmax and rmax * (1.0 + REACH_TOL) < reach_over_D:
+            misses[mode] = f"ramp charts in {_family_word(family)} only up to {_fmt(rmax)}×D reach"
+        else:
+            misses[mode] = "no chart for this tool"
+    # No chart covers the tool (more flutes or a longer reach than any charted tool): the first source in the same order
+    # that charts the material, its rows nearest the tool from below (most flutes, then longest reach), and the bottom of
+    # their range at every aggressiveness (angle_cap), said in the text. No factor is invented for the shortfall.
+    for mode, keys, _ in sources:
+        if mode == "default" and brand in keys:
+            continue
+        fam = _angle_pool(sec, keys, family, hb, band, 3)
+        if not fam:
+            continue
+        rows = [(g, k, r) for g, rs in fam.items() for k, r in rs]
+        if z is not None and any(r[3] is not None for _, _, r in rows):
+            ok = [x for x in rows if x[2][3] is None or x[2][3] >= z]
+            if not ok:
+                zmax = max(r[3] for _, _, r in rows if r[3] is not None)
+                ok = [x for x in rows if x[2][3] == zmax]
+            rows = ok
+        if reach_over_D and any(r[4] for _, _, r in rows):
+            ok = [x for x in rows if _covers(x[2], None, reach_over_D)]
+            if ok:
+                rmin = min(x[2][4] for x in ok if x[2][4])
+                rows = [x for x in ok if not x[2][4] or x[2][4] <= rmin * (1.0 + REACH_TOL)]
+            else:
+                rmax = max(r[4] for _, _, r in rows if r[4])
+                rows = [x for x in rows if x[2][4] and x[2][4] >= rmax / (1.0 + REACH_TOL)]
+        groups = {}
+        for g, k, r in rows:
+            groups.setdefault(g, []).append((k, r))
+        res = _angle_result(sec, mode, groups, 3, "family-wide", band, misses, family, z, reach_over_D)
+        res["uncovered"] = (f"no vendor charts a {z}-flute tool at {_fmt(reach_over_D or 0)}×D reach in "
+                            f"{_family_word(family)}; the nearest charted tools are used")
+        return res
+    return None
+
+
+def _angle_result(sec, mode, groups, step, label, band, misses, family, z, reach_over_D):
+    lo, mid, hi = _range(groups, mode == "consensus")
+    rows = [(k, r) for rs in groups.values() for k, r in rs]
+    keys = sorted({k for k, _ in rows}, key=lambda k: (k not in DEFAULT_ANGLE_SOURCES, k))
+    derived = any(r[6] for _, r in rows)
+    larger_only = all(r[5] >= band["d_max"] - 1e-9 for _, r in rows) and band["d_max"] < 1e8
+    return {"mode": mode, "vendor": "+".join(keys), "vendor_name": _vendor_words(keys), "range": (lo, mid, hi),
+            "rows": len(rows), "row_ids": [r[7] for _, r in rows], "groups": sorted(groups), "widening": label,
+            "step": step, "derived": derived, "larger_only": larger_only, "brand_missing": misses.get("brand"),
+            "default_missing": misses.get("default"), "consensus_missing": misses.get("consensus"),
+            "row_flutes": sorted({r[3] for _, r in rows if r[3] is not None}),
+            "row_reach_over_D": [min(r[4] for _, r in rows if r[4]), max(r[4] for _, r in rows if r[4])]
+            if any(r[4] for _, r in rows) else None,
+            "row_D_in": [min(r[5] for _, r in rows), max(r[5] for _, r in rows)],
+            "tool_flutes": z, "tool_reach_over_D": reach_over_D, "family": family, "band": band["band"],
+            "max_only_rule": (sec.get("max_only_rule") or {}).get("text"), "uncovered": None}
+
+
+def angle_cap(basis, aggressiveness):
+    """R14a's limit at aggressiveness a: the range at a (0 % bottom, 50 % middle, 100 % top, optimize.range_at); when only
+    rows for larger tools than this one's diameter band exist, the bottom at every aggressiveness (no vendor gives a
+    smaller-tool value, and smaller tools do not take more); likewise when no chart covers the tool's flutes or reach."""
+    if basis["larger_only"] or basis.get("uncovered"):
+        return basis["range"][0]
+    return o.range_at(basis["range"], aggressiveness)
+
+
+def angle_text(basis, aggressiveness, brand=None):
+    """The plain sentence for the result: which chart, its range and the value at this aggressiveness."""
+    from toolwiz_common import brand as br
+    lo, mid, hi = basis["range"]
+    cap = angle_cap(basis, aggressiveness)
+    fam = _family_word(basis["family"])
+    mode = basis["mode"]
+    if mode == "brand":
+        src, why = f"the {basis['vendor_name']} chart", f"brand {br.display_name(brand)}" if brand else "brand"
+    elif mode == "default":
+        src = f"the {basis['vendor_name']} chart"
+        why = (f"{br.display_name(brand)} has {basis['brand_missing']}; conservative default" if brand
+               else "no brand given; conservative default")
+    elif mode == "consensus":
+        src = f"the cross-vendor consensus of ramp charts ({len(basis['groups'])} vendor groups)"
+        why = "; ".join(x for x in ((f"{br.display_name(brand)} has {basis['brand_missing']}" if brand else "no brand given"),
+                                    (f"Harvey + Helical have {basis['default_missing']}" if basis.get("default_missing")
+                                     else None)) if x)
+    txt = f"Ramp angle from {src} for {fam} ({why}): {_fmt(lo)} to {_fmt(hi)} deg"
+    if basis.get("uncovered"):
+        txt += (f"; {basis['uncovered']}, so the bottom of their range, {_fmt(cap)} deg, is used at every aggressiveness "
+                f"(no vendor value for this tool)")
+    elif basis["larger_only"]:
+        txt += (f"; these charts are for larger tools only (smallest {basis['row_D_in'][0]:.4g}\", this tool is in the "
+                f"{basis['band']} band), so the bottom of the range, {_fmt(cap)} deg, is used at every aggressiveness "
+                f"(no vendor publishes a value for this size)")
+    else:
+        txt += f", {_fmt(cap)} at {aggressiveness:.0%} (0 % bottom, 50 % middle {_fmt(mid)}, 100 % top)"
+    rf = basis.get("row_flutes")
+    rr = basis.get("row_reach_over_D")
+    txt += (f". Rows: {basis['rows']} ({', '.join(str(f) for f in rf)}-flute" if rf else f". Rows: {basis['rows']} (")
+    txt += (f", {_fmt(rr[0])}" + (f"-{_fmt(rr[1])}" if rr[1] > rr[0] * 1.01 else "") + "×D reach" if rr else "")
+    txt += f"; {basis['widening']})"
+    if basis["derived"]:
+        txt += f". Rows that publish only a maximum: {basis['max_only_rule']}"
+    return txt + "."
+
+
+# ---------------------------------------------------------------------------
 # Checks
 # ---------------------------------------------------------------------------
 
@@ -234,17 +489,15 @@ def r6_helix(dh_over_D, lo, hi, basis=""):
                    detail=f"D_h/D {dh_over_D:.3f} in [{lo:.3f}, {hi:.3f}]; {basis}")
 
 
-def r14_angle(alpha_deg, cons, scale):
-    c = cons.get("angle_deg")
-    if not c:
-        return o.Check("R14a", "vendor-consensus ramp angle", "max", alpha_deg, None, "deg", SRC["R14"],
-                       applies=False, detail="fewer than 2 vendor groups publish a ramp angle for this cut, even "
-                                             "family-wide; the physics angle stands")
-    lim = scale * c["median"]
-    return o.Check("R14a", "vendor-consensus ramp angle", "max", alpha_deg, lim, "deg", SRC["R14"],
-                   detail=f"α {alpha_deg:.2f}° vs {scale:.2f} × vendor median {c['median']:.2f}° = {lim:.2f}° "
-                          f"(bucket {c['key']}, {c['widening']}, {c['n_rows']} rows, groups "
-                          + ", ".join(f"{g} {v:g}°" for g, v in sorted(c["group_medians"].items())) + ")")
+def r14_angle(alpha_deg, basis, aggressiveness):
+    """R14a: α ≤ the vendor chart's angle at this aggressiveness (angle_lookup / angle_cap)."""
+    if not basis:
+        return o.Check("R14a", "vendor ramp angle", "max", alpha_deg, None, "deg", SRC["R14"],
+                       applies=False, detail="no vendor publishes a ramp angle for this material (data/model_v2/ramp.json); "
+                                             "the physics angle stands")
+    lim = angle_cap(basis, aggressiveness)
+    return o.Check("R14a", "vendor ramp angle", "max", alpha_deg, lim, "deg", SRC["R14"],
+                   detail=f"α {alpha_deg:.2f}° vs {lim:.2f}°. {basis['text']}")
 
 
 def r14_feed(cid, name, feed_ipm, field, cons, scale, base_feed_ipm):
@@ -270,10 +523,14 @@ class RampContext:
     the one R1 and the side C1 use (optimize_ramp sets it from `edge_radius` unless overridden)."""
 
     def __init__(self, tool, material, machine, margins, table=None, consensus=None, n_theta=96, n_quad=32,
-                 stock_to_leave_in=o.STOCK_TO_LEAVE_IN):
+                 stock_to_leave_in=o.STOCK_TO_LEAVE_IN, brand=None, side_opts=None):
         self.tool, self.mat, self.mach, self.mg = tool, material, machine, margins
+        self.brand = brand or None
+        # The side cut is a full slot: the same C14 by brand, flute-aware chip load (C2 × F(z)) and C15 chip space as a
+        # slot cut when the caller passes them (side_opts: vendor_table, chip_flutes, chip_space; v2_bridge does).
         self.side = o._Context(tool, material, machine, "slot", margins, n_theta, n_quad, consensus=consensus,
-                               stock_to_leave_in=stock_to_leave_in, effective_feed_ipm=None)
+                               stock_to_leave_in=stock_to_leave_in, effective_feed_ipm=None, brand=self.brand,
+                               **(side_opts or {}))
         self.notes = list(self.side.notes)
         self.table = table
         self.coeffs = self.side.coeffs
@@ -288,6 +545,12 @@ class RampContext:
             self.h_cap, self.h_cap_basis = None, ""
             self.notes.append("R2 inactive: no end-chip limit (data/model_v2/ramp.json)")
         self.cons = consensus_lookup(table, material.family, material.hb, tool.D) if material.family else {}
+        self.reach_in = tool_reach(tool)
+        self.angle_basis = (angle_lookup(table, self.brand, material.family, material.hb, tool.D, tool.z,
+                                         self.reach_in / tool.D) if material.family else None)
+        if self.angle_basis:
+            self.angle_basis["text"] = angle_text(self.angle_basis, margins.aggressiveness, self.brand)
+            self.angle_basis["cap_deg"] = angle_cap(self.angle_basis, margins.aggressiveness)
         lo = DH_MIN_OVER_D
         hi = DH_MAX_OVER_D
         basis = [f"D_h ≤ {DH_MAX_OVER_D:g}·D (bore ≤ 2·D, no core)"]
@@ -347,7 +610,7 @@ class RampContext:
 
 
 def ramp_checks(rc, dh_over_D, alpha_deg, fz_in, spindle_rpm=None):
-    """Every check for one helical ramp (inches): R1, R2, R6, R14 and the side cut's C1–C5, C7, C8, C11, C14.
+    """Every check for one helical ramp (inches): R1, R2, R6, R14a and the side cut's C1–C5, C7, C8, C11, C14, C15.
 
     spindle_rpm: the speed the ramp actually runs at (the operation's, user decision D4, 2026-10-18); C5 and C11 are
     checked there. None: C7's slot-engagement speed."""
@@ -355,7 +618,6 @@ def ramp_checks(rc, dh_over_D, alpha_deg, fz_in, spindle_rpm=None):
     D_h = dh_over_D * t.D
     p = pitch(D_h, alpha_deg)
     pt = rc.point(p)
-    s = rc.mg.consensus_cap_scale
     h_a_mm = end_chip(fz_in, alpha_deg) * MM
     fc, f, beam = pt.force_checks(fz_in)
     out = {}
@@ -368,13 +630,15 @@ def ramp_checks(rc, dh_over_D, alpha_deg, fz_in, spindle_rpm=None):
     out["C5"] = o.c5_spindle(torque, power, rpm, rc.mach.spindle, rc.mach.rating, rc.mg.limit_margin)
     out.update({"C7": pt.c7, "C8": pt.c8,
                 "C11": o.c11_feed(fz_in * t.z * rpm, rc.mach.max_feed_ipm, None)})
-    if rc.side.consensus is not None:
+    if rc.side.c14_on:
         out["C14v"] = pt.c14v
         out.update(pt.c14_checks(fz_in))
+    if rc.side.chip_space is not None:
+        out["C15"] = pt.c15(fz_in)
     out["R1"] = r1_end_chip_min(h_a_mm, t.edge_radius_mm, rc.side.lam)
     out["R2"] = r2_end_chip_max(h_a_mm, rc.h_cap, rc.h_cap_basis)
     out["R6"] = r6_helix(dh_over_D, rc.dh_range[0], rc.dh_range[1], rc.dh_basis)
-    out["R14a"] = r14_angle(alpha_deg, rc.cons, s)
+    out["R14a"] = r14_angle(alpha_deg, rc.angle_basis, rc.mg.aggressiveness)
     loads = {"torque_side_nm": t_side, "torque_end_nm": t_end, "power_w": power * 1000.0,
              "thrust_end_n": end_thrust_n(h_a_mm, t.D_mm, t.z, rc.coeffs),
              "lateral_peak_n": f["peak_n"], "deflection_in": beam["delta_in"],
@@ -391,7 +655,7 @@ def _torque(rc, D_h, alpha_deg, p, f, h_a_mm):
     return t_side + t_end, t_side, t_end, ap_eq
 
 
-_UPPER = ("C2", "C2o", "C3", "C4", "C5", "C11", "C14f", "C14m", "R2")
+_UPPER = ("C2", "C2o", "C3", "C4", "C5", "C11", "C14f", "C14m", "C15", "R2")
 _LOWER = ("C1", "C10", "R1")
 
 
@@ -453,6 +717,12 @@ def _fz_window_fast(rc, dh, alpha, enforce_r1=True, rel_tol=1e-4):
     hi = cheap
     if hi is not None and rc.h_cap is not None:
         hi = min(hi, rc.h_cap / MM / sa)
+    if hi is not None and rc.side.chip_space is not None:
+        # C15 is proportional to fz and its full-slot depth term grows with the pitch p: its limit at this p in closed form
+        pt = rc.point(pitch(dh * rc.tool.D, alpha))
+        c = pt.c15(hi)
+        if c.applies and c.value > 0 and not c.ok:
+            hi = hi * c.limit / c.value * (1 - 1e-9)
     if hi is None or hi < lo * (1 - 1e-12):
         return (lo, None)
     if _forces_ok(rc, dh, alpha, hi):
@@ -524,7 +794,8 @@ PLUNGE_NOTE = ("Fusion uses the plunge feed for every vertical feed move from th
 def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, table="default", consensus=None,
                   op_feed_ipm=None, op_rpm=None, coating=None, edge_radius_mm=None, n_alpha=16, n_dh=5,
                   score_tol=0.01, n_theta=96, n_quad=32, n_theta_final=360, n_quad_final=64,
-                  stock_to_leave_in=o.STOCK_TO_LEAVE_IN, method="fast"):
+                  stock_to_leave_in=o.STOCK_TO_LEAVE_IN, method="fast", brand=None, vendor_table=None,
+                  chip_flutes=None, chip_space=None):
     """The helical entry for one tool/material/machine: ramp angle, helix diameter, ramp and plunge feed.
 
     Speed: C7 at slot engagement (the side cut is slot-like), capped by the machine and C14v, chooses fz and α; the
@@ -541,7 +812,9 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
     edge_radius_mm: r_β override; default `edge_radius(D, coating)` (D1). method: "fast" (default) or "exhaustive"
     (every check by brute force; the reference the fast search is tested against).
     op_feed_ipm: the operation's feed (reported). table: data/model_v2/ramp.json ("default"), a dict, or None (R2/R14
-    off). consensus: the C14 table for the side cut (as optimize.optimize).
+    off). consensus: the C14 table for the side cut (as optimize.optimize). brand: the tool's vendor key (R14a and the
+    side cut's C14 read the brand's charts first). vendor_table, chip_flutes, chip_space: as optimize.optimize for the
+    side cut (C14 by brand, C2 × F(flutes), C15); params.RAMP_DEFAULTS has the calibrated files (v2_bridge passes them).
     """
     mg = margins or o.Margins(aggressiveness, scheme="consensus")
     tab = load_table() if table == "default" else table
@@ -551,14 +824,15 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
         r_b, r_b_basis = float(edge_radius_mm), "given"
     tool = replace(tool, edge_radius_mm=r_b)
     window = WINDOWS[method]
-    rc = RampContext(tool, material, machine, mg, tab, consensus, n_theta, n_quad, stock_to_leave_in)
+    side_opts = {k: v for k, v in (("vendor_table", vendor_table), ("chip_flutes", chip_flutes),
+                                    ("chip_space", chip_space)) if v is not None}
+    rc = RampContext(tool, material, machine, mg, tab, consensus, n_theta, n_quad, stock_to_leave_in, brand, side_opts)
     t = tool
     dh_lo, dh_hi = rc.dh_range
     dhs = sorted({dh_hi} | ({dh_lo + (dh_hi - dh_lo) * i / (n_dh - 1) for i in range(n_dh)} if dh_hi > dh_lo else set()),
                  reverse=True)
     alphas = _alpha_grid(ALPHA_MIN_DEG, ALPHA_MAX_DEG, n_alpha)
-    a_cap = rc.cons.get("angle_deg")
-    a_cap = mg.consensus_cap_scale * a_cap["median"] if a_cap else None
+    a_cap = rc.angle_basis["cap_deg"] if rc.angle_basis else None
     if a_cap is not None:
         alphas = sorted(set(alphas) | {a_cap})
     conflicts, prov = [], []
@@ -609,7 +883,7 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
                          f"vendor consensus angle exists: h_a is set on R1's floor (physics)")
         cands = search(False, True)
     if a_cap is None:
-        prov.append("R14a: no vendor consensus angle (fewer than 2 groups even family-wide); the angle is physics-only")
+        prov.append("R14a: no vendor ramp angle for this material (data/model_v2/ramp.json); the angle is physics-only")
     if not cands:
         return {"feasible": False, "eliminated_by": elim, "notes": rc.notes, "conflicts": conflicts,
                 "provenance": prov + [f"no feasible ramp: {elim}"]}
@@ -641,7 +915,8 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
                 lo_a = mid
         rule += f"; refined to {ch['alpha']:.2f}° by bisection"
     # Re-check at full resolution; back fz off onto the limits there if needed.
-    rc_hi = RampContext(tool, material, machine, mg, tab, consensus, n_theta_final, n_quad_final, stock_to_leave_in)
+    rc_hi = RampContext(tool, material, machine, mg, tab, consensus, n_theta_final, n_quad_final, stock_to_leave_in,
+                        brand, side_opts)
     rc_hi.h_cap, rc_hi.h_cap_basis = rc.h_cap, rc.h_cap_basis
     fz = ch["fz"]
     checks, pt, loads = ramp_checks(rc_hi, ch["dh"], ch["alpha"], fz)
@@ -738,4 +1013,19 @@ def optimize_ramp(tool, material, machine, aggressiveness=0.5, *, margins=None, 
         "plunge_note": PLUNGE_NOTE,
         "eliminated_by": elim, "candidates": len(cands), "provenance": prov,
         "aggressiveness": mg.aggressiveness, "method": method,
+        "angle_basis": _basis_summary(rc.angle_basis),
+        "chip_space": o.chip_space_report(pt, fz, checks.get("C15")) if rc_hi.side.chip_space is not None else None,
+        "side_flute_factor": rc_hi.side.flute_factor if rc_hi.side.flute_aware else None,
     }
+
+
+def _basis_summary(b):
+    """The R14a basis for the result (JSON-friendly)."""
+    if not b:
+        return None
+    keys = ("mode", "vendor", "vendor_name", "rows", "row_ids", "groups", "widening", "derived", "larger_only",
+            "brand_missing", "default_missing", "row_flutes", "row_reach_over_D", "row_D_in", "tool_flutes",
+            "tool_reach_over_D", "band", "cap_deg", "text", "max_only_rule")
+    out = {k: b.get(k) for k in keys}
+    out["range_deg"] = list(b["range"])
+    return out

@@ -1,8 +1,8 @@
 {
- "version": "2026-10-18.2",
+ "version": "2026-11-13.1",
  "status": "PROPOSED (ramp calibration)",
  "generated_by": "tools/calibrate_v2_ramp.py",
- "date": "2026-10-18",
+ "date": "2026-11-13",
  "end_chip": {
   "basis": "R2: median over vendor groups of each group's median plunge chip per tooth h_p/D (stated plunge fz, or the vendor's plunge/drilling factor × its slot fz), per diameter band, ≥ 2 groups (neighbouring bands pooled when fewer)",
   "bands": [
@@ -242,7 +242,7 @@
   ]
  },
  "consensus": {
-  "basis": "Vendor ramp consensus (user rule 2026-10-17 as C14): ramp angle ≤ consensus_scale(a) × the median over ≥ 2 independent vendor groups of their (maximum) ramp angle, widened stepwise (diameter band, hardness, family-wide); plunge feed ≤ scale × median plunge/slot feed factor × the ramp (slot-like) feed",
+  "basis": "Vendor ramp guardrail (owner decisions 2026-11-12/13, as C14): ramp angle ≤ the vendor's published range at the aggressiveness (0 % bottom, 50 % middle, 100 % top), from the tool's brand, else Harvey + Helical, else the cross-vendor consensus, using rows whose tool has no more flutes and no longer reach; a published maximum only: bottom from the fitted bottom/top ratio; larger-tool rows only or no covering row: the bottom. Plunge feed ≤ scale × median plunge/slot feed factor × the ramp (slot-like) feed (data/model_v2/ramp.json)",
   "fields": [
    "angle_deg",
    "hole_min_over_D",
@@ -297,7 +297,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|5|1/16-3/32": {
+   "Steel - Medium Carbon Alloy (4130)|4|1/16-3/32": {
     "Emuge-Franken": [
      [
       5.0,
@@ -306,15 +306,33 @@
       null,
       null
      ]
+    ],
+    "Kyocera": [
+     [
+      1.0,
+      null,
+      null,
+      1.0,
+      null
+     ]
     ]
    },
-   "Steel - Tool (H13)|8|1/16-3/32": {
+   "Steel - Tool (H13)|4|1/16-3/32": {
     "Emuge-Franken": [
      [
       5.0,
       null,
       null,
       null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      1.0,
+      null,
+      null,
+      1.0,
       null
      ]
     ]
@@ -330,13 +348,29 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|5|1/8-3/16": {
+   "Steel - Medium Carbon Alloy (4130)|4|1/8-3/16": {
     "Emuge-Franken": [
      [
       5.0,
       null,
       null,
       null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      7.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      1.0,
       null
      ]
     ],
@@ -357,13 +391,29 @@
      ]
     ]
    },
-   "Steel - Tool (H13)|8|1/8-3/16": {
+   "Steel - Tool (H13)|4|1/8-3/16": {
     "Emuge-Franken": [
      [
       5.0,
       null,
       null,
       null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      7.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      1.0,
       null
      ]
     ]
@@ -393,48 +443,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|5|1/4-3/8": {
-    "Emuge-Franken": [
-     [
-      5.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      null,
-      null
-     ]
-    ],
-    "OSG": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.182
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.224
-     ]
-    ]
-   },
-   "Steel - Tool (H13)|8|1/4-3/8": {
+   "Steel - Medium Carbon Alloy (4130)|4|1/4-3/8": {
     "Emuge-Franken": [
      [
       5.0,
@@ -463,7 +472,7 @@
       null,
       null,
       null,
-      0.8,
+      0.826,
       null
      ],
      [
@@ -471,13 +480,142 @@
       null,
       null,
       null,
-      0.212
+      0.185
      ],
      [
       2.0,
       null,
       null,
       null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.9
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.905
+     ],
+     [
+      7.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      3.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      1.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      1.0,
+      null
+     ]
+    ],
+    "OSG": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.182
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.224
+     ]
+    ]
+   },
+   "Steel - Tool (H13)|4|1/4-3/8": {
+    "Emuge-Franken": [
+     [
+      5.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.875
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.875
+     ],
+     [
+      7.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      3.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      1.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      1.0,
       null
      ]
     ]
@@ -500,34 +638,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|5|1/2-3/4": {
-    "Emuge-Franken": [
-     [
-      5.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      null,
-      null
-     ]
-    ],
-    "OSG": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.196
-     ]
-    ]
-   },
-   "Steel - Tool (H13)|8|1/2-3/4": {
+   "Steel - Medium Carbon Alloy (4130)|4|1/2-3/4": {
     "Emuge-Franken": [
      [
       5.0,
@@ -549,7 +660,7 @@
       null,
       null,
       null,
-      0.731,
+      0.724,
       null
      ],
      [
@@ -557,13 +668,13 @@
       null,
       null,
       null,
-      0.183
+      0.164
      ],
      [
       null,
       null,
       null,
-      0.794,
+      0.795,
       null
      ],
      [
@@ -571,7 +682,7 @@
       null,
       null,
       null,
-      0.257
+      0.224
      ],
      [
       2.0,
@@ -585,6 +696,135 @@
       null,
       null,
       null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.903
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.912
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.892
+     ],
+     [
+      7.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      3.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      1.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      1.0,
+      null
+     ]
+    ],
+    "OSG": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.196
+     ]
+    ]
+   },
+   "Steel - Tool (H13)|4|1/2-3/4": {
+    "Emuge-Franken": [
+     [
+      5.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "Kyocera": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.913
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.885
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.893
+     ],
+     [
+      7.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      3.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      1.0,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      5.0,
+      null,
+      null,
+      1.0,
       null
      ]
     ]
@@ -2649,7 +2889,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon (1045)|5|1/4-3/8": {
+   "Steel - Medium Carbon (1045)|3|1/4-3/8": {
     "Kennametal": [
      [
       null,
@@ -2667,7 +2907,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon (1045)|5|1/2-3/4": {
+   "Steel - Medium Carbon (1045)|3|1/2-3/4": {
     "Kennametal": [
      [
       null,
@@ -2699,7 +2939,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon (1045)|5|1 and up": {
+   "Steel - Medium Carbon (1045)|3|1 and up": {
     "Kennametal": [
      [
       null,
@@ -2717,78 +2957,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|6|1/4-3/8": {
-    "Kennametal": [
-     [
-      null,
-      null,
-      null,
-      0.826,
-      null
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.185
-     ],
-     [
-      2.0,
-      null,
-      null,
-      null,
-      null
-     ]
-    ]
-   },
-   "Steel - Medium Carbon Alloy (4130)|6|1/2-3/4": {
-    "Kennametal": [
-     [
-      null,
-      null,
-      null,
-      0.724,
-      null
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.164
-     ],
-     [
-      null,
-      null,
-      null,
-      0.795,
-      null
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.224
-     ],
-     [
-      2.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      2.0,
-      null,
-      null,
-      null,
-      null
-     ]
-    ]
-   },
-   "Steel - Medium Carbon Alloy (4130)|6|1 and up": {
+   "Steel - Medium Carbon Alloy (4130)|4|1 and up": {
     "Kennametal": [
      [
       null,
@@ -2829,50 +2998,6 @@
       null,
       0.212
      ]
-    ],
-    "Kyocera": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.9
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.905
-     ],
-     [
-      7.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      3.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      1.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      1.0,
-      null
-     ]
     ]
    },
    "Steel - Medium Carbon Alloy (4130)|7|1/2-3/4": {
@@ -2904,57 +3029,6 @@
       null,
       null,
       0.257
-     ]
-    ],
-    "Kyocera": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.903
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.912
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.892
-     ],
-     [
-      7.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      3.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      1.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      1.0,
-      null
      ]
     ]
    },
@@ -3417,22 +3491,6 @@
       null,
       0.204
      ]
-    ],
-    "Kyocera": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.909
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.9
-     ]
     ]
    },
    "Cast Iron - Gray|4|1/2-3/4": {
@@ -3464,29 +3522,6 @@
       null,
       null,
       0.25
-     ]
-    ],
-    "Kyocera": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.897
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.909
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.892
      ]
     ]
    },
@@ -3626,7 +3661,7 @@
      ]
     ]
    },
-   "High Temp Nickel Alloy|9|1/4-3/8": {
+   "High Temp Nickel Alloy|4|1/4-3/8": {
     "Kennametal": [
      [
       null,
@@ -3642,9 +3677,25 @@
       null,
       0.146
      ]
+    ],
+    "Kyocera": [
+     [
+      3,
+      null,
+      null,
+      1.0,
+      null
+     ],
+     [
+      3,
+      null,
+      null,
+      0.9,
+      null
+     ]
     ]
    },
-   "High Temp Nickel Alloy|9|1/2-3/4": {
+   "High Temp Nickel Alloy|4|1/2-3/4": {
     "Kennametal": [
      [
       null,
@@ -3674,9 +3725,32 @@
       null,
       0.202
      ]
+    ],
+    "Kyocera": [
+     [
+      3,
+      null,
+      null,
+      0.929,
+      null
+     ],
+     [
+      3,
+      null,
+      null,
+      0.889,
+      null
+     ],
+     [
+      3,
+      null,
+      null,
+      0.905,
+      null
+     ]
     ]
    },
-   "High Temp Nickel Alloy|9|1 and up": {
+   "High Temp Nickel Alloy|4|1 and up": {
     "Kennametal": [
      [
       null,
@@ -3715,22 +3789,6 @@
       null,
       null,
       null,
-      null
-     ]
-    ],
-    "Kyocera": [
-     [
-      6,
-      null,
-      null,
-      0.889,
-      null
-     ],
-     [
-      6,
-      null,
-      null,
-      0.882,
       null
      ]
     ]
@@ -3779,29 +3837,6 @@
       null,
       null
      ]
-    ],
-    "Kyocera": [
-     [
-      6,
-      null,
-      null,
-      0.917,
-      null
-     ],
-     [
-      6,
-      null,
-      null,
-      0.893,
-      null
-     ],
-     [
-      6,
-      null,
-      null,
-      0.903,
-      null
-     ]
     ]
    },
    "Titanium Alloy|7|1 and up": {
@@ -3819,6 +3854,77 @@
       null,
       null,
       0.212
+     ],
+     [
+      2.0,
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   "Steel - Tool (H13)|8|1/4-3/8": {
+    "Kennametal": [
+     [
+      null,
+      null,
+      null,
+      0.8,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.212
+     ],
+     [
+      2.0,
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   "Steel - Tool (H13)|8|1/2-3/4": {
+    "Kennametal": [
+     [
+      null,
+      null,
+      null,
+      0.731,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.183
+     ],
+     [
+      null,
+      null,
+      null,
+      0.794,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.257
+     ],
+     [
+      2.0,
+      null,
+      null,
+      null,
+      null
      ],
      [
       2.0,
@@ -3894,7 +4000,7 @@
      ]
     ]
    },
-   "Steel - Low Carbon (1020)|5|1/4-3/8": {
+   "Steel - Low Carbon (1020)|2|1/4-3/8": {
     "Kyocera": [
      [
       null,
@@ -3912,7 +4018,7 @@
      ]
     ]
    },
-   "Steel - Low Carbon (1020)|5|1/2-3/4": {
+   "Steel - Low Carbon (1020)|2|1/2-3/4": {
     "Kyocera": [
      [
       null,
@@ -3937,106 +4043,7 @@
      ]
     ]
    },
-   "Steel - Tool (H13)|7|1/4-3/8": {
-    "Kyocera": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.875
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.875
-     ],
-     [
-      7.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      3.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      1.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      1.0,
-      null
-     ]
-    ]
-   },
-   "Steel - Tool (H13)|7|1/2-3/4": {
-    "Kyocera": [
-     [
-      null,
-      null,
-      null,
-      null,
-      0.913
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.885
-     ],
-     [
-      null,
-      null,
-      null,
-      null,
-      0.893
-     ],
-     [
-      7.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      3.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      1.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      1.0,
-      null
-     ]
-    ]
-   },
-   "Stainless - 300 Series (316)|5|1/4-3/8": {
+   "Stainless - 300 Series (316)|2|1/4-3/8": {
     "Kyocera": [
      [
       null,
@@ -4068,7 +4075,7 @@
      ]
     ]
    },
-   "Stainless - 300 Series (316)|5|1/2-3/4": {
+   "Stainless - 300 Series (316)|2|1/2-3/4": {
     "Kyocera": [
      [
       null,
@@ -4114,8 +4121,22 @@
      ]
     ]
    },
-   "Cast Iron - Gray|5|1/4-3/8": {
+   "Cast Iron - Gray|3|1/4-3/8": {
     "Kyocera": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.909
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.9
+     ],
      [
       null,
       null,
@@ -4132,8 +4153,29 @@
      ]
     ]
    },
-   "Cast Iron - Gray|5|1/2-3/4": {
+   "Cast Iron - Gray|3|1/2-3/4": {
     "Kyocera": [
+     [
+      null,
+      null,
+      null,
+      null,
+      0.897
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.909
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      0.892
+     ],
      [
       null,
       null,
@@ -4157,7 +4199,7 @@
      ]
     ]
    },
-   "Nickel Alloy|6|1/4-3/8": {
+   "Nickel Alloy|2|1/4-3/8": {
     "Kyocera": [
      [
       3,
@@ -4175,7 +4217,7 @@
      ]
     ]
    },
-   "Nickel Alloy|6|1/2-3/4": {
+   "Nickel Alloy|2|1/2-3/4": {
     "Kyocera": [
      [
       3,
@@ -4200,51 +4242,22 @@
      ]
     ]
    },
-   "High Temp Nickel Alloy|7|1/4-3/8": {
+   "Titanium Alloy|6|1/4-3/8": {
     "Kyocera": [
      [
-      3,
-      null,
-      null,
-      1.0,
-      null
-     ],
-     [
-      3,
-      null,
-      null,
-      0.9,
-      null
-     ]
-    ]
-   },
-   "High Temp Nickel Alloy|7|1/2-3/4": {
-    "Kyocera": [
-     [
-      3,
-      null,
-      null,
-      0.929,
-      null
-     ],
-     [
-      3,
+      6,
       null,
       null,
       0.889,
       null
      ],
      [
-      3,
+      6,
       null,
       null,
-      0.905,
+      0.882,
       null
-     ]
-    ]
-   },
-   "Titanium Alloy|8|1/4-3/8": {
-    "Kyocera": [
+     ],
      [
       6,
       null,
@@ -4261,8 +4274,29 @@
      ]
     ]
    },
-   "Titanium Alloy|8|1/2-3/4": {
+   "Titanium Alloy|6|1/2-3/4": {
     "Kyocera": [
+     [
+      6,
+      null,
+      null,
+      0.917,
+      null
+     ],
+     [
+      6,
+      null,
+      null,
+      0.893,
+      null
+     ],
+     [
+      6,
+      null,
+      null,
+      0.903,
+      null
+     ],
      [
       6,
       null,
@@ -4318,42 +4352,6 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|7|1/8-3/16": {
-    "Kyocera": [
-     [
-      7.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      1.0,
-      null
-     ]
-    ]
-   },
-   "Steel - Tool (H13)|7|1/8-3/16": {
-    "Kyocera": [
-     [
-      7.0,
-      null,
-      null,
-      null,
-      null
-     ],
-     [
-      5.0,
-      null,
-      null,
-      1.0,
-      null
-     ]
-    ]
-   },
    "Stainless - PH Series (17-4)|6|1/64-3/64": {
     "Kyocera": [
      [
@@ -4372,7 +4370,7 @@
      ]
     ]
    },
-   "Steel - Medium Carbon Alloy (4130)|7|1/64-3/64": {
+   "Steel - Medium Carbon Alloy (4130)|4|1/64-3/64": {
     "Kyocera": [
      [
       1.0,
@@ -4390,7 +4388,7 @@
      ]
     ]
    },
-   "Steel - Tool (H13)|7|1/64-3/64": {
+   "Steel - Tool (H13)|4|1/64-3/64": {
     "Kyocera": [
      [
       1.0,
@@ -4424,28 +4422,6 @@
       2.0,
       null,
       null,
-      null
-     ]
-    ]
-   },
-   "Steel - Medium Carbon Alloy (4130)|7|1/16-3/32": {
-    "Kyocera": [
-     [
-      1.0,
-      null,
-      null,
-      1.0,
-      null
-     ]
-    ]
-   },
-   "Steel - Tool (H13)|7|1/16-3/32": {
-    "Kyocera": [
-     [
-      1.0,
-      null,
-      null,
-      1.0,
       null
      ]
     ]
@@ -4760,6 +4736,3087 @@
       null
      ]
     ]
+   }
+  }
+ },
+ "angle": {
+  "basis": "Vendor ramp guardrail (owner decisions 2026-11-12/13, as C14): ramp angle ≤ the vendor's published range at the aggressiveness (0 % bottom, 50 % middle, 100 % top), from the tool's brand, else Harvey + Helical, else the cross-vendor consensus, using rows whose tool has no more flutes and no longer reach; a published maximum only: bottom from the fitted bottom/top ratio; larger-tool rows only or no covering row: the bottom. Plunge feed ≤ scale × median plunge/slot feed factor × the ramp (slot-like) feed (data/model_v2/ramp.json)",
+  "row_fields": [
+   "lo",
+   "mid",
+   "hi",
+   "flutes",
+   "reach_over_D",
+   "D",
+   "derived",
+   "id"
+  ],
+  "max_only_rule": {
+   "lo_over_hi": 0.5,
+   "fitted": true,
+   "rows": 83,
+   "groups": {
+    "Emuge-Franken": 0.6,
+    "Harvey Performance": 0.3333333333333333,
+    "Kyocera": 0.5
+   },
+   "row_median": 0.3333333333333333,
+   "row_range": [
+    0.3,
+    0.6
+   ],
+   "text": "bottom = 0.50 × the published maximum (median over 3 vendor groups of each group's median bottom/top ratio, 83 rows that publish a range), middle = halfway between bottom and top, as for a published range; a single published angle counts as the maximum"
+  },
+  "default_sources": [
+   "harvey",
+   "helical"
+  ],
+  "reach_tol": 0.1,
+  "min_vendor_groups": 2,
+  "hb_bin": 50,
+  "bands": [
+   {
+    "band": "1/64-3/64",
+    "d_min": 0.0,
+    "d_max": 0.05
+   },
+   {
+    "band": "1/16-3/32",
+    "d_min": 0.05,
+    "d_max": 0.1
+   },
+   {
+    "band": "1/8-3/16",
+    "d_min": 0.1,
+    "d_max": 0.2
+   },
+   {
+    "band": "1/4-3/8",
+    "d_min": 0.2,
+    "d_max": 0.4
+   },
+   {
+    "band": "1/2-3/4",
+    "d_min": 0.4,
+    "d_max": 0.8
+   },
+   {
+    "band": "1 and up",
+    "d_min": 0.8,
+    "d_max": 1000000000.0
+   }
+  ],
+  "vendors": {
+   "emuge": {
+    "group": "Emuge-Franken",
+    "cells": {
+     "Stainless - PH Series (17-4)|5|1/16-3/32": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.0625,
+       0,
+       "emuge_ramp_var4_ph_00625"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/16-3/32": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.0625,
+       0,
+       "emuge_ramp_var4_alloy_00625"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/16-3/32": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.0625,
+       0,
+       "emuge_ramp_var4_tool_00625"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|5|1/8-3/16": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.125,
+       0,
+       "emuge_ramp_var4_ph_0125"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/8-3/16": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.125,
+       0,
+       "emuge_ramp_var4_alloy_0125"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/8-3/16": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.125,
+       0,
+       "emuge_ramp_var4_tool_0125"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|5|1/4-3/8": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.25,
+       0,
+       "emuge_ramp_var4_ph_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "emuge_ramp_var5_ph_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       1.6666666666666667,
+       0.375,
+       0,
+       "emuge_ramp_var5_ph_0375"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/4-3/8": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.25,
+       0,
+       "emuge_ramp_var4_alloy_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "emuge_ramp_var5_alloy_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       1.6666666666666667,
+       0.375,
+       0,
+       "emuge_ramp_var5_alloy_0375"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/4-3/8": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.0,
+       0.25,
+       0,
+       "emuge_ramp_var4_tool_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "emuge_ramp_var5_tool_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       1.6666666666666667,
+       0.375,
+       0,
+       "emuge_ramp_var5_tool_0375"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|5|1/2-3/4": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       1.25,
+       0.5,
+       0,
+       "emuge_ramp_var4_ph_0500"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       1.25,
+       0.5,
+       0,
+       "emuge_ramp_var5_ph_0500"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/2-3/4": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       1.25,
+       0.5,
+       0,
+       "emuge_ramp_var4_alloy_0500"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       1.25,
+       0.5,
+       0,
+       "emuge_ramp_var5_alloy_0500"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/2-3/4": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       1.25,
+       0.5,
+       0,
+       "emuge_ramp_var4_tool_0500"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       5,
+       1.25,
+       0.5,
+       0,
+       "emuge_ramp_var5_tool_0500"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       5,
+       3.0,
+       0.25,
+       0,
+       "emuge_ramp_tinoxN_ph_0250"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       5,
+       2.3333333333333335,
+       0.375,
+       0,
+       "emuge_ramp_tinoxN_ph_0375"
+      ]
+     ],
+     "Titanium Alloy|x|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       5,
+       3.0,
+       0.25,
+       0,
+       "emuge_ramp_tinoxN_ti_0250"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       5,
+       2.3333333333333335,
+       0.375,
+       0,
+       "emuge_ramp_tinoxN_ti_0375"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.125,
+       0.25,
+       0,
+       "emuge_ramp_tinoxNF_ti_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.3333333333333335,
+       0.375,
+       0,
+       "emuge_ramp_tinoxNF_ti_0375"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "emuge_ramp_tinoxBase_ti_0250"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       5,
+       2.5,
+       0.5,
+       0,
+       "emuge_ramp_tinoxN_ph_0500"
+      ]
+     ],
+     "Titanium Alloy|x|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       5,
+       2.5,
+       0.5,
+       0,
+       "emuge_ramp_tinoxN_ti_0500"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.25,
+       0.5,
+       0,
+       "emuge_ramp_tinoxNF_ti_0500"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.0,
+       0.5,
+       0,
+       "emuge_ramp_tinoxBase_ti_0500"
+      ]
+     ],
+     "High Temp Nickel Alloy|x|1/4-3/8": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.125,
+       0.25,
+       0,
+       "emuge_ramp_tinoxNF_ni_0250"
+      ],
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.3333333333333335,
+       0.375,
+       0,
+       "emuge_ramp_tinoxNF_ni_0375"
+      ]
+     ],
+     "High Temp Nickel Alloy|x|1/2-3/4": [
+      [
+       3.0,
+       4.0,
+       5.0,
+       4,
+       2.25,
+       0.5,
+       0,
+       "emuge_ramp_tinoxNF_ni_0500"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "emuge_ramp_tinoxBase_ss_0125"
+      ]
+     ],
+     "Titanium Alloy|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "emuge_ramp_tinoxBase_ti_0125"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "emuge_ramp_tinoxBase_ss_0250"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.0,
+       0.5,
+       0,
+       "emuge_ramp_tinoxBase_ss_0500"
+      ]
+     ]
+    }
+   },
+   "harvey": {
+    "group": "Harvey Performance",
+    "cells": {
+     "Stainless - PH Series (17-4)|x|1/16-3/32": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.976,
+       0.0625,
+       0,
+       "harvey_ramp_730_ss_ph_0.0625_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.976,
+       0.0625,
+       0,
+       "harvey_ramp_8754_ss_ph_0.0625_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/16-3/32": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.976,
+       0.0625,
+       0,
+       "harvey_ramp_730_toolsteel_0.0625_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.976,
+       0.0625,
+       0,
+       "harvey_ramp_8754_toolsteel_0.0625_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/16-3/32": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.976,
+       0.0625,
+       0,
+       "harvey_ramp_730_alloysteel_0.0625_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.976,
+       0.0625,
+       0,
+       "harvey_ramp_8754_alloysteel_0.0625_angle"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "harvey_ramp_730_ss_ph_0.125_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "harvey_ramp_8754_ss_ph_0.125_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "harvey_ramp_730_toolsteel_0.125_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "harvey_ramp_8754_toolsteel_0.125_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "harvey_ramp_730_alloysteel_0.125_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "harvey_ramp_8754_alloysteel_0.125_angle"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "harvey_ramp_730_ss_ph_0.25_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "harvey_ramp_8754_ss_ph_0.25_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "harvey_ramp_730_toolsteel_0.25_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "harvey_ramp_8754_toolsteel_0.25_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "harvey_ramp_730_alloysteel_0.25_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.25,
+       0,
+       "harvey_ramp_8754_alloysteel_0.25_angle"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.0,
+       0.5,
+       0,
+       "harvey_ramp_730_ss_ph_0.5_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.5,
+       0,
+       "harvey_ramp_8754_ss_ph_0.5_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.0,
+       0.5,
+       0,
+       "harvey_ramp_730_toolsteel_0.5_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.5,
+       0,
+       "harvey_ramp_8754_toolsteel_0.5_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       2.0,
+       0.5,
+       0,
+       "harvey_ramp_730_alloysteel_0.5_angle"
+      ],
+      [
+       1.0,
+       2.0,
+       3.0,
+       4,
+       3.0,
+       0.5,
+       0,
+       "harvey_ramp_8754_alloysteel_0.5_angle"
+      ]
+     ]
+    }
+   },
+   "helical": {
+    "group": "Harvey Performance",
+    "cells": {
+     "Stainless - PH Series (17-4)|x|1/16-3/32": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.0625,
+       0,
+       "helical_ramp_HEV-5Tplus_ss_ph_0.0625_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/16-3/32": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.0625,
+       0,
+       "helical_ramp_HEV-5Tplus_toolsteel_0.0625_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/16-3/32": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.0625,
+       0,
+       "helical_ramp_HEV-5Tplus_alloysteel_0.0625_angle"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.125,
+       0,
+       "helical_ramp_HEV-5Tplus_ss_ph_0.125_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.125,
+       0,
+       "helical_ramp_HEV-5Tplus_toolsteel_0.125_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/8-3/16": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.125,
+       0,
+       "helical_ramp_HEV-5Tplus_alloysteel_0.125_angle"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "helical_ramp_HEV-5Tplus_ss_ph_0.25_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "helical_ramp_HEV-5Tplus_toolsteel_0.25_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/4-3/8": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "helical_ramp_HEV-5Tplus_alloysteel_0.25_angle"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.5,
+       0.5,
+       0,
+       "helical_ramp_HEV-5Tplus_ss_ph_0.5_angle"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.5,
+       0.5,
+       0,
+       "helical_ramp_HEV-5Tplus_toolsteel_0.5_angle"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/2-3/4": [
+      [
+       1.0,
+       2.0,
+       3.0,
+       5,
+       2.5,
+       0.5,
+       0,
+       "helical_ramp_HEV-5Tplus_alloysteel_0.5_angle"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/8-3/16": [
+      [
+       3.0,
+       6.5,
+       10.0,
+       5,
+       2.0,
+       0.125,
+       0,
+       "helical_ramp_HVAL-5_al6061_0.125_angle"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/4-3/8": [
+      [
+       3.0,
+       6.5,
+       10.0,
+       5,
+       2.0,
+       0.25,
+       0,
+       "helical_ramp_HVAL-5_al6061_0.25_angle"
+      ],
+      [
+       3.0,
+       6.5,
+       10.0,
+       3,
+       2.0,
+       0.25,
+       0,
+       "helical_ramp_H45AL-3_al6061_0.25_angle"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/2-3/4": [
+      [
+       3.0,
+       6.5,
+       10.0,
+       5,
+       2.5,
+       0.5,
+       0,
+       "helical_ramp_HVAL-5_al6061_0.5_angle"
+      ],
+      [
+       3.0,
+       6.5,
+       10.0,
+       3,
+       2.5,
+       0.5,
+       0,
+       "helical_ramp_H45AL-3_al6061_0.5_angle"
+      ]
+     ]
+    }
+   },
+   "kennametal": {
+    "group": "Kennametal",
+    "cells": {
+     "Steel - Medium Carbon Alloy (4130)|4|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.375,
+       1,
+       "kmt_ramp_HARVIIV_P3_ramp_3-8"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       0.5,
+       1,
+       "kmt_ramp_HARVIIV_P3_ramp_1-2"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.75,
+       1,
+       "kmt_ramp_HARVIIV_P3_ramp_3-4"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1 and up": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       1.0,
+       1,
+       "kmt_ramp_HARVIIV_P3_ramp_1"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.375,
+       1,
+       "kmt_ramp_HARVIIV_P5_ramp_3-8"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       0.5,
+       1,
+       "kmt_ramp_HARVIIV_P5_ramp_1-2"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.75,
+       1,
+       "kmt_ramp_HARVIIV_P5_ramp_3-4"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1 and up": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       1.0,
+       1,
+       "kmt_ramp_HARVIIV_P5_ramp_1"
+      ]
+     ],
+     "Stainless - 300 Series (316)|3|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.375,
+       1,
+       "kmt_ramp_HARVIIV_M1_ramp_3-8"
+      ]
+     ],
+     "Stainless - 300 Series (316)|3|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       0.5,
+       1,
+       "kmt_ramp_HARVIIV_M1_ramp_1-2"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.75,
+       1,
+       "kmt_ramp_HARVIIV_M1_ramp_3-4"
+      ]
+     ],
+     "Stainless - 300 Series (316)|3|1 and up": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       1.0,
+       1,
+       "kmt_ramp_HARVIIV_M1_ramp_1"
+      ]
+     ],
+     "Titanium Alloy|7|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.375,
+       1,
+       "kmt_ramp_HARVIIV_S4_ramp_3-8"
+      ]
+     ],
+     "Titanium Alloy|7|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       0.5,
+       1,
+       "kmt_ramp_HARVIIV_S4_ramp_1-2"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.75,
+       1,
+       "kmt_ramp_HARVIIV_S4_ramp_3-4"
+      ]
+     ],
+     "Titanium Alloy|7|1 and up": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       1.0,
+       1,
+       "kmt_ramp_HARVIIV_S4_ramp_1"
+      ]
+     ],
+     "Steel - Tool (H13)|8|1/4-3/8": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.375,
+       1,
+       "kmt_ramp_HARVIIV_H1_ramp_3-8"
+      ]
+     ],
+     "Steel - Tool (H13)|8|1/2-3/4": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       0.5,
+       1,
+       "kmt_ramp_HARVIIV_H1_ramp_1-2"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       1.3333333333333333,
+       0.75,
+       1,
+       "kmt_ramp_HARVIIV_H1_ramp_3-4"
+      ]
+     ],
+     "Steel - Tool (H13)|8|1 and up": [
+      [
+       1.0,
+       1.5,
+       2.0,
+       8,
+       2.0,
+       1.0,
+       1,
+       "kmt_ramp_HARVIIV_H1_ramp_1"
+      ]
+     ]
+    }
+   },
+   "kyocera_sgs": {
+    "group": "Kyocera",
+    "cells": {
+     "Stainless - 300 Series (316)|2|1/4-3/8": [
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_zrxpr_ssdiff_1-4"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.3333333333333335,
+       0.375,
+       1,
+       "sgs_ramp_zrxpr_ssdiff_3-8"
+      ]
+     ],
+     "Stainless - 300 Series (316)|2|1/2-3/4": [
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_zrxpr_ssdiff_1-2"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.625,
+       1,
+       "sgs_ramp_zrxpr_ssdiff_5-8"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.75,
+       1,
+       "sgs_ramp_zrxpr_ssdiff_3-4"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/4-3/8": [
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_zrxpr_ssph_1-4"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.3333333333333335,
+       0.375,
+       1,
+       "sgs_ramp_zrxpr_ssph_3-8"
+      ],
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z5_matrix_ph_0p25"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       6,
+       3.0,
+       0.25,
+       1,
+       "sgs_ramp_tcarb_matrix_ph_0p25"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       7,
+       2.5,
+       0.25,
+       1,
+       "sgs_ramp_hcarb_matrix_ph_0p25"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z5_footnote_ph_0p25"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       4,
+       2.0,
+       0.25,
+       0,
+       "sgs_ramp_z1p_general_lo_0p25"
+      ],
+      [
+       3.0,
+       4.5,
+       6.0,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z1p_general_hi_0p25"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/2-3/4": [
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_zrxpr_ssph_1-2"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.625,
+       1,
+       "sgs_ramp_zrxpr_ssph_5-8"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.75,
+       1,
+       "sgs_ramp_zrxpr_ssph_3-4"
+      ],
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z5_matrix_ph_0p5"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       6,
+       2.5,
+       0.5,
+       1,
+       "sgs_ramp_tcarb_matrix_ph_0p5"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       7,
+       2.5,
+       0.5,
+       1,
+       "sgs_ramp_hcarb_matrix_ph_0p5"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z5_footnote_ph_0p5"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       4,
+       2.0,
+       0.5,
+       0,
+       "sgs_ramp_z1p_general_lo_0p5"
+      ],
+      [
+       3.0,
+       4.5,
+       6.0,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z1p_general_hi_0p5"
+      ]
+     ],
+     "Nickel Alloy|2|1/4-3/8": [
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_zrxpr_sa1_1-4"
+      ],
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.3333333333333335,
+       0.375,
+       1,
+       "sgs_ramp_zrxpr_sa1_3-8"
+      ]
+     ],
+     "Nickel Alloy|2|1/2-3/4": [
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_zrxpr_sa1_1-2"
+      ],
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.625,
+       1,
+       "sgs_ramp_zrxpr_sa1_5-8"
+      ],
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.75,
+       1,
+       "sgs_ramp_zrxpr_sa1_3-4"
+      ]
+     ],
+     "High Temp Nickel Alloy|4|1/4-3/8": [
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_zrxpr_sa2_1-4"
+      ],
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.3333333333333335,
+       0.375,
+       1,
+       "sgs_ramp_zrxpr_sa2_3-8"
+      ]
+     ],
+     "High Temp Nickel Alloy|4|1/2-3/4": [
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_zrxpr_sa2_1-2"
+      ],
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.625,
+       1,
+       "sgs_ramp_zrxpr_sa2_5-8"
+      ],
+      [
+       1.5,
+       2.25,
+       3,
+       4,
+       2.0,
+       0.75,
+       1,
+       "sgs_ramp_zrxpr_sa2_3-4"
+      ]
+     ],
+     "Titanium Alloy|6|1/4-3/8": [
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_zrxpr_ti1_1-4"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.3333333333333335,
+       0.375,
+       1,
+       "sgs_ramp_zrxpr_ti1_3-8"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_zrxpr_ti2_1-4"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.3333333333333335,
+       0.375,
+       1,
+       "sgs_ramp_zrxpr_ti2_3-8"
+      ]
+     ],
+     "Titanium Alloy|6|1/2-3/4": [
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_zrxpr_ti1_1-2"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.625,
+       1,
+       "sgs_ramp_zrxpr_ti1_5-8"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.75,
+       1,
+       "sgs_ramp_zrxpr_ti1_3-4"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_zrxpr_ti2_1-2"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.625,
+       1,
+       "sgs_ramp_zrxpr_ti2_5-8"
+      ],
+      [
+       3.0,
+       4.5,
+       6,
+       4,
+       2.0,
+       0.75,
+       1,
+       "sgs_ramp_zrxpr_ti2_3-4"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/8-3/16": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.125,
+       1,
+       "sgs_ramp_z5_matrix_ph_0p125"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.125,
+       1,
+       "sgs_ramp_z5_footnote_ph_0p125"
+      ],
+      [
+       1.0,
+       1.5,
+       2.0,
+       4,
+       3.0,
+       0.125,
+       0,
+       "sgs_ramp_z1p_general_lo_0p125"
+      ],
+      [
+       3.0,
+       4.5,
+       6.0,
+       4,
+       3.0,
+       0.125,
+       1,
+       "sgs_ramp_z1p_general_hi_0p125"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/8-3/16": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.125,
+       1,
+       "sgs_ramp_z5_matrix_alloy_0p125"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.125,
+       1,
+       "sgs_ramp_z5_footnote_alloy_0p125"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/8-3/16": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.125,
+       1,
+       "sgs_ramp_z5_matrix_tool_0p125"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.125,
+       1,
+       "sgs_ramp_z5_footnote_tool_0p125"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/4-3/8": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z5_matrix_alloy_0p25"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       6,
+       3.0,
+       0.25,
+       1,
+       "sgs_ramp_tcarb_matrix_alloy_0p25"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       7,
+       2.5,
+       0.25,
+       1,
+       "sgs_ramp_hcarb_matrix_alloy_0p25"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z5_footnote_alloy_0p25"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/4-3/8": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z5_matrix_tool_0p25"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       6,
+       3.0,
+       0.25,
+       1,
+       "sgs_ramp_tcarb_matrix_tool_0p25"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       7,
+       2.5,
+       0.25,
+       1,
+       "sgs_ramp_hcarb_matrix_tool_0p25"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.25,
+       1,
+       "sgs_ramp_z5_footnote_tool_0p25"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/2-3/4": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z5_matrix_alloy_0p5"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       6,
+       2.5,
+       0.5,
+       1,
+       "sgs_ramp_tcarb_matrix_alloy_0p5"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       7,
+       2.5,
+       0.5,
+       1,
+       "sgs_ramp_hcarb_matrix_alloy_0p5"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z5_footnote_alloy_0p5"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/2-3/4": [
+      [
+       3.5,
+       5.25,
+       7.0,
+       5,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z5_matrix_tool_0p5"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       6,
+       2.5,
+       0.5,
+       1,
+       "sgs_ramp_tcarb_matrix_tool_0p5"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       7,
+       2.5,
+       0.5,
+       1,
+       "sgs_ramp_hcarb_matrix_tool_0p5"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       5,
+       2.0,
+       0.5,
+       1,
+       "sgs_ramp_z5_footnote_tool_0p5"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/64-3/64": [
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5,
+       0.016,
+       1,
+       "sgs_ramp_m4_micro_ph_0p016"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5161290322580645,
+       0.031,
+       1,
+       "sgs_ramp_m4_micro_ph_0p031"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/64-3/64": [
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5,
+       0.016,
+       1,
+       "sgs_ramp_m4_micro_alloy_0p016"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5161290322580645,
+       0.031,
+       1,
+       "sgs_ramp_m4_micro_alloy_0p031"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/64-3/64": [
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5,
+       0.016,
+       1,
+       "sgs_ramp_m4_micro_tool_0p016"
+      ],
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5161290322580645,
+       0.031,
+       1,
+       "sgs_ramp_m4_micro_tool_0p031"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/16-3/32": [
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5,
+       0.062,
+       1,
+       "sgs_ramp_m4_micro_ph_0p062"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|4|1/16-3/32": [
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5,
+       0.062,
+       1,
+       "sgs_ramp_m4_micro_alloy_0p062"
+      ]
+     ],
+     "Steel - Tool (H13)|4|1/16-3/32": [
+      [
+       0.5,
+       0.75,
+       1.0,
+       4,
+       1.5,
+       0.062,
+       1,
+       "sgs_ramp_m4_micro_tool_0p062"
+      ]
+     ]
+    }
+   },
+   "osg": {
+    "group": "OSG",
+    "cells": {
+     "Graphite|x|1/16-3/32": [
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       5.008,
+       0.0625,
+       1,
+       "osg_ramp_DG7440_graphite_1-16"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       10.0,
+       0.0625,
+       1,
+       "osg_ramp_DG7441_graphite_1-16"
+      ]
+     ],
+     "Graphite|x|1/8-3/16": [
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       5.0,
+       0.125,
+       1,
+       "osg_ramp_DG7440_graphite_1-8"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       10.0,
+       0.125,
+       1,
+       "osg_ramp_DG7441_graphite_1-8"
+      ]
+     ],
+     "Graphite|x|1/4-3/8": [
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       5.0,
+       0.25,
+       1,
+       "osg_ramp_DG7440_graphite_1-4"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       5.0,
+       0.375,
+       1,
+       "osg_ramp_DG7440_graphite_3-8"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       8.0,
+       0.25,
+       1,
+       "osg_ramp_DG7441_graphite_1-4"
+      ]
+     ],
+     "Graphite|x|1/2-3/4": [
+      [
+       1.5,
+       2.25,
+       3.0,
+       4,
+       4.5,
+       0.5,
+       1,
+       "osg_ramp_DG7440_graphite_1-2"
+      ]
+     ]
+    }
+   },
+   "sandvik": {
+    "group": "Sandvik",
+    "cells": {
+     "Stainless - PH Series (17-4)|x|1/8-3/16": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       2,
+       1.0,
+       0.11811,
+       1,
+       "sv_ramp_1K212_0300XA1730_0.1181"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       2,
+       2.0,
+       0.11811,
+       1,
+       "sv_ramp_1K232_0300XA1730_0.1181"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       1.0,
+       0.11811,
+       1,
+       "sv_ramp_1K313_0300XA1730_0.1181"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       1.500042333418,
+       0.11811,
+       1,
+       "sv_ramp_1K324_0300XA1730_0.1181"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       5,
+       1.500042333418,
+       0.11811,
+       1,
+       "sv_ramp_1K325_0300XA1730_0.1181"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       2.0,
+       0.11811,
+       1,
+       "sv_ramp_1K333_0300XA1730_0.1181"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       3.333333333333333,
+       0.11811,
+       1,
+       "sv_ramp_1K334_0300020XC1730_0.1181"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       5,
+       3.500042333418,
+       0.11811,
+       1,
+       "sv_ramp_1K335_0300020XC1730_0.1181"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       4,
+       4.5000423334179995,
+       0.11811,
+       1,
+       "sv_ramp_1K354_0300020XC1730_0.1181"
+      ],
+      [
+       2.0,
+       3.0,
+       4.0,
+       5,
+       4.9000084666836,
+       0.11811,
+       1,
+       "sv_ramp_1K365_0300020XC1730_0.1181"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/4-3/8": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       2,
+       1.0,
+       0.23622,
+       1,
+       "sv_ramp_1K212_0600XB1730_0.2362"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       2,
+       2.0,
+       0.23622,
+       1,
+       "sv_ramp_1K232_0600XB1730_0.2362"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       1.0,
+       0.23622,
+       1,
+       "sv_ramp_1K313_0600XB1730_0.2362"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       1.4999999999999998,
+       0.23622,
+       1,
+       "sv_ramp_1K324_0600XB1730_0.2362"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       5,
+       1.4999999999999998,
+       0.23622,
+       1,
+       "sv_ramp_1K325_0600XB1730_0.2362"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       2.0,
+       0.23622,
+       1,
+       "sv_ramp_1K333_0600XB1730_0.2362"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.1666666666666665,
+       0.23622,
+       1,
+       "sv_ramp_1K334_0600XB1730_0.2362"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       5,
+       2.9999999999999996,
+       0.23622,
+       1,
+       "sv_ramp_1K335_0600050XD1730_0.2362"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       7,
+       2.9999999999999996,
+       0.23622,
+       1,
+       "sv_ramp_1K337_0600050XD1730_0.2362"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       4,
+       4.5,
+       0.23622,
+       1,
+       "sv_ramp_1K354_0600050XD1730_0.2362"
+      ],
+      [
+       2.0,
+       3.0,
+       4.0,
+       7,
+       4.0,
+       0.23622,
+       1,
+       "sv_ramp_1K357_0600050XD1730_0.2362"
+      ],
+      [
+       2.0,
+       3.0,
+       4.0,
+       5,
+       4.5,
+       0.23622,
+       1,
+       "sv_ramp_1K365_0600XD1730_0.2362"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       7,
+       4.8000169333672,
+       0.23622,
+       1,
+       "sv_ramp_1K377_0600050XD1730_0.2362"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/2-3/4": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       2,
+       1.0,
+       0.47244,
+       1,
+       "sv_ramp_1K212_1200XB1730_0.4724"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       2,
+       2.0,
+       0.47244,
+       1,
+       "sv_ramp_1K232_1200XB1730_0.4724"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       1.0,
+       0.47244,
+       1,
+       "sv_ramp_1K313_1200XB1730_0.4724"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       1.4999999999999998,
+       0.47244,
+       1,
+       "sv_ramp_1K324_1200XB1730_0.4724"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       5,
+       1.4999999999999998,
+       0.47244,
+       1,
+       "sv_ramp_1K325_1200XB1730_0.4724"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       2.0,
+       0.47244,
+       1,
+       "sv_ramp_1K333_1200XB1730_0.4724"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.1666666666666665,
+       0.47244,
+       1,
+       "sv_ramp_1K334_1200XB1730_0.4724"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       5,
+       2.9999999999999996,
+       0.47244,
+       1,
+       "sv_ramp_1K335_1200050XD1730_0.4724"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       7,
+       2.9999999999999996,
+       0.47244,
+       1,
+       "sv_ramp_1K337_1200050XD1730_0.4724"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       4,
+       4.5,
+       0.47244,
+       1,
+       "sv_ramp_1K354_1200100XD1730_0.4724"
+      ],
+      [
+       2.0,
+       3.0,
+       4.0,
+       7,
+       4.0,
+       0.47244,
+       1,
+       "sv_ramp_1K357_1200100XD1730_0.4724"
+      ],
+      [
+       2.0,
+       3.0,
+       4.0,
+       5,
+       4.5,
+       0.47244,
+       1,
+       "sv_ramp_1K365_1200XD1730_0.4724"
+      ],
+      [
+       1.5,
+       2.25,
+       3.0,
+       7,
+       4.8000169333672,
+       0.47244,
+       1,
+       "sv_ramp_1K377_1200100XD1730_0.4724"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/8-3/16": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       1.500042333418,
+       0.11811,
+       1,
+       "sv_ramp_1K223_0300NAH10F_0.1181"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.6666666666666665,
+       0.11811,
+       1,
+       "sv_ramp_1K233_0300NAH10F_0.1181"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/4-3/8": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       1.4999999999999998,
+       0.23622,
+       1,
+       "sv_ramp_1K223_0600NBH10F_0.2362"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.1666666666666665,
+       0.23622,
+       1,
+       "sv_ramp_1K233_0600NBH10F_0.2362"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       2.9999999999999996,
+       0.23622,
+       1,
+       "sv_ramp_1K253_0600NBH10F_0.2362"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/2-3/4": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       1.4999999999999998,
+       0.47244,
+       1,
+       "sv_ramp_1K223_1200NBH10F_0.4724"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.1666666666666665,
+       0.47244,
+       1,
+       "sv_ramp_1K233_1200NBH10F_0.4724"
+      ],
+      [
+       2.5,
+       3.75,
+       5.0,
+       3,
+       2.9999999999999996,
+       0.47244,
+       1,
+       "sv_ramp_1K253_1200NBH10F_0.4724"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/16-3/32": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.5,
+       0.07874,
+       1,
+       "sv_ramp_PluraHD_2P3420200PAP2BM_0.0787"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/8-3/16": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.333333333333333,
+       0.11811,
+       1,
+       "sv_ramp_PluraHD_2P3420300PAP2BM_0.1181"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.50016,
+       0.125,
+       1,
+       "sv_ramp_PluraHD_2P3420318PAP2BM_0.1250"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.2499999999999996,
+       0.15748,
+       1,
+       "sv_ramp_PluraHD_2P3420400PAP2BM_0.1575"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.334685165421558,
+       0.1874,
+       1,
+       "sv_ramp_PluraHD_2P3420476PAP2BM_0.1874"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.2,
+       0.19685,
+       1,
+       "sv_ramp_PluraHD_2P3420500PAP2BM_0.1968"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/4-3/8": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.1666666666666665,
+       0.23622,
+       1,
+       "sv_ramp_PluraHD_2P3420600PBP2BM_0.2362"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.5,
+       0.25,
+       1,
+       "sv_ramp_PluraHD_2P3420635PBP2BM_0.2500"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.3998464098297707,
+       0.31252,
+       1,
+       "sv_ramp_PluraHD_2P3420794PBP2BM_0.3125"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/4-3/8": [
+      [
+       5.0,
+       7.5,
+       10.0,
+       4,
+       2.1666666666666665,
+       0.23622,
+       1,
+       "sv_ramp_PluraHD_2P3420600CMBM2CM_0.2362"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       4,
+       2.5,
+       0.25,
+       1,
+       "sv_ramp_PluraHD_2P3420635CMBM2CM_0.2500"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       4,
+       2.3998464098297707,
+       0.31252,
+       1,
+       "sv_ramp_PluraHD_2P3420794CMBM2CM_0.3125"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/2-3/4": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.1666666666666665,
+       0.47244,
+       1,
+       "sv_ramp_PluraHD_2P3421200PBP2BM_0.4724"
+      ],
+      [
+       10.0,
+       15.0,
+       20.0,
+       4,
+       2.25,
+       0.5,
+       1,
+       "sv_ramp_PluraHD_2P3421270PBP2BM_0.5000"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/2-3/4": [
+      [
+       5.0,
+       7.5,
+       10.0,
+       4,
+       2.1666666666666665,
+       0.47244,
+       1,
+       "sv_ramp_PluraHD_2P3421200CMBM2CM_0.4724"
+      ],
+      [
+       5.0,
+       7.5,
+       10.0,
+       4,
+       2.25,
+       0.5,
+       1,
+       "sv_ramp_PluraHD_2P3421270CMBM2CM_0.5000"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|4|1/16-3/32": [
+      [
+       7.09,
+       10.635,
+       14.18,
+       4,
+       4.499999999999999,
+       0.07874,
+       1,
+       "sv_ramp_toolguide_1K344_0200_174ph_200hb"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|6|1/16-3/32": [
+      [
+       2.426,
+       3.6390000000000002,
+       4.852,
+       4,
+       4.499999999999999,
+       0.07874,
+       1,
+       "sv_ramp_toolguide_1K344_0200_174ph_345hb"
+      ]
+     ]
+    }
+   },
+   "seco": {
+    "group": "Sandvik",
+    "cells": {
+     "Stainless - PH Series (17-4)|x|1/4-3/8": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.0,
+       0.25,
+       1,
+       "seco_ramp_JS554_LV2_linear_174_0.2500"
+      ],
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.0,
+       0.375,
+       1,
+       "seco_ramp_JS554_LV2_linear_174_0.3750"
+      ],
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       1.3333333333333333,
+       0.23622,
+       1,
+       "seco_ramp_JS554_LV1_linear_174_0.2362"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/2-3/4": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.0,
+       0.5,
+       1,
+       "seco_ramp_JS554_LV2_linear_174_0.5000"
+      ],
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       1.25,
+       0.47244,
+       1,
+       "seco_ramp_JS554_LV1_linear_174_0.4724"
+      ]
+     ],
+     "Stainless - PH Series (17-4)|x|1/8-3/16": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.333333333333333,
+       0.11811,
+       1,
+       "seco_ramp_JS554_LV2_linear_174_0.1181"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/8-3/16": [
+      [
+       2.5,
+       3.75,
+       5,
+       2,
+       2.0,
+       0.15748,
+       1,
+       "seco_ramp_JHP760_LV2_linear_316_0.1575"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/4-3/8": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.0,
+       0.23622,
+       1,
+       "seco_ramp_JHP760_LV2_linear_316_0.2362"
+      ]
+     ],
+     "Stainless - 300 Series (316)|x|1/2-3/4": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.0,
+       0.47244,
+       1,
+       "seco_ramp_JHP760_LV2_linear_316_0.4724"
+      ]
+     ],
+     "Titanium Alloy|x|1/4-3/8": [
+      [
+       7.5,
+       11.25,
+       15,
+       4,
+       2.9999999999999996,
+       0.23622,
+       1,
+       "seco_ramp_JHP770_LV2_linear_Ti6Al4V_0.2362"
+      ]
+     ],
+     "Titanium Alloy|x|1/2-3/4": [
+      [
+       7.5,
+       11.25,
+       15,
+       4,
+       2.9999999999999996,
+       0.47244,
+       1,
+       "seco_ramp_JHP770_LV2_linear_Ti6Al4V_0.4724"
+      ]
+     ],
+     "High Temp Nickel Alloy|x|1/4-3/8": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.9999999999999996,
+       0.23622,
+       1,
+       "seco_ramp_JHP780_LV2_linear_Inconel_0.2362"
+      ]
+     ],
+     "High Temp Nickel Alloy|x|1/2-3/4": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.9999999999999996,
+       0.47244,
+       1,
+       "seco_ramp_JHP780_LV2_linear_Inconel_0.4724"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/16-3/32": [
+      [
+       0.5,
+       0.75,
+       1,
+       3,
+       2.0,
+       0.07874,
+       1,
+       "seco_ramp_JHP170_LV2_linear_H13_0.0787"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/8-3/16": [
+      [
+       0.5,
+       0.75,
+       1,
+       3,
+       2.0,
+       0.11811,
+       1,
+       "seco_ramp_JHP170_LV2_linear_H13_0.1181"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/4-3/8": [
+      [
+       0.5,
+       0.75,
+       1,
+       4,
+       1.0,
+       0.23622,
+       1,
+       "seco_ramp_JHP170_LV2_linear_H13_0.2362"
+      ]
+     ],
+     "Steel - Tool (H13)|x|1/2-3/4": [
+      [
+       0.5,
+       0.75,
+       1,
+       4,
+       1.0,
+       0.47244,
+       1,
+       "seco_ramp_JHP170_LV2_linear_H13_0.4724"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/8-3/16": [
+      [
+       2.5,
+       3.75,
+       5,
+       3,
+       2.6666666666666665,
+       0.11811,
+       1,
+       "seco_ramp_JHP951_LV2_linear_4130_0.1181"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/4-3/8": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.333333333333333,
+       0.23622,
+       1,
+       "seco_ramp_JHP951_LV2_linear_4130_0.2362"
+      ]
+     ],
+     "Steel - Medium Carbon Alloy (4130)|x|1/2-3/4": [
+      [
+       2.5,
+       3.75,
+       5,
+       4,
+       2.75,
+       0.47244,
+       1,
+       "seco_ramp_JHP951_LV2_linear_4130_0.4724"
+      ]
+     ]
+    }
+   },
+   "yg1": {
+    "group": "YG-1",
+    "cells": {
+     "Aluminum - Wrought (6061)|x|1/8-3/16": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.0,
+       0.125,
+       1,
+       "yg1_ramp_jag95_wrought_0p125"
+      ]
+     ],
+     "Aluminum - Cast|x|1/8-3/16": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.0,
+       0.125,
+       1,
+       "yg1_ramp_jag95_cast_0p125"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/4-3/8": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.5,
+       0.25,
+       1,
+       "yg1_ramp_jag95_wrought_0p25"
+      ]
+     ],
+     "Aluminum - Cast|x|1/4-3/8": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.5,
+       0.25,
+       1,
+       "yg1_ramp_jag95_cast_0p25"
+      ]
+     ],
+     "Aluminum - Wrought (6061)|x|1/2-3/4": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.0,
+       0.5,
+       1,
+       "yg1_ramp_jag95_wrought_0p5"
+      ]
+     ],
+     "Aluminum - Cast|x|1/2-3/4": [
+      [
+       10.0,
+       15.0,
+       20.0,
+       3,
+       2.0,
+       0.5,
+       1,
+       "yg1_ramp_jag95_cast_0p5"
+      ]
+     ]
+    }
    }
   }
  }
