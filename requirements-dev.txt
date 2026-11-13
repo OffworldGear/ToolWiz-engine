@@ -1,0 +1,5 @@
+# Development and test tools (not needed to run ToolWiz):
+#   pip install -r requirements-dev.txt
+#   python -m pytest -q
+-r requirements.txt
+pytest>=8

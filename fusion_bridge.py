@@ -98,9 +98,13 @@ def update_live_state(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def get_live_state() -> Dict[str, Any]:
-    """Return a copy of the latest cached Fusion state."""
+    """Return a copy of the latest cached Fusion state. ``connected`` means a setup snapshot has been posted;
+    ``addin_polling`` means the add-in is talking to this server right now (it can be true with no snapshot yet)."""
     with _lock:
-        return dict(_live_state)
+        out = dict(_live_state)
+    out.update(addin_poll_status())
+    out["snapshot_present"] = bool(out.get("connected"))
+    return out
 
 
 def reset_bridge_state() -> None:
@@ -111,6 +115,7 @@ def reset_bridge_state() -> None:
         _pending_queue.clear()
         _results.clear()
         _result_events.clear()
+        _last_poll["t"] = None
         _live_state.update({
             "connected": False,
             "updated_at": None,
@@ -164,6 +169,8 @@ def _check_params(action: str, params: Dict[str, Any]) -> Optional[str]:
         return _check_apply_params(params)
     if action == "update_tool_fields":
         return check_tool_fields(params)
+    if action == "inspect_operation" and not str(params.get("operation") or "").strip():
+        return "'operation' is required for inspect_operation: the operation name or its 'Setup > Operation' path"
     if action == "get_viewport_image":
         for k in ("width", "height"):
             v = params.get(k)
@@ -193,8 +200,21 @@ def enqueue_command(action: str, params: Optional[Dict[str, Any]] = None) -> str
     return req_id
 
 
+POLL_FRESH_S = 5.0          # the add-in polls about once a second
+_last_poll: Dict[str, Optional[float]] = {"t": None}
+
+
+def addin_poll_status(now: Optional[float] = None) -> Dict[str, Any]:
+    """Whether the Fusion add-in is polling this server: ``addin_polling`` (a poll in the last 5 s) and its age."""
+    t = _last_poll["t"]
+    age = None if t is None else max(0.0, (now if now is not None else time.time()) - t)
+    return {"addin_polling": age is not None and age <= POLL_FRESH_S,
+            "addin_last_poll_age_s": None if age is None else round(age, 1)}
+
+
 def pop_next_command() -> Optional[Dict[str, Any]]:
     """Pop the oldest queued command for the Fusion add-in to execute on the main thread."""
+    _last_poll["t"] = time.time()
     with _lock:
         if not _pending_queue:
             return None

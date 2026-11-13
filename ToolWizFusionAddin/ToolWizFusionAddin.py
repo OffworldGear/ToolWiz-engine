@@ -1480,7 +1480,10 @@ def format_cutter_type(raw_type, desc=""):
     t_str = (raw_type or "").lower().replace('_', ' ').replace('-', ' ').strip()
     d_str = (desc or "").lower()
 
-    if "tap" in t_str or ("tap" in d_str and "taper" not in d_str):
+    # Fusion's own tool type decides. Words in the description ("1.45mm carbide drill for M1.6 form tap") are only a
+    # hint when the type says nothing.
+    typed = any(k in t_str for k in ("drill", "mill", "reamer", "bore", "boring", "probe", "counter", "holder"))
+    if "tap" in t_str or (not typed and "tap" in d_str and "taper" not in d_str):
         if "left" in t_str or "lh" in d_str:
             return "Tap (Left Hand)"
         if "form" in t_str or "form" in d_str or "roll" in d_str:
@@ -3367,6 +3370,10 @@ class ToolWizExecuteHandler(adsk.core.CommandEventHandler):
 TSLOT_OPERATIONS = [('Full slot', 'full_slot'), ('Side cut (one side)', 'side_cut'),
                     ('Both sides', 'both_sides'), ('Axial step (up/down cutting)', 'axial_step')]
 
+STRATEGY_PROBE = 'Probing (no cutting)'
+STRATEGY_CHAMFER = 'Chamfer / Deburr'
+STRATEGY_ENGRAVE = 'Engraving'
+STRATEGY_UNKNOWN = 'Unknown'
 STRATEGY_OPTIONS = [
     'Adaptive Roughing',
     'Roughing',
@@ -3402,7 +3409,17 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
     except Exception:
         pass
 
-    if is_tap or 'tap' in op_strat or 'tap' in cycle_expr:
+    # Operations that are not roughing / finishing cuts get their own labels (never the 'Adaptive Roughing' default).
+    raw_type = str(gp.get('type', '') or gp.get('raw_type', '') or '').lower()
+    if 'probe' in op_strat or 'inspect' in op_strat or kind == 'probe' or 'probe' in raw_type:
+        return STRATEGY_PROBE
+    if 'engrave' in op_strat:
+        return STRATEGY_ENGRAVE
+    if 'chamfer' in op_strat or 'deburr' in op_strat:
+        return STRATEGY_CHAMFER
+    # Fusion's own tool type decides: a drill whose description mentions a tap ("drill for M1.6 form tap") is a drill.
+    drill_like = kind in ('drill', 'spot_drill', 'center_drill', 'reamer', 'counterbore', 'countersink') or ('drill' in raw_type)
+    if is_tap or (not drill_like and ('tap' in op_strat or 'tap' in cycle_expr)):
         if 'form' in desc_low or 'roll' in desc_low:
             return 'Tapping (Form / Roll)'
         if 'spiral point' in desc_low or 'gun' in desc_low:
@@ -3431,9 +3448,17 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
         return 'Finishing'
     if 'pocket' in op_strat:
         return 'Roughing'
+    if 'rough' in op_strat or 'rough' in op_name:
+        return 'Roughing'
     if saved_strategy:
         return pick_saved(saved_strategy, STRATEGY_OPTIONS, 'Adaptive Roughing')
-    return 'Adaptive Roughing'
+    return STRATEGY_UNKNOWN      # an unrecognised Fusion strategy is not claimed to be roughing
+
+
+def dialog_strategy(label):
+    """A label the Strategy dropdown can show: the special snapshot labels (probe, chamfer, engrave, unknown) are
+    not dropdown items, so the dialog starts on 'Finishing' for them."""
+    return label if label in STRATEGY_OPTIONS else 'Finishing'
 def _sync_strategy_inputs(inputs, strategy, reset_engagement=True):
     """Show the finish-mode inputs only for finishing strategies and make roughing default to ToolWiz's own
     (maximum-removal) stepdown/stepover while finishing keeps the operation's engagement."""
@@ -3488,7 +3513,7 @@ class ToolWizInputChangedHandler(adsk.core.InputChangedEventHandler):
                                 elif not is_carb and "HSS" in itm.name:
                                     itm.isSelected = True
                     if strat_input:
-                        inferred = infer_strategy_for_op(target_op, g_payload)
+                        inferred = dialog_strategy(infer_strategy_for_op(target_op, g_payload))
                         for itm in strat_input.listItems:
                             if itm.name == inferred:
                                 itm.isSelected = True
@@ -3611,7 +3636,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 tool_coating_input.listItems.add(label, code.lower() == det_coat.lower())
             
             strat_input = inputs.addDropDownCommandInput('strategy', 'Strategy', adsk.core.DropDownStyles.TextListDropDownStyle)
-            default_strat = infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy'))
+            default_strat = dialog_strategy(infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy')))
             for s_name in STRATEGY_OPTIONS:
                 strat_input.listItems.add(s_name, default_strat == s_name)
             
@@ -3628,7 +3653,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             runout_input = inputs.addStringValueInput('runout', 'Runout / TIR (from the tool)' if ro_tool else 'Runout / TIR (blank = automatic)', ro_text)
             runout_input.tooltip = ('Total indicator runout at the tool tip. Leave blank for automatic: by holder type, else 0.0001 in '
                                     'for tools up to 1/8 in and 0.0002 in above. Or enter your measured value, e.g. 0.0002 in or 0.005 mm.')
-            init_strategy = infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy'))
+            init_strategy = dialog_strategy(infer_strategy_for_op(initial_op, initial_geo, saved_strategy=prefs.get('strategy')))
             rough0 = twlogic.is_roughing_strategy(init_strategy)
             eng_input = inputs.addBoolValueInput('useOpEngagement', "Keep the operation's own stepdown / stepover", True, '', not rough0)
             eng_input.tooltip = ("Ticked: compute rpm and feed for the engagement already set on the operation and keep it. "
@@ -7177,7 +7202,7 @@ def _find_cam_operation(query):
     if not ops:
         return None, None, None
     if not q_str:
-        return ops[0]
+        return None, None, None      # no silent "first operation": the caller must name one
     for s_name, path, op in ops:
         if getattr(op, 'name', '') == q_str or path == q_str:
             return s_name, path, op

@@ -285,8 +285,30 @@ def build_info():
         except Exception:
             return ""
     commit, date, branch = git("rev-parse", "--short", "HEAD"), git("log", "-1", "--format=%cd", "--date=format:%Y-%m-%d %H:%M"), git("rev-parse", "--abbrev-ref", "HEAD")
+    # tracked files changed since the commit: the running code is then not exactly that commit
+    dirty = bool([l for l in git("status", "--porcelain", "--untracked-files=no").splitlines() if l.strip()]) if commit else False
     label = f"{branch or 'unknown branch'} · {commit or 'unknown'} · {date}".strip(" ·") if (commit or branch) else "unknown"
-    return {"branch": branch or None, "commit": commit or None, "date": date or None, "label": label}
+    if dirty:
+        label += " · with local changes"
+    return {"branch": branch or None, "commit": commit or None, "date": date or None, "dirty": dirty, "label": label}
+
+
+def already_running(host="127.0.0.1", port=5000, timeout=1.0):
+    """The version label of a ToolWiz server already answering on host:port, "another program" when something else
+    holds the port, or None when the port is free."""
+    import socket
+    import urllib.request
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            pass
+    except OSError:
+        return None
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/api/version", timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8", "replace"))
+        return str(data.get("label") or "version unknown")
+    except Exception:
+        return "another program, or an older ToolWiz"
 
 
 BUILD_INFO = build_info()     # read once at start: restart the server after a pull to see the new one
@@ -2131,5 +2153,11 @@ if __name__ == "__main__":
     import mcp_server
     mcp_server.register_http(app)
     debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
+    # On Windows a second server can bind 127.0.0.1:5000 without an error; the two then split requests, and the Fusion
+    # add-in talks to one while the web page or an agent talks to the other. Refuse to start a second one.
+    running = already_running("127.0.0.1", 5000)
+    if running and os.environ.get("WERKZEUG_RUN_MAIN") != "true":      # the debug reloader's child is the same server
+        print(f"ToolWiz is already running on http://127.0.0.1:5000 ({running}). Stop it first, or use that one.", file=sys.stderr)
+        sys.exit(1)
     app.run(host="127.0.0.1", port=5000, debug=debug_mode)
 
