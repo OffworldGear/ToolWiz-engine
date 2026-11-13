@@ -49,7 +49,54 @@ calculator dialog would use AlTiN. `ti coated` is Fusion's generic "some titaniu
 TiN / TiCN / TiAlN / AlTiN apart. Suggest: default to unknown (None / "not set"), map `ti coated` to "coated, type
 unknown", and keep AlTiN only when the text says so.
 
+## Fusion dialog check by the owner (Setup Advisor on the whole document)
+
+- **Fix 3: works.** Each op with two plans shows "recommended engagement and cutting data" **ticked** and "cutting data for the
+  current stepdown/stepover" **unticked** (Adaptive48 (3)/(4), Flat33 (4)/(5)/(6), Flat34, Adaptive49 (2), the Scallop4 ops, and
+  others). Ops with one plan (contours, Trace) show one ticked line. Mutual exclusion (ticking the other unticks the first)
+  wasn't exercised.
+- **Fix 2: no more x -> x lines.** But the "current" side often shows the raw Fusion **expression** instead of a value, so the
+  owner can't see what is changing. From Op1EndCap7075 > 2D Contour7 (EndCapOutline) (7):
+  ```
+  maximumStepdown: tool_stepdown -> 0.19947 in
+  stockToLeave: 0.1mm -> 0.00250 in
+  tool_feedCutting: 50.1921790628448in/min -> 47.74 in/min
+  tool_feedPlunge: (tool_type=='drill' || tool_type=='reamer' || tool_isDepositing)?(1000mmpm):(tool_feedCutting/3) -> 13.17 in/min
+  tool_feedRamp: 50.1958762886598in/min -> 40.79 in/min
+  tool_rampAngle: 2. -> 18.6 deg
+  tool_spindleSpeed: 11999.11612839420377 -> 16000 rpm
+  ```
+  **Suggested fix:** show the evaluated current value in the target's units, rounded like the new value (e.g. `0.0039 in ->
+  0.0025 in`, `50.19 in/min -> 47.74 in/min`, `2 deg -> 18.6 deg`). Optionally, add "(was the expression tool_stepdown)" when
+  the current value is a formula, since applying replaces a formula link with a literal.
+- **Worth a look (behaviour, not display):** on this finishing contour the plan changes the owner's `stockToLeave` (0.1 mm ->
+  0.0025 in) and raises the ramp angle from 2 deg to 18.6 deg. Stock to leave is usually a deliberate choice, e.g. for a later
+  pass. Should the advisor propose it at all for a finishing op? And is 18.6 deg a sane ramp angle for a 1/8" tool on a
+  contour entry?
+
+## Coating and substrate: what Fusion offers (from the owner)
+
+Fusion's tool editor has one coating-related choice, the base-material dropdown, and its only coated option is
+**"ti coated"**. It says neither the substrate (carbide or HSS) nor the coating. Everything in the owner's library is carbide.
+The owner does own some HSS TiN tools, rarely used. So the description is the only place to record coating and substrate,
+and the owner can start adding those words.
+
+What this means for the code:
+- `twlogic.tool_is_carbide()` already treats a tool as carbide unless the description or material text says HSS / cobalt.
+  That matches this library. HSS tools need "HSS" in the description.
+- C (above) still stands: "ti coated" means coated but the type is unknown. Read the coating from the description only.
+- **New bug, coating keyword matching:** in the add-in's coating detection (`ToolWizFusionAddin.py` ~1669-1683), the
+  checks are plain substrings over description + BMC + grade, e.g. `elif "tin" in text_all: "TiN"`. "cutting", "fluting",
+  "plunging tool", "tinted" and "Martin" would all read as TiN. "ti coated" doesn't match today. Use word-boundary regexes
+  (`\btin\b`, `\bzrn\b`, `\baltin\b`, …) and add a test for a description containing "cutting".
+- Suggest documenting it for the owner (ADDIN_USER_GUIDE): put the coating (AlTiN, TiAlN, TiN, ZrN, DLC, uncoated) and
+  "HSS" for HSS tools in the tool description. The advisor's coating caution could say exactly that.
+
+## Material
+
+7075 is an alloy under the "Aluminum - Wrought (6061)" family (the owner confirmed). My stand-in run above used the
+family without an alloy.
+
 ### Still not done
 
 - (d) a real Claude Code client on `/api/mcp`: needs a new session on this PC.
-- Fixes 2 and 3 in the Fusion dialog: waiting on the owner.
