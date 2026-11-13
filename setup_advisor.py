@@ -142,10 +142,14 @@ _COATINGS = (("altin", "AlTiN"), ("tialn", "TiAlN"), ("alcrn", "AlCrN"), ("zrn",
 def _coating_of(tool: Dict[str, Any], desc: str) -> Optional[str]:
     """Coating from an explicit ``coating`` field or the description; None when unknown ("ti coated" is ambiguous)."""
     c = str(tool.get("coating") or "").strip()
+    if c.lower() in ("none", "no coating", "uncoated", "bright"):
+        return "Uncoated"               # an explicit "no coating" is a known coating
     text = f"{c} {desc}".lower()
     for key, name in _COATINGS:
         if key in text:
             return name
+    if re.search(r"\b(uncoated|bright)\b", f"{tool.get('BMC') or ''} {tool.get('GRADE') or ''}".lower()):
+        return "Uncoated"
     return None
 
 
@@ -385,7 +389,11 @@ def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
             tool["number"] = int(raw["tool_number"])
         if tool["holder"] is None and isinstance(raw.get("holder"), str):
             tool["holder"] = raw["holder"]
+        if tool["coating"] is None and str(raw.get("coating") or "").strip().lower() in ("uncoated", "bright", "none"):
+            tool["coating"] = "Uncoated"      # the add-in read "Uncoated" / "bright" from the tool: a known coating
         prm = _op_params(raw)
+        rich = isinstance(raw.get("params"), dict)       # the add-in's snapshot lists only the parameters the op really has
+        extra = {n: parse_quantity((raw.get("params") or {}).get(n), "feed") for n in ("tool_feedPlunge", "tool_feedRamp")} if rich else {}
         geom = _geometry_of(raw)
         strategy = str(raw.get("strategy") or "")
         name = str(raw.get("name") or f"Operation {idx + 1}")
@@ -397,6 +405,7 @@ def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
         ops.append({
             "op_id": op_id, "name": name, "setup": str(raw.get("setup") or ""), "strategy": strategy, "kind": kind,
             "tool": tool, "geometry": geom, "index": idx,
+            "rich": rich, "current_extra": {k: v for k, v in extra.items() if v is not None},
             "current": {"rpm": prm["rpm"], "feed_ipm": prm["feed"], "stepdown_in": prm["stepdown"],
                         "stepover_in": prm["stepover"], "stock_radial_in": prm["stock_radial"],
                         "stock_axial_in": prm["stock_axial"]},
@@ -883,6 +892,47 @@ def _apply_plans(op: Dict[str, Any], rec: Optional[Dict[str, Any]], usr: Optiona
             plans["keep_engagement"] = {"tool_spindleSpeed": _expr("rpm", usr["rpm"]),
                                         "tool_feedCutting": _expr("feed", usr["feed_ipm"])}
     return plans or None
+
+
+_PLAN_NEEDS = {"maximumStepdown": ("stepdown_in", "stepdown"), "stepover": ("stepover_in", "stepover"),
+               "optimalLoad": ("stepover_in", "stepover")}
+
+
+def _finalize_plans(op: Dict[str, Any], plans: Optional[Dict[str, Dict[str, str]]], notes: List[str]) -> Optional[Dict[str, Any]]:
+    """Keep only real changes in the apply plans: drop parameters the operation does not have (the add-in snapshot lists
+    a stepdown / stepover only when the operation has it enabled) and parameters whose value already equals the
+    operation's current one. A plan with nothing left is removed; ``notes`` says what was left out and why."""
+    if not plans:
+        return plans
+    cur = op["current"]
+    have = {"tool_spindleSpeed": cur.get("rpm"), "tool_feedCutting": cur.get("feed_ipm"), "maximumStepdown": cur.get("stepdown_in"),
+            "stepover": cur.get("stepover_in"), "optimalLoad": cur.get("stepover_in"), "stockToLeave": cur.get("stock_radial_in"),
+            "verticalStockToLeave": cur.get("stock_axial_in"), **(op.get("current_extra") or {})}
+    absent: Dict[str, str] = {}
+    n_same = 0
+    out: Dict[str, Dict[str, str]] = {}
+    for key, plan in plans.items():
+        kept: Dict[str, str] = {}
+        for name, expr in plan.items():
+            if op.get("rich") and name in _PLAN_NEEDS and have.get(name) is None:
+                absent[name] = ("this operation has no stepdown (multiple depths are off)" if name == "maximumStepdown"
+                                else "this operation has no stepover (it is not enabled, e.g. multiple passes are off)")
+                continue
+            kind = PARAM_KINDS.get(name)
+            cv = have.get(name)
+            if kind and cv is not None and _expr_equal(_expr(kind, cv), expr, kind):
+                n_same += 1
+                continue
+            kept[name] = expr
+        if kept:
+            out[key] = kept
+    for name, why in absent.items():
+        notes.append(f"Not proposed: {name}, because {why}.")
+    if n_same and not out:
+        notes.append("ToolWiz's values equal the operation's current values: nothing to change.")
+    elif n_same:
+        notes.append(f"{n_same} parameter(s) already match ToolWiz's values and are not listed.")
+    return out or None
 
 
 def _expr_equal(given: str, want: str, kind: str) -> bool:
@@ -1408,7 +1458,17 @@ def _short(op_tool: Dict[str, Any]) -> Dict[str, Any]:
                                          "shank_diameter_in", "stickout_in", "coating", "holder", "kerf_in")}
 
 
-def _oversight_findings(op, tool, res, ctx) -> List[Dict[str, Any]]:
+def _coating_flag_seen(seen: set, tool: Dict[str, Any]) -> bool:
+    """True when the unknown-coating finding was already raised for this tool in this run (it is one finding per tool,
+    not one per operation); records the tool otherwise."""
+    key = (tool.get("number"), tool.get("description"), tool.get("diameter_in"))
+    if key in seen:
+        return True
+    seen.add(key)
+    return False
+
+
+def _oversight_findings(op, tool, res, ctx, woc_unknown: bool = False, skip_coating: bool = False) -> List[Dict[str, Any]]:
     """Per-operation findings of ``oversight_engine`` (tool/coating fit, shaft rub, deep slots...) as advisor findings."""
     try:
         import oversight_engine
@@ -1416,7 +1476,10 @@ def _oversight_findings(op, tool, res, ctx) -> List[Dict[str, Any]]:
                "diameter": tool["diameter_in"], "flutes": tool["flutes"], "fluteLength": tool["flute_length_in"],
                "shankDiameter": tool["shank_diameter_in"], "runout": ctx["runout"], "tool": "Carbide Endmill",
                "coating_ambiguous": not tool.get("coating")}
-        rep = oversight_engine.evaluate_holistic_oversight(req, dataclasses.asdict(res), feature_geometry=op["geometry"].get("feature_geometry"))
+        rd = dataclasses.asdict(res)
+        if woc_unknown:
+            rd["woc"] = 0.0          # a contour with no stepover: its radial engagement is unknown, not the tool diameter
+        rep = oversight_engine.evaluate_holistic_oversight(req, rd, feature_geometry=op["geometry"].get("feature_geometry"))
     except Exception:
         return []
     skip = ("Continuous Shaft Taper Modeled", "Low Flute Count", "Large v1 vs. v2")
@@ -1425,6 +1488,8 @@ def _oversight_findings(op, tool, res, ctx) -> List[Dict[str, Any]]:
     out = []
     for f in rep.findings:
         if any(f.title.startswith(s) for s in skip):
+            continue
+        if skip_coating and f.title.startswith("Tool Coating Unknown"):
             continue
         out.append(_f(f.severity, f"oversight_{f.category}", f.title, f.detail, f.recommendation))
     return out
@@ -1679,6 +1744,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
     strat_notes: List[str] = []
     setup_ops: List[Dict[str, Any]] = []
     cache: Dict[Any, Any] = {}
+    coating_seen: set = set()
     alt_state: Dict[str, Any] = {"budget": {"runs": ALT_RUNS_PER_SETUP}, "memo": {}, "library": None}
     ops = norm["ops"]
 
@@ -1750,7 +1816,12 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     entry["notes"].append("ToolWiz fell back to the v1 model for this tool: " + str(rec_res.model_note)[:200])
                 depth = cur["stepdown_in"]
                 width = tool["diameter_in"] if kind == "slot" else cur["stepover_in"]
-                if (depth or (width and kind != "slot")) and kind not in _NON_CUTTING:
+                woc_unknown = kind == "contour" and not width and not multi_stepover_active(op)
+                if woc_unknown:
+                    entry["notes"].append("No stepover on this operation (multiple passes are off): the radial engagement is the "
+                                          "stock the contour removes, which the snapshot does not give, so no chip load or "
+                                          "material removal rate is worked out at a width.")
+                if (depth or (width and kind != "slot")) and kind not in _NON_CUTTING and not woc_unknown:
                     key_u = key_r[:-2] + (depth, width)
                     usr_res = cache.get(key_u) or _run_endmill(physics, machine, ctx, tool, opn, depth, width)
                     cache[key_u] = usr_res
@@ -1767,7 +1838,8 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     fnd = [f for f in fnd if f["code"] not in ("chip_load_high", "chip_load_off", "feed_off", "stepover_high", "time_saving")]
                     fnd = _multi_findings(op, tool, ms_block) + fnd
                 entry["findings"].extend(fnd)
-                entry["findings"].extend(_oversight_findings(op, tool, usr_res or rec_res, ctx))
+                entry["findings"].extend(_oversight_findings(op, tool, usr_res or rec_res, ctx, woc_unknown=woc_unknown,
+                                                             skip_coating=_coating_flag_seen(coating_seen, tool0)))
         except Exception as e:      # ToolWiz could not be run for this op: report, keep going
             entry["findings"].append(_f("INFO", "toolwiz_error", "ToolWiz could not be run for this operation",
                                         f"{type(e).__name__}: {e}"[:300], "Check the tool geometry and material in the snapshot."))
@@ -1777,6 +1849,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
             plan = {"tool_spindleSpeed": _expr("rpm", sn["rpm"]), "tool_feedCutting": _expr("feed", sn["feed_ipm"]),
                     "maximumStepdown": _expr("len", sn["stepdown_in"])}
             entry["apply_plan"] = {"recommended": plan, "keep_engagement": {k: plan[k] for k in ("tool_spindleSpeed", "tool_feedCutting")}}
+        entry["apply_plan"] = _finalize_plans(op, entry["apply_plan"], entry["notes"])
 
         # strategy suggestion
         if strategies and tool0.get("diameter_in") and kind in ("slot", "contour", "adaptive", "tslot", "pocket", "rough") \

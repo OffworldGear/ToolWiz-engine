@@ -3427,7 +3427,13 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
         if 'spiral flute' in desc_low or 'spiral' in desc_low:
             return 'Tapping (Spiral Flute - Blind Hole)'
         return 'Tapping'
-    if kind == 'reamer' or 'ream' in desc_low or 'ream' in op_strat or 'ream' in op_name or 'ream' in cycle_expr:
+    # Fusion's tool kind decides: a drill-kind tool is only "Reaming" when the cycle is exactly a reaming cycle.
+    cycle_is_reaming = cycle_expr.strip().strip("'\"") == 'reaming'
+    if drill_like and kind != 'reamer':
+        is_ream = cycle_is_reaming
+    else:
+        is_ream = kind == 'reamer' or 'ream' in desc_low or 'ream' in op_strat or 'ream' in op_name or cycle_is_reaming
+    if is_ream:
         return 'Reaming'
     if is_hole or 'drill' in op_strat:
         if any(k in cycle_expr for k in ('deep', 'chip-breaking', 'peck')) or 'peck' in op_name or 'deep' in op_name:
@@ -5773,6 +5779,7 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     geo, summary, presets = get_op_tool_info(op)
     strat_raw = str(_safe(lambda: op.strategy) or "")
     strat_label = infer_strategy_for_op(op, geo)
+    cycle_type = _safe(lambda: op.parameters.itemByName('cycleType').expression)
     op_name = _safe(lambda: op.name) or path
     rpm, feed, doc, woc = get_op_cut_params(op, doc_unit, strategy=strat_label)
     params_obj = getattr(op, 'parameters', None)
@@ -5800,6 +5807,7 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     entry = {
         "op_id": path, "path": path, "name": op_name, "setup": path.split(" > ", 1)[0], "strategy": strat_raw,
         "strategy_label": strat_label,
+        "cycle_type": str(cycle_type) if cycle_type else None,
         "is_roughing": twlogic.is_roughing_strategy(strat_label, str(op_name)),
         "is_finishing": twlogic.is_finishing_strategy(strat_label, str(op_name)),
         "suppressed": bool(_safe(lambda: op.isSuppressed, False)),
@@ -5921,7 +5929,7 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
         return fail(f"Operation {op_id!r} not found.")
     accepted, rejected = twlogic.validate_parameter_changes(params if isinstance(params, dict) else {})
     skipped = {r["param"]: r["reason"] for r in rejected}
-    plan = {}
+    plan, unchanged = {}, {}
     for name, expr in accepted.items():
         p = _param(getattr(op, 'parameters', None), name)
         if p is None:
@@ -5929,10 +5937,20 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
         elif not getattr(p, 'isEnabled', True) and name not in ('stockToLeave', 'verticalStockToLeave'):
             skipped[name] = "parameter is disabled on this operation"
         else:
-            plan[name] = (p, _safe(lambda: p.expression), expr)
+            cur_expr = _safe(lambda: p.expression)
+            if twlogic.expr_equal(cur_expr, expr):
+                unchanged[name] = cur_expr          # already the recommended value: not a change, not a write
+            else:
+                plan[name] = (p, cur_expr, expr)
+    if not plan and unchanged and not skipped:
+        audit({'event': 'apply_no_change', 'op_path': path, 'params': sorted(unchanged)})
+        return {"ok": True, "success": True, "operation": path, "reason": reason, "applied": {}, "skipped": {},
+                "unchanged": unchanged, "error": None,
+                "message": "No change: every value already matches the operation, so nothing was written."}
     if not plan:
         r = fail("nothing to apply", skipped)
         r["operation"] = path
+        r["unchanged"] = unchanged
         return r
     key = (op_id, frozenset((n, plan[n][2]) for n in plan))
     pre = any(k[0] == op_id and k[1] >= frozenset(key[1]) for k in _preapproved)
@@ -5978,7 +5996,7 @@ def apply_operation_parameters(op_id, params, reason="", confirm=True, advisor_g
             _log("Could not write the revert file", ex)
     ok = bool(applied) and not error
     return {"ok": ok, "success": ok, "operation": path, "reason": reason, "applied": applied, "skipped": skipped,
-            "previous": previous, "audit_note": note, "error": error or (None if applied else "nothing was applied")}
+            "unchanged": unchanged, "previous": previous, "audit_note": note, "error": error or (None if applied else "nothing was applied")}
 
 
 # ---- update_tool_fields (bridge action, Advisor Chat): coating / BMC / GRADE / description keywords of a document tool ----
@@ -6430,7 +6448,16 @@ def _advisor_done(res, err):
     if not parsed["ok"]:
         ui.messageBox(f"The setup advisor returned an error:\n{(res or {}).get('error') or res}", "ToolWiz Setup Advisor")
         return
-    _advisor_state.update(parsed=parsed, recs=twlogic.extract_recommendations(parsed))
+    recs = twlogic.extract_recommendations(parsed)
+    try:    # leave out values the operations already have (x -> x): only real changes are listed, confirmed and audited
+        every = {}
+        for r in recs:
+            for op_id, params in r["changes"].items():
+                every.setdefault(op_id, {}).update(params)
+        recs, _same = twlogic.prune_unchanged_recs(recs, current_param_expressions(every))
+    except Exception as ex:
+        _log("Advisor: could not compare recommendations with current values", ex)
+    _advisor_state.update(parsed=parsed, recs=recs, prev_sel=None)
     try:
         cd = ui.commandDefinitions.itemById(advisorResultCommandId)
         if cd is None:
@@ -6449,6 +6476,22 @@ def _selected_rec_ids(inputs):
     return {r["id"] for r in _advisor_state["recs"] if _rec_label(r) in names}
 
 
+def _enforce_exclusive_selection(inputs):
+    """Only one of an operation's two apply plans may be ticked (both set the feed): the one ticked last stays."""
+    dd = inputs.itemById('advRecs')
+    if dd is None:
+        return
+    recs = _advisor_state["recs"]
+    now = _selected_rec_ids(inputs)
+    keep = twlogic.enforce_exclusive_plans(recs, now, _advisor_state.get("prev_sel") or ())
+    if keep != now:
+        drop = {_rec_label(r) for r in recs if r["id"] in now - keep}
+        for item in dd.listItems:
+            if item.name in drop:
+                item.isSelected = False
+    _advisor_state["prev_sel"] = set(keep)
+
+
 def _rec_label(r):
     return f"[{r['severity']}] {r['title']}"[:110]
 
@@ -6458,7 +6501,11 @@ def _changes_preview(inputs):
     changes, conflicts = twlogic.merge_selected_changes(_advisor_state["recs"], ids)
     if not changes:
         return changes, "Nothing selected."
-    lines = twlogic.summarize_changes(changes, current_param_expressions(changes))
+    cur = current_param_expressions(changes)
+    changes, same = twlogic.drop_unchanged(changes, cur)
+    if not changes:
+        return changes, f"No change: the {same} selected value(s) already match the operations."
+    lines = twlogic.summarize_changes(changes, cur)
     if conflicts:
         lines += ["", "Conflicting recommendations (the later one wins):"] + conflicts
     return changes, "\n".join(lines)
@@ -6489,9 +6536,11 @@ class ToolWizSetupAdvisorResultCreatedHandler(adsk.core.CommandCreatedEventHandl
             recs = _advisor_state["recs"]
             if recs:
                 dd = inputs.addDropDownCommandInput('advRecs', 'Recommendations to apply', adsk.core.DropDownStyles.CheckBoxDropDownStyle)
+                pre = twlogic.default_selected_rec_ids(recs)
                 for r in recs:
-                    dd.listItems.add(_rec_label(r), False)
-                pv = inputs.addTextBoxCommandInput('advChanges', 'Parameters that will change', 'Nothing selected.', 6, True)
+                    dd.listItems.add(_rec_label(r), r["id"] in pre)
+                _advisor_state["prev_sel"] = set(pre)
+                pv = inputs.addTextBoxCommandInput('advChanges', 'Parameters that will change', _changes_preview(inputs)[1], 6, True)
                 pv.isFullWidth = True
             else:
                 inputs.addTextBoxCommandInput('advNone', '', 'No recommendation carries parameter changes that can be '
@@ -6508,6 +6557,7 @@ class ToolWizSetupAdvisorResultChangedHandler(adsk.core.InputChangedEventHandler
         try:
             ea = adsk.core.InputChangedEventArgs.cast(args)
             if ea.input.id == 'advRecs':
+                _enforce_exclusive_selection(ea.inputs)
                 _, text = _changes_preview(ea.inputs)
                 pv = ea.inputs.itemById('advChanges')
                 if pv:
@@ -6526,6 +6576,8 @@ class ToolWizSetupAdvisorResultExecuteHandler(adsk.core.CommandEventHandler):
             ids = _selected_rec_ids(inputs)
             changes, text = _changes_preview(inputs)
             if not changes:
+                if text.startswith("No change"):
+                    ui.messageBox(text + "\nNothing was written.", "ToolWiz Setup Advisor")
                 return
             n_params = sum(len(p) for p in changes.values())
             ok = ui.messageBox(

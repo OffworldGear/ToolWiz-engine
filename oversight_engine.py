@@ -225,15 +225,17 @@ def evaluate_holistic_oversight(
 
     raw_coat = str(cut_request.get("coating") or cut_result.get("coating") or "").strip()
     ft_bmc = str((cut_request.get("fusion_tool") or {}).get("BMC") or "").strip().lower()
-    coat_ambiguous = bool(cut_request.get("coating_ambiguous")) or (
+    # An explicit "Uncoated" / "bright" / "none" in the request is a known coating; a coating the request left empty is not.
+    explicit_bare = str(cut_request.get("coating") or "").strip().lower() in ("uncoated", "bright", "none", "no coating")
+    coat_ambiguous = not explicit_bare and (bool(cut_request.get("coating_ambiguous")) or (
         raw_coat.lower() in ("", "unknown", "unspecified", "ambiguous", "ti coated", "generic")
-    ) or (ft_bmc in ("ti coated", "unspecified", "unknown") and not cut_request.get("coating"))
+    ) or (ft_bmc in ("ti coated", "unspecified", "unknown") and not cut_request.get("coating")))
     if coat_ambiguous:
         findings.append(OversightFinding(
             category="tool_material",
             severity="CAUTION",
             title="Tool Coating Unknown or Ambiguous — Flagged (Not Guessed)",
-            detail=(f"Tool coating is unspecified or generic ({raw_coat or ft_bmc or 'none'}). "
+            detail=(f"Tool coating is unspecified or generic ({str(cut_request.get('coating') or '').strip() or ft_bmc or 'not set'}). "
                     "ToolWiz will not guess an ambiguous coating; verify the physical cutter's coating."),
             recommendation="Set the exact coating (e.g., Uncoated, ZrN, AlTiN, TiAlN) in the Fusion tool library or UI."
         ))

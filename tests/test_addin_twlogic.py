@@ -178,7 +178,9 @@ class TestAdvisor(unittest.TestCase):
         self.assertEqual(recs[0]["changes"], {"S > A": {"tool_spindleSpeed": "11522 rpm", "maximumStepdown": "0.02313 in"}})
         self.assertIn("current stepdown/stepover", recs[1]["title"])
         merged, conflicts = t.merge_selected_changes(recs, {recs[0]["id"], recs[1]["id"]})
-        self.assertTrue(conflicts)     # the two choices disagree about the speed: reported, later wins
+        # was: both plans merged with a reported conflict. They are now mutually exclusive: "recommended" alone is kept.
+        self.assertEqual(conflicts, [])
+        self.assertEqual(merged, {"S > A": recs[0]["changes"]["S > A"]})
 
     def test_apply_requests_are_per_op_with_wait(self):
         reqs = t.build_apply_requests({"S > A": {"maximumStepdown": "0.1 in"}, "S > B": {"stockToLeave": "0.003 in"}}, "why", 30)

@@ -663,18 +663,92 @@ def extract_recommendations(parsed):
                            ("keep_engagement", "ToolWiz cutting data for the current stepdown/stepover")):
             ch = _dict_changes(plan.get(key))
             if ch:
-                recs.append({"id": f"r{len(recs) + 1}", "kind": "apply_plan", "op_id": o.get("op_id"),
+                recs.append({"id": f"r{len(recs) + 1}", "kind": "apply_plan", "plan": key, "op_id": o.get("op_id"),
                              "title": f"{o.get('name') or o.get('op_id')}: {label}", "severity": "INFO",
                              "detail": "", "changes": {o.get("op_id"): ch}})
     return recs
+
+
+_EQ_QTY = re.compile(r"^\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*([A-Za-z\"/.]*)\s*$")
+_EQ_UNITS = {"": ("", 1.0), "in": ("len", 1.0), "inch": ("len", 1.0), '"': ("len", 1.0), "mm": ("len", 1 / 25.4),
+             "in/min": ("feed", 1.0), "ipm": ("feed", 1.0), "mm/min": ("feed", 1 / 25.4),
+             "rpm": ("rpm", 1.0), "deg": ("angle", 1.0)}
+
+
+def expr_equal(current, new):
+    """True when two Fusion expressions are the same value (units converted; within 0.5 % or half the last digit of
+    `current`). False when either cannot be read (named expressions, formulas, "?"), so those are never dropped."""
+    ma, mb = _EQ_QTY.match(str(current or "")), _EQ_QTY.match(str(new or ""))
+    if not ma or not mb:
+        return False
+    ua, ub = _EQ_UNITS.get(ma.group(2).lower()), _EQ_UNITS.get(mb.group(2).lower())
+    if ua is None or ub is None or (ua[0] != ub[0] and "" not in (ua[0], ub[0])):
+        return False
+    dec = max(len(g.split(".")[1]) if "." in g else 0 for g in (ma.group(1), mb.group(1)))   # the finer of the two displays
+    a, b = float(ma.group(1)) * ua[1], float(mb.group(1)) * ub[1]
+    return abs(a - b) <= max(0.005 * abs(b), 0.5 * 10.0 ** (-dec) * ua[1])
+
+
+def drop_unchanged(changes, current):
+    """(real_changes, n_unchanged): `changes` {op_id: {param: expr}} without the parameters whose new value equals the
+    operation's current expression (`current` {op_id: {param: expr}}); operations left empty are removed."""
+    out, same = {}, 0
+    for op_id, params in (changes or {}).items():
+        cur = (current or {}).get(op_id) or {}
+        keep = {}
+        for k, v in params.items():
+            if expr_equal(cur.get(k), v):
+                same += 1
+            else:
+                keep[k] = v
+        if keep:
+            out[op_id] = keep
+    return out, same
+
+
+def prune_unchanged_recs(recs, current):
+    """The recommendations that still change something: each rec's `changes` loses its no-op parameters; a rec with nothing
+    left is dropped. Returns (recs, n_unchanged_parameters)."""
+    out, same = [], 0
+    for r in recs:
+        ch, n = drop_unchanged(r["changes"], current)
+        same += n
+        if ch:
+            out.append(dict(r, changes=ch))
+    return out, same
+
+
+def default_selected_rec_ids(recs):
+    """Ids selected when the advisor dialog opens: the "recommended" apply plan of each operation (its no-op parameters are
+    already pruned, so a plan that remains differs from the current values). Nothing else is pre-checked."""
+    return {r["id"] for r in recs if r.get("plan") == "recommended"}
+
+
+def enforce_exclusive_plans(recs, selected_ids, previous_ids=()):
+    """The "recommended" and "keep_engagement" apply plans of one operation set the same feed: only one may be selected.
+    When both are, the one that was not selected before (`previous_ids`) wins; with no history "recommended" wins."""
+    sel = set(selected_ids)
+    by_op = {}
+    for r in recs:
+        if r.get("kind") == "apply_plan" and r["id"] in sel:
+            by_op.setdefault(r.get("op_id"), {})[r.get("plan")] = r["id"]
+    for plans in by_op.values():
+        if len(plans) > 1:
+            new = [i for i in plans.values() if i not in set(previous_ids)]
+            keep = new[0] if len(new) == 1 else plans.get("recommended")
+            for i in plans.values():
+                if i != keep:
+                    sel.discard(i)
+    return sel
 
 
 def merge_selected_changes(recs, selected_ids):
     """Combine the changes of the chosen recommendations: {op_id: {param: expression}} (later wins) and the
     list of conflicts (same op + parameter with different expressions)."""
     merged, conflicts = {}, []
+    chosen = enforce_exclusive_plans(recs, selected_ids)
     for r in recs:
-        if r["id"] not in selected_ids:
+        if r["id"] not in chosen:
             continue
         for op_id, params in r["changes"].items():
             cur = merged.setdefault(op_id, {})
