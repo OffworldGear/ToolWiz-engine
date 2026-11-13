@@ -469,8 +469,9 @@ def _apply_ramp(res, rp, ratio):
         if rp.get("conflicts"):
             res.tips.append({"title": "v2 ramp", "message": "; ".join(rp["conflicts"]), "type": "warning",
                              "fusion": True})
-        if rp.get("plunge_note"):
-            res.tips.append({"title": "v2 plunge feed", "message": rp["plunge_note"] + ".", "type": "info",
+        # the feed-height note is for micro tools (slow plunge feeds); a high-feed tool's "Do not plunge" always shows
+        if rp.get("plunge_note") and (float(getattr(res, "diameter", None) or 1.0) <= 0.125 or rp["plunge_note"].startswith("Do not plunge")):
+            res.tips.append({"title": "Plunge feed", "message": rp["plunge_note"] + ".", "type": "info",
                              "fusion": True})
         return
     res.ramp_feed *= min(1.0, ratio)
@@ -610,14 +611,20 @@ def apply(physics, r, res, machine_profile=None):
     hf = out.get("high_feed")
     if op in ("rough", "adaptive", "slot"):
         mm = 1.0 / 25.4
-        radial = max(0.05 * mm, 1.5 * res.deflection + res.springback)
-        axial = max(0.05 * mm, 1.5 * abs(res.springback))
+        # Floor: a finish pass needs enough stock to cut cleanly instead of rubbing: 2 % of the diameter radially
+        # (0.002" to 0.010"), half of that axially (at least 0.002").
+        D_in = float(r.diameter or 0.0)
+        floor_r = min(max(0.02 * D_in, 0.05 * mm), 0.010)
+        floor_a = max(0.5 * floor_r, 0.05 * mm)
+        radial = max(floor_r, 1.5 * res.deflection + res.springback)
+        axial = max(floor_a, 1.5 * abs(res.springback))
         res.recommended_radial_stock_in = math.ceil(radial / 0.0005 - 1e-9) * 0.0005
         res.recommended_axial_stock_in = axial
         res.tips.append({"title": "Stock to leave",
                          "message": (f"Leave at least {res.recommended_radial_stock_in:.4f}\" radial / "
                                      f"{res.recommended_axial_stock_in:.4f}\" axial for the finish pass "
-                                     f"(1.5 × the predicted wall deflection plus springback, never under 0.05 mm)."),
+                                     f"(1.5 × the predicted wall deflection plus springback, and at least 2 % of the "
+                                     f"tool diameter so the finish pass cuts instead of rubbing)."),
                          "type": "info", "fusion": True})
     if hf:
         _high_feed_tips(r, res, cut, out)

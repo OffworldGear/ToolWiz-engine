@@ -802,7 +802,9 @@ def _apply_feature_geometry(r: CutRequest, res: CutResult) -> None:
                     "type": "critical",
                     "fusion": True,
                 })
-        elif stick - req_reach >= 0.25:
+        elif stick - max(req_reach, (r.flute_length or 0.0) + 0.05) >= 0.25:
+            # the shortest practical stickout keeps the flutes (plus 0.05") out of the holder
+            req_reach = max(req_reach, (r.flute_length or 0.0) + 0.05)
             excess = stick - req_reach
             gain_pct = (1.0 - (1.0 / max((stick / max(req_reach, 0.05)) ** 3, 1.0))) * 100.0
             fg["excess_stickout_in"] = round(excess, 5)
@@ -811,7 +813,7 @@ def _apply_feature_geometry(r: CutRequest, res: CutResult) -> None:
                 res.tips.append({
                     "title": "Excessive Stickout vs Feature Depth",
                     "message": (
-                        f"Feature depth only requires {req_reach:.3f}\" stickout, but tool is set to "
+                        f"This feature and the tool's flutes only require {req_reach:.3f}\" stickout, but tool is set to "
                         f"{stick:.3f}\". Choking up by {excess:.3f}\" reduces tool deflection by {gain_pct:.0f}%."
                     ),
                     "type": "info",
@@ -819,8 +821,14 @@ def _apply_feature_geometry(r: CutRequest, res: CutResult) -> None:
                 })
 
     # 2. Minimum internal corner radius engagement spike
+    # Adaptive / HEM toolpaths hold the engagement constant by construction (they roll through corners and leave what
+    # the tool cannot reach), so the corner spike and its feed reduction do not apply to them.
+    op_l = str(res.operation or r.operation or "").lower()
+    constant_engagement = any(k in op_l for k in ("adaptive", "hem", "trochoidal", "dynamic"))
     min_cr = fg.get("min_corner_radius_in")
-    if min_cr is not None and float(min_cr) > 0 and dia > 0:
+    if constant_engagement and min_cr is not None:
+        fg["corner_check"] = "not applied: adaptive toolpaths keep the engagement constant in corners"
+    if min_cr is not None and float(min_cr) > 0 and dia > 0 and not constant_engagement:
         min_cr = float(min_cr)
         eff_woc, feed_scale, overloaded = calc_corner_engagement(dia, min_cr, woc)
         fg["corner_woc_spike_in"] = round(eff_woc, 5)

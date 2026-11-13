@@ -347,15 +347,14 @@ def evaluate_holistic_oversight(
         v1_feed = float(v1_data.get("feed_ipm") or 0.0)
         if v1_feed > 0 and feed_ipm > 0:
             rel_diff = abs(feed_ipm - v1_feed) / max(v1_feed, feed_ipm)
-            if rel_diff > 0.35:
+            if rel_diff > 0.35 and feed_ipm > v1_feed:      # only worth a caution when the current engine is the faster one
                 binding = ", ".join(v2_data.get("binding") or []) or "mechanistic constraints"
                 findings.append(OversightFinding(
                     category="model_window",
                     severity="CAUTION",
-                    title=f"Large v1 vs. v2 Model Divergence ({rel_diff * 100:.0f}% Feed Delta)",
-                    detail=(f"v1 table model suggests {v1_feed:.1f} IPM while v2 physics optimizer gives {feed_ipm:.1f} IPM "
-                            f"(bound by {binding})."),
-                    recommendation="Inspect the active binding constraint in the v2 panel before committing to full-speed production."
+                    title=f"Feed is {rel_diff * 100:.0f}% above the older table-based estimate",
+                    detail=(f"The physics engine gives {feed_ipm:.1f} IPM; the older table-based engine would give {v1_feed:.1f} IPM."),
+                    recommendation="Start at a reduced feed override and work up while watching the cut."
                 ))
 
     runout = float(cut_request.get("runout") or 0.0002)

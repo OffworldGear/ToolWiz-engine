@@ -3149,8 +3149,10 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         msg += "\n\nPasses Tab: " + "; ".join(passes_notes) + "."
     if ms_note:
         msg += "\n\n" + ms_note
+    shown_titles = set()
     for w in tool_profile_warnings(calc_result):
         msg += "\n\nCheck: " + w
+        shown_titles.add(w.split(":", 1)[0].strip())
     if ramp_expr is not None:
         msg += f"\n\nRamp angle: {float(ramp_expr):.2f}°."
     if ramp_dia_note == 'written':
@@ -3162,7 +3164,9 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                 "(Fusion's default of 10% made very large programs).")
     elif fine_note == 'kept':
         msg += "\n\nFine stepdown: your own value was kept."
-    extra = twlogic.format_advisor_sections(calc_result, flutes_total=geo_payload.get("flutes"), unit=doc_unit)
+    # the summary lines above are in inches, so the sections below are too (not the document unit); each warning once
+    extra = twlogic.format_advisor_sections(calc_result, flutes_total=geo_payload.get("flutes"), unit="in",
+                                            skip_titles=shown_titles)
     if extra:
         msg += "\n\n" + extra
     rec_rad, rec_ax = twlogic.stock_recommendation(calc_result)
@@ -3182,8 +3186,10 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     if stock_msg:
         msg += "\n\n" + stock_msg
     if offer_stock:
+        # the question goes first: a long report pushed it below the bottom of the dialog, leaving a bare Yes / No
         res = ui.messageBox(
-            msg + f"\n\nApply the recommended stock to leave (radial {rad_expr}, axial {ax_expr}) to this operation now?",
+            f"QUESTION: apply the recommended stock to leave (radial {rad_expr}, axial {ax_expr}) to this operation now? "
+            f"Yes writes it; No leaves the operation's stock unchanged. Speeds and feeds are already applied.\n\n" + msg,
             'ToolWiz CAM Auto-Setter', adsk.core.MessageBoxButtonTypes.YesNoButtonType,
             adsk.core.MessageBoxIconTypes.QuestionIconType)
         if res == adsk.core.DialogResults.DialogYes:

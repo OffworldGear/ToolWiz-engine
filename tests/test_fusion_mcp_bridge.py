@@ -202,7 +202,7 @@ class TestFusionMcpBridge(unittest.TestCase):
         self.assertFalse(calc_call["result"]["isError"])
         calc_data = json.loads(calc_call["result"]["content"][0]["text"])
         self.assertTrue(calc_data["success"])
-        self.assertIsNotNone(calc_data["corner_feed_ipm"])
+        self.assertIsNone(calc_data["corner_feed_ipm"])     # adaptive paths hold the engagement in corners: no corner feed
 
         # 4. tools/call -> fusion_audit_setup_sequence
         audit_call = mcp_server.handle_mcp_message({

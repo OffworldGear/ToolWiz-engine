@@ -271,6 +271,8 @@ def holder_lines(holder):
     if num(holder.get("required_tir_in")) is not None:
         head += f", required TIR {holder['required_tir_in']:.5f} in"
     lines.append(head)
+    if str(holder.get("class", "")).lower() == "standard" and not holder.get("high_speed_spindle"):
+        return lines            # any decent holder meets it: no need for the full advice
     if holder.get("recommended"):
         lines.append("  Recommended: " + ", ".join(map(str, holder["recommended"])))
     if holder.get("acceptable"):
@@ -324,7 +326,7 @@ def tslot_lines(ts, unit="in"):
     return lines
 
 
-def format_advisor_sections(calc, flutes_total=None, unit="in", engagement_used=None):
+def format_advisor_sections(calc, flutes_total=None, unit="in", engagement_used=None, skip_titles=None):
     """Everything the auto-setter result dialog shows beyond the speeds line: engagement source, limiter,
     flutes cutting / runout regime, stock to leave, holder and tool advice, T-slot output and every
     warning. Returns text ('' when the server returned nothing extra)."""
@@ -345,7 +347,7 @@ def format_advisor_sections(calc, flutes_total=None, unit="in", engagement_used=
     parts += holder_lines(calc.get("holder_advice"))
     parts += tool_advice_lines(calc.get("tool_advice"))
     parts += tslot_lines(calc.get("tslot"), unit)
-    finds = collect_findings(calc)
+    finds = [f for f in collect_findings(calc) if f["title"] not in set(skip_titles or ())]
     if finds:
         parts.append("")
         for f in finds:

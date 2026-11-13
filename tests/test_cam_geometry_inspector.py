@@ -168,7 +168,7 @@ class TestCamGeometryInspector(unittest.TestCase):
         resp = self.client.post("/api/calculate_for_fusion", json={
             "family": "Stainless - PH (17-4 PH)",
             "alloy": "17-4 PH (H900 ~44 HRC)",
-            "operation": "3D Adaptive Roughing",
+            "operation": "Roughing",
             "diameter": 0.25,
             "flutes": 4,
             "fluteLength": 0.75,
@@ -307,3 +307,25 @@ class TestCamGeometryInspector(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_adaptive_gets_no_corner_spike_or_feed_reduction():
+    """Regression (owner's 7075 adaptive, 0.0866" corner on a 1/4" tool): adaptive toolpaths keep the engagement constant, so
+    no corner warning and no reduced corner feed; traditional roughing with the same corner still gets both."""
+    import app as A
+    c = A.app.test_client()
+
+    def run(op):
+        return c.post("/api/calculate_for_fusion", headers={"X-ToolWiz-Client": "t"}, json={
+            "family": "Aluminum - Wrought (6061)", "alloy": "7075 (T6, T651)", "operation": op, "diameter": 0.25, "flutes": 4,
+            "fluteLength": 0.4375, "shankDiameter": 0.25, "stickout": 0.75, "aggressiveness": 60, "model": "v2",
+            "feature_geometry": {"feature_depth_in": 0.246, "min_corner_radius_in": 0.0866}}).get_json()
+    ad, ro = run("Adaptive Roughing"), run("Roughing")
+    titles = lambda r: [a.get("title") for a in (r.get("alerts") or [])] + [t.get("title") for t in (r.get("tips") or [])]
+    assert ad["success"] and ad.get("corner_feed") is None and "Tight Internal Corner Engagement Spike" not in titles(ad)
+    assert ro.get("corner_feed") is not None and "Tight Internal Corner Engagement Spike" in titles(ro)
+    # the shortest stickout it suggests keeps the flutes out of the holder
+    msg = next((a["message"] for a in (ad.get("alerts") or []) + (ad.get("tips") or []) if a.get("title") == "Excessive Stickout vs Feature Depth"), "")
+    assert "0.487" in msg or msg == ""
+    # stock floor: 2 % of the diameter
+    assert abs(ad["recommended_radial_stock_in"] - 0.005) < 1e-9

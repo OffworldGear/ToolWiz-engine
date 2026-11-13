@@ -235,7 +235,7 @@ class TestBridge(unittest.TestCase):
         self.assertAlmostEqual(r.ramp_feed, rp["fz_in"] * 4 * r.rpm, places=6)
         self.assertAlmostEqual(rp["edge_radius_mm"], 0.0012)       # AlTiN request → Liang 2018 micro value (D1)
         # D6: the plunge-feed note reaches Fusion
-        self.assertTrue(any(t["title"] == "v2 plunge feed" and "feed height" in t["message"] for t in r.tips))
+        self.assertTrue(any(t["title"] == "Plunge feed" and "feed height" in t["message"] for t in r.tips))
 
     def test_fusion_endpoint_returns_ramp_fields(self):
         from test_v2_bridge import T12

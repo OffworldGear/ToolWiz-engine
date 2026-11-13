@@ -220,7 +220,7 @@ class TestAutoSetV3(AuditBase):
         done, _, up, _ = self.run_it(calc=calc)
         self.assertTrue(done)
         text = self.a.ui.messageBox.call_args[0][0]
-        self.assertIn("Warning: Runout vs Chip Load", text)
+        self.assertEqual(text.count("Runout vs Chip Load"), 1)    # each warning is listed once
         self.assertIn("Holder: ultra class", text)
 
     def test_recommended_stock_offered_and_applied_on_yes(self):
@@ -230,7 +230,7 @@ class TestAutoSetV3(AuditBase):
         stock.assert_called_once()
         self.assertEqual(stock.call_args[0][1:], ("0.0040 in", "0.0020 in"))
         text = self.a.ui.messageBox.call_args_list[0][0][0]
-        self.assertIn("Apply the recommended stock to leave", text)
+        self.assertTrue(text.startswith("QUESTION: apply the recommended stock to leave"))   # the question leads the dialog
         self.assertIn("Flutes cutting: 2 of 4", text)
 
     def test_recommended_stock_declined_writes_nothing(self):
