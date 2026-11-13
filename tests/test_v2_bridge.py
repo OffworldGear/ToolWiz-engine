@@ -161,7 +161,7 @@ class TestAddinMessage(unittest.TestCase):
         self.assertIn("chip thickness (tooth strength), tool deflection", msg)
         msg = a.format_autoset_message("T12", geo, "17-4", "Adaptive", 1, 1, 0.001, model="v1",
                                        model_note="v2 selected; v1 used because x.")
-        self.assertIn("Model: v1", msg)
+        self.assertIn("Model: legacy tables and rules", msg)
         self.assertIn("v1 used because x.", msg)
         self.assertEqual(
             a._limited_by_text("v2: C14f, C14m"),
