@@ -205,6 +205,7 @@
             <h1>ToolWiz CAM & Physics Engine</h1>
             <p>Dynamic Optimization Calculator & Fusion Hub Digital Twin</p>
             {% include 'partials/machine_switcher_v4.html' %}
+            <div class="v3-sub" id="buildInfo" title="The ToolWiz version this server is running. Restart the server after a pull to update it.">Version: {{ build.label if build else 'unknown' }}</div>
             
             <nav class="nav-tabs" style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">

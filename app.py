@@ -274,9 +274,32 @@ def _api_error(exc):
 def _too_large(_e):
     return jsonify({"success": False, "error": "Request too large (limit 50 MB)"}), 413
 
+def build_info():
+    """What is running: git branch, short commit and commit date of this checkout ('unknown' outside a git checkout)."""
+    import subprocess
+    root = os.path.dirname(os.path.abspath(__file__))
+
+    def git(*args):
+        try:
+            return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, timeout=5).stdout.strip()
+        except Exception:
+            return ""
+    commit, date, branch = git("rev-parse", "--short", "HEAD"), git("log", "-1", "--format=%cd", "--date=format:%Y-%m-%d %H:%M"), git("rev-parse", "--abbrev-ref", "HEAD")
+    label = f"{branch or 'unknown branch'} · {commit or 'unknown'} · {date}".strip(" ·") if (commit or branch) else "unknown"
+    return {"branch": branch or None, "commit": commit or None, "date": date or None, "label": label}
+
+
+BUILD_INFO = build_info()     # read once at start: restart the server after a pull to see the new one
+
+
+@app.route("/api/version")
+def api_version():
+    return jsonify({"success": True, **BUILD_INFO})
+
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", build=BUILD_INFO)
 
 @app.after_request
 def add_header(response):
