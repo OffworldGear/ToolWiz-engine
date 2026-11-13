@@ -1666,7 +1666,16 @@ def get_op_tool_info(op):
         is_carbide = twlogic.tool_is_carbide(t_dict)
         runout_in, runout_source = twlogic.tool_runout_in(t_dict)
 
-        detected_coating = "AlTiN" if is_carbide else "Uncoated"
+        detected_coating = "AlTiN" if is_carbide else "Uncoated"   # the Speeds & Feeds dialog's preselection only
+        stated_coating = None                                      # what the tool's own text says (the snapshot's coating)
+        if re.search(r"\b(uncoated|bright)\b", text_all):
+            stated_coating = "Uncoated"
+        else:
+            for _pat, _nm in ((r"altin", "AlTiN"), (r"tialn", "TiAlN"), (r"alcrn", "AlCrN"), (r"tisin", "TiSiN"),
+                              (r"ticn", "TiCN"), (r"\btin\b", "TiN"), (r"\bzrn\b", "ZrN"), (r"\bdlc\b|diamond", "Diamond")):
+                if re.search(_pat, text_all):
+                    stated_coating = _nm
+                    break
         if "altin" in text_all:
             detected_coating = "AlTiN"
         elif "tialn" in text_all:
@@ -1706,6 +1715,8 @@ def get_op_tool_info(op):
             "stickout": geo.stickout,
             "stickoutSource": geo.stickout_source,
             "coating": detected_coating,
+            "stated_coating": stated_coating,
+            "coating_source": "tool" if stated_coating else "not set",
             "is_carbide": is_carbide,
             "geometry": geo_shape,
             "kind": geo.kind.value,
@@ -3392,6 +3403,57 @@ STRATEGY_OPTIONS = [
 ]
 
 
+_FORMULA_MARKS = ('?', '(', ')', '==', '||', '&&', ' : ', '.')
+
+
+def _plain_text(v):
+    """A string out of a Fusion parameter value: a string, an object whose .value is one, or an enum-like with a str .name."""
+    for _ in range(3):
+        if isinstance(v, str):
+            return v
+        if v is None or isinstance(v, (bool, int, float)):
+            return None
+        inner = getattr(v, 'value', None)
+        if isinstance(inner, str):
+            return inner
+        if inner is not None and not isinstance(inner, (bool, int, float)) and inner is not v:
+            v = inner
+            continue
+        nm = getattr(v, 'name', None)
+        return nm if isinstance(nm, str) else None
+    return None
+
+
+def read_cycle_type(op):
+    """(cycle_type, cycle_type_expr) of a CAM operation: the cycleType parameter's evaluated VALUE (lower case, quotes
+    stripped; None when unknown) and its raw expression. The expression is often Fusion's default formula
+    (tool_isMill ? ('drilling') : ... 'tapping' ... 'reaming'), so it is used only when it is a plain quoted literal
+    like 'drilling', and never substring-matched."""
+    try:
+        p = op.parameters.itemByName('cycleType') if (op is not None and getattr(op, 'parameters', None)) else None
+    except Exception:
+        p = None
+    if p is None:
+        return None, None
+    expr = _safe(lambda: p.expression)
+    expr = str(expr) if isinstance(expr, str) and expr.strip() else None
+
+    def clean(t):
+        t = str(t).strip().strip("'\"").strip().lower()
+        return None if (not t or any(m in t for m in _FORMULA_MARKS) or len(t) > 60) else t
+    val = None
+    try:
+        raw = _plain_text(p.value)
+        val = clean(raw) if raw is not None else None
+    except Exception:
+        val = None
+    if val is None and expr:
+        lit = expr.strip()
+        if len(lit) >= 2 and lit[0] == lit[-1] and lit[0] in "'\"":
+            val = clean(lit)
+    return val, expr
+
+
 def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
     """Choose the default Strategy dropdown item for a CAM operation and its detected tool."""
     gp = geo_payload or {}
@@ -3401,13 +3463,8 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
     desc_low = f"{gp.get('desc', '')} {gp.get('tool_type', '')}".lower()
     op_strat = str(getattr(op, 'strategy', '') or '').lower() if op is not None else ''
     op_name = str(getattr(op, 'name', '') or '').lower() if op is not None else ''
-    cycle_expr = ""
-    try:
-        p_cyc = op.parameters.itemByName('cycleType') if (op and getattr(op, 'parameters', None)) else None
-        if p_cyc and getattr(p_cyc, 'expression', None):
-            cycle_expr = str(p_cyc.expression).lower()
-    except Exception:
-        pass
+    cycle, _cycle_expr = read_cycle_type(op)
+    cycle = cycle or ""
 
     # Operations that are not roughing / finishing cuts get their own labels (never the 'Adaptive Roughing' default).
     raw_type = str(gp.get('type', '') or gp.get('raw_type', '') or '').lower()
@@ -3419,7 +3476,7 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
         return STRATEGY_CHAMFER
     # Fusion's own tool type decides: a drill whose description mentions a tap ("drill for M1.6 form tap") is a drill.
     drill_like = kind in ('drill', 'spot_drill', 'center_drill', 'reamer', 'counterbore', 'countersink') or ('drill' in raw_type)
-    if is_tap or (not drill_like and ('tap' in op_strat or 'tap' in cycle_expr)):
+    if is_tap or (not drill_like and ('tap' in op_strat or cycle.startswith('tap'))):
         if 'form' in desc_low or 'roll' in desc_low:
             return 'Tapping (Form / Roll)'
         if 'spiral point' in desc_low or 'gun' in desc_low:
@@ -3428,7 +3485,7 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
             return 'Tapping (Spiral Flute - Blind Hole)'
         return 'Tapping'
     # Fusion's tool kind decides: a drill-kind tool is only "Reaming" when the cycle is exactly a reaming cycle.
-    cycle_is_reaming = cycle_expr.strip().strip("'\"") == 'reaming'
+    cycle_is_reaming = cycle == 'reaming'
     if drill_like and kind != 'reamer':
         is_ream = cycle_is_reaming
     else:
@@ -3436,7 +3493,7 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
     if is_ream:
         return 'Reaming'
     if is_hole or 'drill' in op_strat:
-        if any(k in cycle_expr for k in ('deep', 'chip-breaking', 'peck')) or 'peck' in op_name or 'deep' in op_name:
+        if any(k in cycle for k in ('deep', 'chip-breaking', 'chip breaking', 'peck')) or 'peck' in op_name or 'deep' in op_name:
             return 'Peck Drilling (Deep Hole)'
         return 'Drilling'
 
@@ -5779,7 +5836,7 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     geo, summary, presets = get_op_tool_info(op)
     strat_raw = str(_safe(lambda: op.strategy) or "")
     strat_label = infer_strategy_for_op(op, geo)
-    cycle_type = _safe(lambda: op.parameters.itemByName('cycleType').expression)
+    cycle_type, cycle_type_expr = read_cycle_type(op)
     op_name = _safe(lambda: op.name) or path
     rpm, feed, doc, woc = get_op_cut_params(op, doc_unit, strategy=strat_label)
     params_obj = getattr(op, 'parameters', None)
@@ -5807,7 +5864,8 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     entry = {
         "op_id": path, "path": path, "name": op_name, "setup": path.split(" > ", 1)[0], "strategy": strat_raw,
         "strategy_label": strat_label,
-        "cycle_type": str(cycle_type) if cycle_type else None,
+        "cycle_type": cycle_type,
+        "cycle_type_expr": cycle_type_expr,
         "is_roughing": twlogic.is_roughing_strategy(strat_label, str(op_name)),
         "is_finishing": twlogic.is_finishing_strategy(strat_label, str(op_name)),
         "suppressed": bool(_safe(lambda: op.isSuppressed, False)),
@@ -5829,7 +5887,8 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
             ro, ro_src = geo.get("runout_in"), geo.get("runout_source")
             if ro_src == "tool" and ro is not None:
                 entry["holder"]["runout_in"] = ro
-        entry["coating"] = geo.get("coating")
+        entry["coating"] = geo.get("stated_coating")      # only a coating the tool itself states; the dialog default is not reported
+        entry["coating_source"] = geo.get("coating_source") or "not set"
         entry["geometry"] = op_geometry(op, geo, geo.get("kind"), doc_unit)
         entry["tool_summary"] = {"number": geo.get("number"), "guid": geo.get("guid"), "kind": geo.get("kind"),
                                  "runout_in": geo.get("runout_in"), "runout_source": geo.get("runout_source")}

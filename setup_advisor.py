@@ -206,6 +206,9 @@ def parse_tool(t: Any) -> Dict[str, Any]:
     tt = t.get("teeth")
     out["teeth"] = int(tt) if isinstance(tt, (int, float)) and not isinstance(tt, bool) else None
     out["coating"] = _coating_of(t, desc)
+    out["coating_hint"] = None
+    if out["coating"] is None and re.search(r"\bti[ -]?coated\b|\bcoated\b", f"{t.get('BMC') or ''} {t.get('GRADE') or ''} {desc}".lower()):
+        out["coating_hint"] = "coated, type not stated"      # Fusion's "ti coated": a coating, but not which one
     h = t.get("holder")
     if isinstance(h, dict):
         out["holder"] = str(h.get("description") or h.get("name") or h.get("type") or "") or None
@@ -235,6 +238,17 @@ def is_probe(tool: Dict[str, Any]) -> bool:
     return "probe" in t or any(k in d for k in ("touch probe", "probe", "renishaw", "blum tc", "stylus"))
 
 
+def _plausible_channel(geometry: Dict[str, Any], w: float, d: float) -> bool:
+    """A measured width makes a slot only when the tool could cut it (not narrower than the tool by more than 5%) and the
+    channel is at least about one tool diameter long (when a length was measured); an explicit ``is_slot`` always counts."""
+    if geometry.get("is_slot"):
+        return True
+    if w < 0.95 * d:
+        return False
+    length = geometry.get("channel_length_in")
+    return not (length and length < 0.9 * d)
+
+
 def classify_op(strategy: str, name: str, tool: Dict[str, Any], geometry: Dict[str, Any],
                 stock_radial: Optional[float]) -> str:
     """Operation kind: ``tslot`` (slot mill / keyseat cutter), ``adaptive``, ``slot``, ``contour`` (2D contour
@@ -259,7 +273,7 @@ def classify_op(strategy: str, name: str, tool: Dict[str, Any], geometry: Dict[s
         return "finish"
     if "contour" in s or "profile" in s:
         w, d = geometry.get("slot_width_in") or geometry.get("channel_width_in"), tool.get("diameter_in")
-        if w and d and w <= 1.1 * d:
+        if w and d and w <= 1.1 * d and _plausible_channel(geometry, w, d):
             return "slot"
         ms = geometry.get("multi_stepover") or {}
         if stock_radial is not None and stock_radial <= 0.00005 and "rough" not in n and not (ms.get("enabled") and (ms.get("count") or 0) >= 2):
@@ -398,13 +412,21 @@ def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
         strategy = str(raw.get("strategy") or "")
         name = str(raw.get("name") or f"Operation {idx + 1}")
         kind = str(raw.get("kind") or "") or classify_op(strategy, name, tool, geom, prm["stock_radial"])
+        geom_notes: List[str] = []
+        _w, _d = geom.get("slot_width_in") or geom.get("channel_width_in"), tool.get("diameter_in")
+        if kind not in ("slot", "tslot", "adaptive") and _w and _d and _w <= 1.1 * _d and not _plausible_channel(geom, _w, _d):
+            _cl = geom.get("channel_length_in")
+            geom_notes.append(f"measured channel {_w:.4f} in wide" + (f" and {_cl:.4f} in long" if _cl else "")
+                              + " is not treated as a slot")
+            for _k in ("slot_width_in", "channel_width_in", "channel_length_in"):
+                geom[_k] = None
         if kind == "tslot" and tool["kerf_in"] is None and tool["flute_length_in"]:
             tool["kerf_in"] = tool["flute_length_in"]
         path = str(raw.get("path") or "")
         op_id = str(raw.get("op_id") or raw.get("id") or path or f"{raw.get('setup') or 'Setup'} > {name}")
         ops.append({
             "op_id": op_id, "name": name, "setup": str(raw.get("setup") or ""), "strategy": strategy, "kind": kind,
-            "tool": tool, "geometry": geom, "index": idx,
+            "tool": tool, "geometry": geom, "index": idx, "geom_notes": geom_notes,
             "rich": rich, "current_extra": {k: v for k, v in extra.items() if v is not None},
             "current": {"rpm": prm["rpm"], "feed_ipm": prm["feed"], "stepdown_in": prm["stepdown"],
                         "stepover_in": prm["stepover"], "stock_radial_in": prm["stock_radial"],
@@ -1491,7 +1513,13 @@ def _oversight_findings(op, tool, res, ctx, woc_unknown: bool = False, skip_coat
             continue
         if skip_coating and f.title.startswith("Tool Coating Unknown"):
             continue
-        out.append(_f(f.severity, f"oversight_{f.category}", f.title, f.detail, f.recommendation))
+        detail, rec = f.detail, f.recommendation
+        if f.title.startswith("Tool Coating Unknown") and tool.get("coating_hint"):
+            detail = ("The tool library says this cutter is coated (\"ti coated\") but not which coating: it could be TiN, TiCN, "
+                      "TiAlN or AlTiN, so ToolWiz applied no coating factor and did not guess.")
+            rec = ("Fix the coating in the Fusion tool library, or tell the advisor chat your assumption "
+                   "(for example \"all my tools are AlTiN\").")
+        out.append(_f(f.severity, f"oversight_{f.category}", f.title, detail, rec))
     return out
 
 
@@ -1759,7 +1787,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
             "tool": _short(tool0), "current": {**cur, "chip_load_ipt": None, "mrr_in3_min": None}, "geometry": {
                 k: v for k, v in op["geometry"].items() if k != "feature_geometry" and v is not None},
             "toolwiz": {"recommended": None, "at_current_engagement": None, "tslot": None},
-            "findings": [], "apply_plan": None, "notes": []}
+            "findings": [], "apply_plan": None, "notes": list(op.get("geom_notes") or [])}
         if amod["applied"].get(op["op_id"]):
             entry["assumptions_applied"] = amod["applied"][op["op_id"]]
             if tool0.get("coating_assumed"):

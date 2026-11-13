@@ -250,7 +250,7 @@ def evaluate_holistic_oversight(
                         f"content has higher chemical affinity with wrought aluminum ({family or alloy}) and can increase built-up edge (BUE) risk."),
                 recommendation="Monitor flutes for chip sticking, or prefer Uncoated polished, ZrN, TiB2, or DLC for heavy aluminum cuts."
             ))
-        if flutes >= 4 and ("slot" in op_low or (dia > 0 and woc / dia >= 0.5) or dia <= 0.125):
+        if flutes >= 4 and woc > 0 and ("slot" in op_low or (dia > 0 and woc / dia >= 0.5) or dia <= 0.125):
             findings.append(OversightFinding(
                 category="tool_material",
                 severity="CAUTION",
@@ -319,7 +319,7 @@ def evaluate_holistic_oversight(
     # -------------------------------------------------------------------------
     # 3. Chip Evacuation, Deep-Slot Recutting & Thermal Shock
     # -------------------------------------------------------------------------
-    if dia > 0 and doc / dia > 1.25 and ("slot" in op_low or (woc / dia >= 0.75)):
+    if dia > 0 and woc > 0 and doc / dia > 1.25 and ("slot" in op_low or (woc / dia >= 0.75)):
         sev = "STOP" if (dia <= 0.125 and doc / dia > 1.5) else "CAUTION"
         findings.append(OversightFinding(
             category="chip_evacuation",

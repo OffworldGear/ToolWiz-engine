@@ -53,7 +53,7 @@ def test_snapshot_entry_carries_the_raw_cycle_type():
     a = load_addin()
     op = _drill_op("'deep drilling'")
     e = a.op_advisor_entry(op, "S > Drill4 (5)")
-    assert e["cycle_type"] == "'deep drilling'" and e["strategy_label"] != "Reaming"
+    assert e["cycle_type"] == "deep drilling" and e["cycle_type_expr"] == "'deep drilling'" and e["strategy_label"] != "Reaming"   # round 2: cycle_type is the evaluated value, the raw expression moved to cycle_type_expr
     assert a.op_advisor_entry(_drill_op(None), "S > D")["cycle_type"] is None
 
 
