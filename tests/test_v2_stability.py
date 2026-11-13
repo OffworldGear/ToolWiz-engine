@@ -83,8 +83,16 @@ def run_case(args):
 def _run_all(jobs):
     # Windows has no "fork" start method: use "spawn" there (the worker is a module-level function)
     ctx = multiprocessing.get_context(os.environ.get("TOOLWIZ_MP_START") or ("fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"))
-    with concurrent.futures.ProcessPoolExecutor(max_workers=max(1, min(os.cpu_count() or 1, 8)), mp_context=ctx) as ex:
-        return list(ex.map(run_case, jobs, chunksize=2))
+    # "spawn" workers start from the parent's sys.path; the add-in folder on it (put there by add-in tests) would make
+    # "from ToolWizFusionAddin.x import ..." load the add-in script and its Fusion-only imports in the worker.
+    import sys
+    saved = list(sys.path)
+    sys.path[:] = [e for e in sys.path if os.path.basename(os.path.normpath(e or ".")) != "ToolWizFusionAddin"]
+    try:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max(1, min(os.cpu_count() or 1, 8)), mp_context=ctx) as ex:
+            return list(ex.map(run_case, jobs, chunksize=2))
+    finally:
+        sys.path[:] = saved
 
 
 @pytest.fixture(scope="module")

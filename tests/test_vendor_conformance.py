@@ -282,8 +282,15 @@ def _pool_map(items):
     # Windows has no "fork" start method: use "spawn" there (the worker is a module-level function)
     ctx = multiprocessing.get_context(os.environ.get("TOOLWIZ_MP_START") or ("fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"))
     workers = int(os.environ.get("TOOLWIZ_CONFORMANCE_WORKERS") or max(1, min(os.cpu_count() or 1, 8)))
-    with concurrent.futures.ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as ex:
-        return list(ex.map(run_job, items, chunksize=2))
+    # "spawn" workers start from the parent's sys.path. Add-in tests put the ToolWizFusionAddin folder on it, which makes
+    # "from ToolWizFusionAddin.x import ..." load the add-in script (and its Fusion-only imports) in the worker.
+    saved = list(sys.path)
+    sys.path[:] = [e for e in sys.path if os.path.basename(os.path.normpath(e or ".")) != "ToolWizFusionAddin"]
+    try:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as ex:
+            return list(ex.map(run_job, items, chunksize=2))
+    finally:
+        sys.path[:] = saved
 
 
 @pytest.fixture(scope="module")
