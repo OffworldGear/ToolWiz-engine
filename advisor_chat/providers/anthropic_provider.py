@@ -14,6 +14,7 @@ Rules this module follows (they are API requirements for the Claude 5.5 / Fable 
 from __future__ import annotations
 
 import copy
+import json
 from typing import Any, Dict, List, Optional
 
 import anthropic
@@ -44,6 +45,34 @@ def _optional_count(schema: Dict[str, Any]) -> int:
     if schema.get("type") == "array" and isinstance(schema.get("items"), dict):
         n += _optional_count(schema["items"])
     return n
+
+
+_THINKING_TYPES = ("thinking", "redacted_thinking")
+
+
+def _fingerprint(model: str, system: str, native_tools: List[Dict[str, Any]]) -> str:
+    """Identity of what a thinking block is signed against besides the messages: model, system prompt and tool set."""
+    import hashlib
+    blob = json.dumps([model, system, native_tools], sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
+def _drop_stale_thinking(messages: List[Dict[str, Any]], fp: Optional[str]) -> int:
+    """Remove, in place and permanently, the thinking blocks of stored Anthropic turns that were not made under ``fp``
+    (``fp`` None: of every turn). Returns how many blocks were removed. Text and tool calls are kept."""
+    removed = 0
+    for m in messages:
+        raw = m.get("raw") if isinstance(m, dict) else None
+        if m.get("role") != "assistant" or not isinstance(raw, dict) or raw.get("provider") != "anthropic":
+            continue
+        if fp is not None and raw.get("fp") == fp:
+            continue
+        content = raw.get("content") or []
+        kept = [b for b in content if not (isinstance(b, dict) and b.get("type") in _THINKING_TYPES)]
+        if len(kept) != len(content):
+            removed += len(content) - len(kept)
+            raw["content"] = kept
+    return removed
 
 
 FALLBACK_MODEL_IDS = {"claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-2"}
@@ -167,10 +196,18 @@ class AnthropicProvider(Provider):
         self._key = api_key
         client = anthropic.Anthropic(api_key=api_key, max_retries=2, timeout=REQUEST_TIMEOUT)
         use_effort = effort in ("low", "medium", "high")
-        for attempt in range(3):
+        native_tools = self.tools_native(tools)
+        # A thinking block is signed for the exact conversation that produced it: system prompt, tool set and every earlier
+        # message. A chat saved under an older ToolWiz (different prompt or tools) would be rejected on replay (HTTP 400
+        # "Invalid signature in thinking block"), so thinking from turns made under another prompt/tool set is removed for
+        # good; the visible text and tool calls stay.
+        fp = _fingerprint(model, system, native_tools)
+        _drop_stale_thinking(messages, fp)
+        stripped_all = False
+        for attempt in range(4):
             kwargs: Dict[str, Any] = dict(
                 model=model, max_tokens=MAX_TOKENS, system=system, messages=self.to_native(messages, model),
-                tools=self.tools_native(tools), cache_control={"type": "ephemeral"})
+                tools=native_tools, cache_control={"type": "ephemeral"})
             if use_effort:
                 kwargs["output_config"] = {"effort": effort}
             try:
@@ -178,13 +215,20 @@ class AnthropicProvider(Provider):
                     resp = client.beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **kwargs)
                 else:
                     resp = client.messages.create(**kwargs)
-                return self._turn(resp, model)
+                turn = self._turn(resp, model)
+                if isinstance(turn.raw, dict):
+                    turn.raw["fp"] = fp
+                return turn
             except anthropic.BadRequestError as ex:
                 msg = str(getattr(ex, "message", ex)).lower()
-                if attempt < 2 and self._system_role_ok and "role" in msg and "system" in msg:
+                if not stripped_all and "thinking" in msg and ("signature" in msg or "different conversation" in msg):
+                    _drop_stale_thinking(messages, None)   # last resort: remove every stored thinking block, then retry once
+                    stripped_all = True
+                    continue
+                if attempt < 3 and self._system_role_ok and "role" in msg and "system" in msg:
                     self._system_role_ok = False         # this API build wants session notes as user turns
                     continue
-                if attempt < 2 and use_effort and "effort" in msg:
+                if attempt < 3 and use_effort and "effort" in msg:
                     use_effort = False                   # a model without the effort control
                     continue
                 raise self._error(ex) from None

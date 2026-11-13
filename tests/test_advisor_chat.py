@@ -649,3 +649,41 @@ def test_run_tool_validates_arguments_of_non_strict_tools():
     assert r["is_error"] and "diameter" in r["data"]["error"]
     r = tools.run_tool(ctx, "toolwiz_calculate", {"family": "Titanium Alloy", "diameter": 0.25, "feedrate_guess": 12})
     assert r["is_error"] and "unknown argument" in r["data"]["error"]
+
+
+def _assistant_with_thinking(fp=None, model="claude-opus-5-5"):
+    raw = {"provider": "anthropic", "model": model,
+           "content": [{"type": "thinking", "thinking": "t", "signature": "s"}, {"type": "text", "text": "old answer"}]}
+    if fp:
+        raw["fp"] = fp
+    return {"role": "assistant", "text": "old answer", "raw": raw}
+
+
+def test_thinking_from_a_chat_saved_under_another_prompt_or_tool_set_is_dropped(fake_sdk):
+    """Regression (owner, HTTP 400 "Invalid signature in thinking block ... bound to a different conversation"): a saved
+    chat continued after ToolWiz changed its prompt or tools must not replay the old thinking blocks."""
+    native = ap.AnthropicProvider.tools_native(tools.specs())
+    fp = ap._fingerprint("claude-opus-5-5", "SYS", native)
+    same, stale = _assistant_with_thinking(fp), _assistant_with_thinking("an-older-toolwiz")
+    msgs = [{"role": "user", "content": "q1"}, stale, {"role": "user", "content": "q2"}, same, {"role": "user", "content": "q3"}]
+    fake_sdk.queue.append(_msg([{"type": "text", "text": "ok"}]))
+    t = _call(messages=msgs)
+    sent = fake_sdk.instances[0].created[0][1]["messages"]
+    assert [b["type"] for b in sent[1]["content"]] == ["text"]                 # the stale turn lost its thinking
+    assert [b["type"] for b in sent[3]["content"]] == ["thinking", "text"]     # the current-version turn keeps it
+    assert stale["raw"]["content"] == [{"type": "text", "text": "old answer"}]  # removed for good, so later replays agree
+    assert t.raw["fp"] == fp
+
+
+def test_signature_error_strips_all_thinking_and_retries_once(fake_sdk):
+    import httpx
+    native = ap.AnthropicProvider.tools_native(tools.specs())
+    fp = ap._fingerprint("claude-opus-5-5", "SYS", native)
+    msgs = [{"role": "user", "content": "q1"}, _assistant_with_thinking(fp), {"role": "user", "content": "q2"}]
+    resp = httpx.Response(400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    err = ap.anthropic.BadRequestError("messages.1.content.0: Invalid `signature` in `thinking` block. The block is bound to a "
+                                       "different conversation.", response=resp, body=None)
+    fake_sdk.queue.extend([err, _msg([{"type": "text", "text": "ok"}])])
+    assert _call(messages=msgs).text == "ok"
+    first, second = (c[1]["messages"] for c in fake_sdk.instances[0].created)
+    assert [b["type"] for b in first[1]["content"]] == ["thinking", "text"] and [b["type"] for b in second[1]["content"]] == ["text"]
