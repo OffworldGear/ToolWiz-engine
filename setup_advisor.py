@@ -765,10 +765,11 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
                           f"Set the axial stock to leave to {_fi(want_a)} in.", current_stock_in=have_a, toolwiz_stock_in=want_a))
 
     # --- contour that removes material but has Ramp off in Fusion (INFO; the plan never writes doRamp) -----------------
-    if rec is not None and kind == "contour" and (op.get("ramp_info") or {}).get("enabled") is False \
-            and _contour_removes_material(op) and rec.get("ramp_angle_deg"):
+    # A slot always removes material; a contour must pass the material-removal test (owner decisions 2026-11-14).
+    if rec is not None and (kind == "slot" or (kind == "contour" and _contour_removes_material(op))) \
+            and (op.get("ramp_info") or {}).get("enabled") is False and rec.get("ramp_angle_deg"):
         out.append(_f("INFO", "ramp_off", "Ramp is off on this operation",
-                      f"Ramp is off on this operation. Turning on Ramp in Fusion would ease the entry at each depth; "
+                      f"Turning on Ramp in Fusion would ease the entry at each depth; "
                       f"ToolWiz's ramp angle for this tool would be {rec['ramp_angle_deg']:.1f} deg.",
                       "Turn on Ramp in Fusion if you want it (ToolWiz does not change this setting).",
                       toolwiz_ramp_angle_deg=rec["ramp_angle_deg"]))
@@ -2071,6 +2072,8 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 entry["findings"].append(fnd)
         entry["geometry_sources"] = _geometry_sources(op, tool0)
         entry["findings"] = _order(entry["findings"])
+        if any(f.get("code") == "ramp_off" for f in entry["findings"]):     # the finding already says it
+            entry["notes"] = [n for n in entry["notes"] if "because this operation does not ramp" not in n]
         ops_out.append(entry)
         setup_ops.append({
             "op_id": op["op_id"], "name": op["name"], "setup": op["setup"], "kind": kind,

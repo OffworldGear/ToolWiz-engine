@@ -24,7 +24,7 @@ def test_contour_with_depths_and_ramp_off_gets_info_and_no_plan_entry():
     plan, notes, o = _one(_op("2D Contour2", "contour2d", dict(P, tool_rampAngle="3.0 deg"), ramp=RAMP_OFF, multiple_depths=True))
     f = [x for x in o["findings"] if x["code"] == "ramp_off"]
     assert len(f) == 1 and f[0]["severity"] == "INFO"
-    assert f[0]["detail"].startswith("Ramp is off on this operation. Turning on Ramp in Fusion would ease the entry at each depth;")
+    assert f[0]["detail"].startswith("Turning on Ramp in Fusion would ease the entry at each depth;")
     assert "doRamp" not in json.dumps(o["apply_plan"]) and "tool_rampAngle" not in plan
     assert f"{f[0]['numbers']['toolwiz_ramp_angle_deg']:.1f} deg" in f[0]["detail"] and ang > 0
 
@@ -103,3 +103,33 @@ def test_stock_note_only_when_value_differs():
     _, notes, _ = _one(_op("2D Contour2", "contour2d", dict(P, stockToLeave=f"{st + 0.01:.4f} in"), ramp=RAMP_ON, multiple_depths=False,
                            stock_to_leave_enabled=False))
     assert any(n.startswith("Stock to leave") and "would leave" in n for n in notes)
+
+
+def test_slot_with_ramp_off_also_gets_the_ramp_off_info():
+    """Owner decision 2026-11-14 ("Yes, add it"): the 1/16 in slot contours with doRamp false get the same INFO as a contour
+    that removes material; never a doRamp or ramp angle in the plan, and no duplicate "does not ramp" note."""
+    import app as toolwiz_app
+    import setup_advisor as sa
+    tool = {"type": "flat end mill", "unit": "inches", "description": "1/16 4FL AlTiN",
+            "geometry": {"DC": 0.0625, "NOF": 4, "LCF": 0.1875, "SFDM": 0.125, "LB": 0.3}}
+    op = {"setup": "S", "name": "2D Contour206 (3)", "path": "S > 2D Contour206 (3)", "strategy": "contour2d", "tool": tool,
+          "params": {"tool_spindleSpeed": "9000 rpm", "tool_feedCutting": "5 in/min", "tool_rampAngle": "2 deg"},
+          "geometry": {"is_slot": True, "slot_width_in": 0.063, "depth_in": 0.126},
+          "ramp": {"enabled": False, "type": "profile", "raw": {}}, "multiple_depths": False}
+    res = sa.advise({"document": "d", "ops": [op]}, family="Aluminum - Wrought (6061)", alloy="", physics=toolwiz_app.physics,
+                    machine_profile=toolwiz_app.active_machine())
+    o = res["operations"][0]
+    assert o["kind"] == "slot"
+    f = [x for x in o["findings"] if x["code"] == "ramp_off"]
+    assert len(f) == 1 and f[0]["severity"] == "INFO" and "ToolWiz's ramp angle for this tool would be" in f[0]["detail"]
+    plans = o["apply_plan"] or {}
+    assert all("tool_rampAngle" not in p and "doRamp" not in p for p in plans.values())
+    assert not any("does not ramp" in n for n in o["notes"])
+
+
+def test_chart_sentence_names_the_limit_and_uses_the_singular():
+    from physics_v2 import ramp
+    basis = {"vendor_name": "Helical", "rows": 1, "row_flutes": [5], "tool_flutes": 4, "row_reach_over_D": None}
+    import inspect
+    src = inspect.getsource(ramp)
+    assert "chart row\" + (\"\" if basis['rows'] == 1 else \"s\")" in src and "the angle used is at or just under the limit" in src

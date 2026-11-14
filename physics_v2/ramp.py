@@ -456,11 +456,14 @@ def angle_text(basis, aggressiveness, brand=None):
                 f"{basis['band']} band), so the bottom of the range, {fmt_deg(cap)} deg, is used at every aggressiveness "
                 f"(no vendor publishes a value for this size)")
     else:
-        txt += f", {fmt_deg(cap)} at {aggressiveness:.0%} (0 % bottom, 50 % middle {fmt_deg(mid)}, 100 % top)"
+        # the optimizer picks the gentlest angle within 1 % of the fastest descent, so the angle used sits at or just
+        # under this limit (e.g. 6.4 under a 6.5 limit): the sentence names the limit as a limit
+        txt += (f", limit {fmt_deg(cap)} deg at {aggressiveness:.0%} (0 % bottom, 50 % middle {fmt_deg(mid)}, 100 % top; "
+                f"the angle used is at or just under the limit)")
     rf = basis.get("row_flutes")
     rr = basis.get("row_reach_over_D")
     z = basis.get("tool_flutes")
-    who = f"{basis['vendor_name']} chart rows"
+    who = f"{basis['vendor_name']} chart row" + ("" if basis['rows'] == 1 else "s")
     txt += f". Based on {basis['rows']} {who}"
     if rf:
         fl = "/".join(str(f) for f in rf)

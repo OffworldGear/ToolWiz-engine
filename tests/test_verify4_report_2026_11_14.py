@@ -146,8 +146,10 @@ def test_contour_ramp_needs_ramp_entry_and_material_removal():
     assert "tool_rampAngle" not in plan and "light finishing pass: ramp angle not proposed" in notes
     plan, notes, _ = _ramping("contour2d", multiple_depths=True, ramp={"enabled": None, "type": None, "raw": {}})
     assert "tool_rampAngle" not in plan and "ramp entry not detected; ramp angle not proposed" in notes
-    plan, notes, _ = _ramping("contour2d", multiple_depths=True, ramp={"enabled": False, "type": "Plunge", "raw": {}})
-    assert "tool_rampAngle" not in plan and any("does not ramp" in n for n in notes)
+    plan, notes, o = _ramping("contour2d", multiple_depths=True, ramp={"enabled": False, "type": "Plunge", "raw": {}})
+    # a contour that removes material with Ramp off now gets the ramp_off INFO in place of the "does not ramp" note
+    assert "tool_rampAngle" not in plan and any(f["code"] == "ramp_off" for f in o["findings"])
+    assert not any("does not ramp" in n for n in notes)
 
 
 def test_contour_with_wide_stepover_counts_as_material_removal():
