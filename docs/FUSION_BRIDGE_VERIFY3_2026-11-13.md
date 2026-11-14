@@ -101,6 +101,17 @@ stock 0.0025 / 0.0025. When the values are equal, leave the note out: the "N par
 10 % radial engagement isn't high. If this caution is really about micro tools and chip packing, the title and threshold
 should say so. Otherwise it fires on almost every 4-flute op in aluminum, which buries it.
 
+### E. Ramp angle proposed on ops that never ramp (from the owner)
+
+The owner: "2D Contour 2 is the only thing that could benefit from a ramp. Chamfer doesn't need a ramp." Today the advisor
+puts `tool_rampAngle` (and `tool_feedRamp`) into the plan of nearly every cutting op: contours that enter from outside
+the stock, Trace (a chamfer mill), and 2D Chamfer1's preset. In PrepEndCapStock only 2D Contour2 ramps into material.
+**Suggested fix:** propose a ramp angle only when the op actually ramps. That means Fusion's ramp / helical entry is on
+(e.g. `rampType` / `doRamp`-style parameters, or adaptive / pocket ops whose entry is a ramp or helix), not a contour or
+chamfer entering from outside with a lead-in. Never propose one for chamfer, trace, engrave or deburr kinds. If the snapshot
+can't tell, read the op's entry parameters into it first. When it isn't proposed, add a note like "Not proposed: ramp angle,
+because this operation does not ramp."
+
 ## Still not done
 
 - A real Claude Code client on `/api/mcp`: needs a new session on this PC.
