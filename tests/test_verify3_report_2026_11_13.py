@@ -34,7 +34,7 @@ def test_display_current_uses_evaluated_value_in_the_new_values_unit():
     assert d("stockToLeave", "0.1mm", "0.00250 in", 0.01) == "0.00394 in"                      # cm -> in
     assert d("tool_feedCutting", "50.1921790628448in/min", "47.74 in/min", 50.1921790628448 * 25.4) \
         == "50.19 in/min"                                                                         # mm/min -> in/min
-    assert d("tool_rampAngle", "2.", "18.6 deg", math.radians(2.0)) == "2.0 deg"                 # radians -> deg
+    assert d("tool_rampAngle", "2.", "18.6 deg", 2.0) == "2.0 deg"                 # Fusion returns degrees
     assert d("tool_spindleSpeed", "11999.11612839420377", "16000 rpm", 11999.116) == "11999 rpm"
     assert d("stockToLeave", "0.1mm", "0.0635 mm", 0.01) == "0.1000 mm"                         # new side in mm: same unit
 
@@ -45,7 +45,7 @@ def test_display_current_notes_links_and_formulas_but_not_plain_numbers():
     f = "(tool_type=='drill' || tool_type=='reamer')?(1000mmpm):(tool_feedCutting/3)"
     out = tw.display_current("tool_feedPlunge", f, "13.17 in/min", 16.73 * 25.4)
     assert out == "16.73 in/min (replaces a formula)"
-    assert "replaces" not in tw.display_current("tool_rampAngle", "2.", "18.6 deg", math.radians(2))
+    assert "replaces" not in tw.display_current("tool_rampAngle", "2.", "18.6 deg", 2.0)
     assert tw.display_current("stockToLeave", "?", "0.0025 in") == "?"                          # unknown: no invented note
 
 
@@ -57,19 +57,19 @@ def test_display_current_without_evaluated_value_converts_a_plain_expression():
 def test_summarize_changes_shows_evaluated_current_values():
     lines = tw.summarize_changes({"S > Op": {"stockToLeave": "0.00250 in", "tool_rampAngle": "18.6 deg"}},
                                  {"S > Op": {"stockToLeave": "0.1mm", "tool_rampAngle": "2."}},
-                                 {"S > Op": {"stockToLeave": 0.01, "tool_rampAngle": math.radians(2)}})
+                                 {"S > Op": {"stockToLeave": 0.01, "tool_rampAngle": 2.0}})
     assert lines == ["S > Op: stockToLeave: 0.00394 in -> 0.00250 in", "S > Op: tool_rampAngle: 2.0 deg -> 18.6 deg"]
 
 
 def test_expr_equal_compares_evaluated_values():
     assert tw.expr_equal("0.1mm", "0.00394 in", 0.01, "stockToLeave")
-    assert tw.expr_equal("2.", "2 deg", math.radians(2), "tool_rampAngle")
+    assert tw.expr_equal("2.", "2 deg", 2.0, "tool_rampAngle")
     assert not tw.expr_equal("0.1mm", "0.00250 in", 0.01, "stockToLeave")
     assert tw.expr_equal("tool_stepdown", "0.25 in", 0.635, "maximumStepdown")                  # a link that evaluates to it
     assert not tw.expr_equal("tool_stepdown", "0.25 in")                                          # no value: never dropped (old rule)
     ch, same = tw.drop_unchanged({"o": {"stockToLeave": "0.00394 in", "tool_rampAngle": "18.6 deg"}},
                                  {"o": {"stockToLeave": "0.1mm", "tool_rampAngle": "2."}},
-                                 {"o": {"stockToLeave": 0.01, "tool_rampAngle": math.radians(2)}})
+                                 {"o": {"stockToLeave": 0.01, "tool_rampAngle": 2.0}})
     assert ch == {"o": {"tool_rampAngle": "18.6 deg"}} and same == 1
 
 
@@ -79,11 +79,11 @@ def test_addin_confirmation_and_current_values_show_evaluated_numbers():
                                        {}, "r", {"stockToLeave": 0.01, "maximumStepdown": 0.5})
     assert "stockToLeave: 0.00394 in -> 0.00250 in" in text
     assert "maximumStepdown: 0.20 in (replaces the link to tool_stepdown) -> 0.2 in" in text
-    op = SimpleNamespace(parameters=ParamsByName({"stockToLeave": param("0.1mm", 0.01), "tool_rampAngle": param("2.", math.radians(2))}))
+    op = SimpleNamespace(parameters=ParamsByName({"stockToLeave": param("0.1mm", 0.01), "tool_rampAngle": param("2.", 2.0)}))
     a._op_by_id = lambda op_id: ("S", "S > Op", op)
     vals = a.current_param_values({"S > Op": {"stockToLeave": "x", "tool_rampAngle": "y", "missing": "z"}})
     assert vals["S > Op"]["stockToLeave"] == 0.01 and vals["S > Op"]["missing"] is None
-    assert math.isclose(vals["S > Op"]["tool_rampAngle"], math.radians(2))
+    assert math.isclose(vals["S > Op"]["tool_rampAngle"], 2.0)
 
 
 # ---- 2. the owner's stock and ramp angle ----------------------------------------------------------------------------
@@ -143,12 +143,12 @@ def test_unknown_current_ramp_angle_proposes_none():
 def test_addin_snapshot_reports_current_ramp_angle():
     a = load_addin()
     assert "tool_rampAngle" in open(a.__file__, encoding="utf-8").read()
-    op = SimpleNamespace(parameters=ParamsByName({"tool_rampAngle": param("2.", math.radians(2))}))
+    op = SimpleNamespace(parameters=ParamsByName({"tool_rampAngle": param("2.", 2.0)}))
     got = None
     for n in ("tool_rampAngle", "rampAngle"):
         p = a._param(op.parameters, n)
         if p is not None:
-            got = math.degrees(a._numeric_param_value(p))
+            got = a._numeric_param_value(p)      # degrees, as Fusion returns it
             break
     assert round(got, 3) == 2.0
 

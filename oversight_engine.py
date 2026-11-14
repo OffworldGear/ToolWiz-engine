@@ -250,7 +250,11 @@ def evaluate_holistic_oversight(
                         f"content has higher chemical affinity with wrought aluminum ({family or alloy}) and can increase built-up edge (BUE) risk."),
                 recommendation="Monitor flutes for chip sticking, or prefer Uncoated polished, ZrN, TiB2, or DLC for heavy aluminum cuts."
             ))
-        if flutes >= 4 and woc > 0 and ("slot" in op_low or (dia > 0 and woc / dia >= 0.5) or dia <= 0.125):
+        # Gate: radial engagement of at least half the diameter (the threshold this check always used; a full slot is 100 % D,
+        # where gullet loading is highest: docs/research/chip_space.md). Not an OR with "slot in the name" or a small tool,
+        # and never for finishing, chamfer / deburr / engrave, probing or hole operations (they take light radial cuts).
+        _no_chip_pack = any(k in op_low for k in ("finish", "chamfer", "deburr", "engrave", "probe", "drill", "tap", "bore", "ream", "hole", "trace"))
+        if flutes >= 4 and woc > 0 and dia > 0 and woc / dia >= 0.5 and not _no_chip_pack:
             findings.append(OversightFinding(
                 category="tool_material",
                 severity="CAUTION",
