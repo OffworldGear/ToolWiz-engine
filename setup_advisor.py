@@ -29,6 +29,7 @@ MM_PER_IN = 25.4
 # ---- finding thresholds ---------------------------------------------------------------------------------------
 CHIP_STOP_RATIO = 2.0        # current chip load / ToolWiz chip load above this: STOP
 OFF_FRACTION = 0.40          # |current / ToolWiz - 1| above this: CAUTION (rpm, feed, chip load, stepdown, stepover)
+FINISH_MIN_FZ_FRACTION = 0.4  # finish_modes.MIN_FZ_SCALE: a finish feed below this share of the free chip load means "lighten the pass"
 SAVINGS_MIN_SPEEDUP = 1.25   # INFO when ToolWiz's recommended engagement removes material this much faster
 STRATEGY_MIN_SAVING = 0.10   # INFO when the recommended strategy saves at least this fraction of the cycle time
 MAX_STRATEGY_CANDIDATES = 4
@@ -248,6 +249,30 @@ def is_probe(tool: Dict[str, Any]) -> bool:
     return "probe" in t or any(k in d for k in ("touch probe", "probe", "renishaw", "blum tc", "stylus"))
 
 
+# Tool types the end-mill model does not describe: an operation with one of them is never analysed as a roughing or
+# finishing cut with a square end mill (field test 2026-11-14: a Trace with a chamfer mill got end-mill roughing numbers).
+_FORM_TOOL_TYPES = ("chamfer", "countersink", "engrav", "deburr", "dovetail", "lollipop", "thread mill", "taper",
+                    "v-bit", "radius mill", "corner round", "circle segment", "form mill", "counter sink", "counterbore",
+                    "spot drill", "center drill")
+
+
+def _type_text(tool: Dict[str, Any]) -> str:
+    """The text that says what kind of tool this is: the Fusion tool type; the description only when no type was sent
+    (a description may mention another form, e.g. an end mill "with 0.004 in chamfer")."""
+    return (tool.get("type") or "").strip().lower() or (tool.get("description") or "").lower()
+
+
+def is_form_tool(tool: Dict[str, Any]) -> bool:
+    """True for a chamfer mill, engraver, dovetail, lollipop, thread mill, tapered mill and the like."""
+    t = _type_text(tool)
+    return any(k in t for k in _FORM_TOOL_TYPES)
+
+
+def is_ball_tool(tool: Dict[str, Any]) -> bool:
+    """True for a ball end mill (not a lollipop or a tapered ball, which are form tools)."""
+    return "ball" in _type_text(tool) and not is_form_tool(tool)
+
+
 def _plausible_channel(geometry: Dict[str, Any], w: float, d: float) -> bool:
     """A measured width makes a slot only when the tool could cut it (not narrower than the tool by more than 5%) and the
     channel is at least about one tool diameter long (when a length was measured); an explicit ``is_slot`` always counts."""
@@ -273,6 +298,8 @@ def classify_op(strategy: str, name: str, tool: Dict[str, Any], geometry: Dict[s
         return "tslot"
     if any(k in s for k in _HOLE) or any(k in ttype for k in ("drill", "tap ", " tap")) and "mill" not in ttype:
         return "hole"
+    if is_form_tool(tool):
+        return "edge"            # a form tool on any strategy (e.g. Trace with a chamfer mill): never an end-mill cut
     if "adaptive" in s or "adaptive" in n:
         return "adaptive"
     if "slot" in s or "slot" in n or geometry.get("is_slot"):
@@ -474,10 +501,18 @@ _KIND_OPERATION = {"adaptive": "Adaptive Roughing", "slot": "Slotting", "contour
 def _fusion_tool_dict(tool: Dict[str, Any], stickout: float) -> Dict[str, Any]:
     geo = {"DC": tool["diameter_in"], "NOF": tool["flutes"], "LCF": tool["flute_length_in"],
            "SFDM": tool["shank_diameter_in"], "LB": stickout}
+    if is_ball_tool(tool):
+        geo["RE"] = tool["diameter_in"] / 2.0
+        return {"type": "ball end mill", "unit": "inches", "geometry": geo}
     if tool.get("corner_radius_in"):
         geo["RE"] = tool["corner_radius_in"]
     return {"type": "bull nose end mill" if tool.get("corner_radius_in") else "flat end mill", "unit": "inches",
             "geometry": geo}
+
+
+def _engine_geometry(tool: Dict[str, Any]) -> str:
+    """The engine's end form for a tool: Ball, Radiused (bull nose) or Square."""
+    return "Ball" if is_ball_tool(tool) else ("Radiused" if tool.get("corner_radius_in") else "Square")
 
 
 def _complete_tool(tool: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
@@ -495,7 +530,9 @@ def _complete_tool(tool: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         t["shank_diameter_in"] = max(d, 0.125) if d < 0.125 else d
         notes.append("shank diameter unknown: assumed " + ("0.125 in for a micro tool" if d < 0.125 else "equal to the cutting diameter"))
     cr = t.get("corner_radius_in") or 0.0
-    if cr and cr <= EDGE_BREAK_MAX_FRACTION * d:
+    if is_ball_tool(t):
+        t["corner_radius_in"] = d / 2.0      # a ball end mill: the nose radius is half the diameter
+    elif cr and cr <= EDGE_BREAK_MAX_FRACTION * d:
         t["corner_radius_in"] = 0.0          # an edge break / chamfer, not a bull nose: lets the v2 model apply
         notes.append(f"corner radius {cr:.4f} in is {cr / d * 100:.0f}% of the diameter: treated as an edge break (square end mill)")
     if not t.get("stickout_in"):
@@ -542,7 +579,7 @@ def _run_endmill(physics, machine, ctx, tool, operation, depth, width):
     coating = tool.get("coating")
     req = CutRequest(
         family=ctx["family"], alloy=ctx["alloy"], operation=operation, coating=coating or "Uncoated",
-        apply_coating=bool(coating), geometry="Radiused" if tool.get("corner_radius_in") else "Square",
+        apply_coating=bool(coating), geometry=_engine_geometry(tool),
         diameter=tool["diameter_in"], flutes=tool["flutes"], flute_length=tool["flute_length_in"],
         shank_diameter=tool["shank_diameter_in"], corner_radius=tool.get("corner_radius_in") or 0.0,
         stickout=tool["stickout_in"], aggressiveness=ctx["aggressiveness"], max_rpm=machine["max_rpm"],
@@ -708,6 +745,19 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
 
     # --- chip load / speed / feed vs ToolWiz ----------------------------------------------------------------------
     basis = usr if usr is not None else rec
+    if op.get("_finish_engagement_unknown"):
+        basis = None                     # the engagement is not known: nothing to compare the op's speed and feed with
+    heavy = op.get("_finish_too_heavy")
+    if heavy:
+        basis = None                     # ToolWiz's number for this engagement is a rubbing feed: not a basis for a STOP
+        out.append(_f("CAUTION", "finish_cut_too_heavy", "This finishing pass is too heavy to hold the wall tolerance",
+                      f"At the operation's own engagement (stepdown {_fi(cur['stepdown_in'])} in, stepover {_fi(cur['stepover_in'])} in) the "
+                      f"{d:.4f} in tool bends more than the finish tolerance allows. To hold it the feed would have to drop to "
+                      f"{heavy['feed_ipm']:.2f} IPM ({heavy['chip_load_ipt']:.5f} in/tooth), which rubs instead of cutting; without the "
+                      f"tolerance ToolWiz would feed {heavy['free_feed_ipm']:.2f} IPM. No speed or feed is proposed for this operation.",
+                      "Take a lighter pass (smaller stepover or stepdown) or shorten the stickout, then run the advisor again. "
+                      "If this pass only cuts a floor and no wall size depends on it, the wall tolerance does not matter here.",
+                      toolwiz_feed_at_tolerance_ipm=heavy["feed_ipm"], toolwiz_feed_without_tolerance_ipm=heavy["free_feed_ipm"]))
     where = "for the same engagement" if usr is not None else "at its recommended engagement"
     if basis is not None and basis["feasible"]:
         usr = basis                      # the comparisons below use ToolWiz's numbers for this op's engagement
@@ -769,7 +819,7 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
     if rec is not None and (kind == "slot" or (kind == "contour" and _contour_removes_material(op))) \
             and (op.get("ramp_info") or {}).get("enabled") is False and rec.get("ramp_angle_deg"):
         out.append(_f("INFO", "ramp_off", "Ramp is off on this operation",
-                      f"Turning on Ramp in Fusion would ease the entry at each depth; "
+                      f"Turning on Ramp in Fusion would ease the entry{'' if op.get('multi_depth') is False else ' at each depth'}; "
                       f"ToolWiz's ramp angle for this tool would be {rec['ramp_angle_deg']:.1f} deg.",
                       "Turn on Ramp in Fusion if you want it (ToolWiz does not change this setting).",
                       toolwiz_ramp_angle_deg=rec["ramp_angle_deg"]))
@@ -919,6 +969,12 @@ def _apply_plans(op: Dict[str, Any], rec: Optional[Dict[str, Any]], usr: Optiona
                                     "tool_feedCutting": _expr("feed", tslot["feed_ipm"]),
                                     "maximumStepdown": _expr("len", tslot["z_step_in"]),
                                     "stepover": _expr("len", tslot["radial_depth_per_pass_in"])}
+    elif kind == "finish":
+        # A finishing pass keeps its own stepdown / stepover, so the only plan is speed and feed for THAT engagement.
+        # ToolWiz's default finishing skim (``rec``) is never written: the op does not take that cut.
+        if usr is not None and usr["feasible"] and not op.get("_finish_engagement_unknown") and not op.get("_finish_too_heavy"):
+            plans["recommended"] = {"tool_spindleSpeed": _expr("rpm", usr["rpm"]),
+                                    "tool_feedCutting": _expr("feed", usr["feed_ipm"])}
     elif rec is not None and rec["feasible"]:
         p = {"tool_spindleSpeed": _expr("rpm", rec["rpm"]), "tool_feedCutting": _expr("feed", rec["feed_ipm"])}
         if kind == "face":
@@ -1295,6 +1351,8 @@ def _alt_request(op: Dict[str, Any], tool: Dict[str, Any], ctx: Dict[str, Any]) 
         "shank_diameter": tool["shank_diameter_in"], "corner_radius": tool.get("corner_radius_in") or 0.0,
         "coating": tool.get("coating"), "brand": tool.get("vendor"), "description": tool.get("description"),
         "is_carbide": tool.get("is_carbide") is not False}
+    if is_ball_tool(tool):
+        body["geometry"] = "ball"            # only ball end mills are compared with a ball end mill
     if not tool.get("stickout_assumed"):
         body["stickout"] = tool["stickout_in"]
     if ctx.get("finish_mode"):
@@ -1973,7 +2031,12 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 entry["current"]["chip_load_ipt"] = entry["current"]["mrr_in3_min"] = None
                 entry["notes"].append("Probe: it does not cut, so no speeds, feeds or strategy are checked.")
             elif kind == "edge":
-                entry["notes"].append("Chamfer, deburr or engraving pass: not checked as a roughing or finishing cut.")
+                if is_form_tool(tool0) and not any(k in (op["strategy"] or "").lower() for k in ("chamfer", "deburr", "engrave")):
+                    entry["notes"].append(f"Form tool ({tool0.get('type') or 'see the description'}): ToolWiz's end-mill model does not "
+                                          "describe it, so this operation is not checked as a roughing or finishing cut and "
+                                          "nothing is proposed for it.")
+                else:
+                    entry["notes"].append("Chamfer, deburr or engraving pass: not checked as a roughing or finishing cut.")
             elif kind == "hole":
                 entry["findings"].append(_f("INFO", "not_analysed", "Hole-making operation not analysed",
                                             "The setup advisor checks milling operations; use the drilling / tapping calculator for this one.",
@@ -2000,7 +2063,8 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 opn = _KIND_OPERATION.get(kind, "Roughing")
                 # Facing: the depth is set by the stock on top, not chosen, so the recommendation is made at the op's own depth.
                 rec_depth = cur["stepdown_in"] if kind == "face" else None
-                key_r = (opn, tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), tool.get("vendor"), ctx["family"], ctx["alloy"], rec_depth, None)
+                key_r = (opn, _engine_geometry(tool), round(tool.get("corner_radius_in") or 0.0, 6), tool["shank_diameter_in"],
+                         tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), tool.get("vendor"), ctx["family"], ctx["alloy"], rec_depth, None)
                 rec_res = cache.get(key_r) or _run_endmill(physics, machine, ctx, tool, opn, rec_depth, None)
                 if rec_depth:
                     entry["notes"].append("facing: ToolWiz's recommendation is for this operation's own depth of cut")
@@ -2015,11 +2079,33 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     entry["notes"].append("No stepover on this operation (multiple passes are off): the radial engagement is the "
                                           "stock the contour removes, which the snapshot does not give, so no chip load or "
                                           "material removal rate is worked out at a width.")
-                if (depth or (width and kind != "slot")) and kind not in _NON_CUTTING and not woc_unknown:
+                # A finishing pass with no stepover: how much it cuts is the stock the earlier operation leaves, which the
+                # snapshot does not give. No feed is worked out or proposed for an assumed skim (field test 2026-11-14).
+                fin_unknown = kind == "finish" and not width and not multi_stepover_active(op)
+                if fin_unknown:
+                    op["_finish_engagement_unknown"] = True
+                    entry["notes"].append(
+                        "No speed or feed is proposed: this finishing pass has no stepover in Fusion, so how much material it "
+                        "takes is the stock the earlier operation leaves, which ToolWiz cannot see here."
+                        + (f" For reference only, ToolWiz's finishing numbers for a {rec['ae_in']:.4f} in skim over a "
+                           f"{rec['ap_in']:.4f} in depth are {rec['feed_ipm']:.2f} in/min at {rec['rpm']} rpm; a heavier cut needs a lower feed."
+                           if rec["feasible"] else ""))
+                if (depth or (width and kind != "slot")) and kind not in _NON_CUTTING and not woc_unknown and not fin_unknown:
                     key_u = key_r[:-2] + (depth, width)
                     usr_res = cache.get(key_u) or _run_endmill(physics, machine, ctx, tool, opn, depth, width)
                     cache[key_u] = usr_res
                     usr = _cut_dict(usr_res, tool["flutes"])
+                    # A finishing pass whose own engagement is too heavy for the wall tolerance: the finish target cuts the
+                    # chip load far below what the tool needs to cut cleanly. finish_modes reduces fz to 40 % at most before it
+                    # reduces the engagement; here the engagement is the operation's, so the answer is "lighten the pass",
+                    # not a rubbing feed (field test 2026-11-14, Flat34).
+                    if kind == "finish" and usr["feasible"] and "wall error" in str(usr["limited_by"] or "") \
+                            and not ctx.get("finish_mode"):
+                        free = _cut_dict(_run_endmill(physics, machine, dict(ctx, finish_mode="none"), tool, opn, depth, width), tool["flutes"])
+                        if free["feasible"] and free["chip_load_ipt"] and usr["chip_load_ipt"] \
+                                and usr["chip_load_ipt"] < FINISH_MIN_FZ_FRACTION * free["chip_load_ipt"]:
+                            op["_finish_too_heavy"] = {"feed_ipm": usr["feed_ipm"], "chip_load_ipt": usr["chip_load_ipt"],
+                                                       "free_feed_ipm": free["feed_ipm"], "free_chip_load_ipt": free["chip_load_ipt"]}
                 ms_block = None
                 if multi_stepover_active(op):
                     ms_block, slot_d = _multi_stepover(op, tool, physics, machine, ctx, cache)

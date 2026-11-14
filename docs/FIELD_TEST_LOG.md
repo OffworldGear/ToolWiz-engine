@@ -66,3 +66,24 @@ candidates by tool type or strategy (I did not read that code).
   feed is dropped with the angle (e.g. 3D Adaptive Roughing2 (2): 40.79 in/min stays, 39.31 not proposed).
 - The Speeds & Feeds auto-setter writes ToolWiz's ramp angle into the preset and links the op to it, which overwrites
   a custom angle on the op. Keep that, or leave a custom angle alone?
+
+## Cloud session fixes, 2026-11-14 (server only; the add-in is unchanged: pull and restart the server)
+
+Regression tests: `tests/test_field_log_2026_11_14.py`. Rules are written up in `docs/SETUP_ADVISOR.md`
+("Tool form and finishing engagement").
+
+| Entry | What changed | For the shop PC to re-check in live Fusion |
+|---|---|---|
+| 3 | A finishing op is offered speed and feed only for its own stepdown and stepover. ToolWiz's 0.002 in skim feed is never written. No stepover on the op: nothing is offered, and a note says why and gives the skim numbers for reference. A pass too heavy for the wall tolerance: CAUTION `finish_cut_too_heavy`, nothing offered, no chip-load STOP against a rubbing feed. | Flat34, Flat33 (4), Scallop4 (6): the plan feed equals `at_current_engagement`, or there is no plan plus the CAUTION. 2D Contour7 and 2D Contour239 (4): no plan, the note. Please record `limited_by` for Flat34 at its own engagement: the 3.17 in/min was not reproduced here (19.44 in/min with a 0.5 in stickout and 0.125 in shank; 5.85 with 0.75 in stickout, limited by "wall error"). |
+| 4 | A form tool (by Fusion tool type) makes the op kind `edge` on any strategy. | Trace1 (2) and Op2 Trace1 (3): no numbers, no plan, no tool suggestion, the "Form tool (chamfer mill)" note. |
+| 5 | A ball end mill is sent to the engine and to the tool comparison as a ball. | Scallop4 (6) and Adaptive48 (4): no flat end mill offered. |
+| 1 | "at each depth" is left out when multiple depths are off. | Op2 2D Contour206 (3), (7). |
+| 7 | Not changed (cosmetic, needs an add-in change). | — |
+
+**The owner's document still holds the values applied before these fixes.** The feeds written to the four 1/16 in finishing
+ops (51.03 in/min), to Flat33 (4) (74.87) and to Trace1 (2) (87.36 in/min, 16000 rpm, plunge 25.97) came from the faulty
+plan. Run the advisor again after the restart, or put the earlier values back, before regenerating or cutting.
+
+Not verified here: live Fusion, the dialog, the owner's real tool data. Open point for the owner: on a floor-only pass
+(Flat) the wall tolerance still limits the feed; whether a floor pass should ignore it is an engine question for after the
+freeze.

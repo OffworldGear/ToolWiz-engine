@@ -89,6 +89,19 @@ Operation `kind` (derived, or send `kind`): `adaptive`, `slot` (2D contour or sl
 `pocket`, `rough`, `face`, `finish`, `tslot` (slot mill / keyseat / T-slot tool type), `hole` (not analysed). A corner radius up to 15 % of the
 diameter is treated as an edge break (square end mill) so the v2 model applies; a larger radius runs ToolWiz's bull-nose path (v1).
 
+**Tool form and finishing engagement (field test 2026-11-14, `docs/FIELD_TEST_LOG.md` entries 3 to 5).**
+- A form tool (Fusion tool type chamfer mill, countersink, engraver, dovetail, lollipop, tapered mill, thread mill and the
+  like) makes the operation kind `edge` on any strategy (for example Trace with a chamfer mill): no cutting model, no plan,
+  no tool comparison. The tool *type* decides; the description is read only when no type was sent.
+- A ball end mill goes to the engine as geometry `Ball` and to the tool recommender as a ball, so only ball end mills are
+  compared with it.
+- A `finish` operation keeps its own stepdown and stepover, so its plan is only speed and feed **for that engagement**
+  (`at_current_engagement`). ToolWiz's default finishing skim (`recommended`, about 0.002 in wide) is never written.
+  With no stepover on the operation the engagement is unknown: no plan, no speed or feed findings, and a note that gives the
+  skim numbers for reference. When the operation's engagement is so heavy that the finish tolerance cuts the chip load below
+  40 % of the unconstrained value (`finish_modes.MIN_FZ_SCALE`), the finding is CAUTION `finish_cut_too_heavy` and no plan
+  is offered: the answer is a lighter pass, not a rubbing feed.
+
 **For the add-in agent** the current `get_setup_summary` carries only the tool description and `SNAPSHOT_PARAMS`; the advisor needs, per op: the tool
 geometry JSON (`op.tool.toJson()`), the holder name, `stockToLeave` and `verticalStockToLeave` (not in `SNAPSHOT_PARAMS` today), the op's
 heights and toolpath length where Fusion exposes them, `rest_machining`, and `op_id` = the `"Setup > Op"` path.
