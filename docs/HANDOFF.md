@@ -74,6 +74,45 @@ the measured number. Check the exit status directly; a pipe into `tail` hides fa
   `docs/TOOL_LIBRARY_NOTES.md`, `docs/SHOP_LIBRARY_AUDIT.md`, the add-in's `update_tool_fields` bridge action (not yet
   proven against live Fusion), and the description convention for coating / HSS in `docs/ADDIN_USER_GUIDE.md`.
 
+## State at the end of the first cloud session (2026-11-14)
+
+- **Owner is in a testing stretch.** Agreed with the owner: no pushes to `toolwiz/v4-advisor` while they test, unless the
+  local session reports something unsafe (a wrong value written to Fusion, a crash, a result that would break a tool).
+  The local session keeps one running list in `docs/FIELD_TEST_LOG.md` and pushes it when the owner says the testing
+  session is over. Handle that log as one batch.
+- **Setup Advisor went through six verification rounds against the owner's live Fusion document**
+  (`docs/FUSION_BRIDGE_LOCAL_TEST_2026-11-13.md`, `docs/FUSION_BRIDGE_VERIFY*_2026-11-1[34].md`; regression tests in
+  `tests/test_local_bridge_report_*.py` and `tests/test_verify*_report_*.py`). What remains is cosmetic. Rules settled
+  with the owner: only real changes are listed; the owner's stock to leave is kept (stock is proposed only on a clearly
+  roughing operation with stock enabled and zero); a ramp angle is never raised and is lowered only beyond a tolerance
+  of max(1 deg, 15%); a ramp angle is proposed only where the operation ramps and removes real material; a contour or
+  slot with Ramp off gets an INFO, never a write; probes, chamfer / deburr / engrave and hole operations are not checked
+  as cuts.
+- **Not yet seen by anyone in Fusion:** the Setup Advisor dialog and the Speeds & Feeds result dialog after the last
+  rounds (only the owner can open them); a real Claude client on `/api/mcp`; a peck-drill operation; the tool-field
+  write-back (`update_tool_fields`).
+- **Decisions waiting on the owner:**
+  1. Default unnamed (unbranded) tools to about 40% on the slider? (Study: the "Tool Performance Grade" choice does
+     nothing in v2; weaker-carbide settings change MRR by under 1%; the slider is the only real lever. Owner: cheap
+     carbide has been good, "not too much lower".)
+  2. Should the Speeds & Feeds auto-setter stop overwriting a ramp angle set on the operation? (It writes ToolWiz's
+     angle into the preset and re-links the operation.)
+  3. Rate SK / SX collet holders at 0.0001 in everywhere?
+  4. Map Haas-branded tools to the YG-1 charts, or have the owner label them YG-1? (Study: not a clear win; YG-1 cells
+     for those sizes rest on 1 to 4 rows.)
+  5. Should a ramp feed still be proposed when the owner's ramp angle is kept inside the tolerance? (Recommended: no.)
+  6. Three AI entry points exist (AI Machinist co-pilot panel, AI Setup Advisor Chat tab, local Claude session over
+     MCP): remove the two in-app ones once the local session has proven itself?
+- **Studies done:** `docs/SLOT_ROUGHING_STUDY.md` (slotting beats HEM for one-tool-wide slots; high-feed worth a trial
+  at 1/8 in, not at 1/16 in on a 16k spindle) and `docs/PHYSICS_VS_CHARTS_STUDY.md` (charts set speed and nominal chip
+  load, physics adapts them to the setup; on the Speedio the chart as printed breaks a tool or machine limit in half of
+  the groups above 1/8 in, mostly spindle power; the Speedio torque curve and holder stiffness are provisional and
+  worth confirming).
+- **Engine follow-ups after the freeze, ranked by the study:** speed model for hard materials and micro tools; 6061
+  chip load (too low without the charts); say in each result whether the chart or the physics set each number.
+- **Messaging the shop PC session** from a new cloud session needs the owner to approve a trust prompt once; until then
+  the two sessions work through the repository (reports in `docs/`).
+
 ## Things that bit us
 
 - The result cache key once lacked the flute count: every flute count got the first tool's answer. Any new engine input
