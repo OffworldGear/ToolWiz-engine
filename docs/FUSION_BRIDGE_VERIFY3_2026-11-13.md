@@ -112,6 +112,12 @@ chamfer entering from outside with a lead-in. Never propose one for chamfer, tra
 can't tell, read the op's entry parameters into it first. When it isn't proposed, add a note like "Not proposed: ramp angle,
 because this operation does not ramp."
 
+The owner added when a contour does need one: **"the ramp is usually needed if the contour is going to cut away a lot of
+material that was left behind after a roughing step."** So for a contour, the rule is about how much material it removes, not
+the op type alone. Propose a ramp angle on a contour when it removes substantial leftover material, e.g. when it follows a
+rough with a large rest stock, uses multiple depths or several passes, or its entry plunges into material rather than coming
+in from air. A light finishing pass that takes off only the roughing allowance (a few thou) doesn't need one.
+
 ## Still not done
 
 - A real Claude Code client on `/api/mcp`: needs a new session on this PC.
