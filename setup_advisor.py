@@ -751,7 +751,7 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
                           toolwiz_stepover_in=rec["ae_in"]))
 
     # --- stock to leave ---------------------------------------------------------------------------------------------
-    if rec is not None and kind in ("adaptive", "pocket", "rough", "contour"):
+    if rec is not None and kind in ("adaptive", "pocket", "rough", "contour") and not _stock_not_proposed(op):
         want_r, want_a = rec.get("stock_to_leave_radial_in"), rec.get("stock_to_leave_axial_in")
         have_r, have_a = cur["stock_radial_in"], cur["stock_axial_in"]
         if want_r and have_r is not None and have_r < want_r * 0.999:
@@ -763,6 +763,15 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
             out.append(_f("CAUTION", "stock_axial_low", "Axial stock to leave is below ToolWiz's recommendation",
                           f"The operation leaves {_fi(have_a)} in on the floor; ToolWiz recommends at least {_fi(want_a)} in.",
                           f"Set the axial stock to leave to {_fi(want_a)} in.", current_stock_in=have_a, toolwiz_stock_in=want_a))
+
+    # --- contour that removes material but has Ramp off in Fusion (INFO; the plan never writes doRamp) -----------------
+    if rec is not None and kind == "contour" and (op.get("ramp_info") or {}).get("enabled") is False \
+            and _contour_removes_material(op) and rec.get("ramp_angle_deg"):
+        out.append(_f("INFO", "ramp_off", "Ramp is off on this operation",
+                      f"Ramp is off on this operation. Turning on Ramp in Fusion would ease the entry at each depth; "
+                      f"ToolWiz's ramp angle for this tool would be {rec['ramp_angle_deg']:.1f} deg.",
+                      "Turn on Ramp in Fusion if you want it (ToolWiz does not change this setting).",
+                      toolwiz_ramp_angle_deg=rec["ramp_angle_deg"]))
 
     # --- runout / holder / reduced flutes / rubbing --------------------------------------------------------------
     ref = usr if (usr is not None and usr["feasible"]) else rec
@@ -943,8 +952,31 @@ _PLAN_NEEDS = {"maximumStepdown": ("stepdown_in", "stepdown"), "stepover": ("ste
 
 RAMP_MAX_BELIEVED_DEG = 90.0      # a current ramp angle above this is not believed (unit mix-up): unknown, nothing proposed
 CONTOUR_RAMP_MIN_STEPOVER_OVER_D = 0.25   # a contour's radial engagement above this fraction of D is more than a finishing allowance
+RAMP_LOWER_TOL_DEG = 1.0          # a lower ramp angle is proposed only when it is lower by more than max(this, FRAC x owner's)
+RAMP_LOWER_TOL_FRAC = 0.15
 _NO_RAMP_KINDS = ("edge", "probe", "hole", "finish", "tslot")
 _STOCK_NONE_IN = 0.00005     # a stock to leave at or below this counts as "zero / not set" (as in classify_op)
+
+
+def _contour_removes_material(op: Dict[str, Any]) -> bool:
+    """A contour that removes real material: multiple depths, 2+ roughing passes, or a stepover of at least 0.25 x D."""
+    ms = (op.get("geometry") or {}).get("multi_stepover") or {}
+    d = (op.get("tool") or {}).get("diameter_in")
+    so = (op.get("current") or {}).get("stepover_in")
+    return bool(op.get("multi_depth") is True or (ms.get("enabled") and (ms.get("count") or 0) >= 2)
+                or (d and so and so >= CONTOUR_RAMP_MIN_STEPOVER_OVER_D * d))
+
+
+def _clear_rough_contour(op: Dict[str, Any]) -> bool:
+    name_l = str(op.get("name") or "").lower()
+    ms = (op.get("geometry") or {}).get("multi_stepover") or {}
+    return "rough" in name_l or bool(ms.get("enabled") and (ms.get("count") or 0) >= 2)
+
+
+def _stock_not_proposed(op: Dict[str, Any]) -> bool:
+    """True where the stock-to-leave proposal is withheld on a contour (stock option off, or not clearly a roughing pass)."""
+    on = op.get("stock_enabled")
+    return on is False or (on is True and op.get("kind") == "contour" and not _clear_rough_contour(op))
 
 
 def _ramp_allowed(op: Dict[str, Any]) -> Tuple[bool, str]:
@@ -962,13 +994,14 @@ def _ramp_allowed(op: Dict[str, Any]) -> Tuple[bool, str]:
         if en is not True:
             return False, "ramp entry not detected; ramp angle not proposed"
         if kind == "contour":
-            ms = (op.get("geometry") or {}).get("multi_stepover") or {}
-            d = (op.get("tool") or {}).get("diameter_in")
-            so = (op.get("current") or {}).get("stepover_in")
-            if not (op.get("multi_depth") is True or (ms.get("enabled") and (ms.get("count") or 0) >= 2)
-                    or (d and so and so >= CONTOUR_RAMP_MIN_STEPOVER_OVER_D * d)):
+            if not _contour_removes_material(op):
                 return False, "light finishing pass: ramp angle not proposed"
     return True, ""
+
+
+def _same_stock(have: Optional[float], want: Optional[float]) -> bool:
+    """The operation already leaves what ToolWiz would leave (as shown, 4 decimals): such a note says nothing."""
+    return have is not None and want is not None and _expr_equal(f"{have:.4f} in", f"{want:.4f} in", "len")
 
 
 def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], notes: List[str]) -> Dict[str, Dict[str, str]]:
@@ -982,9 +1015,7 @@ def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], no
     out = {k: dict(v) for k, v in plans.items()}
     rough_kind = op.get("kind") in ("adaptive", "pocket", "rough", "contour")
     stock_on = op.get("stock_enabled")            # add-in snapshots say whether the stock option is on; flat ones do not
-    name_l = str(op.get("name") or "").lower()
-    ms = (op.get("geometry") or {}).get("multi_stepover") or {}
-    clear_rough_contour = "rough" in name_l or bool(ms.get("enabled") and (ms.get("count") or 0) >= 2)
+    clear_rough_contour = _clear_rough_contour(op)
     for name, key, label in (("stockToLeave", "stock_radial_in", "Stock to leave"),
                              ("verticalStockToLeave", "stock_axial_in", "Vertical stock to leave")):
         have = cur.get(key)
@@ -997,13 +1028,17 @@ def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], no
                 want = parse_quantity(plan.pop(name), "len")
                 note = (f"{label} is off on this operation (finishing to size): not proposed"
                         + (f"; ToolWiz would leave {want:.4f} in." if want is not None else "."))
-                if note not in notes:
+                if _same_stock(have, want):
+                    note = None
+                if note and note not in notes:
                     notes.append(note)
             elif stock_on is True and op.get("kind") == "contour" and not clear_rough_contour:
                 want = parse_quantity(plan.pop(name), "len")
                 note = (f"{label} not proposed: this contour is not clearly a roughing pass"
                         + (f"; ToolWiz would leave {want:.4f} in." if want is not None else "."))
-                if note not in notes:
+                if _same_stock(have, want):
+                    note = None
+                if note and note not in notes:
                     notes.append(note)
             elif have is not None and have > _STOCK_NONE_IN:
                 want = parse_quantity(plan.pop(name), "len")
@@ -1023,7 +1058,11 @@ def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], no
                 notes.append(why)
             continue
         want = parse_quantity(plan["tool_rampAngle"], "angle")
-        if cur_ramp is None or want is None or want > cur_ramp + 0.05:
+        if cur_ramp is not None and want is not None and want <= cur_ramp + 0.05 \
+                and cur_ramp - want <= max(RAMP_LOWER_TOL_DEG, RAMP_LOWER_TOL_FRAC * cur_ramp):
+            plan.pop("tool_rampAngle")          # lower, but inside the tolerance: the owner's angle stays, silently
+            plan.pop("tool_feedRamp", None)
+        elif cur_ramp is None or want is None or want > cur_ramp + 0.05:
             plan.pop("tool_rampAngle")
             plan.pop("tool_feedRamp", None)
             if cur_ramp is not None and want is not None:
@@ -1072,6 +1111,8 @@ def _finalize_plans(op: Dict[str, Any], plans: Optional[Dict[str, Dict[str, str]
             out[key] = kept
     for name, why in absent.items():
         notes.append(f"Not proposed: {name}, because {why}.")
+    if len(out) == 2 and out.get("recommended") == out.get("keep_engagement"):
+        del out["keep_engagement"]          # the same parameters and values twice: keep one
     if n_same and not out:
         notes.append("ToolWiz's values equal the operation's current values: nothing to change.")
     elif n_same:

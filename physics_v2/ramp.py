@@ -249,6 +249,11 @@ def _fmt(x):
     return f"{x:.2f}".rstrip("0").rstrip(".")
 
 
+def fmt_deg(x):
+    """An angle shown to one decimal, rounded exactly as the Setup Advisor's plan expression (round to 2, then .1f)."""
+    return f"{round(float(x), 2):.1f}"
+
+
 def _covers(row, z, reach):
     """A row vouches for a tool with no more flutes (chip room in the full-width ramp cut) and no longer reach."""
     rz, rr = row[3], row[4]
@@ -442,21 +447,28 @@ def angle_text(basis, aggressiveness, brand=None):
         why = "; ".join(x for x in ((f"{br.display_name(brand)} has {basis['brand_missing']}" if brand else "no brand given"),
                                     (f"Harvey + Helical have {basis['default_missing']}" if basis.get("default_missing")
                                      else None)) if x)
-    txt = f"Ramp angle from {src} for {fam} ({why}): {_fmt(lo)} to {_fmt(hi)} deg"
+    txt = f"Ramp angle from {src} for {fam} ({why}): {fmt_deg(lo)} to {fmt_deg(hi)} deg"
     if basis.get("uncovered"):
-        txt += (f"; {basis['uncovered']}, so the bottom of their range, {_fmt(cap)} deg, is used at every aggressiveness "
+        txt += (f"; {basis['uncovered']}, so the bottom of their range, {fmt_deg(cap)} deg, is used at every aggressiveness "
                 f"(no vendor value for this tool)")
     elif basis["larger_only"]:
         txt += (f"; these charts are for larger tools only (smallest {basis['row_D_in'][0]:.4g}\", this tool is in the "
-                f"{basis['band']} band), so the bottom of the range, {_fmt(cap)} deg, is used at every aggressiveness "
+                f"{basis['band']} band), so the bottom of the range, {fmt_deg(cap)} deg, is used at every aggressiveness "
                 f"(no vendor publishes a value for this size)")
     else:
-        txt += f", {_fmt(cap)} at {aggressiveness:.0%} (0 % bottom, 50 % middle {_fmt(mid)}, 100 % top)"
+        txt += f", {fmt_deg(cap)} at {aggressiveness:.0%} (0 % bottom, 50 % middle {fmt_deg(mid)}, 100 % top)"
     rf = basis.get("row_flutes")
     rr = basis.get("row_reach_over_D")
-    txt += (f". Rows: {basis['rows']} ({', '.join(str(f) for f in rf)}-flute" if rf else f". Rows: {basis['rows']} (")
-    txt += (f", {_fmt(rr[0])}" + (f"-{_fmt(rr[1])}" if rr[1] > rr[0] * 1.01 else "") + "×D reach" if rr else "")
-    txt += f"; {basis['widening']})"
+    z = basis.get("tool_flutes")
+    who = f"{basis['vendor_name']} chart rows"
+    txt += f". Based on {basis['rows']} {who}"
+    if rf:
+        fl = "/".join(str(f) for f in rf)
+        txt += (f" for {fl}-flute tools, the closest published tools with at least as many flutes as this "
+                f"{z}-flute tool" if z else f" for {fl}-flute tools")
+    if rr:
+        txt += f", {_fmt(rr[0])}" + (f"-{_fmt(rr[1])}" if rr[1] > rr[0] * 1.01 else "") + "×D reach"
+    txt += f" ({basis['widening']})"
     if basis["derived"]:
         txt += f". Rows that publish only a maximum: {basis['max_only_rule']}"
     return txt + "."
