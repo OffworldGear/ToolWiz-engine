@@ -3149,6 +3149,9 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         shown_titles.add(w.split(":", 1)[0].strip())
     if ramp_expr is not None:
         msg += f"\n\nRamp angle: {float(ramp_expr):.2f}°."
+        _basis = twlogic.ramp_basis_text(calc_result)
+        if _basis:
+            msg += "\n" + _basis
     if ramp_dia_note == 'written':
         msg += f"\nHelical ramp diameter: {float(calc_result.get('ramp_diameter_in')):.4f}\"."
     elif ramp_dia_note == 'kept':
@@ -5807,6 +5810,56 @@ def op_geometry(op, geo, kind, doc_unit="in"):
     return {k: v for k, v in g.items() if v is not None}
 
 
+def _multiple_depths_flag(op):
+    """True / False from the operation's Multiple Depths toggle, None when it has none."""
+    params = getattr(op, 'parameters', None)
+    for n in ('doMultipleDepths', 'useMultipleDepths'):
+        p = _param(params, n)
+        if p is not None:
+            return bool(_is_bool_param_true(p))
+    return None
+
+
+RAMP_ENABLED_FLAGS = ('doRamp', 'useRamp', 'rampEnabled')
+RAMP_TYPE_PARAMS = ('rampType', 'rampingType', 'entryType', 'entryPosition', 'entryPositionType')
+
+
+def read_ramp_entry(op):
+    """{"enabled": True|False|None, "type": str|None, "raw": {name: expression}} for how the operation enters the cut.
+    `raw` records every parameter whose name has "ramp" or "entry" in it (the names are not documented for every
+    operation type); `enabled` comes from a ramp on/off flag, else from a ramp type that says ramp / helix (True) or
+    plunge / none / off (False); None when it cannot tell."""
+    out = {"enabled": None, "type": None, "raw": {}}
+    params = getattr(op, 'parameters', None)
+    if params is None:
+        return out
+    try:
+        for p in _iter_params(params):
+            n = str(getattr(p, 'name', '') or '')
+            if 'ramp' in n.lower() or 'entry' in n.lower():
+                out["raw"][n] = _safe(lambda: p.expression)
+        for n in RAMP_ENABLED_FLAGS:
+            p = _param(params, n)
+            if p is not None:
+                out["enabled"] = bool(_is_bool_param_true(p))
+                break
+        for n in RAMP_TYPE_PARAMS:
+            p = _param(params, n)
+            if p is not None:
+                t = str(_safe(lambda: p.expression) or '').strip().strip("'\"")
+                out["type"] = t or None
+                tl = t.lower()
+                if out["enabled"] is None and tl:
+                    if any(k in tl for k in ('ramp', 'helix', 'helical')):
+                        out["enabled"] = True
+                    elif any(k in tl for k in ('plunge', 'none', 'off', 'vertical')):
+                        out["enabled"] = False
+                break
+    except Exception as ex:
+        _log("Ramp entry read failed", ex)
+    return out
+
+
 def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     """One operation of the Setup Advisor / bridge snapshot, in the field names of docs/SETUP_ADVISOR.md:
     op_id (= "Setup > Op" path), name, setup, strategy (op.strategy), tool (the Fusion tool JSON, parsed),
@@ -5823,12 +5876,13 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
     stock = _stock_values_in(op, doc_unit)
     plunge = parse_cam_feed_to_ipm(_param(params_obj, 'tool_feedPlunge'), doc_unit)
     ramp = parse_cam_feed_to_ipm(_param(params_obj, 'tool_feedRamp'), doc_unit)
-    ramp_deg = None      # current ramp angle: Fusion's evaluated value is in radians
+    ramp_deg = None      # current ramp angle in DEGREES: Fusion returns tool_rampAngle's value already in degrees (not radians)
     for _rn in ('tool_rampAngle', 'rampAngle'):
-        _rv = _numeric_param_value(_param(params_obj, _rn)) if _param(params_obj, _rn) is not None else None
-        if _rv is not None and _rv > 0:
-            ramp_deg = math.degrees(_rv)
-            break
+        _rp = _param(params_obj, _rn)
+        if _rp is not None:
+            ramp_deg = twlogic.ramp_angle_deg(_safe(lambda: _rp.expression), _numeric_param_value(_rp))
+            if ramp_deg is not None:
+                break
     params = {}
     if rpm:
         params["tool_spindleSpeed"] = f"{rpm:.0f} rpm"
@@ -5850,6 +5904,9 @@ def op_advisor_entry(op, path, doc_unit="in", defaults=None):
         if stock.get("axial") is not None:
             params["verticalStockToLeave"] = _expr_in(stock["axial"])
     entry = {
+        "stock_to_leave_enabled": bool(stock.get("active")),
+        "multiple_depths": _multiple_depths_flag(op),
+        "ramp": read_ramp_entry(op),
         "op_id": path, "path": path, "name": op_name, "setup": path.split(" > ", 1)[0], "strategy": strat_raw,
         "strategy_label": strat_label,
         "cycle_type": cycle_type,
@@ -5938,7 +5995,7 @@ def current_param_expressions(changes):
 
 
 def current_param_values(changes):
-    """{op_id: {param: Fusion's evaluated value (internal units: cm, radians, mm/min, rpm) or None}} for the parameters in
+    """{op_id: {param: Fusion's evaluated value (internal units: cm, mm/min, rpm; angles are degrees) or None}} for the parameters in
     `changes`. twlogic.display_current / expr_equal convert it the way parse_cam_feed_to_ipm and _signed_len_in do."""
     vals = {}
     for op_id, params in changes.items():

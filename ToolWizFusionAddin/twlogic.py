@@ -686,7 +686,7 @@ def param_kind(name):
 
 def evaluated_to_base(name, value):
     """Fusion's evaluated (internal-unit) value of a parameter -> inches / in/min / rpm / degrees, or None. Lengths are cm
-    (as in ToolWizFusionAddin._signed_len_in), feeds mm/min (as in parse_cam_feed_to_ipm), angles radians, rpm plain."""
+    (as in ToolWizFusionAddin._signed_len_in), feeds mm/min (as in parse_cam_feed_to_ipm), angles DEGREES (live Fusion returns tool_rampAngle's value already in degrees: 2 deg reads 2.0), rpm plain."""
     if value is None or isinstance(value, bool):
         return None
     try:
@@ -694,7 +694,40 @@ def evaluated_to_base(name, value):
     except (TypeError, ValueError):
         return None
     k = param_kind(name)
-    return {"len": v / 2.54, "feed": v / 25.4, "angle": math.degrees(v), "rpm": v}[k]
+    return {"len": v / 2.54, "feed": v / 25.4, "angle": v, "rpm": v}[k]
+
+
+MAX_BELIEVED_RAMP_DEG = 90.0    # a ramp angle above this is not believed (a unit mix-up): treated as unknown
+
+
+def ramp_angle_deg(expression, value=None):
+    """The operation's current ramp angle in degrees, or None when unknown. A plain number or number + "deg" expression
+    ('2.', '2 deg') is parsed as it stands; for a formula or link the evaluated value is used, as degrees (live Fusion
+    returns tool_rampAngle in degrees, not radians). Anything not in (0, 90] is not believed and gives None."""
+    a = None
+    m = _EQ_QTY.match(str(expression or ""))
+    if m and m.group(2).lower() in ("", "deg", "\u00b0"):
+        a = float(m.group(1))
+    elif value is not None and not isinstance(value, bool):
+        try:
+            a = float(value)
+        except (TypeError, ValueError):
+            a = None
+    if a is None or not 0.0 < a <= MAX_BELIEVED_RAMP_DEG:
+        return None
+    return a
+
+
+def ramp_basis_text(calc_result):
+    """The engine's plain-words sentence saying which vendor chart set the ramp angle (v2 result), or ''."""
+    v2 = (calc_result or {}).get("v2") if isinstance(calc_result, dict) else None
+    if not isinstance(v2, dict):
+        return ""
+    t = v2.get("ramp_basis")
+    if not t:
+        ab = (v2.get("ramp") or {}).get("angle_basis") if isinstance(v2.get("ramp"), dict) else None
+        t = ab.get("text") if isinstance(ab, dict) else None
+    return str(t) if t else ""
 
 
 def _evaluated_equal(name, value, new):
