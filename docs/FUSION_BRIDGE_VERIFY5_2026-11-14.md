@@ -69,6 +69,12 @@ the owner's statement so far covers PrepEndCapStock only ("2D Contour 2 is the o
 ramp"). For reference, the other ramp-off ops: 2D Contour1 (contour, single depth, 0.122 in deep, D 0.25) and
 2D Contour239 (4) (finish, single depth): no `ramp_off`, as intended.
 
+**Owner's answer (2026-11-14).** Asked "Should the two 1/16" slot ops in Op2 (2D Contour206 (3) and (7)) also get the
+'Ramp is off' note?", the owner said: "Yes, add it". So `ramp_off` should also fire on these two ops: kind `slot`,
+`doRamp = false`, full-width channel (100 % D), multiple depths off. As on 2D Contour2 it stays an INFO: no `doRamp`
+and no ramp angle in the plan. The owner answered for these two ops; whether every ramp-off slot should get the note
+is my reading of that answer, not something the owner said.
+
 ## Notes
 
 **A. The ramp feed goes with the angle.** When the angle is inside the tolerance, `tool_feedRamp` is dropped too.
