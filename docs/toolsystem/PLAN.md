@@ -53,23 +53,32 @@ Fusion or the machine still needs a backup, a dry run and his confirmation. Brie
   to a tool in a document is copied back to the master (the master's tool with that number is updated in place, so
   no old version is left behind), or the document tool is reset to the master. Nothing is left differing silently.
 
-## Phases (each ends with something the owner can read and approve)
+## Phases (revised with the owner, 2026-11-15, later; each ends with something he reads and approves)
 
-1. **Staging list (our local master, temporary).** From the harvest, show the tools found in the owner's
-   manufacturing documents. The owner says which to pull in; each becomes one row with a permanent tool number.
-   Where the same tool differs between documents, he picks the right version. He corrects brand, coating, shank,
-   stickout and holder. Nothing is written to Fusion.
-2. **Presets and change log** for the staged tools: active materials x allowed strategies, trust levels
-   (Calculated, Manufacturer, Ran OK, Proven), old versus new with reasons.
-3. **Build the true master in the Fusion hub** from the finished staging list: backup, dry run, owner confirms.
-   If the hub cannot be written by the add-in, he imports one library file by hand. From here Fusion is the master
-   and the staging list becomes the digital twin.
-4. **Drift report, read only, on every harvest.** Per document: tools that differ from the master and in what.
-   For each difference the owner chooses "copy to master" or "reset to master".
-5. **Applying those choices automatically,** after the test on a copy passes; by hand until then.
-6. **Machine link, read only:** life, wear and pockets on a schedule; per-cutter history; weekly review.
-7. **Overnight running:** spare-tool groups, laser breakage checks, life limits from history. Writing to the
-   control last, once tool life is tracked from which program ran with which tool.
+Settled: start a NEW tool list; do not inherit existing Fusion tool data. Tool numbers are arbitrary and the
+numbers already used in his Fusion documents are kept. Three rules only: one number = one tool + holder + stickout;
+a number is not reused while an in-production setup still calls it; no tool 0. Must fit in 99 (T99 probe, T98
+master gauge; spare tools for overnight running each need a number). The control's table is reliable only for
+numbers 1 to 21 (length, wear, life), 98 and 99; its descriptions are not. Length is set on the tool setter and wear
+by the laser, at the machine. Geometry comes from the manufacturer's part number or measurement (the T12 / T6 shank
+error was Fusion's default of shank = tool diameter).
+
+1. **Setup picker and tool list.** The add-in harvests tools only from the setups the owner selects, and remembers
+   that selection as "in production". Result: a list of tool numbers in use, with conflicts shown (one number
+   defined two ways), numbers used versus the 99 limit, and a cross-check against the control for 1 to 21.
+2. **Geometry, then holders.** A checklist per tool number (shank, flute length, stickout, holder, brand, part
+   number, coating); the owner fills it at the machine. Nothing is written to Fusion.
+3. **Materials and strategies.** ToolWiz presets for the active materials and allowed strategies, each marked
+   Calculated, Manufacturer or Proven. A preset that already works in a setup can be captured as Proven instead of
+   being replaced. Change log against the old values.
+4. **Build the master in the Fusion hub:** backup, dry run, owner confirms (hand import if the hub cannot be written).
+5. **Tools back into setups, deliberately, per part.** Per tool: update from master, or keep as is (a recorded,
+   accepted difference; recent working setups will mostly stay). Proven on a copy first.
+6. **Drift report** on every harvest of the in-production setups.
+7. **Machine link, read only; then overnight running.** As before; writing to the control last.
+
+Pilot: not yet. Candidate is the End Cap (aluminium version now, cut with AlTiN tools; a 17-4 version follows, which
+exercises two materials on the same tools).
 
 ## Requests for the shop PC session
 
