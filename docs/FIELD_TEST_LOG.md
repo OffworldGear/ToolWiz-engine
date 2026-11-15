@@ -24,6 +24,10 @@ with, but could work around), **cosmetic**.
 | 5 | 2026-11-14 | Op1EndCap7075 > FrameEndCapBevelsCounterBoreScallop4 (6) (T6, 1/16 in ball) | "Different tool" suggests a flat end mill for a ball-mill scallop op, with an implausible gain. | No flat end mill offered for a 3D scallop pass. | "[info] A different tool is 3026% faster for this cut (1/16" Flat Endmill) … 3 flutes instead of 4 gives 31.3x the finish rate at the same Ra and wall targets." | **big error** (owner: "even though it is just a recommendation") |
 | 6 | 2026-11-14 | Op1EndCap7075 > Adaptive48 (3), (4) | The recommended plan cuts the removal rate by about 73 %. Noted for the owner's judgement, not as a defect. | — | Stepdown 0.45 -> 0.2812 in, optimal load 0.0375 -> 0.0121 / 0.0125 in, feed 50.19 -> 66.56 / 65.65 in/min, rpm 11999 -> 16000. MRR 0.847 -> 0.227 in3/min. | fine (owner: "I am fine with the updated Adaptive if the speeds and feeds are more sensible. That is the main reason I want the setup analyzer function!") |
 | 7 | 2026-11-14 | Setup Advisor result dialog | Old values are shown as raw expressions, unlike the confirmation dialog. | Rounded values as in the confirmation ("50.19 in/min", "11999 rpm"). | "tool_feedCutting: 50.1921790628448in/min -> 47.74 in/min", "tool_spindleSpeed: 11999.11612839420377 -> 16000 rpm", "12224. -> 16000 rpm", the plunge formula printed in full. | cosmetic |
+| 8 | 2026-11-14 | Op2EndCap7075, Setup Advisor dialog, apply at 60 % | Worked. Confirmation: "ToolWiz will change 40 parameter(s) on 14 operation(s)". Result: 40 applied on 14 ops, none failed. Header: "2 STOP, 26 CAUTION, 11 info finding(s) in 20 operation(s)." | Same. | Every value equals the server's plan at 0.6. No ramp angle, no stock to leave. The "Ramp is off" INFO is in the data for 2D Contour206 (3) and (7); not visible in the screenshot. | pass |
+| 9 | 2026-11-14 | Op2EndCap7075: Flat34 (-.005 for anodize), Flat33 (5), Flat33 (6), EndCapBevelsCounterBoreScallop4 (7), BoreScallop4 (9), Trace1 (3) | Entries 3, 4 and 5 again on the second setup. | As entries 3 to 5. | Flat34 (1/16 in): 32.30 -> 51.03 in/min; `keep_engagement` 2.05; "[STOP] … ToolWiz gets 0.00003 in/tooth (2.05 IPM at 16000 rpm) for the same engagement, a ratio of 21.0x". Flat33 (5) (1/4 in): 92.00 -> 132.04, basis ap 0.75 / ae 0.00197, op has stepover 0.075 / stepdown 0.039, `keep_engagement` 83.87 at 15584 rpm. Flat33 (6) (1/8 in): 50.19 -> 74.87, `keep_engagement` 42.82. Scallop4 (7) (1/16 in ball): 25.56 -> 51.03, `keep_engagement` 42.02. BoreScallop4 (9): 25.56 -> 51.03, `keep_engagement` 65.41. Trace1 (3) (chamfer mill): 146.70 -> 87.36, plunge 13.12 -> 25.97, same STOP and "91% faster" tool swap as Trace1 (2). | as 3, 4, 5 |
+| 10 | 2026-11-14 | Op2EndCap7075: 2D Contour206 (4), 2D Contour64, 2D Contour64 (2), 2D Contour7 (EndCapOutline) (8), (9) (kind `contour`, single pass, no stepover) | Same root as entry 3: the feed written is for a radial engagement ToolWiz assumes. These went down or barely moved, so no concern for the cut. | A feed for the stock the contour really removes. | 1/16 in contours: 25.56 / 32.30 -> 30.47 in/min, basis "Roughing" ap 0.0625, ae 0.00327. 1/8 in outlines: 50.19 -> 47.74, basis ap 0.1995, ae 0.0272. | wrong (low impact here) |
+| 11 | 2026-11-14 | Op1EndCap7075 after regenerate | Cycle time with the lighter adaptives. For the owner's picture, not a defect. | — | Setup 12:41 -> 12:44. Adaptive48 (3) 0:36 -> 1:02, Adaptive48 (4) 0:21 -> 0:35 (browser times, from the screenshots). | info |
 
 ## Causes found in the code (entries 3 to 5), `78b0ded`
 
@@ -107,3 +111,56 @@ Requests to the shop PC session (the cloud session cannot message it):
 2. Open the Speeds & Feeds dialog on Scallop4 (6) and record its feed and rpm: the dialog uses the older scallop operation
    and may give a much higher feed than the advisor (about 88 against 33 in/min here). Do not apply it.
 3. Entry 7 (raw expressions in the result dialog) is still open; it needs an add-in change.
+
+## Shop PC re-check of `9e918c9` and `e8790a7`, 2026-11-14 evening (shop time)
+
+Pulled, server restarted (`/api/version`: `e8790a7`), add-in not reinstalled, fresh setup summary (45 ops). Windows
+tests (`test_field_log_2026_11_14.py`, `test_runout_defaults.py`, the verify tests, `test_v2_ramp.py`,
+`test_addin_twlogic.py`, `test_mcp_http.py`): **180 passed**. Advisor at aggressiveness 0.6, read-only.
+
+**The document now holds the values the owner applied from the faulty plan** (entries 2 and 8), so "current" below is
+51.03 in/min at 16000 rpm on the 1/16 in finishing ops, not the original 25.56 at 11999. Summary: 2 STOP, 24 CAUTION,
+13 info. Both STOPs are the two Flat34 ops against their applied 51.03 in/min.
+
+| Entry | Result |
+|---|---|
+| 3 Flat ops | **Pass.** Plan feed equals `at_current_engagement`, operation "Floor Finishing (Skim)" (v1, `limited_by` "geometry_rule"): Flat34 (Op1 and Op2) 22.21 in/min, Flat33 (4) 44.41, Flat33 (6) 44.41, Flat33 (5) 88.82. The plan holds `tool_feedCutting` only (rpm already 16000). |
+| 3 Scallops | **Pass.** Plan feed equals `at_current_engagement` (wall "Finishing", v2): Scallop4 (6) 28.77, Scallop4 (7) 42.02, BoreScallop4 (9) 65.41. |
+| 3 Single-pass finish contours | **Pass.** 2D Contour7 (EndCapCleanUP) and 2D Contour239 (4): no plan, and the note "No speed or feed is proposed: this finishing pass has no stepover in Fusion, … For reference only, ToolWiz's finishing numbers for a 0.0020 in skim over a 0.1875 in depth are 51.03 in/min at 16000 rpm; a heavier cut needs a lower feed." |
+| 4 Form tool | **Pass.** Trace1 (2) and Trace1 (3): kind `edge`, no numbers, no plan, no finding, no tool suggestion. Note: "Form tool (chamfer mill): ToolWiz's end-mill model does not describe it, so this operation is not checked as a roughing or finishing cut and nothing is proposed for it." |
+| 5 Ball mills | **Pass.** No "different tool" finding on Scallop4 (6), Scallop4 (7), BoreScallop4 (9) or Adaptive48 (4). |
+| 1 "at each depth" | **Pass.** 2D Contour206 (3), (7): "Turning on Ramp in Fusion would ease the entry; ToolWiz's ramp angle for this tool would be 3.0 deg." 2D Contour2 (multiple depths) keeps "at each depth". |
+| Ramp feed always proposed | **Pass, with one difference from the request.** `tool_feedRamp` is now in the plan of 13 ops, including ops with Ramp off (2D Contour206 (3), (7), (4), 2D Contour64, 64 (2): 17.83 in/min) and ops whose 2 deg angle is kept (Adaptive48 (3), Adaptive49 (2), the EndCapOutline contours: 40.79; Adaptive48 (4): 53.45). No plan contains a ramp angle. 3D Adaptive Roughing2 (2) has no plan: its angle is 3.0 deg (applied on 2026-11-13, not 2 deg) and its ramp feed already equals ToolWiz's 40.79. |
+| `ramp_shallow_cut_aggressive`, `finish_cut_too_heavy` | Neither fires on this document. The owner's 2.0 deg against a 3.0 deg limit is 67 %, above the 60 % threshold. |
+
+### Answers to the cloud session's requests
+
+1. From the advisor result (my call sent no finish mode; `settings`: aggressiveness 0.6, model v2, runout 0.0001 in,
+   machine_max_rpm 16000; what the dialog sends is not visible to me):
+
+| Op | `at_current_engagement` | Tool as the snapshot sent it |
+|---|---|---|
+| Op1 Flat34 (negative stock to leave for anodize) | "Floor Finishing (Skim)", v1, 22.206 in/min, 16000 rpm, 0.000347 in/tooth, ap 0.03937, ae 0.01875, `limited_by` "geometry_rule" | "1/16" Flat Endmill", flat end mill, D 0.0625, 4 flutes, flute length 0.1875, **shank 0.0625**, stickout 0.5, holder "BT40 - B4C3-0020" |
+| Op1 FrameEndCapBevelsCounterBoreScallop4 (6) | "Finishing", v2, 28.771 in/min, 16000 rpm, 0.00045 in/tooth, ap 0.25, ae 0.00492, `limited_by` "C2, C6, C7, wall error" | "1/16" Ball Endmill", ball end mill, D 0.0625, 4 flutes, flute length 0.25, **shank 0.0625**, stickout 0.5, holder "Maritool BT30-ER20-60" |
+
+   The shank is the likely reason the cloud session got 19.44 where the shop PC got 3.17 in/min on Flat34 before the
+   fix: the library gives a 0.0625 in shank, not 0.125. Question for the owner (entry 12).
+   Before the fix (`78b0ded`, document as originally programmed) Flat34's `limited_by` was not recorded, and the
+   original values are overwritten now, so it can't be re-read.
+2. The Speeds & Feeds dialog on Scallop4 (6): the owner's to open; asked.
+3. Noted.
+
+### New entries from this re-check
+
+| # | Date | Setup > operation | What happened | What was expected | Exact text or numbers | Severity |
+|---|---|---|---|---|---|---|
+| 12 | 2026-11-14 | T12 "1/16" Flat Endmill", T6 "1/16" Ball Endmill" (tool library) | The snapshot gives a 0.0625 in shank at 0.5 in stickout. If the real tools have a 0.125 in shank, ToolWiz over-estimates deflection and under-feeds every op with them. | The library's shank matches the tool. | shank 0.0625, stickout 0.5, flute length 0.1875 / 0.25. | question for the owner (library data) |
+| 13 | 2026-11-14 | Op2EndCap7075 > Flat33 (5) (Flat, 1/4 in) | The "different tool" comparison still measures a Flat op as wall finishing, while the advisor now treats it as floor finishing. | The comparison uses the same operation as the advice. | "[info] A different tool is 54% faster for this cut (Harvey 4-flute 0.25 in) … 15,584 rpm, 203.79 IPM, 0.2438 x 0.0020 in; wall finish rate 49.6804 in2/min against 32.1893 now (+54%)". | wrong (recommendation only) |
+| 14 | 2026-11-14 | Flat34, original values | Could not re-check "no STOP against the dialog's own numbers": the originals are overwritten. By arithmetic the original 25.56 in/min at 11999 rpm is 0.00053 in/tooth against ToolWiz's 0.00035 now, a ratio of 1.5x, which would be a CAUTION (over 40 %), not a STOP. | — | 25.56 / (11999 x 4) = 0.000533; 22.21 / (16000 x 4) = 0.000347. | info |
+
+### What re-running the advisor does not put right in the owner's document
+
+These hold values from the faulty plan and now get no plan, so they stay as they are unless the owner restores them:
+- 2D Contour7 (EndCapCleanUP): 51.03 in/min at 16000 rpm (was 32.30 at 11999).
+- 2D Contour239 (4): 51.03 in/min at 16000 rpm (was 25.56 at 11999).
+- Trace1 (2) and Trace1 (3): 87.36 in/min, plunge 25.97, 16000 rpm (was 146.70, 13.12, 12224).
