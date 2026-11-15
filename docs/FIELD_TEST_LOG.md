@@ -267,3 +267,33 @@ PrepEndCapStock still has the CAT40 holder, so tool number 1 now has two definit
 Still holding values from the faulty first plan in Op1, with no plan offered (as listed under "What re-running the
 advisor does not put right"): 2D Contour7 (EndCapCleanUP) 51.03 in/min, 2D Contour239 (4) 51.03 in/min, Trace1 (2)
 87.36 in/min / plunge 25.97.
+
+## Speeds & Feeds on Scallop4 (6), `d16cd7d`, 2026-11-15 (shop time)
+
+The owner opened "ToolWiz Speeds & Feeds" on Op1EndCap7075 > FrameEndCapBevelsCounterBoreScallop4 (6) (T6, 1/16 in ball
+end mill) and sent the dialog and the result box. I had asked him to cancel without applying; the dialog shows no
+numbers before OK, so he pressed OK and the operation was written.
+
+| Item | Result |
+|---|---|
+| Dialog starts on "Finishing" | **Pass.** Strategy "Finishing", aggressiveness 60, "Keep the operation's own stepdown / stepover" ticked, finish mode "Clean-up". |
+| Feed and rpm against the advisor | **Pass.** Result box: "16,000 RPM · 33.1 IPM · 0.0005 IPT", WOC 0.0049 in. The advisor has 33.14 in/min at 16000 rpm for the same op. |
+| What the OK wrote (snapshot before and after) | Preset on the op "Aluminum - Roughing" to a new "7075 (T6, T651) - Finishing" (T6 now has 30 presets, was 29); `tool_rampAngle` 2.00 to 2.97 deg; `stepover` "0.125 mm" to "tool_stepover" (0.00492 in, the same value); the preset's `tool_stepdown` 0.25 in (the op saw 0.140625 in before). Feeds and rpm unchanged (33.14 / ramp 36.22 / plunge 6.59 / 16000). The result box also says "Feed Optimization reduced feedrate set to 6.63 IPM"; the snapshot does not carry that parameter, so it is not verified. The toolpath is valid after the command. The other T6 presets changed in the 15th digit only (the tool was rewritten in place); Deburr8 (2) on the same tool kept a valid toolpath. |
+| Advisor after the OK | No plan for the op, same two cautions (holder, coating). Whole document unchanged: 1 STOP, 36 CAUTION, 10 info. |
+
+### New entries
+
+| # | Date | Setup > operation | What happened | What was expected | Exact text or numbers | Severity |
+|---|---|---|---|---|---|---|
+| 20 | 2026-11-15 | Speeds & Feeds dialog, any operation (seen on Op1EndCap7075 > Scallop4 (6)) | Reported by the owner: the dialog never shows a suggested feed that he then accepts. He picks the options, presses OK, and the changes are made; the numbers appear only in the result box afterwards. The code agrees: `run_autoset` calculates, then writes the preset and the operation, then shows the report. It asks first only when the result is infeasible or a shared preset would be replaced. | The calculated rpm, feed and the list of changes shown first, with OK to apply and Cancel to leave the operation alone, as the Setup Advisor does ("ToolWiz will change 12 parameter(s) on 8 operation(s)"). | Owner: "you never see a suggested feed rate that is then accepted. You just select it and hit okay and then it makes the changes." This OK added a preset to T6, relinked the op to it, changed the ramp angle and, by the report, the Feed Optimization reduced feed. | design gap (owner's request; writes with no preview) |
+| 21 | 2026-11-15 | Speeds & Feeds dialog, T6 | The dialog preselects "AlTiN (Black)" as the tool coating. The advisor says of the same tool that the coating is unknown ("ti coated") and that it applied no coating factor and did not guess. The dialog falls back to AlTiN when no coating is detected (`initial_geo.get("coating", "AlTiN")`), and sends it to the calculation. | The same answer in both places: unknown, or a blank choice the owner has to make. | Advisor: "Tool Coating Unknown or Ambiguous — Flagged (Not Guessed)". Dialog: Tool Coating "AlTiN (Black)". No effect on this feed (33.1 against 33.14, the spindle is at its 16000 rpm limit). | wrong (a guessed coating; no effect seen here) |
+
+Noted only, not judged:
+
+- In "Clean-up" mode the dialog still shows "Target surface finish (Ra) 0.81 um" and "Wall tolerance 0.0051 mm", but the
+  result uses clean-up's own targets ("Predicted Ra about 24 uin (target 63), wall error 0.00069" (tolerance 0.0010")").
+  `finish_fields` sends the Ra only in "Surface finish" mode and the tolerance only in "Accuracy" mode.
+- The engagement for this ball-mill scallop pass is "ADOC 0.2500 in, RDOC 0.0049 in" in the dialog and `ap_in` 0.25 in
+  the advisor (before and after this OK), which is the flute length, 4 x D; `limited_by` includes the flute length. The
+  wall-error and thin-wall checks are worked at that depth.
+- The result box has a "Plunge feed" check that speaks of "micro adaptive operations" on this scallop op.
