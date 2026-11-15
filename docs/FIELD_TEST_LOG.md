@@ -183,3 +183,30 @@ These hold values from the faulty plan and now get no plan, so they stay as they
 Re-check for the shop PC: reinstall the add-in, restart the server; Speeds & Feeds on Scallop4 (6) starts on "Finishing";
 finishing plans carry tool_feedPlunge (and tool_feedRamp where ToolWiz gives one); the result dialog shows rounded old
 values; Flat33 (5) has no "different tool" finding; T12 and T6 carry the shank INFO.
+
+## Shop PC re-check of `d16cd7d`, 2026-11-14 evening (shop time)
+
+Pulled; Windows tests **185 passed**; add-in files reinstalled with `install_addin.py`; server restarted
+(`/api/version`: `d16cd7d`); fresh setup summary (45 ops); advisor at 0.6, read-only. **The owner has not restarted the
+add-in in Fusion yet**, so the two add-in items are not checked. The document still holds the values applied from the
+faulty plan, and T12 / T6 still have the 0.0625 in shank. Summary: 2 STOP, 24 CAUTION, 15 info.
+
+| Item | Result |
+|---|---|
+| Entry 12, `shank_equals_diameter` | **Pass.** Two INFOs, once per tool: T12 (on Op1 Flat34) and T6 (on Op1 Scallop4 (6)). "The tool is entered with a 0.0625 in shank, the same as its 0.0625 in cutting diameter. Most tools this small have a 1/8 in (or 3 mm) shank. With the thin shank ToolWiz predicts much more bending and lowers the feeds of every operation that uses this tool." |
+| Entry 13, no tool comparison on Flat ops | **Pass.** Flat33 (5) has no "different tool" finding. |
+| Ramp and plunge feed on finishing and facing ops | **Pass.** Flat33 (4), (6): `tool_feedCutting` 44.41, `tool_feedPlunge` 33.92, `tool_feedRamp` 50.88. Flat33 (5): 88.82 / 67.84 / 101.76. Scallop4 (6): 28.77 / 6.59 / 36.22; Scallop4 (7): 42.02 / 6.59 / 36.22; BoreScallop4 (9): 65.41 / 6.59 / 36.22. Face1: no plan, because its feed, plunge and ramp already equal ToolWiz's (140.77 / 70.39 / 105.58 at 13280 rpm). See entry 17 for Flat34. |
+| Chamfer-mill Trace note | **Pass.** Trace1 (2), (3): "Chamfer pass with a chamfer mill (a finishing cut): ToolWiz has no model for this tool yet, so the operation is not checked and nothing is proposed for it. Your speeds and feeds are left as they are." No plan. |
+| Speeds & Feeds default "Finishing" on scallop ops (add-in) | Not checked: needs the add-in restart, then the owner opens the dialog on Scallop4 (6). |
+| Entry 7, rounded old values in the result dialog (add-in) | Not checked: needs the add-in restart and an apply by the owner. |
+
+Flat34 and Scallop4 (6) with the 0.0625 in shank, for comparison after the owner corrects it: Flat34 22.21 in/min
+("Floor Finishing (Skim)", `limited_by` "geometry_rule"); Scallop4 (6) 28.77 in/min ("Finishing", `limited_by`
+"C2, C6, C7, wall error").
+
+### New entries
+
+| # | Date | Setup > operation | What happened | What was expected | Exact text or numbers | Severity |
+|---|---|---|---|---|---|---|
+| 16 | 2026-11-14 | Op2EndCap7075 > 2D Contour206 (4) (contour, single pass, stock off) | A "different tool" finding appeared that was not there on `e8790a7`. It claims a gain while its own cycle time is longer, and quotes a removal rate on an op whose note says none is worked out. | No comparison on a single-pass finishing contour, or numbers that agree with each other. | "[info] A different tool is 230% faster for this cut (1/16" Flat Endmill) - Best of your library: 1/16" Flat Endmill: 16,000 rpm, 23.84 IPM, 0.0625 x 0.0138 in; MRR 0.0065 in3/min against 0.0020 now (+230%), cycle time 0.09 min against 0.07 min." Same op's note: "No stepover on this operation … so no chip load or material removal rate is worked out at a width." | wrong (recommendation only) |
+| 17 | 2026-11-14 | Op1EndCap7075 > Flat34 (and any op whose plunge feed is a formula of the cutting feed) | The plan lowers `tool_feedCutting` but leaves `tool_feedPlunge` out, because the plunge feed today (17.01 = 51.03 / 3, the Fusion formula) is close to ToolWiz's 16.96. After the apply the formula gives 22.21 / 3 = 7.40 in/min, not 16.96. A second advisor run would then propose it. | The comparison allows for a parameter that follows another one in the same plan. | Document: `tool_feedPlunge` 17.010 in/min (formula `tool_feedCutting/3`), ToolWiz 16.96. Plan: `{"tool_feedCutting": "22.21 in/min"}`. | wrong (low impact: the plunge ends up slower, not faster) |
