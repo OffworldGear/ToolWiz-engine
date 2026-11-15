@@ -210,3 +210,40 @@ Flat34 and Scallop4 (6) with the 0.0625 in shank, for comparison after the owner
 |---|---|---|---|---|---|---|
 | 16 | 2026-11-14 | Op2EndCap7075 > 2D Contour206 (4) (contour, single pass, stock off) | A "different tool" finding appeared that was not there on `e8790a7`. It claims a gain while its own cycle time is longer, and quotes a removal rate on an op whose note says none is worked out. | No comparison on a single-pass finishing contour, or numbers that agree with each other. | "[info] A different tool is 230% faster for this cut (1/16" Flat Endmill) - Best of your library: 1/16" Flat Endmill: 16,000 rpm, 23.84 IPM, 0.0625 x 0.0138 in; MRR 0.0065 in3/min against 0.0020 now (+230%), cycle time 0.09 min against 0.07 min." Same op's note: "No stepover on this operation … so no chip load or material removal rate is worked out at a width." | wrong (recommendation only) |
 | 17 | 2026-11-14 | Op1EndCap7075 > Flat34 (and any op whose plunge feed is a formula of the cutting feed) | The plan lowers `tool_feedCutting` but leaves `tool_feedPlunge` out, because the plunge feed today (17.01 = 51.03 / 3, the Fusion formula) is close to ToolWiz's 16.96. After the apply the formula gives 22.21 / 3 = 7.40 in/min, not 16.96. A second advisor run would then propose it. | The comparison allows for a parameter that follows another one in the same plan. | Document: `tool_feedPlunge` 17.010 in/min (formula `tool_feedCutting/3`), ToolWiz 16.96. Plan: `{"tool_feedCutting": "22.21 in/min"}`. | wrong (low impact: the plunge ends up slower, not faster) |
+
+## Shop PC re-check after the add-in restart and the shank correction, 2026-11-15 (shop time)
+
+The owner restarted the add-in and set the shank of T12 (1/16" Flat Endmill) and T6 (1/16" Ball Endmill) to 0.125 in
+in Fusion (`tool_shaftDiameter` ".125 in"; the snapshot gives SFDM 0.125 and a shaft segment 0.0625 to 0.125 over
+0.5 in). Server `d16cd7d`, fresh setup summary, advisor at 0.6, read-only. Summary: 2 STOP, 27 CAUTION, 10 info. The
+document still holds the feeds applied from the faulty plan. Toolpath status at the time: Op1 regenerated (Scallop4 (6)
+had no toolpath yet), most of Op2 out of date.
+
+| Item | Result |
+|---|---|
+| New add-in code loaded | **Pass.** The snapshot's `strategy_label` (what `infer_strategy_for_op` returns, the dialog's starting point) is now "Finishing" on Scallop4 (6), Scallop4 (7) and BoreScallop4 (9); it was "3D Contouring / Scallop Finishing" before the restart. |
+| Speeds & Feeds dialog on Scallop4 (6) starts on "Finishing" | Label checked through the snapshot only. The dialog itself (a saved strategy preference can override the label) and its feed and rpm still need the owner to open it. |
+| Entry 7, rounded old values in the result dialog | Not checked: needs an apply by the owner. |
+| Entry 12, shank note | **Pass.** No `shank_equals_diameter` finding on T12 or T6 any more. |
+| Entry 16, contradictory "different tool" finding | Gone with the corrected shank: no `better_tool` finding anywhere (3 before). Not reproduced, so not shown fixed. |
+
+Feeds with the 0.125 in shank against the 0.0625 in shank (all at 16000 rpm, own engagement):
+
+| Operation | 0.0625 in shank | 0.125 in shank |
+|---|---|---|
+| Flat34 (Op1 and Op2) | 22.21 in/min, `geometry_rule` | 22.21 in/min, `geometry_rule` (deflection 0.000344 to 0.000095 in on Op1) |
+| Scallop4 (6) | 28.77 in/min, "C2, C6, C7, wall error" | **33.14 in/min**, "C2, C6, C7"; plunge 6.59, ramp 36.22 unchanged |
+| Scallop4 (7) | 42.02 in/min | 42.02 in/min |
+| BoreScallop4 (9) | 65.41 in/min | 65.41 in/min |
+| Slots 2D Contour239 (3), 2D Contour206 (3), (7) | 17.38 in/min "Slotting", ap 0.0090 | 17.38 in/min "Slotting", ap 0.0355 |
+| 2D Contour206 (4), 2D Contour64, 2D Contour64 (2) | 30.47 in/min "Roughing", ae 0.0033 | **21.55 in/min** "Roughing", ae 0.0138 (entry 18) |
+
+### New entries
+
+| # | Date | Setup > operation | What happened | What was expected | Exact text or numbers | Severity |
+|---|---|---|---|---|---|---|
+| 18 | 2026-11-15 | Op2EndCap7075 > 2D Contour206 (4), 2D Contour64, 2D Contour64 (2) (single-pass contours, T12) | Entry 10 again, now with an effect. With the stiffer shank ToolWiz picks a wider radial cut for these ops (0.0138 in, was 0.0033) and so a lower feed. The plan now lowers the feed from 30.47 to 21.55 in/min and a CAUTION compares the op's chip load with ToolWiz's "at its recommended engagement", although the op's own radial engagement is unknown (its note says so). A stiffer tool ends up with a slower feed. | No feed change and no chip-load caution where the radial engagement is unknown, or a feed that does not drop when the tool gets stiffer. | Plan: `{"tool_feedCutting": "21.55 in/min", "tool_feedRamp": "17.83 in/min"}`. "[caution] Chip load is more than 40% above ToolWiz's - The operation's programmed chip load is 0.00048 in/tooth (30.47 IPM at 16000 rpm, 4 flutes); ToolWiz gets 0.00034 in/tooth (21.55 IPM at 16000 rpm) at its recommended engagement, a ratio of 1.4x." Before: `limited_by` "C7, C8, C14f"; now "C2, C7, C8". | wrong (errs slow) |
+| 19 | 2026-11-15 | All ten T12 ops, for one run | A run taken about when the owner changed the T12 shank had no measured geometry for the T12 ops (`toolpath_length_in`, `channel_width_in`, pocket values all missing). Without it the three slots were treated as side cuts: "Roughing" at 21.55 in/min proposed where "Slotting" gives 17.38, and the "Ramp is off" INFO on the two Op2 slots was gone. Nothing in the output said the measurement was missing. A run 2.5 minutes later had the geometry and the slot advice back. Cause not confirmed; my guess is the toolpaths were being regenerated. | A note (or no feed proposal) when an op's toolpath or measured geometry is missing, since the advice depends on it. | First run: 2D Contour239 (3), 2D Contour206 (3), (7) plan `{"tool_feedCutting": "21.55 in/min", "tool_feedRamp": "17.83 in/min"}`, `operation` "Roughing", ae 0.0138. Second run: `{"tool_feedRamp": "17.83 in/min"}`, "Slotting", ae 0.0625. | wrong (a 24% faster feed proposed on full-width slots with a 1/16 in tool, only while the geometry is missing) |
+
+Not tested, noted only: the add-in's `strategy_label` for Trace1 (2) and (3) (chamfer mill) is "Finishing", before and
+after the restart. The advisor does not use that label, but the Speeds & Feeds dialog starts from it.
