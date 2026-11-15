@@ -357,3 +357,47 @@ Re-check for the shop PC (read-only first): advisor on Trace1 (2), (3) and the s
 Speeds & Feeds on Trace1 (2) starts on "Chamfering" and on Scallop4 (6) on "3D Contouring / Scallop Finishing"; note
 the grade the dialog shows and its result next to the advisor's. Do not apply the scallop or chamfer values until the
 owner has seen them: they are much higher than what is in the document now.
+
+## Shop PC re-check of `3bb7ad1` and `f5df8da` (server side, read-only), 2026-11-15 (shop time)
+
+Pulled both; add-in files reinstalled with `install_addin.py` after each; server restarted, `/api/version` f5df8da.
+Windows tests: 142 passed on `3bb7ad1` (add-in, preview, bridge, MCP files), 152 passed on `f5df8da` (the same plus
+`test_local_bridge_report_2026_11_13.py`). The owner has not restarted the add-in yet, so the preview and the dialog's
+starting strategies are not checked. The document is unchanged since the Speeds & Feeds OK on Scallop4 (6) (snapshot
+diff: 0 ops changed). Nothing was applied.
+
+Advisor at 60 % on `f5df8da`, whole document: 1 STOP (Op2 Flat34), 45 CAUTION (was 36), 10 info. The nine new cautions
+are `chip_load_off` and `rpm_off` on the chamfer and scallop ops below. No plan changed on any other op.
+
+| Operation | Kind, ToolWiz operation | In Fusion now | Plan |
+|---|---|---|---|
+| Prep > 2D Chamfer1 (T19) | chamfer (was edge), "Chamfering", v1 | 16000 rpm, 87.36 in/min, plunge 25.97, ramp 82.29 | `tool_spindleSpeed` 10171 rpm, `tool_feedCutting` 120.77, `tool_feedPlunge` 43.12, `tool_feedRamp` 64.69 (was no plan) |
+| Op1 > Trace1 (2), Op2 > Trace1 (3) (T19) | chamfer (was edge), "Chamfering", v1 | 16000 rpm, 87.36, plunge 25.97, ramp 25.97 | the same four values (was no plan) |
+| Op1 > Scallop4 (6) (T6) | finish, "3D Contouring / Scallop Finishing", v1, `ap_in` 0.003, `ae_in` 0.00492 | 16000 rpm, 33.14, plunge 6.59, ramp 36.22 | `tool_feedCutting` 88.38, `tool_feedPlunge` 16.96, `tool_feedRamp` 25.44 (was no plan). The cloud session quoted 88.55. |
+| Op2 > Scallop4 (7) (T6) | the same, `ae_in` 0.00295 | 16000 rpm, 51.03, plunge 17.01, ramp 25.56 | `tool_feedCutting` 111.94 (was 42.02 / plunge 6.59 / ramp 36.22) |
+| Op2 > BoreScallop4 (9) (T6) | the same, `ae_in` 0.00118 | 16000 rpm, 51.03, plunge 17.01, ramp 25.56 | `tool_feedCutting` 111.94 (was 65.41 / plunge 6.59 / ramp 36.22) |
+| Op1 > Flat34, Op2 > Flat34 | unchanged | 22.21 and 51.03 | unchanged: plunge 16.96 on Op1; 22.21 / ramp 25.44 on Op2 |
+
+Trace1 (2), (3) and 2D Chamfer1: pass for kind "chamfer", operation "Chamfering" and a plan of rpm and the three feeds
+only. The scallop ops: pass for the operation name. The add-in's `strategy_label` still reads "Finishing" on the Trace
+and scallop ops because the old add-in is loaded.
+
+For the owner to see before anything is applied (the Setup Advisor's "apply" would write these now, since the plan
+comes from the server):
+
+- The scallop plans are 88.38 and 111.94 in/min on the 1/16 in, 4-flute ball end mill: 0.00138 and 0.00175 in/tooth,
+  2.7 times what Scallop4 (6) holds and 2.2 times what the Op2 scallops hold. They assume an axial depth of 0.003 in.
+  The roughing before them leaves 0.0059 in (`stockToLeave` 0.00591 in on Adaptive48 (3), (4) and Adaptive49 (2)), and
+  more in corners the 1/8 in tools cannot reach.
+- The cautions on the current values say "A chip load this low rubs instead of cutting and wears the edge" for
+  0.00052 in/tooth on the 1/16 in ball and 0.00136 in/tooth on the 1/4 in chamfer mill.
+- The chamfer plan lowers the spindle from 16000 to 10171 rpm. Its chip load, 0.00297 in/tooth, is close to what the
+  owner ran before the first plan (146.70 in/min at 12224 rpm, 0.0030 in/tooth).
+
+Tool Performance Grade, from the owner's screenshot of the dialog on `d16cd7d` (T6, Scallop4 (6)): it showed
+"Carbide (Standard)", and the result (33.1 in/min) equalled the advisor's. The default on a fresh dialog on `f5df8da`
+is still to be read when he restarts the add-in.
+
+Still open, needs the owner: restart the add-in; Speeds & Feeds on Trace1 (2) (starts on "Chamfering"?), Scallop4 (6)
+(starts on "3D Contouring / Scallop Finishing"?) and Flat34, each stopped at the preview and cancelled; the grade shown;
+the preview's list; a snapshot to confirm Cancel wrote nothing (baseline taken on `f5df8da`).
