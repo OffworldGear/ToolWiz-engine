@@ -247,3 +247,23 @@ Feeds with the 0.125 in shank against the 0.0625 in shank (all at 16000 rpm, own
 
 Not tested, noted only: the add-in's `strategy_label` for Trace1 (2) and (3) (chamfer mill) is "Finishing", before and
 after the restart. The advisor does not use that label, but the Speeds & Feeds dialog starts from it.
+
+## Op1EndCap7075 apply on `d16cd7d` with the restarted add-in, 2026-11-15 (shop time)
+
+The owner ran the Setup Advisor on Op1EndCap7075 in Fusion (60%), applied everything and sent the three dialogs. All Op1
+toolpaths were generated. Before this run he had also changed two holders in Fusion: T12 from "BT40 - B4C3-0020" to
+"Maritool BT30-ER16-60", and T1 in Op1 and Op2 from "Maritool CAT40-ER32-2.35" to "Maritool BT30-ER16-60" (T1 in
+PrepEndCapStock still has the CAT40 holder, so tool number 1 now has two definitions, like tool 2 in entry 15).
+
+| Item | Result |
+|---|---|
+| Plan in the dialog against the server plan | **Pass.** "ToolWiz will change 12 parameter(s) on 8 operation(s)", the same 12 as `/api/setup_advisor` at 0.6: `tool_feedRamp` on 2D Contour7 (7), (11), Adaptive48 (3) (50.20 to 40.79), Adaptive48 (4) (50.20 to 53.45), 2D Contour239 (3) (25.56 to 17.83); Flat33 (4) 74.87 to 44.41 / plunge 24.96 to 33.92 / ramp 63.43 to 50.88; Flat34 51.03 to 22.21; Scallop4 (6) 51.03 to 33.14 / plunge 17.01 to 6.59 / ramp 25.56 to 36.22. |
+| Values in the document after the apply | **Pass.** A fresh snapshot has all 12. Fusion's own form for Scallop4 (6) shows 16000 rpm, cutting 841.756 mm/min (33.14 in/min), ramp 919.988 mm/min (36.22), plunge 167.386 mm/min (6.59). |
+| Findings after the apply | Op1: 0 STOP (was 1, Flat34), 13 CAUTION, 2 info. The two `chip_load_off` cautions (Flat33 (4), Scallop4 (6)) are gone. The remaining cautions are holder and coating ones. Whole document: 1 STOP (Op2 Flat34, not applied yet), 36 CAUTION, 10 info. The CAUTION count rose from 27 because of the holder change: every T12 op now gets a `holder_type` caution for the ER16 collet chuck (11 more). |
+| Entry 7, rounded old values in the result dialog | **Pass** for plain values ("tool_feedRamp: 50.20 in/min -> 40.79 in/min"). A formula is shown as its text, cut short: "tool_feedPlunge: (tool_type=='drill' \|\| tool_type=='reamer' \|\| tool_isDepo... -> 33.92 in/min", where the confirmation dialog says "24.96 in/min (replaces a formula)". As written in `tidy_old_value`; cosmetic. |
+| Entry 17, Flat34 plunge feed | **Confirmed.** After the apply `tool_feedPlunge` is 7.403 in/min (the formula followed the new 22.21 cutting feed). The next advisor run proposes `{"tool_feedPlunge": "16.96 in/min"}` for Flat34, the only plan left in Op1. |
+| Speeds & Feeds dialog on Scallop4 (6) starts on "Finishing" | Still not checked. The owner opened Fusion's own operation form, not the "ToolWiz Speeds & Feeds" command. |
+
+Still holding values from the faulty first plan in Op1, with no plan offered (as listed under "What re-running the
+advisor does not put right"): 2D Contour7 (EndCapCleanUP) 51.03 in/min, 2D Contour239 (4) 51.03 in/min, Trace1 (2)
+87.36 in/min / plunge 25.97.
