@@ -466,3 +466,10 @@ fixes). The tools' generic "Aluminum" presets are all 11999 rpm (1/16 in tools 2
 and 63.42; 1/4 in 92.0 and 99.46), while Op2 holds 16000 rpm with 51.03, 17.38, 30.47, 47.74, 66.56, 74.87 and
 132.04 in/min. The ramp feeds in Op2 (50.196, 25.562, 32.298, 99.464 in/min) are still the generic preset values,
 because that plan did not write ramp feeds. Op2 has not had a plan applied since.
+
+Item 2 above (engrave operations) is closed, 2026-11-15: the owner confirmed Op2 > Engrave12 (3) is suppressed. Both
+engrave operations are suppressed, as `get_toolpath_status` and the snapshot report. Nothing to fix.
+
+Item 1 above (depths of about 3 in): the owner's view is that this is how Fusion reports heights set from a feature of
+the part, not a problem in his file. The WCS origin is the bottom centre of his self-centring vise, which is why the
+part sits about 3 in up. What matters to him is that the speeds and feeds are right for the kind of cut.
