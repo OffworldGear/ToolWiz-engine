@@ -170,9 +170,9 @@
         "SK/SKC precision collet",
         "SK collet chuck"
       ],
-      "tir_mm": 0.005,
-      "tir_in": 0.0002,
-      "measured_at": "not stated in the cited article",
+      "tir_mm": 0.003,
+      "tir_in": 0.000118,
+      "measured_at": "owner's shop figure for Lyndex SK and Pioneer SX chucks (decision 2026-11-15); the cited article states 0.005 mm without a gauge length",
       "capability_class": "precision",
       "clamping_range": "0.028 to 1 in (Lyndex-Nikken SK line)",
       "rigidity": "stiff",

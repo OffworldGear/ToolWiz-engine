@@ -29,7 +29,8 @@ def test_explicit_runout_wins_even_zero():
 
 
 @pytest.mark.parametrize("text,label,tir", [
-    ("Lyndex SK10", "precision", 0.0001), ("Pioneer SX10 collet chuck", "precision", 0.0001), ("SK6 micro chuck", "precision", 0.0001),
+    ("Lyndex SK10", "SK/SX collet", 0.000118), ("Pioneer SX10 collet chuck", "SK/SX collet", 0.000118),   # owner 2026-11-15: 0.003 mm
+        ("SK6 micro chuck", "SK/SX collet", 0.000118),
     ("Haimer shrink fit chuck", "precision", 0.0001), ("Rego-Fix powRgrip PG", "precision", 0.0001),
     ("Hydraulic chuck", "precision", 0.0001), ("BIG Kaiser Mega New Baby", "precision", 0.0001),
     ("ER16 UP collet", "ER-UP", 0.0002), ("ER32 Collet Holder", "standard ER", 0.0004),
@@ -48,7 +49,7 @@ def test_holder_from_fusion_tool_description_and_source_label():
     ft["holder"] = {"description": "Lyndex SK10"}
     r2 = run_cut(app.physics, CutRequest(family="Aluminum - Wrought (6061)", alloy="6061-T6", operation="Slotting", model="v2",
                                          fusion_tool=ft))
-    assert r2.runout_in == pytest.approx(0.0001) and r2.runout_source == "holder: precision"
+    assert r2.runout_in == pytest.approx(0.000118) and r2.runout_source == "holder: SK/SX collet"      # owner 2026-11-15: 0.003 mm
     r3 = run_cut(app.physics, CutRequest(family="Aluminum - Wrought (6061)", alloy="6061-T6", operation="Slotting", model="v2",
                                          fusion_tool=ft, runout=0.0003))
     assert (r3.runout_in, r3.runout_source) == (0.0003, "request")

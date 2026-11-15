@@ -14,7 +14,7 @@ Holder classes and their TIR at the tip (inches), after ``data/holders.json`` (p
 ====================================================  ========  =================================================
 class                                                  TIR (in)  holders.json ids
 ====================================================  ========  =================================================
-precision: SK/SX/SKC collet chucks, hydraulic, shrink   0.0001    sk_collet_chuck, hydraulic, shrink_fit, powrgrip,
+SK/SX collet chucks 0.000118 (0.003 mm, owner 2026-11-15); precision: hydraulic, shrink   0.0001    sk_collet_chuck, hydraulic, shrink_fit, powrgrip,
 fit, powRgrip, micro collet chucks (Mega Micro/Baby)               micro_collet_chuck (the owner's SK/SX chucks are
                                                                     used at their precision-collet value)
 ultra-precision ER (ER-UP)                              0.0002    er_ultra_precision
@@ -29,12 +29,15 @@ import re
 SMALL_TOOL_MAX_D_IN = 0.125 + 1e-9
 DEFAULT_TIR_SMALL_IN = 0.0001
 DEFAULT_TIR_LARGE_IN = 0.0002
+SK_SX_TIR_IN = round(0.003 / 25.4, 6)      # 0.003 mm = 0.000118 in
 SOURCES = ("request", "holder", "default by diameter")
 
 # (label, tir_in, regex over the lower-cased holder description). The first match wins, so specific classes come first.
 HOLDER_CLASSES = (
     ("ER-UP", 0.0002, r"\ber[\s-]?up\b|\ber\d{1,2}[\s-]*up\b|ultra[\s-]?precision\s+(?:er|collet)|\ber\d*[\s-]*ultra"),
-    ("precision", 0.0001, r"\bs[kx]c?[\s-]?\d{0,2}\b|\bsx\d+|pioneer|lyndex|hydraulic|shrink|pow[\s-]?r?grip|rego[\s-]?fix|"
+    # Owner decision 2026-11-15: SK / SX collet chucks (Lyndex SK, Pioneer SX) run about 0.003 mm at the tool, everywhere.
+    ("SK/SX collet", SK_SX_TIR_IN, r"\bs[kx]c?[\s-]?\d{0,2}\b|\bsx\d+|pioneer|lyndex"),
+    ("precision", 0.0001, r"hydraulic|shrink|pow[\s-]?r?grip|rego[\s-]?fix|"
                           r"micro\s*chuck|mega\s*(?:micro|baby|new\s*baby)|big\s*kaiser|tendo|micr?run|haimer|precision\s+collet"),
     ("weldon", 0.0012, r"weldon|side[\s-]?lock|whistle"),
     ("standard ER", 0.0004, r"\ber[\s-]?\d{2}\b|\ber\d{2}\b|\ber\s*collet|\ber\b|milling\s*chuck|collet"),

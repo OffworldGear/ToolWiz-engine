@@ -36,7 +36,8 @@ def _codes(o):
 # ---- entry 3 ---------------------------------------------------------------------------------------------------------
 
 def test_finish_plan_is_for_the_ops_own_engagement_not_toolwiz_skim():
-    o = _advise([_op("Flat34", "flat", F16, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in"))], tool_alternatives=False)[0]
+    o = _advise([_op("Wall", "contour2d", F16, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in", stockToLeave="0 in"))],
+                tool_alternatives=False)[0]
     assert o["kind"] == "finish"
     rec, usr = o["toolwiz"]["recommended"], o["toolwiz"]["at_current_engagement"]
     assert usr["ae_in"] == 0.01875 and usr["ap_in"] == 0.0394 and rec["ae_in"] < 0.005        # rec is the default skim
@@ -65,7 +66,8 @@ def test_finish_contour_without_stepover_gets_no_feed_and_says_why():
 
 def test_finish_pass_too_heavy_for_the_wall_tolerance_gets_caution_and_no_feed():
     long_tool = dict(F16, geometry=dict(F16["geometry"], LB=0.75))
-    o = _advise([_op("Flat34", "flat", long_tool, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in"))], tool_alternatives=False)[0]
+    o = _advise([_op("Wall", "contour2d", long_tool, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in", stockToLeave="0 in"))],
+                tool_alternatives=False)[0]
     assert "wall error" in o["toolwiz"]["at_current_engagement"]["limited_by"]
     f = [x for x in o["findings"] if x["code"] == "finish_cut_too_heavy"]
     assert len(f) == 1 and f[0]["severity"] == "CAUTION"
@@ -145,3 +147,70 @@ def test_ramp_off_note_on_a_single_depth_slot_does_not_say_at_each_depth():
     d2 = [f["detail"] for f in many["findings"] if f["code"] == "ramp_off"]
     assert d1 and d1[0].startswith("Turning on Ramp in Fusion would ease the entry; ")
     assert d2 and d2[0].startswith("Turning on Ramp in Fusion would ease the entry at each depth; ")
+
+
+# ---- owner's answers, 2026-11-15 ------------------------------------------------------------------------------------
+
+def test_flat_op_uses_floor_finishing_like_the_speeds_and_feeds_dialog():
+    """Flat34: the dialog that set the op uses "Floor Finishing (Skim)" for a Flat strategy; the advisor must use the same
+    operation, so it does not flag ToolWiz's own numbers. The wall tolerance does not cut a floor pass down to a rubbing feed."""
+    from pipeline import CutRequest, run_cut
+    long_tool = dict(F16, geometry=dict(F16["geometry"], LB=0.75))
+    for strategy in ("flat", "horizontal"):
+        o = _advise([_op("Flat34", strategy, long_tool, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in"))], tool_alternatives=False)[0]
+        usr = o["toolwiz"]["at_current_engagement"]
+        assert o["kind"] == "finish" and usr["operation"] == sa.FLOOR_FINISH_OPERATION
+        assert "finish_cut_too_heavy" not in _codes(o) and "chip_load_high" not in _codes(o)
+    direct = run_cut(toolwiz_app.physics, CutRequest(
+        family=FAM, alloy="7075-T6", operation="Floor Finishing (Skim)", coating="AlTiN", apply_coating=True, geometry="Square",
+        diameter=0.0625, flutes=4, flute_length=0.1875, shank_diameter=0.125, stickout=0.75, aggressiveness=0.6,
+        max_rpm=usr["rpm"] and toolwiz_app.active_machine().get("max_rpm", 16000) or 16000, runout=0.0002,
+        cut_depth=0.0394, cut_width=0.01875, model="v2"))
+    assert abs(direct.feed_ipm - usr["feed_ipm"]) <= 0.02 * usr["feed_ipm"]      # advisor and calculator agree
+    o = _advise([_op("Scallop", "scallop", B16, dict(S, stepover="0.0049 in"))], tool_alternatives=False)[0]
+    assert o["toolwiz"]["at_current_engagement"]["operation"] == "Finishing"
+
+
+POCKET_TOOL = {"type": "flat end mill", "unit": "inches", "description": "1/4 4 flute endmill AlTiN",
+               "geometry": {"DC": 0.25, "NOF": 4, "LCF": 0.4375, "SFDM": 0.25, "LB": 1.5}}
+PP = {"tool_spindleSpeed": "9000 rpm", "tool_feedCutting": "20 in/min", "maximumStepdown": "0.2 in", "stepover": "0.05 in",
+      "tool_feedRamp": "10 in/min", "tool_feedPlunge": "5 in/min"}
+
+
+def test_ramp_and_plunge_feed_are_proposed_even_when_the_angle_is_kept_or_ramp_is_off():
+    base = _advise([_op("P", "pocket2d", POCKET_TOOL, dict(PP, tool_rampAngle="30 deg"))], tool_alternatives=False)[0]
+    tw = base["toolwiz"]["recommended"]
+    want_ramp, want_plunge = f"{tw['ramp_feed_ipm']:.2f} in/min", f"{tw['plunge_feed_ipm']:.2f} in/min"
+    kept = _advise([_op("P", "pocket2d", POCKET_TOOL, dict(PP, tool_rampAngle="1 deg"))], tool_alternatives=False)[0]
+    p = kept["apply_plan"]["recommended"]
+    assert "tool_rampAngle" not in p and p["tool_feedRamp"] == want_ramp and p["tool_feedPlunge"] == want_plunge
+    off = {"enabled": False, "type": "profile", "raw": {"doRamp": "false"}}
+    c = _advise([_op("C", "contour2d", POCKET_TOOL, dict(PP, tool_rampAngle="1 deg", stockToLeave="0.01 in"), ramp=off, multiple_depths=True)],
+                tool_alternatives=False)[0]
+    p = c["apply_plan"]["recommended"]
+    assert "tool_rampAngle" not in p and "tool_feedRamp" in p and "tool_feedPlunge" in p
+
+
+def test_shallow_ramp_on_an_aggressive_cut_is_named_as_such():
+    tw = _advise([_op("P", "pocket2d", POCKET_TOOL, dict(PP, tool_rampAngle="30 deg"))], tool_alternatives=False)[0]["toolwiz"]["recommended"]
+    shallow = f"{0.3 * tw['ramp_angle_deg']:.2f} deg"
+    hot = dict(PP, tool_rampAngle=shallow, maximumStepdown=f"{min(0.43, 2.2 * tw['ap_in']):.4f} in", stepover=f"{3 * tw['ae_in']:.4f} in",
+               tool_feedCutting=f"{3 * tw['feed_ipm']:.2f} in/min", tool_spindleSpeed=f"{tw['rpm']} rpm")
+    o = _advise([_op("P", "pocket2d", POCKET_TOOL, hot)], tool_alternatives=False)[0]
+    f = [x for x in o["findings"] if x["code"] == "ramp_shallow_cut_aggressive"]
+    assert len(f) == 1 and f[0]["severity"] == "CAUTION" and "tool_rampAngle" not in o["apply_plan"]["recommended"]
+    assert f"{tw['ramp_angle_deg']:.1f} deg" in f[0]["detail"]
+    calm = dict(PP, tool_rampAngle=shallow, maximumStepdown=f"{tw['ap_in']:.5f} in", stepover=f"{tw['ae_in']:.5f} in",
+                tool_feedCutting=f"{tw['feed_ipm']:.2f} in/min", tool_spindleSpeed=f"{tw['rpm']} rpm", tool_feedRamp=f"{tw['ramp_feed_ipm']:.2f} in/min")
+    o = _advise([_op("P", "pocket2d", POCKET_TOOL, calm)], tool_alternatives=False)[0]
+    assert "ramp_shallow_cut_aggressive" not in _codes(o)        # a shallow ramp on a sensible cut is the owner's choice
+
+
+def test_sk_and_sx_collet_chucks_are_rated_at_3_microns_everywhere():
+    import json as _json
+    from toolwiz_common import runout as ro
+    assert ro.SK_SX_TIR_IN == round(0.003 / 25.4, 6)
+    for text in ("Lyndex SK10", "Pioneer SX10 collet chuck"):
+        assert ro.holder_runout(text) == ("SK/SX collet", ro.SK_SX_TIR_IN)
+    h = [x for x in _json.load(open("data/holders.json"))["holders"] if x["id"] == "sk_collet_chuck"][0]
+    assert h["tir_mm"] == 0.003

@@ -128,7 +128,8 @@ def test_ramp_angle_only_lowered_never_raised():
     tw_ang = rec["ramp_angle_deg"]
     assert tw_ang > 2.5, "test premise: ToolWiz ramp angle is above 2 deg for this op"
     plan, notes = _plan(_advise([_ramp_op("2 deg")]))
-    assert "tool_rampAngle" not in plan and "tool_feedRamp" not in plan
+    # owner decision 2026-11-15: the ramp FEED is always proposed, also when the angle is kept
+    assert "tool_rampAngle" not in plan and plan["tool_feedRamp"] == f"{rec['ramp_feed_ipm']:.2f} in/min"
     assert any(n.startswith("Ramp angle kept at your 2.0 deg; ToolWiz's limit is") for n in notes)
     high = f"{tw_ang + 10:.1f} deg"
     plan, notes = _plan(_advise([_ramp_op(high)]))
@@ -137,7 +138,7 @@ def test_ramp_angle_only_lowered_never_raised():
 
 def test_unknown_current_ramp_angle_proposes_none():
     plan, _ = _plan(_advise([_ramp_op(None)]))
-    assert "tool_rampAngle" not in plan and "tool_feedRamp" not in plan
+    assert "tool_rampAngle" not in plan and "tool_feedRamp" in plan      # owner decision 2026-11-15: ramp feed always proposed
 
 
 def test_addin_snapshot_reports_current_ramp_angle():

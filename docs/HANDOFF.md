@@ -113,6 +113,32 @@ the measured number. Check the exit status directly; a pipe into `tail` hides fa
 - **Messaging the shop PC session** from a new cloud session needs the owner to approve a trust prompt once; until then
   the two sessions work through the repository (reports in `docs/`).
 
+## Owner's answers, 2026-11-15 (second cloud session)
+
+The six decisions above are answered; the first field-test batch is fixed (`docs/FIELD_TEST_LOG.md`,
+`tests/test_field_log_2026_11_14.py`).
+
+1. Unnamed tools: stay at 50% for now. No change.
+2. Ramp angle: the Speeds & Feeds auto-setter keeps writing ToolWiz's angle. The Setup Advisor never raises the owner's
+   angle, but it now says so when a shallow ramp sits on a cut that is itself too aggressive (CAUTION
+   `ramp_shallow_cut_aggressive`): a shallow ramp is often a symptom of speed, feed or depth being too high.
+3. SK / SX collet chucks: 0.003 mm (0.000118 in) everywhere (`toolwiz_common/runout.py`, `data/holders.json`).
+4. Haas tools: Haas publishes its own speeds and feeds; the tools are made by YG-1 as far as the owner knows. No alias
+   was added. Collecting Haas's published data for the owner's Haas tools belongs to the tool-system project.
+5. Ramp feed and plunge feed are always proposed, also when the ramp angle is kept or the operation does not ramp.
+6. The three AI entry points: decided later.
+
+Also settled: a Flat / Horizontal operation is floor finishing in the advisor, the same operation the Speeds & Feeds
+dialog uses for it. A finishing op is offered speed and feed only for its own engagement. Open: a scallop op is
+"3D Contouring / Scallop Finishing" (older v1 engine) in the dialog but wall "Finishing" (v2) in the advisor; for a
+1/16 in ball in 7075 the dialog gives about 88 in/min and the advisor 33. Not aligned yet: the owner should decide
+after a trial cut.
+
+**Tool-system project:** its own session and its own branch. Brief: `docs/TOOL_SYSTEM_PROJECT_BRIEF.md`.
+
+**Coordination:** the shop PC session can message the cloud session, but the cloud session cannot reach it (it is not
+listed as reachable). Requests to it go at the bottom of `docs/FIELD_TEST_LOG.md`.
+
 ## Things that bit us
 
 - The result cache key once lacked the flute count: every flute count got the first tool's answer. Any new engine input

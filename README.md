@@ -95,7 +95,7 @@ curl -X POST http://127.0.0.1:5000/api/calculate -H "Content-Type: application/j
 stiffness is provisional until measured; replace it with measured values for better deflection results.
 Enter your measured runout (TIR at the tool tip) per tool: results for tools under 1/8" depend on it. With no runout in the
 request the engine assumes 0.0001" for tools of 1/8" and below and 0.0002" above, or the class of the Fusion tool's holder when
-its description names one (SK/SX/SKC collet chucks, hydraulic, shrink fit, powRgrip, micro chucks 0.0001"; ER-UP 0.0002";
+its description names one (SK/SX collet chucks 0.003 mm = 0.00012"; hydraulic, shrink fit, powRgrip, micro chucks 0.0001"; ER-UP 0.0002";
 standard ER 0.0004"; Weldon 0.0012"). The API reports `runout_in` and `runout_source` ("request", "holder: <class>" or
 "default by diameter"); an explicit runout always wins.
 

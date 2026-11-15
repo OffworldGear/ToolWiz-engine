@@ -498,6 +498,17 @@ _KIND_OPERATION = {"adaptive": "Adaptive Roughing", "slot": "Slotting", "contour
                    "rough": "Roughing", "finish": "Finishing", "face": "Facing"}
 
 
+FLOOR_FINISH_OPERATION = "Floor Finishing (Skim)"
+
+
+def _finish_operation(op: Dict[str, Any]) -> str:
+    """The ToolWiz operation of a finishing op. Fusion's Flat / Horizontal strategies cut a floor, not a wall: they use the
+    floor-finishing operation, the same one the add-in's Speeds & Feeds dialog picks for them (``strategy_label``), so the
+    two never disagree about the same operation (owner, 2026-11-15)."""
+    s = str(op.get("strategy") or "").lower()
+    return FLOOR_FINISH_OPERATION if ("flat" in s or "horizontal" in s) else "Finishing"
+
+
 def _fusion_tool_dict(tool: Dict[str, Any], stickout: float) -> Dict[str, Any]:
     geo = {"DC": tool["diameter_in"], "NOF": tool["flutes"], "LCF": tool["flute_length_in"],
            "SFDM": tool["shank_diameter_in"], "LB": stickout}
@@ -824,6 +835,32 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
                       "Turn on Ramp in Fusion if you want it (ToolWiz does not change this setting).",
                       toolwiz_ramp_angle_deg=rec["ramp_angle_deg"]))
 
+    # --- a shallow ramp angle on a cut that is itself too aggressive (owner, 2026-11-15) ---------------------------
+    # A ramp far below ToolWiz's limit is often a way to keep a tool alive when the real problem is the speed, feed or depth.
+    cur_ramp = (op.get("current_extra") or {}).get("tool_rampAngle")
+    tw_ramp = (rec or {}).get("ramp_angle_deg")
+    if cur_ramp and tw_ramp and _ramp_allowed(op)[0] and cur_ramp < RAMP_SHALLOW_FRACTION * tw_ramp:
+        labels = {"chip_load_high": "chip load", "chip_load_off": "chip load", "stepdown_high": "stepdown",
+                  "stepover_high": "stepover", "infeasible_at_engagement": "stepdown / stepover", "feed_off": "feed"}
+        hot = []
+        for f in out:
+            lab = labels.get(f["code"])
+            above = f["code"] not in ("chip_load_off", "feed_off") or (f.get("numbers") or {}).get("ratio_x", 0) > 1 \
+                or ((f.get("numbers") or {}).get("current_feed_ipm") or 0) > ((f.get("numbers") or {}).get("toolwiz_feed_ipm") or 1e9)
+            if lab and above and lab not in hot:
+                hot.append(lab)
+        cur_rf, tw_rf = (op.get("current_extra") or {}).get("tool_feedRamp"), rec.get("ramp_feed_ipm")
+        if cur_rf and tw_rf and cur_rf > tw_rf * (1 + OFF_FRACTION):
+            hot.append(f"ramp feed ({cur_rf:.2f} IPM against ToolWiz's {tw_rf:.2f})")
+        if hot:
+            out.append(_f("CAUTION", "ramp_shallow_cut_aggressive", "Shallow ramp angle on a cut that is set too aggressively",
+                          f"The ramp angle is {cur_ramp:.1f} deg; ToolWiz's limit for this tool is {tw_ramp:.1f} deg. The operation is also "
+                          f"above ToolWiz's numbers on: {', '.join(hot)}. A shallow ramp eases only the entry; it does not protect the "
+                          "tool once it is in the cut.",
+                          "Apply ToolWiz's speed, feed and depths first. With those, the ramp can be as steep as ToolWiz's limit; "
+                          "your angle is left as it is.",
+                          current_ramp_angle_deg=cur_ramp, toolwiz_ramp_angle_deg=tw_ramp))
+
     # --- runout / holder / reduced flutes / rubbing --------------------------------------------------------------
     ref = usr if (usr is not None and usr["feasible"]) else rec
     if ref is not None:
@@ -1011,6 +1048,7 @@ RAMP_MAX_BELIEVED_DEG = 90.0      # a current ramp angle above this is not belie
 CONTOUR_RAMP_MIN_STEPOVER_OVER_D = 0.25   # a contour's radial engagement above this fraction of D is more than a finishing allowance
 RAMP_LOWER_TOL_DEG = 1.0          # a lower ramp angle is proposed only when it is lower by more than max(this, FRAC x owner's)
 RAMP_LOWER_TOL_FRAC = 0.15
+RAMP_SHALLOW_FRACTION = 0.6       # a ramp angle below this share of ToolWiz's limit counts as "shallow" for the CAUTION
 _NO_RAMP_KINDS = ("edge", "probe", "hole", "finish", "tslot")
 _STOCK_NONE_IN = 0.00005     # a stock to leave at or below this counts as "zero / not set" (as in classify_op)
 
@@ -1067,7 +1105,8 @@ def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], no
     Stock to leave (radial / vertical) is proposed only on roughing-kind operations whose current stock is zero or not set;
     with a non-zero stock it is kept and the note says what ToolWiz would leave. The ramp angle (and its ramp feed) is
     proposed only when ToolWiz's angle is LOWER than the current one; a higher one is kept and noted; an unreadable current
-    angle means no proposal."""
+    angle means no proposal. The ramp FEED and the plunge feed are always proposed, whether or not the angle is (owner
+    decision 2026-11-15: they must be right even when the operation does not ramp)."""
     cur = op["current"]
     out = {k: dict(v) for k, v in plans.items()}
     rough_kind = op.get("kind") in ("adaptive", "pocket", "rough", "contour")
@@ -1109,8 +1148,7 @@ def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], no
             continue
         ok, why = _ramp_allowed(op)
         if not ok:
-            plan.pop("tool_rampAngle")
-            plan.pop("tool_feedRamp", None)
+            plan.pop("tool_rampAngle")          # the ramp feed stays in the plan (owner, 2026-11-15)
             if why and why not in notes:
                 notes.append(why)
             continue
@@ -1118,10 +1156,8 @@ def _keep_owner_choices(op: Dict[str, Any], plans: Dict[str, Dict[str, str]], no
         if cur_ramp is not None and want is not None and want <= cur_ramp + 0.05 \
                 and cur_ramp - want <= max(RAMP_LOWER_TOL_DEG, RAMP_LOWER_TOL_FRAC * cur_ramp):
             plan.pop("tool_rampAngle")          # lower, but inside the tolerance: the owner's angle stays, silently
-            plan.pop("tool_feedRamp", None)
         elif cur_ramp is None or want is None or want > cur_ramp + 0.05:
             plan.pop("tool_rampAngle")
-            plan.pop("tool_feedRamp", None)
             if cur_ramp is not None and want is not None:
                 note = f"Ramp angle kept at your {cur_ramp:.1f} deg; ToolWiz's limit is {want:.1f} deg."
                 if abs(cur_ramp - want) > max(0.005 * want, 0.05) and note not in notes:
@@ -2060,7 +2096,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 entry["notes"].extend(notes)
                 if tool0.get("coating") is None:
                     entry["notes"].append("coating unknown (generic or missing): ToolWiz applied no coating factor")
-                opn = _KIND_OPERATION.get(kind, "Roughing")
+                opn = _finish_operation(op) if kind == "finish" else _KIND_OPERATION.get(kind, "Roughing")
                 # Facing: the depth is set by the stock on top, not chosen, so the recommendation is made at the op's own depth.
                 rec_depth = cur["stepdown_in"] if kind == "face" else None
                 key_r = (opn, _engine_geometry(tool), round(tool.get("corner_radius_in") or 0.0, 6), tool["shank_diameter_in"],
@@ -2099,8 +2135,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                     # chip load far below what the tool needs to cut cleanly. finish_modes reduces fz to 40 % at most before it
                     # reduces the engagement; here the engagement is the operation's, so the answer is "lighten the pass",
                     # not a rubbing feed (field test 2026-11-14, Flat34).
-                    if kind == "finish" and usr["feasible"] and "wall error" in str(usr["limited_by"] or "") \
-                            and not ctx.get("finish_mode"):
+                    if kind == "finish" and usr["feasible"] and "wall error" in str(usr["limited_by"] or ""):
                         free = _cut_dict(_run_endmill(physics, machine, dict(ctx, finish_mode="none"), tool, opn, depth, width), tool["flutes"])
                         if free["feasible"] and free["chip_load_ipt"] and usr["chip_load_ipt"] \
                                 and usr["chip_load_ipt"] < FINISH_MIN_FZ_FRACTION * free["chip_load_ipt"]:
