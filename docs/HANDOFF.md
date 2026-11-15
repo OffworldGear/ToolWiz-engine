@@ -134,10 +134,17 @@ dialog uses for it. A finishing op is offered speed and feed only for its own en
 1/16 in ball in 7075 the dialog gives about 88 in/min and the advisor 33. Not aligned yet: the owner should decide
 after a trial cut.
 
+Second round, same day: ramp and plunge feed are in every cutting op's plan (finishing and facing too); the Speeds &
+Feeds dialog now defaults Scallop-type ops to wall "Finishing" like the advisor (the open point above is closed);
+the result dialog rounds old values; no tool comparison on a Flat op; INFO `shank_equals_diameter` for a micro tool
+whose shank equals its cutting diameter. A chamfer-mill model (chamfer passes are finishing cuts and matter visually)
+is a new feature: after the freeze or in the tool-system project. The cloud session can now message the shop PC session
+directly (`mcp__claude-code-remote__send_message`, session "Tool Wiz local instance Fusion MCP link").
+
 **Tool-system project:** its own session and its own branch. Brief: `docs/TOOL_SYSTEM_PROJECT_BRIEF.md`.
 
-**Coordination:** the shop PC session can message the cloud session, but the cloud session cannot reach it (it is not
-listed as reachable). Requests to it go at the bottom of `docs/FIELD_TEST_LOG.md`.
+**Coordination:** both sessions can message each other since the owner approved the trust prompt (2026-11-15). Longer
+requests and results still go into `docs/FIELD_TEST_LOG.md`.
 
 ## Things that bit us
 

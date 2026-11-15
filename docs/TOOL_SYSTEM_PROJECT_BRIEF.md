@@ -69,6 +69,19 @@ bronze, copper or 303 / 304 later. They do not need every material.
 **Strategies per tool.** Every tool should have presets for all the cutting strategies it could be used for, and
 none it could not: a chamfer mill, engraver or T-slot cutter never adaptive-roughs.
 
+**Document tools drift from the library (owner, 2026-11-15).** "Each file has its own local copies of the tooling and
+if I need to change one thing it is hard to manually do it to all the documents. It would be great to automate that."
+A live example from the field test: his 1/16 in flat (T12) and ball (T6) end mills have 1/8 in shanks, but the document
+he was cutting from had them at 0.0625 in, so ToolWiz under-fed every operation using them. The same document has tool
+number 2 defined twice with different flute length and stickout. Keeping every document's tools in step with the
+master, automatically and with a report, is a core requirement, not an extra.
+
+**Chamfers.** A chamfer mill on a Trace or 2D Chamfer is always a finishing pass, and often the most visible surface
+on the part. ToolWiz has no chamfer-mill model today (the Setup Advisor skips these operations), so chamfer presets
+need a source: manufacturer data or values he approves by hand.
+
+**Scallop practice.** He wants a standard practice of not running Scallop until roughing is completely finished.
+
 ## What already exists in this repository
 
 - `master_library.py`, `routes_master_library.py`: merge libraries, de-duplicate, generate tagged ToolWiz presets per

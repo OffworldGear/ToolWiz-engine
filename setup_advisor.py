@@ -1012,10 +1012,19 @@ def _apply_plans(op: Dict[str, Any], rec: Optional[Dict[str, Any]], usr: Optiona
         if usr is not None and usr["feasible"] and not op.get("_finish_engagement_unknown") and not op.get("_finish_too_heavy"):
             plans["recommended"] = {"tool_spindleSpeed": _expr("rpm", usr["rpm"]),
                                     "tool_feedCutting": _expr("feed", usr["feed_ipm"])}
+            # Ramp and plunge feed are set on every cutting op, whether or not it ramps or plunges (owner, 2026-11-15).
+            if usr.get("ramp_feed_ipm"):
+                plans["recommended"]["tool_feedRamp"] = _expr("feed", usr["ramp_feed_ipm"])
+            if usr.get("plunge_feed_ipm"):
+                plans["recommended"]["tool_feedPlunge"] = _expr("feed", usr["plunge_feed_ipm"])
     elif rec is not None and rec["feasible"]:
         p = {"tool_spindleSpeed": _expr("rpm", rec["rpm"]), "tool_feedCutting": _expr("feed", rec["feed_ipm"])}
         if kind == "face":
             p["stepover"] = _expr("len", rec["ae_in"])     # the depth of a facing pass comes from the stock: not written
+            if rec.get("ramp_feed_ipm"):
+                p["tool_feedRamp"] = _expr("feed", rec["ramp_feed_ipm"])
+            if rec.get("plunge_feed_ipm"):
+                p["tool_feedPlunge"] = _expr("feed", rec["plunge_feed_ipm"])
         elif kind != "finish":
             p["maximumStepdown"] = _expr("len", rec["ap_in"])
             if kind == "adaptive":
@@ -2033,6 +2042,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
     setup_ops: List[Dict[str, Any]] = []
     cache: Dict[Any, Any] = {}
     coating_seen: set = set()
+    shank_seen: set = set()
     alt_state: Dict[str, Any] = {"budget": {"runs": ALT_RUNS_PER_SETUP}, "memo": {}, "library": None}
     ops = norm["ops"]
 
@@ -2068,9 +2078,10 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 entry["notes"].append("Probe: it does not cut, so no speeds, feeds or strategy are checked.")
             elif kind == "edge":
                 if is_form_tool(tool0) and not any(k in (op["strategy"] or "").lower() for k in ("chamfer", "deburr", "engrave")):
-                    entry["notes"].append(f"Form tool ({tool0.get('type') or 'see the description'}): ToolWiz's end-mill model does not "
-                                          "describe it, so this operation is not checked as a roughing or finishing cut and "
-                                          "nothing is proposed for it.")
+                    what = ("Chamfer pass with a chamfer mill (a finishing cut)" if "chamfer" in _type_text(tool0)
+                            else f"Form tool ({tool0.get('type') or 'see the description'})")
+                    entry["notes"].append(f"{what}: ToolWiz has no model for this tool yet, so the operation is not checked "
+                                          "and nothing is proposed for it. Your speeds and feeds are left as they are.")
                 else:
                     entry["notes"].append("Chamfer, deburr or engraving pass: not checked as a roughing or finishing cut.")
             elif kind == "hole":
@@ -2094,6 +2105,19 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
             else:
                 tool, notes = _complete_tool(tool0)
                 entry["notes"].extend(notes)
+                # A micro tool whose shank equals its cutting diameter is almost always a library data error (field log
+                # entry 12: 1/16 in tools with a 1/8 in shank entered as 0.0625): ToolWiz then over-estimates the bending.
+                d0, sh0 = tool0.get("diameter_in"), tool0.get("shank_diameter_in")
+                tkey = (tool0.get("number"), tool0.get("description"), d0)
+                if d0 and sh0 and d0 < 0.124 and sh0 <= d0 * 1.02 and tkey not in shank_seen:
+                    shank_seen.add(tkey)
+                    entry["findings"].append(_f(
+                        "INFO", "shank_equals_diameter", "Check this tool's shank diameter in the tool library",
+                        f"The tool is entered with a {sh0:.4f} in shank, the same as its {d0:.4f} in cutting diameter. Most tools this "
+                        "small have a 1/8 in (or 3 mm) shank. With the thin shank ToolWiz predicts much more bending and lowers "
+                        "the feeds of every operation that uses this tool.",
+                        "Correct the shank diameter in the Fusion tool if it is wrong, then run the advisor again.",
+                        shank_diameter_in=sh0, diameter_in=d0))
                 if tool0.get("coating") is None:
                     entry["notes"].append("coating unknown (generic or missing): ToolWiz applied no coating factor")
                 opn = _finish_operation(op) if kind == "finish" else _KIND_OPERATION.get(kind, "Roughing")
@@ -2185,7 +2209,10 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                         time_saved_min=sug["time_saved_min"], time_saved_pct=sug["time_saved_pct"]))
             elif note:
                 strat_notes.append(f"{op['name']}: {note}")
-        if tool_alternatives and kind in ALT_KINDS and tool0.get("diameter_in") \
+        if kind == "finish" and _finish_operation(op) == FLOOR_FINISH_OPERATION:
+            entry["tool_alternatives"] = {"skipped": "tool alternatives are not compared on a floor pass (Flat / Horizontal): "
+                                                     "the comparison measures wall finishing"}
+        elif tool_alternatives and kind in ALT_KINDS and tool0.get("diameter_in") \
                 and not any(f["code"] == "toolwiz_error" for f in entry["findings"]):
             blk, fnd = _tool_alternatives(op, tool, ctx, physics, machine_profile, cache, alt_state)
             entry["tool_alternatives"] = blk

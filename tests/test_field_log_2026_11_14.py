@@ -44,7 +44,13 @@ def test_finish_plan_is_for_the_ops_own_engagement_not_toolwiz_skim():
     assert usr["feed_ipm"] < rec["feed_ipm"]
     plan = o["apply_plan"]
     assert set(plan) == {"recommended"}
-    assert plan["recommended"] == {"tool_spindleSpeed": f"{usr['rpm']} rpm", "tool_feedCutting": f"{usr['feed_ipm']:.2f} in/min"}
+    p = plan["recommended"]
+    assert p["tool_spindleSpeed"] == f"{usr['rpm']} rpm" and p["tool_feedCutting"] == f"{usr['feed_ipm']:.2f} in/min"
+    assert set(p) <= {"tool_spindleSpeed", "tool_feedCutting", "tool_feedRamp", "tool_feedPlunge"}
+    if usr.get("plunge_feed_ipm"):       # owner 2026-11-15: ramp and plunge feed on every cutting op, finishing included
+        assert p["tool_feedPlunge"] == f"{usr['plunge_feed_ipm']:.2f} in/min"
+    if usr.get("ramp_feed_ipm"):
+        assert p["tool_feedRamp"] == f"{usr['ramp_feed_ipm']:.2f} in/min"
     assert f"{rec['feed_ipm']:.2f} in/min" not in json.dumps(plan)
 
 
@@ -84,7 +90,7 @@ def test_trace_with_a_chamfer_mill_is_not_an_end_mill_cut():
     o = ops[0]
     assert o["kind"] == "edge" and o["apply_plan"] is None and o["findings"] == []
     assert o["toolwiz"]["recommended"] is None and "tool_alternatives" not in o
-    assert any(n.startswith("Form tool (chamfer mill)") for n in o["notes"])
+    assert any(n.startswith("Chamfer pass with a chamfer mill (a finishing cut)") for n in o["notes"])
 
 
 def test_form_tools_are_recognised_by_type_not_by_a_word_in_the_description():
@@ -214,3 +220,51 @@ def test_sk_and_sx_collet_chucks_are_rated_at_3_microns_everywhere():
         assert ro.holder_runout(text) == ("SK/SX collet", ro.SK_SX_TIR_IN)
     h = [x for x in _json.load(open("data/holders.json"))["holders"] if x["id"] == "sk_collet_chuck"][0]
     assert h["tir_mm"] == 0.003
+
+
+# ---- owner's answers, 2026-11-15 (second round) and log entries 7 and 13 -------------------------------------------
+
+def test_finishing_plan_carries_ramp_and_plunge_feed():
+    o = _advise([_op("Wall", "contour2d", F16, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in", stockToLeave="0 in"))],
+                tool_alternatives=False)[0]
+    usr, p = o["toolwiz"]["at_current_engagement"], o["apply_plan"]["recommended"]
+    assert usr["plunge_feed_ipm"] and p["tool_feedPlunge"] == f"{usr['plunge_feed_ipm']:.2f} in/min"
+    assert "tool_rampAngle" not in p
+
+
+def test_no_wall_finish_tool_comparison_on_a_flat_op():
+    o = _advise([_op("Flat33 (5)", "flat", POCKET_TOOL, {"tool_spindleSpeed": "15584 rpm", "tool_feedCutting": "92 in/min",
+                                                        "maximumStepdown": "0.039 in", "stepover": "0.075 in"})])[0]
+    assert "skipped" in o["tool_alternatives"] and "better_tool" not in _codes(o)
+
+
+def test_speeds_and_feeds_dialog_uses_wall_finishing_for_scallop_like_the_advisor():
+    import re
+    src = open("ToolWizFusionAddin/ToolWizFusionAddin.py", encoding="utf-8").read()
+    m = re.search(r"if any\(s in op_strat for s in \['scallop', 'parallel', 'morphed', 'ramp', 'flow'\]\):\n(?:\s*#.*\n)*\s*return '([^']+)'", src)
+    assert m and m.group(1) == "Finishing" == sa._finish_operation({"strategy": "scallop"})
+    assert "return 'Floor Finishing (Skim)'" in src and sa._finish_operation({"strategy": "flat"}) == "Floor Finishing (Skim)"
+
+
+def test_result_dialog_rounds_old_values():
+    sys_path_addin = "ToolWizFusionAddin"
+    import sys
+    if sys_path_addin not in sys.path:
+        sys.path.insert(0, sys_path_addin)
+    import twlogic as tw
+    assert tw.tidy_old_value("tool_feedCutting", "50.1921790628448in/min") == "50.19 in/min"
+    assert tw.tidy_old_value("tool_spindleSpeed", "11999.11612839420377") == "11999 rpm"
+    assert tw.tidy_old_value("tool_spindleSpeed", "12224.") == "12224 rpm"
+    assert tw.tidy_old_value("maximumStepdown", "0.45in") == "0.45 in"
+    assert tw.tidy_old_value("tool_feedPlunge", "tool_feedCutting * 0.3") == "tool_feedCutting * 0.3"
+    text = tw.format_apply_results([{"op_id": "S > Op", "applied": [{"param": "tool_feedCutting", "old": "50.1921790628448in/min", "new": "47.74 in/min"}]}])
+    assert "tool_feedCutting: 50.19 in/min -> 47.74 in/min" in text
+
+
+def test_micro_tool_with_shank_equal_to_diameter_is_flagged_once_per_tool():
+    thin = dict(F16, geometry=dict(F16["geometry"], SFDM=0.0625))
+    p = dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in")
+    ops = _advise([_op("A", "flat", thin, p), _op("B", "flat", thin, p), _op("C", "flat", F16, p)], tool_alternatives=False)
+    assert [("shank_equals_diameter" in _codes(o)) for o in ops] == [True, False, False]
+    f = [x for x in ops[0]["findings"] if x["code"] == "shank_equals_diameter"][0]
+    assert f["severity"] == "INFO" and "1/8 in" in f["detail"]

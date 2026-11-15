@@ -3489,7 +3489,9 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
     if 'flat' in op_strat or 'horizontal' in op_strat:
         return 'Floor Finishing (Skim)'
     if any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']):
-        return '3D Contouring / Scallop Finishing'
+        # Owner decision 2026-11-15: the same wall-finishing numbers the Setup Advisor gives for these operations (the more
+        # careful of the two). '3D Contouring / Scallop Finishing' stays in the dropdown for a deliberate choice.
+        return 'Finishing'
     if any(s in op_strat for s in ['contour', 'trace']):
         return 'Finishing'
     if 'pocket' in op_strat:

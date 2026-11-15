@@ -165,3 +165,21 @@ These hold values from the faulty plan and now get no plan, so they stay as they
 - 2D Contour7 (EndCapCleanUP): 51.03 in/min at 16000 rpm (was 32.30 at 11999).
 - 2D Contour239 (4): 51.03 in/min at 16000 rpm (was 25.56 at 11999).
 - Trace1 (2) and Trace1 (3): 87.36 in/min, plunge 25.97, 16000 rpm (was 146.70, 13.12, 12224).
+
+## Cloud session, 2026-11-15 (second round): the owner's answers. THE ADD-IN CHANGED: reinstall it
+
+- **Ramp feed and plunge feed on every cutting op**, finishing and facing included (owner: "ramp feedrates should be set
+  regardless of whether we are ramping or not. Same goes for plunging").
+- **Scallop / parallel / morphed / ramp / flow ops in the Speeds & Feeds dialog now default to "Finishing"**, the same
+  wall-finishing numbers the advisor gives (owner: "we should go with the advisor's recommendations"). Add-in change.
+- **Entry 7**: the result dialog rounds old values ("50.19 in/min", "11999 rpm"). Add-in change.
+- **Entry 13**: no "different tool" comparison on a Flat / Horizontal op.
+- **Entry 12**: new INFO `shank_equals_diameter` on a tool under 1/8 in whose shank equals its cutting diameter, once per
+  tool. It should show on T12 and T6 until the owner corrects the shank.
+- **Chamfer-mill Trace** (owner: "chamfers are always finishing paths"): the note now reads "Chamfer pass with a chamfer
+  mill (a finishing cut): ToolWiz has no model for this tool yet ...". Still nothing checked or proposed.
+- Entry 10 (single-pass roughing contours): left as it is; the owner says they are rare.
+
+Re-check for the shop PC: reinstall the add-in, restart the server; Speeds & Feeds on Scallop4 (6) starts on "Finishing";
+finishing plans carry tool_feedPlunge (and tool_feedRamp where ToolWiz gives one); the result dialog shows rounded old
+values; Flat33 (5) has no "different tool" finding; T12 and T6 carry the shank INFO.

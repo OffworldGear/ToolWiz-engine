@@ -925,6 +925,28 @@ def normalize_apply_result(res):
     return {"ok": ok, "applied": applied, "skipped": skipped, "error": err}
 
 
+_PLAIN_QTY_RE = re.compile(r"^\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*([A-Za-z/]*)\s*$")
+
+
+def tidy_old_value(param, old):
+    """An operation's previous value for the result dialog: a plain number (with or without a unit) is rounded the way the
+    confirmation shows it ("50.1921790628448in/min" -> "50.19 in/min", "11999.116" -> "11999 rpm"); a formula is shown as
+    it is, shortened to 60 characters."""
+    s = str(old if old is not None else "").strip()
+    m = _PLAIN_QTY_RE.match(s)
+    if not m:
+        return s if len(s) <= 60 else s[:57] + "..."
+    v, unit = float(m.group(1)), m.group(2)
+    name = str(param or "")
+    if name == "tool_spindleSpeed":
+        return f"{v:.0f} {unit or 'rpm'}"
+    if "Angle" in name:
+        return f"{v:.1f} {unit or 'deg'}"
+    if name.startswith("tool_feed"):
+        return f"{v:.2f}" + (f" {unit}" if unit else "")
+    return f"{v:.4f}".rstrip("0").rstrip(".") + (f" {unit}" if unit else "")
+
+
 def format_apply_results(results):
     lines = []
     for r in results:
@@ -935,7 +957,7 @@ def format_apply_results(results):
             head += f" - {r['error']}"
         lines.append(head)
         for x in a:
-            lines.append(f"   {x.get('param')}: {x.get('old')} -> {x.get('new')}")
+            lines.append(f"   {x.get('param')}: {tidy_old_value(x.get('param'), x.get('old'))} -> {x.get('new')}")
         for x in s:
             lines.append(f"   skipped {x.get('param')}: {x.get('reason')}")
     return "\n".join(lines)
