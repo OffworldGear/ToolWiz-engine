@@ -14,6 +14,13 @@ Branch `toolsystem/main`. Nothing here is built. Brief: `docs/TOOL_SYSTEM_PROJEC
 - Tool setters: Blum laser NT and Z Nano; move everything to the laser over time; wear can be measured.
 - Goal: unattended running overnight (frames run about 1 h 45 min each, three per batch).
 - Holders: Rego-Fix powRgrip under consideration for finishing tools; no decision.
+- Added to the brief on `toolwiz/v4-advisor` (commit d16cd7d), relayed by the field-test session:
+  - Keeping every document's tools in step with the master, automatically and with a report, is a core requirement.
+    Example: T12 and T6 (1/16 in tools, 1/8 in shanks) were 0.0625 in shank in a document, so every operation was
+    under-fed; the same document has tool 2 defined twice.
+  - Chamfer mills on Trace or 2D Chamfer are finishing passes on visible surfaces. ToolWiz has no chamfer model, so
+    chamfer presets come from manufacturer data or the owner's approved values, never from a calculation.
+  - Standard practice: no Scallop until roughing is completely finished.
 
 ## Checked facts
 
@@ -34,9 +41,13 @@ Branch `toolsystem/main`. Nothing here is built. Brief: `docs/TOOL_SYSTEM_PROJEC
    Numbering: 1 to 17 permanent, 18 to 21 guest or spare-tool pockets, 22 to 98 shelf blocks by type, 99 probe.
 3. **Presets and change log.** Active materials x allowed strategies per tool. Trust level on every preset:
    Calculated, Manufacturer, Ran OK (set automatically from machine evidence), Proven (owner's click; never
-   overwritten). Old versus new comparison with reasons.
+   overwritten). Old versus new comparison with reasons. Chamfer presets: manufacturer or owner-approved only.
+   Also a document check, report only: a Scallop operation ordered before roughing is finished is flagged.
 4. **Publish to Fusion.** Backup, dry run, owner confirms, write to hub (or Local if the hub test fails).
-5. **Replace document tools.** On a copy first; dry-run report; owner confirms in Fusion.
+5. **Keep documents in step with the master** (core requirement). First a read-only drift report for every
+   document: which tools differ from the master and in what (shank, flute length, stickout, number, presets), and
+   duplicate tool numbers. Then the fix: on a copy first; dry-run report; owner confirms in Fusion. After that the
+   drift check runs on every harvest, so a document that falls out of step is reported the same day.
 6. **Machine link.** Read life, wear and pockets on a schedule; per-cutter history; weekly review screen. Writing
    names and life limits to the control comes last and only after a proven test on an unused tool number.
 7. **Unattended running.** Spare tools through Brother tool groups for tools that cannot last a night; laser
