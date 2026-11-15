@@ -68,7 +68,8 @@ def test_preview_lists_old_and_new_before_anything_is_written_and_cancel_writes_
     assert "tool_rampAngle: 2.00 deg -> 2.97 deg" in will            # the ramp angle change is shown, not silent
     assert "tool_feedPlunge: 6.59 in/min (replaces a formula) -> 6.59 in/min" in will or "tool_feedPlunge" in already
     assert "tool_feedTransition: 30.00 in/min -> 49.71 in/min" in will
-    for unchanged in ("tool_spindleSpeed", "tool_feedCutting", "tool_feedRamp", "Stepdown", "Stepover / optimal load"):
+    assert "tool_feedRamp: 36.22 in/min -> 33.14 in/min" in will        # a ramp is never fed faster than the cut (2026-11-15)
+    for unchanged in ("tool_spindleSpeed", "tool_feedCutting", "Stepdown", "Stepover / optimal load"):
         assert unchanged in already and f"  {unchanged}:" not in will
 
 

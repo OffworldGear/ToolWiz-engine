@@ -311,6 +311,8 @@ def test_dialog_and_advisor_pick_the_same_calculation():
                     assert kind == "edge" and dialog == a.STRATEGY_CHAMFER
                 elif (strategy, stock) in KNOWN:
                     assert dialog == "Finishing" and advisor in ("Roughing", "Slotting")
+                    named = a.infer_strategy_for_op(SimpleNamespace(strategy=strategy, name="2D Contour rough", parameters=None), gp)
+                    assert named == "Roughing" == sa._KIND_OPERATION[sa.classify_op(strategy, "2D Contour rough", tool, {}, stock)]
                 else:
                     assert dialog == advisor == want.get(strategy, "Finishing"), (strategy, tt, stock, dialog, advisor)
 

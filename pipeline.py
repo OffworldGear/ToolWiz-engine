@@ -535,7 +535,49 @@ def _recommend(physics, r: CutRequest, rpm: float, base_ipt: float, details: Dic
     )
 
 
+SCALLOP_CAP_NOTE = "feed capped at the vendor-chart finishing chip load for this tool"
+
+
+def _is_scallop_operation(operation: Any) -> bool:
+    o = str(operation or "").lower()
+    return "scallop" in o or "3d contour" in o
+
+
 def run_cut(physics, req: CutRequest) -> CutResult:
+    """Run the speeds-and-feeds pipeline for one cut.
+
+    3D contouring / scallop finishing (v1 table rule): the chip load is capped at the chart-guarded v2 finishing chip load
+    of the same tool, where the v2 model covers it (owner decision 2026-11-15: the v1 rule gave 0.0014 to 0.00175 in/tooth
+    on a 1/16 in 4-flute ball in 7075, where Harvey's ball-mill chart lists 0.0007 to 0.0010). Feed, MRR and the ramp /
+    plunge feeds scale with it; ``limited_by`` says so. No v2 answer for the tool: no cap."""
+    res = _run_cut_uncapped(physics, req)
+    try:
+        if not _is_scallop_operation(req.operation) or not (res.feed_ipm and res.rpm and res.feasible):
+            return res
+        import copy
+        ref_req = copy.copy(req)
+        ref_req.operation, ref_req.cut_depth, ref_req.cut_width, ref_req.model, ref_req.finish_mode = "Finishing", None, None, "v2", "none"
+        ref = _run_cut_uncapped(physics, ref_req)
+        if str(getattr(ref, "model", "")) != "v2" or not (ref.feasible and ref.feed_ipm and ref.rpm):
+            return res
+        fz, fz_cap = res.feed_ipm / res.rpm, ref.feed_ipm / ref.rpm          # per revolution: the flute count is the same
+        if fz > fz_cap * 1.0001:
+            k = fz_cap / fz
+            res.feed_ipm *= k
+            res.adj_ipt *= k
+            res.mrr = (res.mrr or 0.0) * k
+            if res.corner_feed_ipm is not None:
+                res.corner_feed_ipm = round(res.corner_feed_ipm * k, 2)
+            res.ramp_feed = min(res.ramp_feed or 0.0, res.feed_ipm)
+            res.plunge_feed = min(res.plunge_feed or 0.0, res.feed_ipm)
+            res.limited_by = ", ".join(x for x in (str(res.limited_by or ""), "vendor chart cap") if x)
+            res.model_note = "; ".join(x for x in (str(getattr(res, "model_note", "") or ""), SCALLOP_CAP_NOTE) if x)
+    except Exception:           # the cap must never break a calculation: the uncapped result stands
+        return res
+    return res
+
+
+def _run_cut_uncapped(physics, req: CutRequest) -> CutResult:
     """Run the canonical speeds-and-feeds pipeline for one cut and record provenance."""
     geo_lower_original = str(req.geometry or "Square").lower()
     r = _normalize(req)

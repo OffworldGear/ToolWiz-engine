@@ -3101,6 +3101,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
             plunge_feed = ramp_feed if ramp_feed > 0 else (feed * 0.25 if feed > 0 else 5.0)
         if ramp_feed <= 0:
             ramp_feed = feed * 0.5 if feed > 0 else 10.0
+        if feed > 0:                 # a ramp or plunge is never fed faster than the cut itself
+            ramp_feed, plunge_feed = min(ramp_feed, feed), min(plunge_feed, feed)
     sfm = calc_result.get("sfm", 300)
     ipt = calc_result.get("ipt", 0.002)
 
@@ -3620,6 +3622,8 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
         # (owner, 2026-11-15, later the same day). The Setup Advisor uses the same one (setup_advisor._finish_operation).
         return '3D Contouring / Scallop Finishing'
     if any(s in op_strat for s in ['contour', 'trace']):
+        if 'contour' in op_strat and 'rough' in op_name:
+            return 'Roughing'        # a 2D contour named as a roughing pass (the Setup Advisor reads it the same way)
         return 'Finishing'
     if 'pocket' in op_strat:
         return 'Roughing'
@@ -3791,8 +3795,11 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
                 
             tool_grade_input = inputs.addDropDownCommandInput('toolGrade', 'Tool Performance Grade', adsk.core.DropDownStyles.TextListDropDownStyle)
             is_carbide = initial_geo.get("is_carbide", True) if initial_geo else True
-            tool_grade_input.listItems.add('HP High Performance Carbide', is_carbide)
-            tool_grade_input.listItems.add('Carbide (Standard)', False)
+            # Owner decision 2026-11-15: standard unless the tool is named high-performance in its description ("HP",
+            # "Hi Perf", "High Performance"); the Setup Advisor reads the same words (setup_advisor.HP_GRADE_RE).
+            is_hp = bool(is_carbide and twlogic.is_hp_grade((initial_geo or {}).get("desc")))
+            tool_grade_input.listItems.add('HP High Performance Carbide', is_hp)
+            tool_grade_input.listItems.add('Carbide (Standard)', bool(is_carbide and not is_hp))
             tool_grade_input.listItems.add('High Speed Steel (HSS)', not is_carbide)
             tool_grade_input.listItems.add('Cobalt (M42)', False)
 

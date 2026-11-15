@@ -473,3 +473,34 @@ engrave operations are suppressed, as `get_toolpath_status` and the snapshot rep
 Item 1 above (depths of about 3 in): the owner's view is that this is how Fusion reports heights set from a feature of
 the part, not a problem in his file. The WCS origin is the bottom centre of his self-centring vise, which is why the
 part sits about 3 in up. What matters to him is that the speeds and feeds are right for the kind of cut.
+
+## Cloud session, 2026-11-15 (fourth round): the owner's answers and the held items. THE ADD-IN CHANGED: reinstall and restart
+
+Tests: `tests/test_owner_batch_2026_11_15.py`. Owner's answers in the cloud session, in short: cap the scallop feed at the
+vendor chart; standard grade unless a tool is named high-performance; a contour with positive stock to leave is a
+semi-finishing pass; do the next batch. His process: Speeds & Feeds on each toolpath first (it sets the strategy), then the
+advisor reviews the whole setup.
+
+- **Scallop cap (engine, so the web app too):** "3D Contouring / Scallop Finishing" never exceeds the chart-guarded
+  finishing chip load of the same tool. 1/16 in 4-flute ball, 7075, 60 %: 51.07 in/min at 16000 (0.0008 in/tooth; Harvey
+  lists 0.00069 to 0.00103), was 88.55. `limited_by` gains "vendor chart cap".
+- **Grade:** the advisor uses the HP table only for a tool whose description says "HP", "Hi Perf" or "High Performance";
+  the dialog preselects the same. Everything else is standard in both.
+- **Declared strategy:** the advisor reads the preset linked to the operation. A ToolWiz name ("<material> - <strategy>")
+  whose strategy the operation can be is followed (note: `Strategy "..." comes from the linked preset`); one for another
+  kind of cut gives CAUTION `preset_strategy_mismatch` ("Run ToolWiz Speeds & Feeds on this toolpath") and is not followed.
+  Expect that caution on the scallop ops still linked to "Aluminum - Roughing".
+- **Semi-finish contour:** a single light 2D Contour pass with positive stock to leave is checked like a finishing pass at
+  its own engagement; the stock is kept. No stepover on the op: no feed proposed.
+- **Tapping:** CAUTION `tapping_feed_mismatch` when a tap's feed is more than 2 % from rpm x pitch (M1.6 x 0.35 at 1765 rpm:
+  24.32 in/min). It reads tool_feedPlunge when the op has one, else tool_feedCutting: please confirm which parameter the two
+  tapping ops actually hold 10.77 and 39.37 in.
+- **Entry 19:** a 2D contour the add-in did not measure, in a run where it measured others, gets CAUTION
+  `geometry_not_measured` and no plan.
+- **Ramp and plunge feed** are never above the cutting feed, in the advisor's plan and in what the dialog writes.
+- **Dialog:** a 2D Contour whose name says "rough" starts on "Roughing".
+- Not done: the depth reading on ops whose bottom height is relative to a selection (the owner did not ask for it).
+
+Re-check for the shop PC, read-only first: scallop ops (feed about 51 on Scallop4 (6), the mismatch caution, limited_by);
+the two tapping ops; Flat34 and one adaptive unchanged; then with the owner the dialog previews on Trace1 (2), Scallop4 (6)
+and Flat34 (default grade shown, Cancel writes nothing).

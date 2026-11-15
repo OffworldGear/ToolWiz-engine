@@ -141,6 +141,17 @@ whose shank equals its cutting diameter. A chamfer-mill model (chamfer passes ar
 is a new feature: after the freeze or in the tool-system project. The cloud session can now message the shop PC session
 directly (`mcp__claude-code-remote__send_message`, session "Tool Wiz local instance Fusion MCP link").
 
+Third and fourth rounds, same day (details: `docs/FIELD_TEST_LOG.md`, `docs/SETUP_ADVISOR.md` "Dialog and advisor"):
+the Speeds & Feeds command shows a before -> after preview and writes only on OK; chamfer mills use the web calculator's
+"Chamfering" and 3D finishing strategies its scallop calculation, in both tools, with the scallop chip load capped at the
+chart-guarded v2 finishing chip load; grade is standard unless the tool description says HP; the advisor follows the
+strategy declared by the linked preset; a light contour with positive stock is a semi-finish; tapping feed is checked
+against rpm x pitch. The owner's process: Speeds & Feeds per toolpath first, then the advisor for the whole setup. He
+wants the workflow written down with him so the tools need not cover every case; the advisor then warns about steps
+missed or done wrong. Draft of declared strategies: `docs/STRATEGY_DEFINITIONS.md` (his five decisions open).
+Lesson: the web calculator, the dialog and the advisor each chose their calculation separately; a parity test now runs
+the dialog's and the advisor's choice over the milling strategies. Any new strategy must go into all three.
+
 **Tool-system project:** its own session and its own branch. Brief: `docs/TOOL_SYSTEM_PROJECT_BRIEF.md`.
 
 **Coordination:** both sessions can message each other since the owner approved the trust prompt (2026-11-15). Longer

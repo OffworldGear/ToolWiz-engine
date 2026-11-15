@@ -169,6 +169,9 @@ def _tool_unit_factor(tool: Dict[str, Any]) -> float:
     return 1 / MM_PER_IN if u.startswith("mill") or u == "mm" else 1.0
 
 
+HP_GRADE_RE = re.compile(r"(?<![A-Za-z0-9])(?:HP|hi(?:gh)?[\s-]?perf(?:ormance)?)(?![A-Za-z0-9])", re.I)
+
+
 def parse_tool(t: Any) -> Dict[str, Any]:
     """Normalize a tool (a description string, a Fusion tool JSON dict or a flat dict) to inches:
     ``diameter_in, flutes, flute_length_in, shank_diameter_in, stickout_in, corner_radius_in, coating, holder,
@@ -214,6 +217,13 @@ def parse_tool(t: Any) -> Dict[str, Any]:
         out["neck_diameter_in"] = _first(t, ("neck_diameter_in", "neck_diameter_mm", "neck_diameter"), "len")
         out["reach_in"] = _first(t, ("reach_in", "reach_mm", "reach"), "len")
     out["kerf_in"] = _first(t, ("kerf_in", "kerf_mm", "kerf"), "len")
+    if geo and isinstance(geo.get("TP"), (int, float)) and not isinstance(geo.get("TP"), bool) and geo["TP"] > 0:
+        out["thread_pitch_in"] = float(geo["TP"]) * _tool_unit_factor(t)
+    else:
+        out["thread_pitch_in"] = _first(t, ("thread_pitch_in", "thread_pitch_mm", "threadPitch", "pitch_in", "pitch_mm"), "len")
+    # Tool Performance Grade (owner, 2026-11-15): standard unless the tool is named high-performance in its description
+    # ("HP", "Hi Perf", "High Performance"), the way the coating is recorded. The Speeds & Feeds dialog preselects the same.
+    out["grade_hp"] = bool(HP_GRADE_RE.search(desc))
     tt = t.get("teeth")
     out["teeth"] = int(tt) if isinstance(tt, (int, float)) and not isinstance(tt, bool) else None
     out["coating"] = _coating_of(t, desc)
@@ -432,6 +442,66 @@ def _ops_list(setup: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [o for o in (ops or []) if isinstance(o, dict)]
 
 
+# The strategy a ToolWiz preset name declares ("<material> - <strategy>", as the Speeds & Feeds dialog writes it) and the
+# Fusion strategies that can be that cut. Owner's process (2026-11-15): Speeds & Feeds sets the strategy on each toolpath
+# first; the advisor then reviews the setup and follows the declared strategy where it fits the operation.
+_3D_FINISH = ("scallop", "parallel", "morph", "ramp", "flow", "pencil", "spiral", "radial", "steep", "blend", "project")
+_DECLARED = {
+    "Adaptive Roughing": ("adaptive", ("adaptive",)),
+    "Roughing": ("contour", ("contour", "pocket", "profile")),
+    "Slotting": ("slot", ("contour", "slot", "trace", "profile")),
+    "Facing": ("face", ("face",)),
+    "Finishing": ("finish", ("contour", "trace", "profile")),
+    "Floor Finishing (Skim)": ("finish", ("flat", "horizontal")),
+    "3D Contouring / Scallop Finishing": ("finish", _3D_FINISH),
+    "Chamfering": ("chamfer", ()),
+}
+
+
+def declared_strategy(preset_name: Any) -> Optional[str]:
+    """The ToolWiz strategy a preset name ends with ("7075 (T6, T651) - Finishing" -> "Finishing"), or None."""
+    name = str(preset_name or "")
+    if " - " not in name:
+        return None
+    tail = name.rsplit(" - ", 1)[1].strip()
+    return tail if tail in _DECLARED else None
+
+
+def _declare_and_refine(op: Dict[str, Any], raw: Dict[str, Any]) -> None:
+    """Refine an operation's inferred kind in place: (1) a light single-pass 2D contour that leaves stock is a
+    semi-finishing pass, checked like a finishing pass at its own engagement (owner, 2026-11-15), not a roughing cut;
+    (2) the strategy declared by the linked preset is followed where the Fusion operation can be that cut, and reported as
+    a mismatch where it cannot."""
+    if raw.get("kind"):
+        return                      # an explicit kind in the snapshot is not second-guessed
+    kind, strat = op["kind"], (op["strategy"] or "").lower()
+    stock = (op.get("current") or {}).get("stock_radial_in")
+    if kind == "contour" and stock is not None and stock > _STOCK_NONE_IN and op.get("stock_enabled") is not False \
+            and not (_clear_rough_contour(op) or _contour_removes_material(op)):
+        op["kind"] = kind = "finish"
+        op["semi_finish"] = True
+        op["geom_notes"].append("2D contour that leaves stock in one light pass: treated as a semi-finishing pass "
+                                "(checked at its own engagement, your stock to leave is kept).")
+    preset = raw.get("preset") if isinstance(raw.get("preset"), str) else None
+    op["preset"] = preset
+    dec = declared_strategy(preset)
+    if not dec or kind in ("probe", "hole", "tslot", "edge"):
+        return
+    want_kind, strategies = _DECLARED[dec]
+    fits = (kind == "chamfer") if dec == "Chamfering" else (kind != "chamfer" and any(k in strat for k in strategies))
+    if dec == "Facing":
+        fits = kind == "face"
+    if fits:
+        op["declared_operation"] = dec
+        if dec == "Roughing":
+            op["kind"] = kind if kind in ("pocket", "contour", "rough") else ("pocket" if "pocket" in strat else "contour")
+        else:
+            op["kind"] = want_kind
+        op.pop("semi_finish", None) if op["kind"] != "finish" else None
+    else:
+        op["preset_mismatch"] = dec
+
+
 def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize the add-in's setup snapshot (docs/SETUP_ADVISOR.md) to ``{"document", "ops": [...], "notes": [...]}``.
 
@@ -493,6 +563,7 @@ def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
             "alloy": raw.get("alloy") or ((raw.get("material") or {}).get("alloy") if isinstance(raw.get("material"), dict) else None),
             "rest_machining": raw.get("rest_machining") if isinstance(raw.get("rest_machining"), bool) else None,
         })
+        _declare_and_refine(ops[-1], raw)
     if not ops:
         notes.append("The setup snapshot contains no operations.")
     mat = setup.get("material") if isinstance(setup.get("material"), dict) else {}
@@ -518,6 +589,8 @@ def _finish_operation(op: Dict[str, Any]) -> str:
     """The ToolWiz operation of a finishing op. Fusion's Flat / Horizontal strategies cut a floor, not a wall: they use the
     floor-finishing operation, the same one the add-in's Speeds & Feeds dialog picks for them (``strategy_label``), so the
     two never disagree about the same operation (owner, 2026-11-15)."""
+    if op.get("declared_operation") in ("Finishing", FLOOR_FINISH_OPERATION, SCALLOP_OPERATION):
+        return op["declared_operation"]
     s = str(op.get("strategy") or "").lower()
     if "flat" in s or "horizontal" in s:
         return FLOOR_FINISH_OPERATION
@@ -618,6 +691,7 @@ def _run_endmill(physics, machine, ctx, tool, operation, depth, width):
         max_hp=machine["max_hp"], runout=ctx["runout"], cut_depth=depth, cut_width=width,
         fusion_tool=_fusion_tool_dict(tool, tool["stickout_in"]), model=ctx["model"], brand=tool.get("vendor"),
         is_carbide=tool.get("is_carbide") is not False, finish_mode=ctx.get("finish_mode"),
+        tool="HP Carbide Endmill" if (tool.get("grade_hp") and tool.get("is_carbide") is not False) else "Carbide Endmill",
         machine_profile=machine["profile"] if machine.get("profile", {}).get("spindle_options") else None)
     return run_cut(physics, req)
 
@@ -936,6 +1010,29 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
     return out
 
 
+TAP_FEED_TOLERANCE = 0.02       # a tapping feed more than 2 % from rpm x pitch is flagged
+
+
+def _tapping_findings(op: Dict[str, Any], tool: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """A tap must be fed exactly one pitch per revolution. Checked when the tool is a tap with a thread pitch and the
+    operation has a spindle speed and a feed (the plunge feed drives a Fusion drilling cycle; else the cutting feed)."""
+    ttype = (tool.get("type") or "").lower() + " " + (tool.get("description") or "").lower()
+    pitch, rpm = tool.get("thread_pitch_in"), (op["current"] or {}).get("rpm")
+    if "tap" not in ttype or "mill" in ttype or not pitch or not rpm:
+        return []
+    extra = op.get("current_extra") or {}
+    feed, which = (extra["tool_feedPlunge"], "plunge feed") if extra.get("tool_feedPlunge") else ((op["current"] or {}).get("feed_ipm"), "feed")
+    want = rpm * pitch
+    if not feed or abs(feed / want - 1.0) <= TAP_FEED_TOLERANCE:
+        return []
+    return [_f("CAUTION", "tapping_feed_mismatch", "Tapping feed does not match the thread pitch",
+               f"The operation's {which} is {feed:.2f} IPM at {rpm:.0f} rpm. A tap with a {pitch * MM_PER_IN:.3f} mm ({pitch:.5f} in) pitch "
+               f"needs {want:.2f} IPM at that speed (rpm x pitch). A feed that does not match the pitch strips the thread or "
+               "breaks the tap unless the machine's tapping cycle overrides it.",
+               f"Set the {which} to {want:.2f} IPM, or run ToolWiz's tapping calculator for this tool.",
+               current_feed_ipm=round(feed, 3), required_feed_ipm=round(want, 3), rpm=rpm, pitch_in=round(pitch, 6))]
+
+
 def _tslot_findings(op, tool, tw, g, machine, ctx) -> List[Dict[str, Any]]:
     """Findings for a slot mill / T-slot cutter operation from ``tslot_model``."""
     cur = op["current"]
@@ -1076,6 +1173,12 @@ def _apply_plans(op: Dict[str, Any], rec: Optional[Dict[str, Any]], usr: Optiona
         if usr is not None and usr["feasible"]:
             plans["keep_engagement"] = {"tool_spindleSpeed": _expr("rpm", usr["rpm"]),
                                         "tool_feedCutting": _expr("feed", usr["feed_ipm"])}
+    for p in plans.values():        # a ramp or plunge is never fed faster than the cut itself
+        cut = parse_quantity(p.get("tool_feedCutting"), "feed")
+        for name in ("tool_feedRamp", "tool_feedPlunge"):
+            v = parse_quantity(p.get(name), "feed")
+            if cut and v and v > cut:
+                p[name] = _expr("feed", cut)
     return plans or None
 
 
@@ -2075,6 +2178,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
     shank_seen: set = set()
     alt_state: Dict[str, Any] = {"budget": {"runs": ALT_RUNS_PER_SETUP}, "memo": {}, "library": None}
     ops = norm["ops"]
+    measured_any = any(o["geometry"].get("toolpath_length_in") for o in ops)
 
     for op in ops:
         ctx = dict(base_ctx)
@@ -2115,6 +2219,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 else:
                     entry["notes"].append("Chamfer, deburr or engraving pass: not checked as a roughing or finishing cut.")
             elif kind == "hole":
+                entry["findings"].extend(_tapping_findings(op, tool0))
                 entry["findings"].append(_f("INFO", "not_analysed", "Hole-making operation not analysed",
                                             "The setup advisor checks milling operations; use the drilling / tapping calculator for this one.",
                                             "Run the ToolWiz calculator for this tool."))
@@ -2153,7 +2258,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                 opn = _finish_operation(op) if kind == "finish" else _KIND_OPERATION.get(kind, "Roughing")
                 # Facing: the depth is set by the stock on top, not chosen, so the recommendation is made at the op's own depth.
                 rec_depth = cur["stepdown_in"] if kind == "face" else None
-                key_r = (opn, _engine_geometry(tool), round(tool.get("corner_radius_in") or 0.0, 6), tool["shank_diameter_in"],
+                key_r = (opn, _engine_geometry(tool), bool(tool.get("grade_hp")), round(tool.get("corner_radius_in") or 0.0, 6), tool["shank_diameter_in"],
                          tool["diameter_in"], tool["flutes"], tool["flute_length_in"], tool["stickout_in"], tool.get("coating"), tool.get("vendor"), ctx["family"], ctx["alloy"], rec_depth, None)
                 rec_res = cache.get(key_r) or _run_endmill(physics, machine, ctx, tool, opn, rec_depth, None)
                 if rec_depth:
@@ -2220,6 +2325,28 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
             entry["apply_plan"] = {"recommended": plan, "keep_engagement": {k: plan[k] for k in ("tool_spindleSpeed", "tool_feedCutting")}}
         op["_ramp_basis"] = (rec or {}).get("ramp_basis")
         entry["apply_plan"] = _finalize_plans(op, entry["apply_plan"], entry["notes"])
+        if op.get("declared_operation"):
+            entry["declared_strategy"] = op["declared_operation"]
+            entry["notes"].append(f"Strategy \"{op['declared_operation']}\" comes from the linked preset \"{op.get('preset')}\".")
+        if op.get("preset_mismatch"):
+            entry["findings"].append(_f(
+                "CAUTION", "preset_strategy_mismatch", "The linked preset is for a different kind of cut",
+                f"This operation is linked to the preset \"{op.get('preset')}\", a {op['preset_mismatch']} preset, but it is a "
+                f"{op['strategy'] or 'different'} operation" + (" with a chamfer mill" if kind == "chamfer" else "") + ". ToolWiz checked it "
+                "as the cut it appears to be, not as the preset says.",
+                "Run ToolWiz Speeds & Feeds on this toolpath so it gets a preset for its own strategy.",
+                preset=op.get("preset")))
+        # Entry 19: the add-in measured the other operations but not this 2D contour (its toolpath was being regenerated):
+        # a slot cannot be told from a side cut, so nothing is proposed until it is measured.
+        if measured_any and op.get("rich") and "contour" in (op["strategy"] or "").lower() and kind in ("contour", "finish", "slot") \
+                and not op["geometry"].get("toolpath_length_in"):
+            entry["apply_plan"] = None
+            entry["findings"].append(_f(
+                "CAUTION", "geometry_not_measured", "This operation's toolpath was not measured",
+                "The add-in sent no measured geometry for this operation (toolpath length, channel width), although it "
+                "measured others in the same run. That happens while a toolpath is being regenerated or is not valid. Without "
+                "it ToolWiz cannot tell a slot from a side cut, so nothing is proposed for this operation.",
+                "Regenerate the toolpath, then run the advisor again."))
 
         # strategy suggestion
         if strategies and tool0.get("diameter_in") and kind in ("slot", "contour", "adaptive", "tslot", "pocket", "rough") \

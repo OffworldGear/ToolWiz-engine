@@ -144,6 +144,14 @@ def fusion_tool_for_server(tool_dict):
     return out
 
 
+_HP_GRADE_RE = re.compile(r"(?<![A-Za-z0-9])(?:HP|hi(?:gh)?[\s-]?perf(?:ormance)?)(?![A-Za-z0-9])", re.I)
+
+
+def is_hp_grade(description):
+    """True when a tool's description names it high-performance ("HP", "Hi Perf", "High Performance")."""
+    return bool(_HP_GRADE_RE.search(str(description or "")))
+
+
 def tool_vendor(tool_dict):
     """The Fusion tool's vendor text ("Harvey Tool", "Klot (Amazon Ebay)"), or None."""
     v = tool_dict.get("vendor") if isinstance(tool_dict, dict) else None
