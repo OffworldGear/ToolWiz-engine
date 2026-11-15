@@ -1,6 +1,7 @@
-# Shop tooling system: draft plan (2026-11-15, NOT yet approved by the owner)
+# Shop tooling system: plan (2026-11-15; owner: "Plan looks good")
 
-Branch `toolsystem/main`. Nothing here is built. Brief: `docs/TOOL_SYSTEM_PROJECT_BRIEF.md`.
+Branch `toolsystem/main`. Nothing here is built yet. Each phase still ends with the owner's approval; every write to
+Fusion or the machine still needs a backup, a dry run and his confirmation. Brief: `docs/TOOL_SYSTEM_PROJECT_BRIEF.md`.
 
 ## Decisions so far (owner, 2026-11-15)
 
@@ -21,6 +22,14 @@ Branch `toolsystem/main`. Nothing here is built. Brief: `docs/TOOL_SYSTEM_PROJEC
   - Chamfer mills on Trace or 2D Chamfer are finishing passes on visible surfaces. ToolWiz has no chamfer model, so
     chamfer presets come from manufacturer data or the owner's approved values, never from a calculation.
   - Standard practice: no Scallop until roughing is completely finished.
+
+- Owner's second round, 2026-11-15: bronze is C954 (C932 also in the active list, low use). Machine link starts
+  read only; writing to the control is wanted later, once tool life is tracked from which program ran with which
+  tool and for how long (the communications app can see programs running). Not every Fusion file in his working
+  folder is in use; he is building one manufacturing-ready document per part. Chamfer: he sometimes roughs with 2D
+  contours, so the Scallop-order check may be hard or unnecessary: keep it report only and low priority; chamfer
+  modelling may be fixed in ToolWiz itself later.
+- Work on `OffworldGear/BrotherC00CommandControl` goes on a new branch of that repository.
 
 ## Checked facts
 
@@ -60,4 +69,12 @@ Branch `toolsystem/main`. Nothing here is built. Brief: `docs/TOOL_SYSTEM_PROJEC
 2. Fresh harvest of all libraries and open-document tools; push the snapshot to this branch.
 3. From SpeedioMonitor, one on-demand FTP sync with the machine idle; copy the tool, pocket and group files to
    `data/machine_snapshots/<date>/` on this branch. Read only.
+4. Document inventory (read only): list every Fusion document in the owner's working folder with its last-modified
+   date, number of setups and operations, and the tools it holds. The owner then marks each one in use, retired or
+   unsure; only "in use" documents are ever touched.
+5. Can document tools be changed automatically? On a COPY of one small in-use document (the one with the 1/16 in
+   tools at the wrong shank is ideal): correct one tool's shank diameter through the add-in
+   (`DocumentToolLibrary.update`), then report: did every operation stay attached to its tool, which toolpaths were
+   marked out of date, did regenerating work, did presets survive. Delete the copy afterwards or leave it clearly
+   named. Never the original.
 Write results to `docs/toolsystem/LOCAL_REPORT_<date>.md`.
