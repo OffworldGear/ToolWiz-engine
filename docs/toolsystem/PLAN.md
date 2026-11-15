@@ -43,24 +43,33 @@ Fusion or the machine still needs a backup, a dry run and his confirmation. Brie
   and group files by FTP on demand. It does not write to the control today. It has its own `master_library` table,
   which must not become a second master.
 
+## Chosen approach (owner, 2026-11-15): option C of `OPTIONS_ANALYSIS.md`
+
+- **Fusion's hub library is the master** for what a tool is and how it cuts. Tools are tracked by tool number.
+- **The control is the master** for what is physically loaded (length, wear, life, pocket, spare groups).
+- **Our copy is a digital twin:** an active copy of the master, kept in step by harvest, used for reference, checks,
+  history and for preparing changes outside Fusion. It is never the truth once the hub master exists.
+- Document tools are copies with no link to the library. So there is a standing process: an important change made
+  to a tool in a document is copied back to the master (the master's tool with that number is updated in place, so
+  no old version is left behind), or the document tool is reset to the master. Nothing is left differing silently.
+
 ## Phases (each ends with something the owner can read and approve)
 
-1. **Harvest and machine snapshot** (read only). Fresh Fusion harvest; FTP pull of tool, pocket and group files.
-2. **Tool sheet.** One row per tool type (number 1 to 99), plus one record per physical cutter. Owner corrects it.
-   Numbering: 1 to 17 permanent, 18 to 21 guest or spare-tool pockets, 22 to 98 shelf blocks by type, 99 probe.
-3. **Presets and change log.** Active materials x allowed strategies per tool. Trust level on every preset:
-   Calculated, Manufacturer, Ran OK (set automatically from machine evidence), Proven (owner's click; never
-   overwritten). Old versus new comparison with reasons. Chamfer presets: manufacturer or owner-approved only.
-   Also a document check, report only: a Scallop operation ordered before roughing is finished is flagged.
-4. **Publish to Fusion.** Backup, dry run, owner confirms, write to hub (or Local if the hub test fails).
-5. **Keep documents in step with the master** (core requirement). First a read-only drift report for every
-   document: which tools differ from the master and in what (shank, flute length, stickout, number, presets), and
-   duplicate tool numbers. Then the fix: on a copy first; dry-run report; owner confirms in Fusion. After that the
-   drift check runs on every harvest, so a document that falls out of step is reported the same day.
-6. **Machine link.** Read life, wear and pockets on a schedule; per-cutter history; weekly review screen. Writing
-   names and life limits to the control comes last and only after a proven test on an unused tool number.
-7. **Unattended running.** Spare tools through Brother tool groups for tools that cannot last a night; laser
-   breakage checks; life limits set from measured history.
+1. **Staging list (our local master, temporary).** From the harvest, show the tools found in the owner's
+   manufacturing documents. The owner says which to pull in; each becomes one row with a permanent tool number.
+   Where the same tool differs between documents, he picks the right version. He corrects brand, coating, shank,
+   stickout and holder. Nothing is written to Fusion.
+2. **Presets and change log** for the staged tools: active materials x allowed strategies, trust levels
+   (Calculated, Manufacturer, Ran OK, Proven), old versus new with reasons.
+3. **Build the true master in the Fusion hub** from the finished staging list: backup, dry run, owner confirms.
+   If the hub cannot be written by the add-in, he imports one library file by hand. From here Fusion is the master
+   and the staging list becomes the digital twin.
+4. **Drift report, read only, on every harvest.** Per document: tools that differ from the master and in what.
+   For each difference the owner chooses "copy to master" or "reset to master".
+5. **Applying those choices automatically,** after the test on a copy passes; by hand until then.
+6. **Machine link, read only:** life, wear and pockets on a schedule; per-cutter history; weekly review.
+7. **Overnight running:** spare-tool groups, laser breakage checks, life limits from history. Writing to the
+   control last, once tool life is tracked from which program ran with which tool.
 
 ## Requests for the shop PC session
 
