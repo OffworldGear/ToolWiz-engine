@@ -401,3 +401,68 @@ is still to be read when he restarts the add-in.
 Still open, needs the owner: restart the add-in; Speeds & Feeds on Trace1 (2) (starts on "Chamfering"?), Scallop4 (6)
 (starts on "3D Contouring / Scallop Finishing"?) and Flat34, each stopped at the preview and cancelled; the grade shown;
 the preview's list; a snapshot to confirm Cancel wrote nothing (baseline taken on `f5df8da`).
+
+## Shop PC: the owner's independent speeds-and-feeds review and three things it turned up, 2026-11-15 (shop time)
+
+The owner asked the local session to read the three setups through the bridge and judge the speeds and feeds without
+ToolWiz ("Stay independent of tool wiz results. Be objective."), then to share the result here. The judgment below is
+the local session's own, from general ranges for carbide in 7075 (the cutters are generic, no vendor chart): chip load
+per tooth 0.0003 to 0.0006 in for 1/16 in, 0.0006 to 0.0012 for 1/8 in, 0.0012 to 0.0025 for 1/4 in, the low end for
+full slots. It is an opinion to weigh, not a measurement. Only rpm, feeds, stepover and stepdown were read; no ToolWiz
+calculation was used.
+
+Where it agrees with ToolWiz: 51.03 in/min on the 1/16 in flat end mill (0.0008 in/tooth) is too high (Op2 Flat34,
+Op1 2D Contour7 (EndCapCleanUP), Op1 2D Contour239 (4)); 22 to 35 in/min is the sensible band. The adaptive, contour
+and slot values ToolWiz wrote in Op1 are all inside the ranges.
+
+Where it differs:
+
+| Item | ToolWiz | Independent view |
+|---|---|---|
+| Scallop ops on the 1/16 in, 4-flute ball (new on `f5df8da`) | 88.38 and 111.94 in/min (0.00138 and 0.00175 in/tooth), and a caution that 0.00052 in/tooth "rubs instead of cutting" | 33 to 51 in/min (0.0005 to 0.0008 in/tooth) is the normal band for this cutter. 0.0005 in/tooth is an ordinary chart value for a 1/16 in tool, not rubbing. The plan assumes 0.003 in axial depth; the roughing leaves 0.0059 in, and more in corners the 1/8 in tools cannot reach. |
+| Chamfer mill T19 (new on `f5df8da`) | 10171 rpm, 120.77 in/min, and a caution that 0.00136 in/tooth "rubs" | 0.00136 in/tooth at 16000 rpm is a normal chamfer feed. ToolWiz's 0.0030 in/tooth is also workable (the owner ran 0.0030 before). There is no cutting reason to slow the spindle in aluminum. |
+| Op1 Flat33 (4) | lowered 74.87 to 44.41 in/min, raised plunge 24.96 to 33.92 | 74.87 (0.0012 in/tooth at 30 % stepover, 2 mm deep) was inside the range. Lowering the cutting feed while raising the plunge feed is not consistent. |
+| Ramp feeds | written above the cutting feed on Flat33 (4) (50.88 against 44.41), 2D Contour239 (3) (17.83 against 17.38), Scallop4 (6) (36.22 against 33.14) | A ramp feed at or below the cutting feed; 50 to 75 % of it in a full-width slot. |
+| Tapping ops Drill27 (4), Drill34 (2) | hole-making, not analysed | The feed fields are 10.77 and 39.37 in/min at 1765 rpm; an M1.6 x 0.35 tap needs 24.32 in/min (617.75 mm/min). Most posts take the feed from the pitch, so this may be harmless, but nothing flags it. |
+
+### 1. Depths of about 3 in on tools with a 0.19 to 0.5 in flute: not a unit error
+
+The owner asked whether this is an inch / millimetre mix-up. It is not: every height converts to a round metric number.
+The part's top is at Z 77.25 to 77.5 mm in the WCS and the prep roughing runs from 77.4 to 70.0 mm. The wrong depths
+come from ops whose bottom height is set relative to a selection (selected contour, hole bottom). For those,
+`bottomHeight_value` is the offset alone (0.0, -0.3 or +0.1 mm), while `topHeight_value` is the absolute 77 mm, and
+`op_geometry` subtracts one from the other. The height reference itself is not in the snapshot, so this is inferred
+from the values, not read.
+
+| Operation | top (mm) | bottom (mm) | `depth_in` | flute (in) |
+|---|---|---|---|---|
+| Prep > 2D Contour2 | 77.35 | -0.3 | 3.0571 | 0.5 |
+| Prep > 2D Chamfer1 | 77.35 | 0.0 | 3.0453 | 0.25 |
+| Op1 > 2D Contour7 (EndCapCleanUP) | 77.25 | 0.0 | 3.0413 | 0.1875 |
+| Op1 > 2D Contour239 (4) | 77.25 | 0.0 | 3.0413 | 0.1875 |
+| Op2 > Drill33 (2) | 77.263 | 0.0 | 3.0419 | 0.354 |
+| Op2 > Drill34 (2) | 77.263 | 0.1 | 3.0379 | 0.311 |
+| Op2 > 2D Contour206 (7) | 77.35 | 0.0 | 3.0453 | 0.1875 |
+| Op2 > 2D Contour64 | 77.35 | 0.0 | 3.0453 | 0.1875 |
+| Op2 > 2D Contour64 (2) | 74.148 | 0.0 | 2.9192 | 0.1875 |
+
+Ops with both heights relative read as a plausible depth (2D Contour239 (3): 0.0 to -0.7 mm) or as zero (Drill4 (5):
+0.0 to 0.0). `depth_in` is documented as reliable and `setup_advisor.py` uses it for `min_reach_in`, for the number of
+depth levels in the slot time estimates, and the advisor's recommended depth of cut on EndCapCleanUP and 2D Contour239
+(4) is the full flute length, 0.1875 in. For these ops the true depth is unknown to ToolWiz.
+
+### 2. Engrave operations
+
+`get_toolpath_status` and the snapshot report both Op1 > Engrave17 (2) and Op2 > Engrave12 (3) as suppressed
+(`isSuppressed` true) with no toolpath. The owner says only Engrave17 (2) is suppressed and the other engrave path is
+not empty. Open: he is checking Engrave12 (3) in the browser. If it shows a toolpath there, the add-in either misreads
+it or is not listing an operation.
+
+### 3. Where Op2's values come from
+
+The owner thought Op2 might still hold Fusion's generic aluminum presets. It does not for rpm, cutting feed and plunge
+feed: entry 8 records his apply of 40 parameters on 14 Op2 operations on 2026-11-14 (the first plan, before the
+fixes). The tools' generic "Aluminum" presets are all 11999 rpm (1/16 in tools 25.56 and 32.30 in/min; 1/8 in 50.19
+and 63.42; 1/4 in 92.0 and 99.46), while Op2 holds 16000 rpm with 51.03, 17.38, 30.47, 47.74, 66.56, 74.87 and
+132.04 in/min. The ramp feeds in Op2 (50.196, 25.562, 32.298, 99.464 in/min) are still the generic preset values,
+because that plan did not write ramp feeds. Op2 has not had a plan applied since.
