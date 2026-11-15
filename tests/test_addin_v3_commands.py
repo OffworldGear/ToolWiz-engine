@@ -156,6 +156,7 @@ class TestAutoSetV3(AuditBase):
              patch.object(a, "_upsert_preset_in_place", return_value=(MagicMock(), False)) as up, \
              patch.object(a, "get_op_cut_params", return_value=op_cut), \
              patch.object(a, "op_supports_stock_to_leave", return_value=True), \
+             patch.object(a, "confirm_autoset_preview", return_value=True), \
              patch.object(a, "apply_stock_to_op", return_value=[]) as stock:
             done = a.run_autoset(MagicMock(), "Setup > Op", "Aluminum - Wrought (6061)", "6061-T6", strategy, 50, None, "HP", "AlTiN", **kw)
         return done, http, up, stock

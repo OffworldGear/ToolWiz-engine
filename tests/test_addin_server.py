@@ -220,7 +220,7 @@ class TestAutoSet(ServerTestBase):
     def _run(self, geo, calc, yes=True):
         addin = self.addin
         addin.ui.messageBox.return_value = addin.adsk.core.DialogResults.DialogYes if yes else addin.adsk.core.DialogResults.DialogNo
-        with patch.object(addin, "get_op_tool_info", return_value=(geo, "summary", [])), \
+        with patch.object(addin, "get_op_tool_info", return_value=(geo, "summary", [])), patch.object(addin, "confirm_autoset_preview", return_value=True), \
              patch.object(addin, "_http_json", return_value=calc) as http, \
              patch.object(addin, "_upsert_preset_in_place", return_value=(MagicMock(), False)) as mut,              patch.object(addin, "get_op_cut_params", return_value=(calc.get("rpm", 0), calc.get("feed", 0), 0, 0)):
             result = addin.run_autoset(MagicMock(), "Setup > Op", "Titanium Alloy", "Grade 2", "Finishing", 50,
@@ -311,7 +311,7 @@ class TestPresetInPlace(ServerTestBase):
         addin = self.addin
         geo = TestAutoSet.GEO
         calc = dict(TestAutoSet.CALC)
-        with patch.object(addin, "get_op_tool_info", return_value=(geo, "summary", [])),              patch.object(addin, "_http_json", return_value=calc),              patch.object(addin, "_upsert_preset_in_place", return_value=(MagicMock(), True)),              patch.object(addin, "get_op_cut_params", return_value=op_values),              patch.object(addin, "apply_param", return_value=True) as ap,              patch.object(addin.adsk.cam.Tool, "createFromJson") as cfj:
+        with patch.object(addin, "get_op_tool_info", return_value=(geo, "summary", [])), patch.object(addin, "confirm_autoset_preview", return_value=True),              patch.object(addin, "_http_json", return_value=calc),              patch.object(addin, "_upsert_preset_in_place", return_value=(MagicMock(), True)),              patch.object(addin, "get_op_cut_params", return_value=op_values),              patch.object(addin, "apply_param", return_value=True) as ap,              patch.object(addin.adsk.cam.Tool, "createFromJson") as cfj:
             addin.run_autoset(MagicMock(), "Setup > Op", "Brass", "", "Roughing", 50, None,
                               "HP High Performance Carbide", "AlTiN (Black)")
         cfj.assert_not_called()  # never builds a second tool

@@ -317,3 +317,21 @@ What he asked for, and what the shop PC saw this command write:
 
 The shop PC will re-check on live Fusion once it is pushed: the preview on Scallop4 (6) and on one roughing op, Cancel
 writing nothing (snapshot before and after), and OK writing exactly the listed values.
+
+## Cloud session, 2026-11-15: Speeds & Feeds preview (entry 20). THE ADD-IN CHANGED: reinstall and restart it
+
+After the calculation and before any write, the command shows one box: first line "QUESTION: apply these ToolWiz values
+to <operation>? OK writes them; Cancel changes nothing.", then ToolWiz's result, "Will change (N):" with old -> new per
+value (preset link, rpm, the feeds, ramp angle, stepdown, stepover, Passes-tab switches, reduced feedrate, fine stepdown,
+helical ramp diameter, the operation's own rampAngle link, stock to leave when ticked), then "Already at ToolWiz's
+value, not changed (M): ...". Only OK writes. Tests: `tests/test_addin_autoset_preview.py`.
+
+Not changed: what the command writes. It still raises a ramp angle (2.00 -> 2.97 deg on Scallop4 (6)); the preview now
+shows it. Whether it should stop doing that is with the owner.
+
+Re-check for the shop PC: the preview on Scallop4 (6) and on one roughing op; Cancel writes nothing (snapshot before and
+after, preset count on the tool unchanged); OK writes exactly the listed values. Please also note any value the command
+writes that the preview did not list.
+
+Also in this push: `docs/SETUP_ADVISOR.md`, last section, answers the owner's question whether the advisor and the dialog
+give the same results (a table of where they agree and differ).

@@ -268,3 +268,25 @@ def test_micro_tool_with_shank_equal_to_diameter_is_flagged_once_per_tool():
     assert [("shank_equals_diameter" in _codes(o)) for o in ops] == [True, False, False]
     f = [x for x in ops[0]["findings"] if x["code"] == "shank_equals_diameter"][0]
     assert f["severity"] == "INFO" and "1/8 in" in f["detail"]
+
+
+def test_dialog_and_advisor_pick_the_same_calculation_for_the_strategies_that_agree():
+    """Owner, 2026-11-15: he assumed the Setup Advisor and the Speeds & Feeds dialog give identical results. They choose
+    their ToolWiz operation in two separate places; this pins the Fusion strategies on which they agree today, so the two
+    cannot drift apart again unnoticed. The known differences are listed in docs/SETUP_ADVISOR.md ("Dialog and advisor")."""
+    from types import SimpleNamespace
+    from test_addin_common import load_addin
+    a = load_addin()
+    a.read_cycle_type = lambda op: ("", "")
+    agree = {"adaptive": "Adaptive Roughing", "adaptive2d": "Adaptive Roughing", "pocket2d": "Roughing", "pocket": "Roughing",
+             "slot": "Slotting", "face": "Facing", "flat": "Floor Finishing (Skim)", "horizontal": "Floor Finishing (Skim)",
+             "scallop": "Finishing", "parallel": "Finishing", "morphed_spiral": "Finishing"}
+    for tt in ("flat end mill", "ball end mill"):
+        tool = sa.parse_tool({"type": tt, "description": "1/4 " + tt, "geometry": {"DC": 0.25, "NOF": 4, "LCF": 0.5, "SFDM": 0.25, "LB": 1.0}})
+        gp = {"kind": "milling", "type": tt, "tool_type": tt, "desc": "1/4 " + tt, "diameter": 0.25}
+        for strategy, want in agree.items():
+            dialog = a.infer_strategy_for_op(SimpleNamespace(strategy=strategy, name="Op", parameters=None), gp)
+            for stock in (0.0, 0.01):
+                kind = sa.classify_op(strategy, "Op", tool, {}, stock)
+                advisor = sa._finish_operation({"strategy": strategy}) if kind == "finish" else sa._KIND_OPERATION.get(kind)
+                assert dialog == advisor == want, (strategy, tt, stock, dialog, advisor)

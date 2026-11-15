@@ -1822,14 +1822,27 @@ def _is_bool_param_true(p):
     return isinstance(expr, str) and _norm_expr(expr) in ('true', '1', 'yes')
 
 
-def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_payload=None):
+def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_payload=None, plan=None):
     """Configure Passes Tab checkboxes and limits (Multiple Depths, Roughing Passes, Feed Optimization)
     so Fusion enforces the calculated axial DOC and radial WOC on 2D Contour and profile operations.
-    Returns a list of human-readable notes describing what was configured."""
+    Returns a list of human-readable notes describing what was configured.
+
+    ``plan``: a list makes this a DRY RUN for the preview: nothing is written, and every write it would make is appended
+    as (parameter name, current expression, new expression)."""
     notes = []
     params = getattr(op, 'parameters', None)
     if params is None:
         return notes
+    dry = plan is not None
+
+    def w(name, expr, force=False):
+        if not dry:
+            return apply_param(op, name, expr, force=force)
+        p = _param(params, name)
+        if p is not None and (_safe(lambda: p.isEnabled) or force):
+            plan.append((name, _safe(lambda: p.expression), expr))
+            return True
+        return False
 
     strat = str(strategy or "").strip().lower()
     is_rough_or_semi = ("rough" in strat and "adaptive" not in strat) or ("semi" in strat)
@@ -1849,7 +1862,7 @@ def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_
             p_chk = _param(params, chk_name)
             if p_chk is not None:
                 if _is_bool_param_false(p_chk):
-                    apply_param(op, chk_name, 'true', force=True)
+                    w(chk_name, 'true', force=True)
                     md_active = True
                 elif _is_bool_param_true(p_chk):
                     md_active = True
@@ -1857,12 +1870,13 @@ def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_
             p_sd = _param(params, 'maximumStepdown')
             if p_sd is not None and isinstance(_safe(lambda: p_sd.expression), str):
                 try:
-                    p_sd.isEnabled = True
+                    if not dry:
+                        p_sd.isEnabled = True
                 except Exception:
                     pass
             p_even = _param(params, 'useEvenStepdowns')
             if p_even is not None and _is_bool_param_false(p_even):
-                apply_param(op, 'useEvenStepdowns', 'true', force=True)
+                w('useEvenStepdowns', 'true', force=True)
             notes.append(f"Multiple Depths enabled (max stepdown {float(doc_in):.4f}\", even stepdowns)")
 
     # 2. Roughing Passes / Multiple Passes (radial XY stepover enforcement)
@@ -1872,7 +1886,7 @@ def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_
             p_chk = _param(params, chk_name)
             if p_chk is not None:
                 if _is_bool_param_false(p_chk):
-                    apply_param(op, chk_name, 'true', force=True)
+                    w(chk_name, 'true', force=True)
                     mp_active = True
                 elif _is_bool_param_true(p_chk):
                     mp_active = True
@@ -1880,23 +1894,24 @@ def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_
             p_so = _param(params, 'maximumStepover')
             if p_so is not None and isinstance(_safe(lambda: p_so.expression), str):
                 try:
-                    p_so.isEnabled = True
+                    if not dry:
+                        p_so.isEnabled = True
                 except Exception:
                     pass
             p_min_so = _param(params, 'minimumRoughingStepover')
             if p_min_so is not None and isinstance(_safe(lambda: p_min_so.expression), str):
-                apply_param(op, 'minimumRoughingStepover', MIN_ROUGHING_STEPOVER_EXPR, force=True)
+                w('minimumRoughingStepover', MIN_ROUGHING_STEPOVER_EXPR, force=True)
             p_steps = _param(params, 'maximumRoughingSteps')
             if p_steps is not None and isinstance(_safe(lambda: p_steps.expression), str):
                 cur_steps = _expr_number(_safe(lambda: p_steps.expression))
                 if cur_steps is not None and cur_steps < 2:
-                    apply_param(op, 'maximumRoughingSteps', '2', force=True)
+                    w('maximumRoughingSteps', '2', force=True)
             notes.append(f"Roughing Passes enabled (max stepover {float(woc_in):.4f}\")")
     elif is_slot:
         for chk_name in ('doMultiplePasses', 'useRoughingPasses'):
             p_chk = _param(params, chk_name)
             if p_chk is not None and _is_bool_param_true(p_chk):
-                apply_param(op, chk_name, 'false', force=True)
+                w(chk_name, 'false', force=True)
                 notes.append("Roughing Passes disabled for single-pass Slotting")
 
     # 3. Feed Optimization (corner slowdown enforcement when corner engagement spikes or on micro rough/slot)
@@ -1912,10 +1927,10 @@ def apply_passes_tab_params(op, strategy, doc_in, woc_in, calc_result=None, geo_
         for chk_name in ('useFeedOptimization', 'doFeedOptimization', 'feedOptimization'):
             p_fo = _param(params, chk_name)
             if p_fo is not None and _is_bool_param_false(p_fo):
-                apply_param(op, chk_name, 'true', force=True)
+                w(chk_name, 'true', force=True)
         p_rf = _param(params, 'reducedFeedrate')
         if p_rf is not None and isinstance(_safe(lambda: p_rf.expression), str):
-            if apply_param(op, 'reducedFeedrate', f"{target_cf:.2f} in/min", force=True):
+            if w('reducedFeedrate', f"{target_cf:.2f} in/min", force=True):
                 notes.append(f"Feed Optimization reduced feedrate set to {target_cf:.2f} IPM")
 
     return notes
@@ -2884,6 +2899,74 @@ def _upsert_preset_in_place(target_op, preset_name, replace_name, speed_values, 
     return None, was_updated
 
 
+def autoset_preview_rows(target_op, strategy, calc_result, geo_payload, speed_values, final_preset_name, replace_name,
+                         doc, woc, is_hole_mode, ramp_expr, apply_rec_stock, doc_unit):
+    """What the Speeds & Feeds command will change on the operation, read BEFORE anything is written: a list of
+    {"name", "old", "new", "same"} (``same``: the operation already has that value). Reads only."""
+    rows = []
+    params = getattr(target_op, 'parameters', None)
+
+    def add(name, new_expr, label=None, shown_new=None):
+        p = _param(params, name)
+        if p is None:
+            return
+        cur = _safe(lambda: p.expression)
+        val = _numeric_param_value(p)
+        rows.append({"name": label or name, "old": twlogic.display_current(name, cur, new_expr, val),
+                     "new": shown_new or new_expr, "same": bool(twlogic.expr_equal(cur, new_expr, val, name))})
+
+    cur_preset = getattr(getattr(target_op, 'toolPreset', None), 'name', None)
+    how = (f"replaces '{replace_name}' on the tool" if replace_name and replace_name != final_preset_name
+           else "updated or added on the tool")
+    rows.append({"name": "Tool preset linked to the operation", "old": str(cur_preset or "none"),
+                 "new": f"{final_preset_name} ({how})", "same": cur_preset == final_preset_name})
+    for name, expr in speed_values:
+        if name == 'tool_rampAngle':
+            add(name, f"{float(expr):.2f} deg", shown_new=f"{float(expr):.2f} deg")
+        else:
+            add(name, expr)
+    if not is_hole_mode:
+        _, _, op_doc, op_woc = get_op_cut_params(target_op, doc_unit, strategy=strategy)
+        for label, have, want in (("Stepdown", op_doc, doc), ("Stepover / optimal load", op_woc, woc)):
+            if have and want and have > 0:
+                rows.append({"name": label, "old": f"{have:.4f} in", "new": f"{float(want):.4f} in", "same": _close(have, want, 0.01)})
+        planned = []
+        apply_passes_tab_params(target_op, strategy, doc, woc, calc_result=calc_result, geo_payload=geo_payload, plan=planned)
+        for name, cur, new in planned:
+            rows.append({"name": name, "old": twlogic.tidy_old_value(name, cur), "new": new, "same": _norm_expr(cur) == _norm_expr(new)})
+        p = _param(params, 'fineStepdown')
+        if p is not None and _safe(lambda: p.isEnabled) and isinstance(_safe(lambda: p.expression), str):
+            cur = _safe(lambda: p.expression)
+            rows.append({"name": "fineStepdown", "old": twlogic.tidy_old_value('fineStepdown', cur),
+                         "new": "25% of the stepdown, at least 0.05 mm", "same": _norm_expr(cur) == _norm_expr(FINE_STEPDOWN_EXPR)})
+        d = twlogic.num(calc_result.get("ramp_diameter_in"), 0.0) or 0.0
+        p = _param(params, 'helicalRampDiameter')
+        if d > 0 and p is not None and _safe(lambda: p.isEnabled) and isinstance(_safe(lambda: p.expression), str):
+            cur = _safe(lambda: p.expression)
+            new = f"{d:.4f} in"
+            rows.append({"name": "helicalRampDiameter", "old": twlogic.display_current('helicalRampDiameter', cur, new, _numeric_param_value(p)),
+                         "new": new, "same": bool(twlogic.expr_equal(cur, new, _numeric_param_value(p), 'helicalRampDiameter'))})
+        if ramp_expr is not None:
+            p = _param(params, 'rampAngle')
+            if p is not None and isinstance(_safe(lambda: p.expression), str) and _norm_expr(_safe(lambda: p.expression)) != 'tool_rampangle':
+                rows.append({"name": "rampAngle (the operation's own angle)", "old": twlogic.tidy_old_value('rampAngle', _safe(lambda: p.expression)),
+                             "new": f"follows the preset ({float(ramp_expr):.2f} deg)", "same": False})
+        if apply_rec_stock and op_supports_stock_to_leave(target_op):
+            rec_rad, rec_ax = twlogic.stock_recommendation(calc_result)
+            if rec_rad is not None or rec_ax is not None:
+                add('stockToLeave', twlogic.fmt_len(rec_rad or 0.0, doc_unit))
+                add('verticalStockToLeave', twlogic.fmt_len(rec_ax or 0.0, doc_unit))
+    return rows
+
+
+def confirm_autoset_preview(op_name, headline, rows):
+    """Show the before -> after list and ask OK / Cancel. True only on OK; Cancel (or closing the box) writes nothing."""
+    text = twlogic.format_autoset_preview(op_name, headline, rows)
+    ans = ui.messageBox(text, 'ToolWiz Speeds & Feeds - preview', adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
+                        adsk.core.MessageBoxIconTypes.QuestionIconType)
+    return ans == adsk.core.DialogResults.DialogOK
+
+
 def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                 target_preset_to_replace, selected_grade, selected_coating_raw,
                 runout_in=None, use_op_engagement=True, apply_rec_stock=False, model=None, tslot_opts=None,
@@ -3031,6 +3114,24 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     if ramp_expr is not None:
         # Operations follow the preset (rampAngle = 'tool_rampAngle'); one with its own value keeps it.
         speed_values.append(('tool_rampAngle', ramp_expr))
+
+    # Preview (owner, 2026-11-15): every value this command will change, before -> after, then OK / Cancel. Nothing has
+    # been written up to here; Cancel leaves the operation, the tool and its presets untouched.
+    try:
+        rows = autoset_preview_rows(target_op, strategy, calc_result, geo_payload, speed_values, final_preset_name,
+                                    target_preset_to_replace, None if is_hole_mode else doc, None if is_hole_mode else woc,
+                                    is_hole_mode, ramp_expr, apply_rec_stock, doc_unit)
+    except Exception as ex_prev:      # a preview that cannot be built must not let the command write blind
+        _log("Auto-setter: the preview could not be built; nothing was written", ex_prev)
+        ui.messageBox(f"ToolWiz could not build the preview of its changes, so nothing was written.\n\nDetails: {_log_path()}",
+                      'ToolWiz CAM Auto-Setter')
+        return False
+    headline = (f"ToolWiz result for {material_label}, {strategy}: {rpm} rpm, {feed:.2f} in/min"
+                + (f", {ipt:.5f} in/tooth" if ipt and not is_hole_mode else "") + ".")
+    if not confirm_autoset_preview(op_name, headline, rows):
+        _log(f"Auto-setter: preview cancelled for {op_name!r}; nothing changed")
+        audit({'event': 'autoset_preview_cancelled', 'op_path': op_name})
+        return False
 
     # 0. Replace safety: other operations on the same tool that are linked to the preset about to be
     #    edited/renamed would change too. Ask before touching anything; No leaves everything as is.

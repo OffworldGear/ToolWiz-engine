@@ -225,3 +225,32 @@ spindle speed, feed and stepdown to the slot-pass numbers (the op's stepovers ar
 
 `operations[].geometry_sources` marks each width the advisor used `measured` or `assumed` (effective cut width, slot / channel width, T-slot radial depth and height, pocket area / perimeter /
 corner radius, depth, toolpath length). Measured pocket metrics on an adaptive / pocket / rough op give `strategy_suggestions` with feature `pocket`.
+
+
+## Dialog and advisor: do they give the same numbers? (owner's question, 2026-11-15)
+
+Not always. Both use the same engine, but each chooses its ToolWiz operation in its own code: the Speeds & Feeds dialog
+in the add-in (`infer_strategy_for_op`), the Setup Advisor in `setup_advisor.py` (`classify_op`, `_KIND_OPERATION`,
+`_finish_operation`). `tests/test_field_log_2026_11_14.py` pins the strategies on which they agree.
+
+| Fusion strategy | Speeds & Feeds dialog | Setup Advisor |
+|---|---|---|
+| Adaptive, Pocket, Slot, Face | same | same |
+| Flat, Horizontal | Floor Finishing (Skim) | same (since 2026-11-15) |
+| Scallop, Parallel, Morphed | Finishing | same (since 2026-11-15) |
+| 2D Contour, stock to leave zero | Finishing | Finishing |
+| 2D Contour that leaves stock | Finishing | Roughing (or Slotting when the measured channel is one tool wide) |
+| Trace with an end mill | Finishing | Roughing |
+| Ramp, Flow | Finishing | Roughing |
+| Pencil, Spiral, Radial, Steep and Shallow, Blend, Project | "Unknown" (the dialog starts on Finishing) | Finishing |
+| Chamfer mill and other form tools | 2D Chamfer: its own label; Trace: Finishing with end-mill numbers | not analysed |
+| Drilling, tapping, boring, threading | hole calculators | not analysed |
+
+Inputs can differ too, even when the operation is the same: the dialog preselects AlTiN when it cannot read a coating (the
+advisor applies none), the dialog has a finish mode and its own runout box, and a 2D Contour with several stepovers is
+handled by each in its own code. What they write also differs: the advisor writes operation parameters and never raises a
+ramp angle; the dialog writes a tool preset, links it, and sets the ramp angle, fine stepdown and Passes-tab options
+(since 2026-11-15 only after a before -> after preview with OK / Cancel).
+
+Not yet done: one shared rule for both, and an end-to-end test that runs both on the same operation and compares the
+feed. Until then, treat the rows marked "same" as checked and the others as known differences.

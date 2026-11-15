@@ -676,6 +676,7 @@ _EQ_UNITS = {"": ("", 1.0), "in": ("len", 1.0), "inch": ("len", 1.0), '"': ("len
 
 
 _PARAM_KIND = {"tool_spindleSpeed": "rpm", "tool_feedCutting": "feed", "tool_feedPlunge": "feed", "tool_feedRamp": "feed",
+               "tool_feedTransition": "feed", "reducedFeedrate": "feed",
                "tool_rampAngle": "angle", "rampAngle": "angle"}
 
 
@@ -945,6 +946,23 @@ def tidy_old_value(param, old):
     if name.startswith("tool_feed"):
         return f"{v:.2f}" + (f" {unit}" if unit else "")
     return f"{v:.4f}".rstrip("0").rstrip(".") + (f" {unit}" if unit else "")
+
+
+def format_autoset_preview(op_name, headline, rows):
+    """The Speeds & Feeds preview text. The question is the first line (a long list must not push it off the screen), then
+    ToolWiz's result, the values that will change (old -> new) and the ones already at ToolWiz's value."""
+    changed = [r for r in rows if not r.get("same")]
+    same = [r for r in rows if r.get("same")]
+    lines = [f"QUESTION: apply these ToolWiz values to {op_name}? OK writes them; Cancel changes nothing.", "", str(headline), ""]
+    if changed:
+        lines.append(f"Will change ({len(changed)}):")
+        lines += [f"  {r['name']}: {r['old']} -> {r['new']}" for r in changed]
+    else:
+        lines.append("Nothing on this operation changes: every value already matches ToolWiz's.")
+    if same:
+        lines += ["", f"Already at ToolWiz's value, not changed ({len(same)}): " + ", ".join(str(r["name"]) for r in same)]
+    lines += ["", "The tool's preset is written first, then the toolpath is regenerated. Fusion's Undo reverts the changes."]
+    return "\n".join(lines)
 
 
 def format_apply_results(results):
