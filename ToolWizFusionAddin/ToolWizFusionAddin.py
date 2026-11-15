@@ -2545,6 +2545,8 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
     is_hole = bool((geo_payload or {}).get("isHoleTool")) or _is_hole_or_tap_mode(geo_payload, strategy)
     strat_low = str(strategy or "").lower()
     geo_name = geo_payload.get("geometry", "Square")
+    if strat_low == "chamfering" and not any(k in str(geo_name).lower() for k in ("chamfer", "v-bit", "engrav")):
+        geo_name = "Chamfer Mill"
     tap_type = ""
     pitch_val = (geo_payload or {}).get("threadPitch")
 
@@ -2593,6 +2595,12 @@ def build_calc_payload(geo_payload, family, alloy, strategy, aggressiveness, sel
             tool_category = "Cobalt Endmill"
         else:
             tool_category = "Carbide Endmill"
+
+    if strat_low == "chamfering" and is_carbide:
+        # A chamfer mill is never run at the "HP" grade: on the older engine that grade doubles the chamfer feed (0.0043
+        # against 0.0030 in/tooth on a 1/4 in tool in 7075). The standard grade gives the chip load the owner has cut
+        # with, and the Setup Advisor uses the same.
+        tool_category = "Carbide Endmill"
 
     ft = fusion_tool_payload(geo_payload)
     # Brand (owner decisions 2026-11-12): the tool's vendor, so the server uses that vendor's charts; sent as `brand` when the
@@ -3110,7 +3118,10 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
             ('tool_feedPlunge', f"{plunge_feed:.2f} in/min"),
             ('tool_feedTransition', f"{feed * 1.5:.2f} in/min"),
         ]
-    ramp_expr = None if is_hole_mode else ramp_angle_expr(calc_result)
+    # Chamfering: speed and feeds only. The chamfer's size is the operation's own (chamfer width, tip offset), so no
+    # stepdown, stepover, Passes-tab option or ramp angle is written.
+    no_steps = is_hole_mode or str(strategy or "").strip().lower() == "chamfering"
+    ramp_expr = None if no_steps else ramp_angle_expr(calc_result)
     if ramp_expr is not None:
         # Operations follow the preset (rampAngle = 'tool_rampAngle'); one with its own value keeps it.
         speed_values.append(('tool_rampAngle', ramp_expr))
@@ -3119,8 +3130,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     # been written up to here; Cancel leaves the operation, the tool and its presets untouched.
     try:
         rows = autoset_preview_rows(target_op, strategy, calc_result, geo_payload, speed_values, final_preset_name,
-                                    target_preset_to_replace, None if is_hole_mode else doc, None if is_hole_mode else woc,
-                                    is_hole_mode, ramp_expr, apply_rec_stock, doc_unit)
+                                    target_preset_to_replace, None if no_steps else doc, None if no_steps else woc,
+                                    no_steps, ramp_expr, apply_rec_stock, doc_unit)
     except Exception as ex_prev:      # a preview that cannot be built must not let the command write blind
         _log("Auto-setter: the preview could not be built; nothing was written", ex_prev)
         ui.messageBox(f"ToolWiz could not build the preview of its changes, so nothing was written.\n\nDetails: {_log_path()}",
@@ -3145,8 +3156,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     #    units are converted by Fusion itself.
     preset_obj, was_updated = _upsert_preset_in_place(target_op, final_preset_name,
                                                       target_preset_to_replace, speed_values,
-                                                      doc_in=None if is_hole_mode else doc,
-                                                      woc_in=None if is_hole_mode else woc)
+                                                      doc_in=None if no_steps else doc,
+                                                      woc_in=None if no_steps else woc)
     _log(f"  after preset update: document tools {_doc_tool_count()}")
 
     # 2. Link the preset to the operation, unless it is already linked to it. Re-linking hands
@@ -3184,7 +3195,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     _log_speed_sources(target_op)
     _log_custom_diff(target_op)
     tool_updated = preset_obj is not None
-    if is_hole_mode:
+    if no_steps:
         passes_notes = []
         fine_note = None
         ramp_dia_note = None
@@ -3269,7 +3280,7 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
         msg += "\n\n" + extra
     rec_rad, rec_ax = twlogic.stock_recommendation(calc_result)
     stock_msg, offer_stock = "", False
-    if not is_hole_mode and (rec_rad is not None or rec_ax is not None) and op_supports_stock_to_leave(target_op):
+    if not no_steps and (rec_rad is not None or rec_ax is not None) and op_supports_stock_to_leave(target_op):
         rad_expr = twlogic.fmt_len(rec_rad or 0.0, doc_unit)
         ax_expr = twlogic.fmt_len(rec_ax or 0.0, doc_unit)
         if apply_rec_stock:
@@ -3466,7 +3477,17 @@ TSLOT_OPERATIONS = [('Full slot', 'full_slot'), ('Side cut (one side)', 'side_cu
                     ('Both sides', 'both_sides'), ('Axial step (up/down cutting)', 'axial_step')]
 
 STRATEGY_PROBE = 'Probing (no cutting)'
-STRATEGY_CHAMFER = 'Chamfer / Deburr'
+STRATEGY_CHAMFER = 'Chamfer / Deburr'       # a chamfer / deburr strategy with a tool that is not a chamfer mill
+STRATEGY_CHAMFERING = 'Chamfering'          # a chamfer mill: the server's chamfer calculation
+
+
+def is_chamfer_mill(geo_payload):
+    """True when the operation's tool is a chamfer mill (Fusion tool type, else the detected kind / geometry)."""
+    gp = geo_payload or {}
+    raw_type = str(gp.get('type', '') or gp.get('raw_type', '') or gp.get('tool_type', '') or '').lower()
+    if raw_type:
+        return 'chamfer' in raw_type
+    return any('chamfer' in str(gp.get(k, '') or '').lower() for k in ('kind', 'geometry'))
 STRATEGY_ENGRAVE = 'Engraving'
 STRATEGY_UNKNOWN = 'Unknown'
 STRATEGY_OPTIONS = [
@@ -3477,6 +3498,7 @@ STRATEGY_OPTIONS = [
     'Floor Finishing (Skim)',
     'Slotting',
     'Facing',
+    'Chamfering',
     'Drilling',
     'Peck Drilling (Deep Hole)',
     'Reaming',
@@ -3556,6 +3578,10 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
         return STRATEGY_PROBE
     if 'engrave' in op_strat:
         return STRATEGY_ENGRAVE
+    # A chamfer mill cuts a chamfer whatever the Fusion strategy (2D Chamfer, Trace, 2D Contour): the chamfer calculation
+    # of the web calculator ("Chamfering"), which the owner has cut with (owner, 2026-11-15).
+    if is_chamfer_mill(gp):
+        return STRATEGY_CHAMFERING
     if 'chamfer' in op_strat or 'deburr' in op_strat:
         return STRATEGY_CHAMFER
     # Fusion's own tool type decides: a drill whose description mentions a tap ("drill for M1.6 form tap") is a drill.
@@ -3589,10 +3615,10 @@ def infer_strategy_for_op(op, geo_payload=None, saved_strategy=None):
         return 'Slotting'
     if 'flat' in op_strat or 'horizontal' in op_strat:
         return 'Floor Finishing (Skim)'
-    if any(s in op_strat for s in ['scallop', 'parallel', 'morphed', 'ramp', 'flow']):
-        # Owner decision 2026-11-15: the same wall-finishing numbers the Setup Advisor gives for these operations (the more
-        # careful of the two). '3D Contouring / Scallop Finishing' stays in the dropdown for a deliberate choice.
-        return 'Finishing'
+    if any(s in op_strat for s in ['scallop', 'parallel', 'morph', 'ramp', 'flow', 'pencil', 'spiral', 'radial', 'steep', 'blend', 'project']):
+        # Fusion's 3D finishing strategies: the scallop calculation of the web calculator, which the owner has cut with
+        # (owner, 2026-11-15, later the same day). The Setup Advisor uses the same one (setup_advisor._finish_operation).
+        return '3D Contouring / Scallop Finishing'
     if any(s in op_strat for s in ['contour', 'trace']):
         return 'Finishing'
     if 'pocket' in op_strat:

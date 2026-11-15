@@ -229,28 +229,39 @@ corner radius, depth, toolpath length). Measured pocket metrics on an adaptive /
 
 ## Dialog and advisor: do they give the same numbers? (owner's question, 2026-11-15)
 
-Not always. Both use the same engine, but each chooses its ToolWiz operation in its own code: the Speeds & Feeds dialog
-in the add-in (`infer_strategy_for_op`), the Setup Advisor in `setup_advisor.py` (`classify_op`, `_KIND_OPERATION`,
-`_finish_operation`). `tests/test_field_log_2026_11_14.py` pins the strategies on which they agree.
+Both use the same engine, but each chooses its ToolWiz operation in its own code: the Speeds & Feeds dialog in the add-in
+(`infer_strategy_for_op`), the Setup Advisor in `setup_advisor.py` (`classify_op`, `_KIND_OPERATION`, `_finish_operation`).
+`tests/test_field_log_2026_11_14.py::test_dialog_and_advisor_pick_the_same_calculation` runs both over Fusion's milling
+strategies and four tool types and fails on any difference that is not in its KNOWN list.
 
-| Fusion strategy | Speeds & Feeds dialog | Setup Advisor |
+| Fusion strategy | Calculation, both tools | Engine |
 |---|---|---|
-| Adaptive, Pocket, Slot, Face | same | same |
-| Flat, Horizontal | Floor Finishing (Skim) | same (since 2026-11-15) |
-| Scallop, Parallel, Morphed | Finishing | same (since 2026-11-15) |
-| 2D Contour, stock to leave zero | Finishing | Finishing |
-| 2D Contour that leaves stock | Finishing | Roughing (or Slotting when the measured channel is one tool wide) |
-| Trace with an end mill | Finishing | Roughing |
-| Ramp, Flow | Finishing | Roughing |
-| Pencil, Spiral, Radial, Steep and Shallow, Blend, Project | "Unknown" (the dialog starts on Finishing) | Finishing |
-| Chamfer mill and other form tools | 2D Chamfer: its own label; Trace: Finishing with end-mill numbers | not analysed |
-| Drilling, tapping, boring, threading | hole calculators | not analysed |
+| Adaptive | Adaptive Roughing | v2 |
+| Pocket | Roughing | v2 |
+| Slot | Slotting | v2 |
+| Face | Facing | v1 |
+| Flat, Horizontal | Floor Finishing (Skim) | v1 |
+| Scallop, Parallel, Morphed, Ramp, Flow, Pencil, Spiral, Radial, Steep and Shallow, Blend, Project | 3D Contouring / Scallop Finishing | v1 |
+| Trace with an end mill; 2D Contour with zero stock to leave | Finishing | v2 |
+| Any strategy with a chamfer mill (2D Chamfer, Trace, 2D Contour) | Chamfering | v1 |
+| **Known difference:** 2D Contour that leaves stock | dialog: Finishing; advisor: Roughing (Slotting in a one-tool-wide channel) | v2 |
 
-Inputs can differ too, even when the operation is the same: the dialog preselects AlTiN when it cannot read a coating (the
-advisor applies none), the dialog has a finish mode and its own runout box, and a 2D Contour with several stepovers is
-handled by each in its own code. What they write also differs: the advisor writes operation parameters and never raises a
-ramp angle; the dialog writes a tool preset, links it, and sets the ramp angle, fine stepdown and Passes-tab options
-(since 2026-11-15 only after a before -> after preview with OK / Cancel).
+The chamfer and scallop calculations are the web calculator's own ("Chamfering", "3D Contouring / Scallop Finishing"), which
+the owner has cut with. A chamfer pass gets speed and feeds only (no depth, width or ramp angle). Other form tools
+(dovetail, lollipop, tapered, thread mill, engraving) are still not analysed by the advisor.
 
-Not yet done: one shared rule for both, and an end-to-end test that runs both on the same operation and compares the
-feed. Until then, treat the rows marked "same" as checked and the others as known differences.
+**Open difference in the inputs: the dialog's "Tool Performance Grade".** It defaults to "HP High Performance Carbide". In
+the v2 engine the grade does nothing; in the v1 engine it raises the feed (1/16 in tools in 7075 at 60 %: Flat 22.2 ->
+32.0 in/min, Scallop 88.5 -> 127.5; a 1/4 in chamfer mill 120.8 at 10171 rpm -> 237.7 at 13902). The advisor has no grade
+and always uses the standard one. So on the v1 rows above the dialog at its default gives about 1.44 times the advisor's
+feed. The one exception is Chamfering, which the add-in now always sends at the standard grade. Owner to decide which
+grade both should use.
+
+Other inputs that can differ: the dialog preselects AlTiN when it cannot read a coating (the advisor applies none); the
+dialog has a finish mode and its own runout box. What they write also differs: the advisor writes operation parameters
+and never raises a ramp angle; the dialog writes a tool preset, links it, and sets the ramp angle, fine stepdown and
+Passes-tab options (since 2026-11-15 only after a before -> after preview with OK / Cancel).
+
+Web calculator operations the add-in's dropdown does not offer (nothing was removed from the engine; they are simply not
+reachable from Fusion): Semi-Finishing, Wall Finishing (Deep DOC), Engraving, High Feed Milling, Thread Milling, Spot
+Drilling, Boring, Undercutting, V-Carving.

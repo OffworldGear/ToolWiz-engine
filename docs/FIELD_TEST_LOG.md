@@ -335,3 +335,25 @@ writes that the preview did not list.
 
 Also in this push: `docs/SETUP_ADVISOR.md`, last section, answers the owner's question whether the advisor and the dialog
 give the same results (a table of where they agree and differ).
+
+## Cloud session, 2026-11-15 (third round): chamfers and scallops. THE ADD-IN CHANGED: reinstall and restart it
+
+Owner: "the chamfer mill speeds and feeds that I got from GWizard and Tool Wiz previously worked fine for chamfers", "the
+app for tool wiz seemed to give the correct info for profiling/scallop work", "these things should be working. Fix them."
+
+- **Chamfer mills** (2D Chamfer, Trace, 2D Contour): both the Speeds & Feeds dialog and the advisor use the web
+  calculator's "Chamfering". Advisor kind `chamfer`; plan = rpm, feed, ramp feed, plunge feed only. The dialog has a new
+  "Chamfering" strategy, starts a chamfer mill on it, writes no stepdown / stepover / ramp angle, and always sends the
+  standard grade. 1/4 in 4-flute chamfer mill, 7075, 60 %: 10171 rpm, 120.77 in/min (0.0030 in/tooth: the chip load of
+  Trace1's original 146.70 at 12224), plunge 43.12, ramp 64.69.
+- **Scallop-type ops** (scallop, parallel, morphed, ramp, flow, pencil, spiral, radial, steep and shallow, blend, project):
+  both tools use "3D Contouring / Scallop Finishing". THIS REVERSES the earlier change of the same day (dialog on
+  "Finishing"). 1/16 in ball, 7075, 60 %, stepover 0.0049: 88.55 in/min at 16000 (was 33.14), plunge 16.96, ramp 25.44.
+- **Trace with an end mill** is a finishing pass in the advisor (as in the dialog).
+- **Open, for the owner:** the dialog's Tool Performance Grade defaults to HP, which raises every v1 result about 1.44x
+  over the advisor's (Flat 22.2 -> 32.0, Scallop 88.5 -> 127.5). See docs/SETUP_ADVISOR.md, "Dialog and advisor".
+
+Re-check for the shop PC (read-only first): advisor on Trace1 (2), (3) and the scallop ops: kind, operation, plan;
+Speeds & Feeds on Trace1 (2) starts on "Chamfering" and on Scallop4 (6) on "3D Contouring / Scallop Finishing"; note
+the grade the dialog shows and its result next to the advisor's. Do not apply the scallop or chamfer values until the
+owner has seen them: they are much higher than what is in the document now.

@@ -84,25 +84,8 @@ def test_finish_pass_too_heavy_for_the_wall_tolerance_gets_caution_and_no_feed()
 
 # ---- entry 4 ---------------------------------------------------------------------------------------------------------
 
-def test_trace_with_a_chamfer_mill_is_not_an_end_mill_cut():
-    ops = _advise([_op("Trace1 (2)", "trace", CHAMFER, {"tool_spindleSpeed": "12224 rpm", "tool_feedCutting": "146.7 in/min",
-                                                       "tool_feedPlunge": "13.12 in/min"})])
-    o = ops[0]
-    assert o["kind"] == "edge" and o["apply_plan"] is None and o["findings"] == []
-    assert o["toolwiz"]["recommended"] is None and "tool_alternatives" not in o
-    assert any(n.startswith("Chamfer pass with a chamfer mill (a finishing cut)") for n in o["notes"])
 
 
-def test_form_tools_are_recognised_by_type_not_by_a_word_in_the_description():
-    tool = sa.parse_tool
-    for t in ("chamfer mill", "dovetail mill", "lollipop mill", "tapered mill", "thread mill", "countersink"):
-        assert sa.classify_op("trace", "T", tool({"type": t, "description": "x"}), {}, None) == "edge", t
-        assert sa.classify_op("contour2d", "T", tool({"type": t, "description": "x"}), {}, 0.0) == "edge", t
-    haas = tool({"type": "bull nose end mill", "description": '1/16" Carbide End Mill, 4 Flute, 0.004" Chamfer, HSPM1'})
-    assert not sa.is_form_tool(haas) and sa.classify_op("adaptive", "A", haas, {}, None) == "adaptive"
-    assert sa.classify_op("trace", "T", tool({"type": "flat end mill", "description": "1/4 endmill"}), {}, None) == "rough"
-    assert sa.classify_op("drill", "D", tool({"type": "spot drill", "description": "3mm Spot Drill"}), {}, None) == "hole"
-    assert sa.classify_op("slot", "S", tool({"type": "slot mill", "description": "keyseat"}), {}, None) == "tslot"
 
 
 # ---- entry 5 ---------------------------------------------------------------------------------------------------------
@@ -174,7 +157,7 @@ def test_flat_op_uses_floor_finishing_like_the_speeds_and_feeds_dialog():
         cut_depth=0.0394, cut_width=0.01875, model="v2"))
     assert abs(direct.feed_ipm - usr["feed_ipm"]) <= 0.02 * usr["feed_ipm"]      # advisor and calculator agree
     o = _advise([_op("Scallop", "scallop", B16, dict(S, stepover="0.0049 in"))], tool_alternatives=False)[0]
-    assert o["toolwiz"]["at_current_engagement"]["operation"] == "Finishing"
+    assert o["toolwiz"]["at_current_engagement"]["operation"] == sa.SCALLOP_OPERATION
 
 
 POCKET_TOOL = {"type": "flat end mill", "unit": "inches", "description": "1/4 4 flute endmill AlTiN",
@@ -238,12 +221,6 @@ def test_no_wall_finish_tool_comparison_on_a_flat_op():
     assert "skipped" in o["tool_alternatives"] and "better_tool" not in _codes(o)
 
 
-def test_speeds_and_feeds_dialog_uses_wall_finishing_for_scallop_like_the_advisor():
-    import re
-    src = open("ToolWizFusionAddin/ToolWizFusionAddin.py", encoding="utf-8").read()
-    m = re.search(r"if any\(s in op_strat for s in \['scallop', 'parallel', 'morphed', 'ramp', 'flow'\]\):\n(?:\s*#.*\n)*\s*return '([^']+)'", src)
-    assert m and m.group(1) == "Finishing" == sa._finish_operation({"strategy": "scallop"})
-    assert "return 'Floor Finishing (Skim)'" in src and sa._finish_operation({"strategy": "flat"}) == "Floor Finishing (Skim)"
 
 
 def test_result_dialog_rounds_old_values():
@@ -270,23 +247,83 @@ def test_micro_tool_with_shank_equal_to_diameter_is_flagged_once_per_tool():
     assert f["severity"] == "INFO" and "1/8 in" in f["detail"]
 
 
-def test_dialog_and_advisor_pick_the_same_calculation_for_the_strategies_that_agree():
+
+# ---- owner, 2026-11-15 (third round): chamfers and scallops use the web calculator's own calculations ----------------
+
+def test_chamfer_mill_gets_the_chamfer_calculation_on_any_strategy():
+    """Trace1 (2): the owner's original 146.70 in/min at 12224 rpm is 0.0030 in/tooth, the chip load of the web
+    calculator's "Chamfering". The advisor now runs that calculation for a chamfer mill; it is never an end-mill cut."""
+    from pipeline import CutRequest, run_cut
+    web = run_cut(toolwiz_app.physics, CutRequest(family=FAM, alloy="7075-T6", operation="Chamfering", coating="AlTiN", apply_coating=True,
+                                                  geometry="V-Bit", diameter=0.25, flutes=4, flute_length=0.25, shank_diameter=0.25,
+                                                  stickout=1.0, aggressiveness=0.6, max_rpm=16000, max_hp=10, runout=0.0002, model="v2"))
+    for strategy in ("trace", "chamfer2d", "contour2d"):
+        o = _advise([_op("Trace1 (2)", strategy, CHAMFER, {"tool_spindleSpeed": "12224 rpm", "tool_feedCutting": "146.7 in/min",
+                                                           "tool_feedPlunge": "13.12 in/min"})])[0]
+        rec = o["toolwiz"]["recommended"]
+        assert o["kind"] == "chamfer" and rec["operation"] == "Chamfering", strategy
+        assert rec["rpm"] == round(web.rpm) and abs(rec["feed_ipm"] - web.feed_ipm) < 0.01          # the web calculator's numbers
+        assert abs(rec["chip_load_ipt"] - 146.7 / 12224 / 4) < 0.0002                                  # and the owner's proven chip load
+        assert not [c for c in _codes(o) if c in ("chip_load_high", "chip_load_off", "stepdown_high", "stepover_high", "time_saving", "better_tool")]
+        p = (o["apply_plan"] or {}).get("recommended") or {}
+        assert set(p) <= {"tool_spindleSpeed", "tool_feedCutting", "tool_feedRamp", "tool_feedPlunge"} and "tool_rampAngle" not in p
+        assert "tool_alternatives" not in o
+
+
+def test_other_form_tools_and_word_chamfer_in_a_description():
+    tool = sa.parse_tool
+    for t in ("dovetail mill", "lollipop mill", "tapered mill", "thread mill", "countersink"):
+        assert sa.classify_op("trace", "T", tool({"type": t, "description": "x"}), {}, None) == "edge", t
+    assert sa.classify_op("trace", "T", tool({"type": "chamfer mill", "description": "x"}), {}, None) == "chamfer"
+    assert sa.classify_op("engrave", "E", tool({"type": "chamfer mill", "description": "x"}), {}, None) == "edge"
+    haas = tool({"type": "bull nose end mill", "description": '1/16" Carbide End Mill, 4 Flute, 0.004" Chamfer, HSPM1'})
+    assert not sa.is_form_tool(haas) and not sa.is_chamfer_mill(haas) and sa.classify_op("adaptive", "A", haas, {}, None) == "adaptive"
+    assert sa.classify_op("drill", "D", tool({"type": "spot drill", "description": "3mm Spot Drill"}), {}, None) == "hole"
+    assert sa.classify_op("slot", "S", tool({"type": "slot mill", "description": "keyseat"}), {}, None) == "tslot"
+    assert sa.classify_op("trace", "T", tool({"type": "flat end mill", "description": "1/4 endmill"}), {}, None) == "finish"
+
+
+def test_dialog_and_advisor_pick_the_same_calculation():
     """Owner, 2026-11-15: he assumed the Setup Advisor and the Speeds & Feeds dialog give identical results. They choose
-    their ToolWiz operation in two separate places; this pins the Fusion strategies on which they agree today, so the two
-    cannot drift apart again unnoticed. The known differences are listed in docs/SETUP_ADVISOR.md ("Dialog and advisor")."""
+    their ToolWiz operation in two places; this runs both over Fusion's milling strategies and tool types and fails on any
+    difference that is not listed in KNOWN (docs/SETUP_ADVISOR.md, "Dialog and advisor")."""
     from types import SimpleNamespace
     from test_addin_common import load_addin
     a = load_addin()
     a.read_cycle_type = lambda op: ("", "")
-    agree = {"adaptive": "Adaptive Roughing", "adaptive2d": "Adaptive Roughing", "pocket2d": "Roughing", "pocket": "Roughing",
-             "slot": "Slotting", "face": "Facing", "flat": "Floor Finishing (Skim)", "horizontal": "Floor Finishing (Skim)",
-             "scallop": "Finishing", "parallel": "Finishing", "morphed_spiral": "Finishing"}
-    for tt in ("flat end mill", "ball end mill"):
+    want = {"adaptive": "Adaptive Roughing", "adaptive2d": "Adaptive Roughing", "pocket2d": "Roughing", "pocket": "Roughing",
+            "slot": "Slotting", "face": "Facing", "flat": "Floor Finishing (Skim)", "horizontal": "Floor Finishing (Skim)",
+            "trace": "Finishing"}
+    want.update({s: "3D Contouring / Scallop Finishing" for s in ("scallop", "parallel", "morphed_spiral", "morph", "ramp", "flow", "pencil",
+                                                                  "spiral", "radial", "steep_and_shallow", "blend", "project")})
+    KNOWN = {("contour2d", 0.01), ("contour", 0.01)}       # a contour that leaves stock: dialog Finishing, advisor Roughing / Slotting
+    for tt in ("flat end mill", "ball end mill", "bull nose end mill", "chamfer mill"):
         tool = sa.parse_tool({"type": tt, "description": "1/4 " + tt, "geometry": {"DC": 0.25, "NOF": 4, "LCF": 0.5, "SFDM": 0.25, "LB": 1.0}})
         gp = {"kind": "milling", "type": tt, "tool_type": tt, "desc": "1/4 " + tt, "diameter": 0.25}
-        for strategy, want in agree.items():
+        for strategy in list(want) + ["contour2d", "contour", "chamfer2d"]:
             dialog = a.infer_strategy_for_op(SimpleNamespace(strategy=strategy, name="Op", parameters=None), gp)
             for stock in (0.0, 0.01):
                 kind = sa.classify_op(strategy, "Op", tool, {}, stock)
                 advisor = sa._finish_operation({"strategy": strategy}) if kind == "finish" else sa._KIND_OPERATION.get(kind)
-                assert dialog == advisor == want, (strategy, tt, stock, dialog, advisor)
+                if tt == "chamfer mill":
+                    assert dialog == advisor == "Chamfering", (strategy, dialog, advisor)
+                elif strategy == "chamfer2d":
+                    assert kind == "edge" and dialog == a.STRATEGY_CHAMFER
+                elif (strategy, stock) in KNOWN:
+                    assert dialog == "Finishing" and advisor in ("Roughing", "Slotting")
+                else:
+                    assert dialog == advisor == want.get(strategy, "Finishing"), (strategy, tt, stock, dialog, advisor)
+
+
+def test_scallop_type_ops_use_the_web_calculators_scallop_strategy():
+    from pipeline import CutRequest, run_cut
+    web = run_cut(toolwiz_app.physics, CutRequest(family=FAM, alloy="7075-T6", operation="3D Contouring / Scallop Finishing", coating="AlTiN",
+                                                  apply_coating=True, geometry="Ball", diameter=0.0625, flutes=4, flute_length=0.25,
+                                                  shank_diameter=0.125, corner_radius=0.03125, stickout=0.5, aggressiveness=0.6, max_rpm=16000,
+                                                  max_hp=10, runout=0.0002, cut_depth=None, cut_width=0.0049, model="v2"))
+    for strategy in ("scallop", "parallel"):
+        o = _advise([_op("Scallop4 (6)", strategy, B16, dict(S, stepover="0.0049 in"))])[0]
+        usr = o["toolwiz"]["at_current_engagement"]
+        assert usr["operation"] == sa.SCALLOP_OPERATION and abs(usr["feed_ipm"] - web.feed_ipm) <= 0.02 * web.feed_ipm
+        assert o["apply_plan"]["recommended"]["tool_feedCutting"] == f"{usr['feed_ipm']:.2f} in/min"
+        assert "skipped" in o["tool_alternatives"]

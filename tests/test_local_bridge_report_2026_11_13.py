@@ -43,14 +43,17 @@ def test_inspect_operation_requires_an_operation():
 def test_setup_advisor_does_not_treat_chamfer_deburr_engrave_as_roughing():
     tool = {"type": "chamfer mill", "unit": "inches", "description": "1/4 chamfer mill",
             "geometry": {"DC": 0.25, "NOF": 2, "LCF": 0.25, "SFDM": 0.25, "LB": 1.0}}
-    for strat in ("chamfer2d", "deburr", "engrave"):
-        assert sa.classify_op(strat, "x", sa.parse_tool(tool), {}, None) == "edge"
+    # owner 2026-11-15: a chamfer mill gets the chamfer calculation (never roughing); engraving and other tools stay unchecked
+    for strat, kind in (("chamfer2d", "chamfer"), ("deburr", "chamfer"), ("engrave", "edge")):
+        assert sa.classify_op(strat, "x", sa.parse_tool(tool), {}, None) == kind
+    assert sa.classify_op("chamfer2d", "x", sa.parse_tool(dict(tool, type="ball end mill")), {}, None) == "edge"
     res = sa.advise({"document": "d", "ops": [{"setup": "S", "name": "2D Chamfer1", "path": "S > 2D Chamfer1", "strategy": "chamfer2d",
                                               "tool": tool, "params": {"tool_spindleSpeed": "8000 rpm", "tool_feedCutting": "20 in/min"}}]},
                     family="Aluminum - Wrought (6061)", alloy="", physics=toolwiz_app.physics, machine_profile=toolwiz_app.active_machine())
     o = res["operations"][0]
-    assert o["kind"] == "edge" and o["findings"] == [] and o["apply_plan"] is None
-    assert o["toolwiz"]["recommended"] is None
+    assert o["kind"] == "chamfer" and o["toolwiz"]["recommended"]["operation"] == "Chamfering"
+    assert not [f for f in o["findings"] if f["code"] in ("stepdown_high", "stepover_high", "time_saving", "better_tool", "strategy")]
+    assert set(o["apply_plan"]["recommended"]) <= {"tool_spindleSpeed", "tool_feedCutting", "tool_feedRamp", "tool_feedPlunge"}
 
 
 def test_addin_labels_probe_chamfer_engrave_deburr_and_unknown_without_claiming_roughing():

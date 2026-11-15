@@ -234,7 +234,9 @@ def parse_tool(t: Any) -> Dict[str, Any]:
 
 
 _FIN = ("finish", "scallop", "parallel", "pencil", "spiral", "flat", "horizontal", "morph", "project", "steep",
-        "blend", "radial", "contour3d")
+        "blend", "radial", "contour3d", "ramp", "flow", "trace")
+# Fusion's 3D finishing strategies: the scallop calculation of the web calculator and the Speeds & Feeds dialog
+_SCALLOP_STRATEGIES = ("scallop", "parallel", "morph", "ramp", "flow", "pencil", "spiral", "radial", "steep", "blend", "project")
 _HOLE = ("drill", "bore", "tap", "thread", "ream", "spot", "circular")
 
 
@@ -268,6 +270,11 @@ def is_form_tool(tool: Dict[str, Any]) -> bool:
     return any(k in t for k in _FORM_TOOL_TYPES)
 
 
+def is_chamfer_mill(tool: Dict[str, Any]) -> bool:
+    """True for a chamfer mill (Fusion tool type "chamfer mill"; the description only when no type was sent)."""
+    return "chamfer" in _type_text(tool)
+
+
 def is_ball_tool(tool: Dict[str, Any]) -> bool:
     """True for a ball end mill (not a lollipop or a tapered ball, which are form tools)."""
     return "ball" in _type_text(tool) and not is_form_tool(tool)
@@ -293,13 +300,17 @@ def classify_op(strategy: str, name: str, tool: Dict[str, Any], geometry: Dict[s
     if is_probe(tool) or any(k in s for k in _PROBE_STRATEGIES):
         return "probe"
     if any(k in s for k in ("chamfer", "deburr", "engrave")):
-        return "edge"            # chamfer, deburr and engraving passes: not analysed as roughing or finishing
+        if is_chamfer_mill(tool) and "engrave" not in s:
+            return "chamfer"
+        return "edge"            # deburr / engraving, or a chamfer strategy with another tool: not analysed
     if any(k in ttype for k in ("slot mill", "keyseat", "t-slot", "tslot", "t slot", "woodruff")):
         return "tslot"
     if any(k in s for k in _HOLE) or any(k in ttype for k in ("drill", "tap ", " tap")) and "mill" not in ttype:
         return "hole"
+    if is_chamfer_mill(tool):
+        return "chamfer"         # a chamfer mill on any strategy (2D Chamfer, Trace, contour): the chamfer calculation
     if is_form_tool(tool):
-        return "edge"            # a form tool on any strategy (e.g. Trace with a chamfer mill): never an end-mill cut
+        return "edge"            # another form tool on any strategy: never an end-mill cut
     if "adaptive" in s or "adaptive" in n:
         return "adaptive"
     if "slot" in s or "slot" in n or geometry.get("is_slot"):
@@ -494,11 +505,13 @@ def normalize_setup(setup: Dict[str, Any]) -> Dict[str, Any]:
 # running ToolWiz
 # ===================================================================================================================
 
-_KIND_OPERATION = {"adaptive": "Adaptive Roughing", "slot": "Slotting", "contour": "Roughing", "pocket": "Roughing",
+CHAMFER_OPERATION, CHAMFER_GEOMETRY = "Chamfering", "Chamfer Mill"
+_KIND_OPERATION = {"chamfer": CHAMFER_OPERATION, "adaptive": "Adaptive Roughing", "slot": "Slotting", "contour": "Roughing", "pocket": "Roughing",
                    "rough": "Roughing", "finish": "Finishing", "face": "Facing"}
 
 
 FLOOR_FINISH_OPERATION = "Floor Finishing (Skim)"
+SCALLOP_OPERATION = "3D Contouring / Scallop Finishing"
 
 
 def _finish_operation(op: Dict[str, Any]) -> str:
@@ -506,12 +519,18 @@ def _finish_operation(op: Dict[str, Any]) -> str:
     floor-finishing operation, the same one the add-in's Speeds & Feeds dialog picks for them (``strategy_label``), so the
     two never disagree about the same operation (owner, 2026-11-15)."""
     s = str(op.get("strategy") or "").lower()
-    return FLOOR_FINISH_OPERATION if ("flat" in s or "horizontal" in s) else "Finishing"
+    if "flat" in s or "horizontal" in s:
+        return FLOOR_FINISH_OPERATION
+    if any(k in s for k in _SCALLOP_STRATEGIES):
+        return SCALLOP_OPERATION          # owner, 2026-11-15: the web calculator's scallop strategy is the one he has cut with
+    return "Finishing"
 
 
 def _fusion_tool_dict(tool: Dict[str, Any], stickout: float) -> Dict[str, Any]:
     geo = {"DC": tool["diameter_in"], "NOF": tool["flutes"], "LCF": tool["flute_length_in"],
            "SFDM": tool["shank_diameter_in"], "LB": stickout}
+    if is_chamfer_mill(tool):
+        return {"type": "chamfer mill", "unit": "inches", "geometry": geo}
     if is_ball_tool(tool):
         geo["RE"] = tool["diameter_in"] / 2.0
         return {"type": "ball end mill", "unit": "inches", "geometry": geo}
@@ -522,7 +541,9 @@ def _fusion_tool_dict(tool: Dict[str, Any], stickout: float) -> Dict[str, Any]:
 
 
 def _engine_geometry(tool: Dict[str, Any]) -> str:
-    """The engine's end form for a tool: Ball, Radiused (bull nose) or Square."""
+    """The engine's end form for a tool: Chamfer Mill, Ball, Radiused (bull nose) or Square."""
+    if is_chamfer_mill(tool):
+        return CHAMFER_GEOMETRY
     return "Ball" if is_ball_tool(tool) else ("Radiused" if tool.get("corner_radius_in") else "Square")
 
 
@@ -769,7 +790,7 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
                       "Take a lighter pass (smaller stepover or stepdown) or shorten the stickout, then run the advisor again. "
                       "If this pass only cuts a floor and no wall size depends on it, the wall tolerance does not matter here.",
                       toolwiz_feed_at_tolerance_ipm=heavy["feed_ipm"], toolwiz_feed_without_tolerance_ipm=heavy["free_feed_ipm"]))
-    where = "for the same engagement" if usr is not None else "at its recommended engagement"
+    where = "for the same engagement" if usr is not None else ("for a chamfer pass with this tool" if kind == "chamfer" else "at its recommended engagement")
     if basis is not None and basis["feasible"]:
         usr = basis                      # the comparisons below use ToolWiz's numbers for this op's engagement
         fz_cur = (cur["feed_ipm"] / (cur["rpm"] * n_fl)) if (cur["feed_ipm"] and cur["rpm"] and n_fl) else None
@@ -799,7 +820,7 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
 
     # --- engagement vs recommendation ----------------------------------------------------------------------------
     if rec is not None and rec["feasible"]:
-        if kind != "finish" and cur["stepdown_in"] and rec["ap_in"] and cur["stepdown_in"] > rec["ap_in"] * (1 + OFF_FRACTION):
+        if kind not in ("finish", "chamfer") and cur["stepdown_in"] and rec["ap_in"] and cur["stepdown_in"] > rec["ap_in"] * (1 + OFF_FRACTION):
             out.append(_f("CAUTION", "stepdown_high", "Stepdown is more than 40% above ToolWiz's recommendation",
                           f"Stepdown {_fi(cur['stepdown_in'])} in against ToolWiz's {_fi(rec['ap_in'])} in for this tool and material.",
                           f"Use a stepdown of {_fi(rec['ap_in'])} in.", current_stepdown_in=cur["stepdown_in"],
@@ -898,7 +919,7 @@ def _endmill_findings(op: Dict[str, Any], tool: Dict[str, Any], rec: Optional[Di
                               "Recommended holders: " + ", ".join(ha.get("recommended") or []) + ".", required_tir_in=req_tir))
 
     # --- time saving at the recommended engagement -------------------------------------------------------------
-    if rec is not None and rec["feasible"] and kind != "finish":
+    if rec is not None and rec["feasible"] and kind not in ("finish", "chamfer"):
         ap, ae, fd = cur["stepdown_in"], cur["stepover_in"], cur["feed_ipm"]
         if kind == "slot" and ae is None:
             ae = d
@@ -1006,6 +1027,15 @@ def _apply_plans(op: Dict[str, Any], rec: Optional[Dict[str, Any]], usr: Optiona
                                     "tool_feedCutting": _expr("feed", tslot["feed_ipm"]),
                                     "maximumStepdown": _expr("len", tslot["z_step_in"]),
                                     "stepover": _expr("len", tslot["radial_depth_per_pass_in"])}
+    elif kind == "chamfer":
+        # A chamfer pass: speed and feeds only. The chamfer's size is the operation's own; no depth, width or ramp angle.
+        if rec is not None and rec["feasible"]:
+            p = {"tool_spindleSpeed": _expr("rpm", rec["rpm"]), "tool_feedCutting": _expr("feed", rec["feed_ipm"])}
+            if rec.get("ramp_feed_ipm"):
+                p["tool_feedRamp"] = _expr("feed", rec["ramp_feed_ipm"])
+            if rec.get("plunge_feed_ipm"):
+                p["tool_feedPlunge"] = _expr("feed", rec["plunge_feed_ipm"])
+            plans["recommended"] = p
     elif kind == "finish":
         # A finishing pass keeps its own stepdown / stepover, so the only plan is speed and feed for THAT engagement.
         # ToolWiz's default finishing skim (``rec``) is never written: the op does not take that cut.
@@ -1058,7 +1088,7 @@ CONTOUR_RAMP_MIN_STEPOVER_OVER_D = 0.25   # a contour's radial engagement above 
 RAMP_LOWER_TOL_DEG = 1.0          # a lower ramp angle is proposed only when it is lower by more than max(this, FRAC x owner's)
 RAMP_LOWER_TOL_FRAC = 0.15
 RAMP_SHALLOW_FRACTION = 0.6       # a ramp angle below this share of ToolWiz's limit counts as "shallow" for the CAUTION
-_NO_RAMP_KINDS = ("edge", "probe", "hole", "finish", "tslot")
+_NO_RAMP_KINDS = ("edge", "probe", "hole", "finish", "tslot", "chamfer")
 _STOCK_NONE_IN = 0.00005     # a stock to leave at or below this counts as "zero / not set" (as in classify_op)
 
 
@@ -2209,8 +2239,8 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
                         time_saved_min=sug["time_saved_min"], time_saved_pct=sug["time_saved_pct"]))
             elif note:
                 strat_notes.append(f"{op['name']}: {note}")
-        if kind == "finish" and _finish_operation(op) == FLOOR_FINISH_OPERATION:
-            entry["tool_alternatives"] = {"skipped": "tool alternatives are not compared on a floor pass (Flat / Horizontal): "
+        if kind == "finish" and _finish_operation(op) != "Finishing":
+            entry["tool_alternatives"] = {"skipped": "tool alternatives are not compared on a floor pass or a 3D finishing pass: "
                                                      "the comparison measures wall finishing"}
         elif tool_alternatives and kind in ALT_KINDS and tool0.get("diameter_in") \
                 and not any(f["code"] == "toolwiz_error" for f in entry["findings"]):

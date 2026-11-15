@@ -115,3 +115,62 @@ def test_preview_text_with_nothing_to_change():
     a = load_addin()
     text = a.twlogic.format_autoset_preview("S > Op", "ToolWiz result: 16000 rpm.", [{"name": "tool_spindleSpeed", "old": "16000 rpm", "new": "16000 rpm", "same": True}])
     assert text.startswith("QUESTION:") and "Nothing on this operation changes" in text and "tool_spindleSpeed" in text
+
+
+# ---- chamfer mills: the web calculator's "Chamfering" (owner, 2026-11-15) -------------------------------------------
+
+CH_GEO = {"diameter": 0.25, "flutes": 4, "fluteLength": 0.25, "shankDiameter": 0.25, "cornerRadius": 0.0, "stickout": 1.0,
+          "geometry": "Chamfer Mill", "desc": "Chamfer 4fl 90deg altin", "number": 19, "kind": "chamfer_mill", "type": "chamfer mill",
+          "tool_type": "chamfer mill", "is_carbide": True,
+          "raw_json": '{"type": "chamfer mill", "unit": "inches", "description": "Chamfer 4fl 90deg altin", '
+                      '"geometry": {"DC": 0.25, "NOF": 4, "LCF": 0.25, "SFDM": 0.25, "LB": 1.0, "TA": 45}}'}
+
+
+def test_dialog_starts_a_chamfer_mill_on_chamfering_and_the_server_gives_the_web_numbers():
+    import app as toolwiz_app
+    from pipeline import CutRequest, run_cut
+    a = load_addin()
+    a.read_cycle_type = lambda op: ("", "")
+    for strategy in ("trace", "chamfer2d", "contour2d"):
+        label = a.infer_strategy_for_op(SimpleNamespace(strategy=strategy, name="Trace1 (2)", parameters=None), CH_GEO)
+        assert label == "Chamfering" and a.dialog_strategy(label) == "Chamfering"
+    payload = a.build_calc_payload(CH_GEO, "Aluminum - Wrought (6061)", "7075-T6", "Chamfering", 60, "HP", "AlTiN", runout_in=0.0002, model="v2")
+    assert payload["operation"] == "Chamfering" and payload["geometry"] == "Chamfer Mill"
+    assert payload["tool"] == "Carbide Endmill"          # never the HP grade for a chamfer mill, whatever the dropdown says
+    res = toolwiz_app.app.test_client().post("/api/calculate_for_fusion", json=payload, headers={"X-ToolWiz-Client": "unit-test"}).get_json()
+    web = run_cut(toolwiz_app.physics, CutRequest(family="Aluminum - Wrought (6061)", alloy="7075-T6", operation="Chamfering", coating="AlTiN",
+                                                  apply_coating=True, geometry="V-Bit", diameter=0.25, flutes=4, flute_length=0.25,
+                                                  shank_diameter=0.25, stickout=1.0, aggressiveness=0.6,
+                                                  max_rpm=toolwiz_app.active_machine().get("max_rpm", 16000), max_hp=10, runout=0.0002, model="v2"))
+    assert res["success"] and abs(res["rpm"] - web.rpm) <= 1 and abs(res["feed"] - web.feed_ipm) <= 0.02 * web.feed_ipm
+
+
+def test_chamfering_writes_speed_and_feeds_only():
+    a = load_addin()
+    a.ui = MagicMock()
+    a.ui.messageBox.return_value = a.adsk.core.DialogResults.DialogOK
+    op = SimpleNamespace(name="Trace1 (2)", strategy="trace", toolPreset=SimpleNamespace(name="old"), parameters=ParamsByName({
+        "tool_spindleSpeed": param("16000 rpm", 16000.0), "tool_feedCutting": param("87.36 in/min", 87.36 * 25.4),
+        "tool_feedPlunge": param("25.97 in/min", 25.97 * 25.4), "tool_rampAngle": param("2.", 2.0), "maximumStepdown": param("0.05 in", 0.127)}))
+    calc = {"success": True, "rpm": 10171, "feed": 120.77, "doc": 0.0375, "woc": 0.0375, "sfm": 665, "ipt": 0.00297,
+            "ramp_feed": 64.69, "plunge_feed": 43.12, "ramp_angle": 5.0, "engagement_source": "recommended"}
+    with patch.object(a, "get_op_tool_info", return_value=(CH_GEO, "s", [])), patch.object(a, "_inspect_op_feature_geometry", return_value=None), \
+         patch.object(a, "get_cam_document_units", return_value="in"), patch.object(a, "_http_json", return_value=calc) as http, \
+         patch.object(a, "get_op_cut_params", return_value=(10171.0, 120.77, 0.05, 0.0)), patch.object(a, "_log_custom_diff"), \
+         patch.object(a, "_log_op_motion_params"), patch.object(a, "_log_speed_sources"), patch.object(a, "_log_preset_use_flags"), \
+         patch.object(a, "_doc_tool_count", return_value=1), patch.object(a, "check_replace_safety", return_value=True), \
+         patch.object(a, "_upsert_preset_in_place", return_value=(SimpleNamespace(name="x"), False)) as upsert, \
+         patch.object(a, "_assign_tool_preset"), patch.object(a, "apply_param", return_value=True) as ap, \
+         patch.object(a, "apply_passes_tab_params") as passes, patch.object(a, "apply_fine_stepdown_floor") as fine, \
+         patch.object(a, "_regenerate_toolpath"), patch.object(a, "_refresh_operations_from_preset", return_value=False), \
+         patch.object(a, "_finish_active_command", return_value=""):
+        done = a.run_autoset(op, "Op1 > Trace1 (2)", "Aluminum - Wrought (6061)", "7075-T6", "Chamfering", 60, None, "HP", "AlTiN")
+    assert done is True and http.call_args[0][1]["operation"] == "Chamfering"
+    names = [n for n, _ in upsert.call_args[0][3]]
+    assert "tool_rampAngle" not in names and {"tool_spindleSpeed", "tool_feedCutting", "tool_feedPlunge"} <= set(names)
+    assert upsert.call_args.kwargs == {"doc_in": None, "woc_in": None}
+    passes.assert_not_called()
+    fine.assert_not_called()
+    assert not [c for c in ap.call_args_list if c[0][1] in ("maximumStepdown", "stepover", "rampAngle")]
+    preview = a.ui.messageBox.call_args_list[0][0][0]
+    assert "tool_spindleSpeed: 16000 rpm -> 10171 rpm" in preview and "Stepdown" not in preview and "tool_rampAngle" not in preview
