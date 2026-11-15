@@ -80,6 +80,15 @@ error was Fusion's default of shank = tool diameter).
 Pilot: not yet. Candidate is the End Cap (aluminium version now, cut with AlTiN tools; a 17-4 version follows, which
 exercises two materials on the same tools).
 
+## Dependency: strategy definitions draft (not decided)
+
+`docs/STRATEGY_DEFINITIONS.md` on `toolwiz/v4-advisor` (commit 762d77c, a draft by the shop PC session) proposes that
+each operation's cut is declared by its linked preset, named "<material> - <strategy>" from one list of 14
+strategies, stored with the tool in the library. If the owner adopts it, phase 3 of this plan must use exactly that
+strategy list and naming, and the master library becomes the place presets are made. It would also add fields
+recorded on the tool: high-feed (yes / no), tap style, and possibly the performance grade. Phase 3 should not be
+built until the owner has decided the draft's open points; phases 1 and 2 do not depend on it.
+
 ## Requests for the shop PC session
 
 1. Hub write test: with the add-in, create a throwaway library "ZZ_ToolWiz_write_test" with one tool in the hub
