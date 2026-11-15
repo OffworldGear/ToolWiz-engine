@@ -297,3 +297,23 @@ Noted only, not judged:
   the advisor (before and after this OK), which is the flute length, 4 x D; `limited_by` includes the flute length. The
   wall-error and thin-wall checks are worked at that depth.
 - The result box has a "Plunge feed" check that speaks of "micro adaptive operations" on this scallop op.
+
+### Owner's decision on entry 20, 2026-11-15: add the preview now
+
+The owner asked for entry 20 to be fixed now, as an exception to the field-test pause. His words: "I think a preview
+would be great if it shows before and after results! Go ahead and add it." The pause still holds for everything else.
+
+What he asked for, and what the shop PC saw this command write:
+
+- Before anything is written, the Speeds & Feeds command shows each value it will change with its current value and its
+  new value (before and after), and offers OK to apply or Cancel. Cancel leaves the operation, the tool and its presets
+  untouched.
+- The list should cover everything the OK writes, not only rpm and feed. On Scallop4 (6) that was: the preset (a new
+  "7075 (T6, T651) - Finishing" added to the tool and linked in place of "Aluminum - Roughing"), `tool_rampAngle`
+  2.00 to 2.97 deg, `stepover` "0.125 mm" to "tool_stepover", and by the report the Feed Optimization reduced feed
+  (6.63 IPM). `run_autoset` also writes ramp, plunge and transition feeds, stepdown, fine stepdown and the helical
+  ramp diameter on other operations.
+- Values that do not change are best said so in one line ("rpm and feeds already match"), as the advisor does.
+
+The shop PC will re-check on live Fusion once it is pushed: the preview on Scallop4 (6) and on one roughing op, Cancel
+writing nothing (snapshot before and after), and OK writing exactly the listed values.
