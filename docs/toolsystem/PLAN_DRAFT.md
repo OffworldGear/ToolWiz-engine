@@ -1,0 +1,52 @@
+# Shop tooling system: draft plan (2026-11-15, NOT yet approved by the owner)
+
+Branch `toolsystem/main`. Nothing here is built. Brief: `docs/TOOL_SYSTEM_PROJECT_BRIEF.md`.
+
+## Decisions so far (owner, 2026-11-15)
+
+- Tool numbers 1 to 99 are defined in the C00 control; any pocket can hold any tool number (T99 = Blum TC-52 probe).
+- Active materials: 17-4 annealed, titanium grade 5, Black Ti, MagnaCut annealed, AEB-L annealed, bronze (written
+  "C154"; assumed C954, to confirm), tellurium copper C14500. Everything else is kept in the master but gets no Fusion
+  presets until asked for. The owner can narrow materials further per tool.
+- Strategies per tool type: as proposed; bull-nose tools with a good radius also get 3D contour.
+- Change log: more than 25 % on axial or radial depth, more than 1 degree or 15 % on ramp angle, and any change more
+  aggressive by over 10 %.
+- Tool setters: Blum laser NT and Z Nano; move everything to the laser over time; wear can be measured.
+- Goal: unattended running overnight (frames run about 1 h 45 min each, three per batch).
+- Holders: Rego-Fix powRgrip under consideration for finishing tools; no decision.
+
+## Checked facts
+
+- Fusion API has a hub library location; write access to it is unproven (test 1 below).
+- Fusion API documents `DocumentToolLibrary.update` (updates a tool and all operations using it). Whether toolpaths
+  need regenerating is unconfirmed (test in phase 5).
+- Brother manuals are in `OffworldGear/BrotherC00CommandControl` (`manual_texts/`). Confirmed there: tool groups
+  (T901 style) with automatic change to a spare tool when life expires; tool data file `TOLS..` holding length, wear,
+  life limit, life warning, life used and name; `ATCTL` holding pocket to tool number.
+- The owner's SpeedioMonitor app reads live tool life, wear and lengths over the network, and pulls the tool, pocket
+  and group files by FTP on demand. It does not write to the control today. It has its own `master_library` table,
+  which must not become a second master.
+
+## Phases (each ends with something the owner can read and approve)
+
+1. **Harvest and machine snapshot** (read only). Fresh Fusion harvest; FTP pull of tool, pocket and group files.
+2. **Tool sheet.** One row per tool type (number 1 to 99), plus one record per physical cutter. Owner corrects it.
+   Numbering: 1 to 17 permanent, 18 to 21 guest or spare-tool pockets, 22 to 98 shelf blocks by type, 99 probe.
+3. **Presets and change log.** Active materials x allowed strategies per tool. Trust level on every preset:
+   Calculated, Manufacturer, Ran OK (set automatically from machine evidence), Proven (owner's click; never
+   overwritten). Old versus new comparison with reasons.
+4. **Publish to Fusion.** Backup, dry run, owner confirms, write to hub (or Local if the hub test fails).
+5. **Replace document tools.** On a copy first; dry-run report; owner confirms in Fusion.
+6. **Machine link.** Read life, wear and pockets on a schedule; per-cutter history; weekly review screen. Writing
+   names and life limits to the control comes last and only after a proven test on an unused tool number.
+7. **Unattended running.** Spare tools through Brother tool groups for tools that cannot last a night; laser
+   breakage checks; life limits set from measured history.
+
+## Requests for the shop PC session
+
+1. Hub write test: with the add-in, create a throwaway library "ZZ_ToolWiz_write_test" with one tool in the hub
+   location, read it back, delete it. Report the exact error if it fails. Touch nothing else.
+2. Fresh harvest of all libraries and open-document tools; push the snapshot to this branch.
+3. From SpeedioMonitor, one on-demand FTP sync with the machine idle; copy the tool, pocket and group files to
+   `data/machine_snapshots/<date>/` on this branch. Read only.
+Write results to `docs/toolsystem/LOCAL_REPORT_<date>.md`.
