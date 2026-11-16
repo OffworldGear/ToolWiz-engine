@@ -89,6 +89,27 @@ strategy list and naming, and the master library becomes the place presets are m
 recorded on the tool: high-feed (yes / no), tap style, and possibly the performance grade. Phase 3 should not be
 built until the owner has decided the draft's open points; phases 1 and 2 do not depend on it.
 
+## Requirements from the workflow draft (`docs/WORKFLOW.md` on `toolwiz/v4-advisor`, 2026-11-16; draft)
+
+What the owner's target workflow asks of the master library:
+
+- Every tool matches the real tool and carries one preset per material he cuts and per strategy the tool allows,
+  so Speeds & Feeds is rarely needed once the library is built out.
+- **Swap from the master:** exchange the tool a toolpath uses for the master's tool. Not built; depends on the
+  document-tool test on a copy.
+- **A preset added in the Speeds & Feeds dialog or in the digital twin goes onto the master's tool automatically.**
+  Not built; depends on the hub write test. "Automatically" here means without a separate step for the owner; the
+  dialog's preview is the dry run and his OK is the confirmation, and a backup of the library is taken first.
+- **Vendor field must be right on every tool:** name brand (Haas counts) = HP grade, no name brand or a marketplace
+  name = standard. Add vendor and grade to the phase 2 checklist.
+- **One fixed material label per alloy.** The advisor follows a preset only when its material part equals the
+  alloy or family text exactly. The label list must be fixed before any preset is generated (phase 3).
+- Fusion's generic presets are not carried into the master.
+- Advisor warnings that need the master: document tool differs from master; one number with two definitions.
+
+The two unproven writes (hub library, document tool) now gate the core of the workflow, not just convenience. The
+shop PC tests 1 and 5 below are the most important open items.
+
 ## Requests for the shop PC session
 
 1. Hub write test: with the add-in, create a throwaway library "ZZ_ToolWiz_write_test" with one tool in the hub
