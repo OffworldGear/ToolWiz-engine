@@ -504,3 +504,56 @@ advisor reviews the whole setup.
 Re-check for the shop PC, read-only first: scallop ops (feed about 51 on Scallop4 (6), the mismatch caution, limited_by);
 the two tapping ops; Flat34 and one adaptive unchanged; then with the owner the dialog previews on Trace1 (2), Scallop4 (6)
 and Flat34 (default grade shown, Cancel writes nothing).
+
+## Shop PC re-check of `d340e97` (fourth round; server side, read-only), 2026-11-15 (shop time)
+
+Pulled; add-in files reinstalled with `install_addin.py`; server restarted, `/api/version` d340e97. Windows tests: 152
+passed (add-in, preview, bridge, MCP, field-log files) and `tests/test_owner_batch_2026_11_15.py` 9 passed. The owner
+has not restarted the add-in, so nothing in the dialog is checked. The document is unchanged since the last snapshot
+(no op's parameters or preset differ). Nothing was applied.
+
+Advisor at 60 %, whole document: **3 STOP, 56 CAUTION, 11 info** (was 1 / 45 / 10 on `f5df8da`).
+
+| Item | Result |
+|---|---|
+| Scallop cap | **Pass.** Scallop4 (6): plan `tool_feedCutting` 51.03 in/min (was 88.38), plunge 16.96, ramp 25.44; 0.000797 in/tooth; `limited_by` "geometry_rule, vendor chart cap". Op2 Scallop4 (7) and BoreScallop4 (9) already hold 51.03: no plan (was 111.94). |
+| Tapping | **Pass, fires on both.** Op1 Drill27 (4) holds `tool_feedCutting` 10.765 and `tool_feedPlunge` 10.765 in/min; the caution reads "plunge feed is 10.77 IPM". Op2 Drill34 (2) holds `tool_feedCutting` 39.370 in/min only (no `tool_feedPlunge` in the snapshot); the caution reads "feed is 39.37 IPM". Both: "needs 24.32 IPM at that speed (rpm x pitch)". |
+| Ramp and plunge never above the cutting feed | **Pass** for every plan value. Flat33 (4) ramp 50.88 to 44.41; Op1 Flat34 ramp to 22.21; Op2 Flat34 22.21 / 22.21; Flat33 (5) 88.82 / ramp 88.82; Flat33 (6) 44.41 / ramp 44.41; Contour206 (3), (7) ramp 17.38. Left in Fusion with no plan: 2D Contour64 and 64 (2), ramp 32.30 against cutting 30.47. |
+| Semi-finish contour | **Pass.** Prep 2D Contour1 (stock 0.002 in, one pass): kind finish, note "treated as a semi-finishing pass", no feed proposed. |
+| Declared strategy followed | Prep 2D Contour2, 2D Contour1 and Op2 2D Contour64, 64 (2): "Finishing" from "Aluminum - Finishing", no feed proposed (the entry 18 plan of 21.55 on the last two is gone). Op2 2D Contour206 (3), (7), (4) and 2D Contour7 (EndCapOutline) (9): "Slotting" from "Aluminum - Slotting". Op1 2D Contour239 (3), (4): "Roughing" from "Aluminum - Roughing". |
+| Flat34 and one adaptive | Unchanged: Flat34 22.21 in/min at its own engagement; Adaptive48 (3) 66.56, nothing to change. |
+| `geometry_not_measured` | Not seen; every contour was measured in this run. Not testable on demand. |
+| Grade | Not visible in the advisor output. No tool in this document is named HP; results for the adaptive and Flat34 are unchanged. |
+| Chamfer ops | Unchanged from `f5df8da`: 10171 rpm, 120.77 in/min, and the caution that 0.00136 in/tooth "rubs". |
+
+`preset_strategy_mismatch` fires on 12 operations, not only the two expected:
+
+| Operations | Linked preset | Caution says |
+|---|---|---|
+| Op2 Scallop4 (7), BoreScallop4 (9) | "Aluminum - Roughing" | a Roughing preset on a scallop operation (expected) |
+| Op1 Scallop4 (6) | "7075 (T6, T651) - Finishing" | a Finishing preset on a scallop operation. This preset is the one ToolWiz Speeds & Feeds made today on `d16cd7d`, when the dialog started scallops on "Finishing". |
+| Prep 3D Adaptive Roughing2 (2), Op1 Adaptive48 (3), (4), Op2 Adaptive49 (2) | "Aluminum - Roughing" | "a Roughing preset, but it is a adaptive operation" |
+| Op1 Flat33 (4), Op2 Flat34 | "Aluminum - Finishing" | "a Finishing preset, but it is a flat operation" |
+| Op1 Flat34, Op2 Flat33 (5), (6) | "Aluminum - Roughing" | a Roughing preset on a flat operation |
+
+Eleven of the twelve are Fusion's generic presets, which the owner did not choose as a ToolWiz strategy. A roughing
+preset on an adaptive roughing op and a finishing preset on a floor finishing op will read to him as false alarms.
+Whether Fusion's generic presets count as declared strategies is open decision 2 in `docs/STRATEGY_DEFINITIONS.md`.
+The text has "a adaptive".
+
+### New entries
+
+| # | Date | Setup > operation | What happened | What was expected | Exact text or numbers | Severity |
+|---|---|---|---|---|---|---|
+| 22 | 2026-11-15 | Op1EndCap7075 > 2D Contour239 (3) (T12, 1/16 in) | The measured slot is no longer treated as a slot. The op is linked to Fusion's generic "Aluminum - Roughing", so the advisor follows "Roughing" and proposes a higher feed. On `f5df8da` it was kind slot, "Slotting", 17.38 in/min, no feed change. This is the entry 19 result (a slot computed as a side cut) reached by another road. | The measured full-width channel wins over a generic preset, or at least a note that the two disagree. | Kind slot to contour. Plan now `{"tool_feedCutting": "21.55 in/min"}` (holds 17.38). Channel measured 0.063 in for a 0.0625 in tool. Note: 'Strategy "Roughing" comes from the linked preset "Aluminum - Roughing".' | wrong (a 24 % faster feed on a full-width 1/16 in slot; 0.00034 in/tooth, not dangerous at 0.028 in deep) |
+| 23 | 2026-11-15 | Op2EndCap7075 > 2D Contour7 (EndCapOutline) (9) (T1, 1/8 in) | New STOP for a deep full-width slot, worked from the maximum stepdown, not the depth of the cut. The op's heights are 74.648 to 71.658 mm, 0.1177 in deep in one level (0.94 x D); the maximum stepdown parameter is 0.1995 in. The plan also writes `maximumStepdown`. | The depth of cut is the smaller of the stepdown and the op's depth. | "[STOP] Deep Full-Width Slot (1.60xD Axial Depth) - Slotting 0.1995" deep (1.60xD) at 100% radial engagement traps chips in the slot channel." Plan: `{"keep_engagement": {"tool_feedCutting": "32.06 in/min"}, "recommended": {"maximumStepdown": "0.07266 in", "tool_feedCutting": "33.62 in/min", "tool_feedRamp": "33.62 in/min"}}`. Kind contour to slot from the preset "Aluminum - Slotting". | wrong (a STOP on a depth the op does not cut; errs cautious) |
+
+Other changes from following the presets, for the owner to see before applying:
+
+- Op1 2D Contour239 (4): kind finish to contour ("Roughing" from "Aluminum - Roughing"), a new STOP `chip_load_high`
+  (51.03 in/min against 21.55 "at its recommended engagement") and a plan of 21.55 / plunge 6.59 / ramp 17.83. It had
+  no plan before. The independent review also found 51.03 too high here, so the direction is right; the comparison is
+  still made at an engagement the op's data does not give (entries 10 and 18).
+- Op2 2D Contour206 (4): contour to slot ("Slotting"), plan 17.38 in/min (was 21.55; holds 30.47).
+- Plunge feeds are still raised on the floor ops: Op2 Flat33 (5) 33.15 to 67.84 in/min on the 1/4 in tool, Flat33 (6)
+  24.96 to 33.92.
