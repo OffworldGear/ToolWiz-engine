@@ -3124,7 +3124,22 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
     # stepdown, stepover, Passes-tab option or ramp angle is written.
     no_steps = is_hole_mode or str(strategy or "").strip().lower() == "chamfering"
     ramp_expr = None if no_steps else ramp_angle_expr(calc_result)
+    ramp_note = None
     if ramp_expr is not None:
+        # Owner, 2026-11-16: a ramp angle is raised only when ToolWiz lowers the feed or the depth of cut at the same time,
+        # and the preview says so; otherwise the operation's angle is kept. Lowering an angle needs no condition.
+        p_cur = _param(getattr(target_op, 'parameters', None), 'tool_rampAngle')
+        cur_ang = twlogic.ramp_angle_deg(_safe(lambda: p_cur.expression), _numeric_param_value(p_cur)) if p_cur is not None else None
+        if cur_ang is not None and float(ramp_expr) > cur_ang + 0.05:
+            _r0, feed0, doc0, _w0 = get_op_cut_params(target_op, doc_unit, strategy=strategy)
+            lighter = bool((feed0 and feed < feed0 * 0.99) or (doc0 and doc and doc < doc0 * 0.99))
+            if lighter:
+                ramp_note = (f"Ramp angle raised from {cur_ang:.2f} to {float(ramp_expr):.2f} deg (ToolWiz's limit) because the feed or "
+                             "the depth of cut goes down in the same change.")
+            else:
+                ramp_note = (f"Ramp angle kept at your {cur_ang:.2f} deg: ToolWiz's limit is {float(ramp_expr):.2f} deg, but the feed "
+                             "and depth of cut do not go down, so it is not raised.")
+                ramp_expr = f"{cur_ang:.2f}"
         # Operations follow the preset (rampAngle = 'tool_rampAngle'); one with its own value keeps it.
         speed_values.append(('tool_rampAngle', ramp_expr))
 
@@ -3140,7 +3155,8 @@ def run_autoset(target_op, op_name, family, alloy, strategy, aggressiveness,
                       'ToolWiz CAM Auto-Setter')
         return False
     headline = (f"ToolWiz result for {material_label}, {strategy}: {rpm} rpm, {feed:.2f} in/min"
-                + (f", {ipt:.5f} in/tooth" if ipt and not is_hole_mode else "") + ".")
+                + (f", {ipt:.5f} in/tooth" if ipt and not is_hole_mode else "") + "."
+                + (("\n" + ramp_note) if ramp_note else ""))
     if not confirm_autoset_preview(op_name, headline, rows):
         _log(f"Auto-setter: preview cancelled for {op_name!r}; nothing changed")
         audit({'event': 'autoset_preview_cancelled', 'op_path': op_name})
@@ -3483,6 +3499,29 @@ STRATEGY_CHAMFER = 'Chamfer / Deburr'       # a chamfer / deburr strategy with a
 STRATEGY_CHAMFERING = 'Chamfering'          # a chamfer mill: the server's chamfer calculation
 
 
+def tool_is_hp_grade(geo_payload):
+    """HP grade for a name-brand tool (the Fusion vendor field) or one whose description says "HP" / "Hi Perf" / "High
+    Performance"; everything else is standard (owner, 2026-11-16). The Setup Advisor uses the same rule."""
+    gp = geo_payload or {}
+    if twlogic.is_hp_grade(gp.get("desc")):
+        return True
+    vendor = gp.get("vendor")
+    try:
+        raw = gp.get("raw_json")
+        vendor = twlogic.tool_vendor(json.loads(raw) if isinstance(raw, str) else raw) or vendor
+    except Exception:
+        pass
+    try:
+        try:
+            from .toolwiz_common import brand as _brand
+        except (ImportError, ValueError):
+            from toolwiz_common import brand as _brand
+        return bool(_brand.is_name_brand(vendor))
+    except Exception as ex:
+        _log("Tool grade: the brand list could not be loaded; standard grade assumed", ex)
+        return False
+
+
 def is_chamfer_mill(geo_payload):
     """True when the operation's tool is a chamfer mill (Fusion tool type, else the detected kind / geometry)."""
     gp = geo_payload or {}
@@ -3797,7 +3836,7 @@ class ToolWizCreatedHandler(adsk.core.CommandCreatedEventHandler):
             is_carbide = initial_geo.get("is_carbide", True) if initial_geo else True
             # Owner decision 2026-11-15: standard unless the tool is named high-performance in its description ("HP",
             # "Hi Perf", "High Performance"); the Setup Advisor reads the same words (setup_advisor.HP_GRADE_RE).
-            is_hp = bool(is_carbide and twlogic.is_hp_grade((initial_geo or {}).get("desc")))
+            is_hp = bool(is_carbide and tool_is_hp_grade(initial_geo))
             tool_grade_input.listItems.add('HP High Performance Carbide', is_hp)
             tool_grade_input.listItems.add('Carbide (Standard)', bool(is_carbide and not is_hp))
             tool_grade_input.listItems.add('High Speed Steel (HSS)', not is_carbide)

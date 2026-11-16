@@ -66,6 +66,22 @@ def resolve(text):
     return found.pop() if len(found) == 1 else None
 
 
+# Name brands that have no chart here but count as name-brand tools for the tool grade (owner, 2026-11-16: "any name brand
+# tools could be considered HP ... if there is no name brand then it would be generic"). A marketplace is never a brand.
+NAME_BRANDS_WITHOUT_CHARTS = ("haas", "haas automation")
+MARKETPLACE_WORDS = ("amazon", "ebay", "aliexpress", "temu", "alibaba", "banggood", "generic", "import", "unbranded", "unknown")
+
+
+def is_name_brand(text):
+    """True when a vendor text names a name-brand tool maker: a charted vendor or one of NAME_BRANDS_WITHOUT_CHARTS, and no
+    marketplace word ("Klot (Amazon Ebay)", "KK DUK AliExpress or Temu" and a blank vendor are generic)."""
+    norm = normalize(text)
+    if not norm or any(w in norm.split() for w in MARKETPLACE_WORDS):
+        return False
+    padded = f" {norm} "
+    return resolve(text) is not None or any(f" {b} " in padded for b in NAME_BRANDS_WITHOUT_CHARTS)
+
+
 SHORT = {"harvey": "Harvey", "helical": "Helical", "kennametal": "Kennametal", "kyocera_sgs": "Kyocera SGS", "osg": "OSG",
          "sandvik": "Sandvik", "seco": "Seco", "emuge": "Emuge", "garr": "Garr", "yg1": "YG-1", "titan": "Titan"}
 

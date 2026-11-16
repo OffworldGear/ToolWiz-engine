@@ -65,7 +65,7 @@ def test_preview_lists_old_and_new_before_anything_is_written_and_cancel_writes_
     assert "16000 rpm, 33.14 in/min" in text
     will, already = text.split("Already at ToolWiz's value")
     assert "Tool preset linked to the operation: Aluminum - Roughing -> 7075 (T6, T651) - Finishing" in will
-    assert "tool_rampAngle: 2.00 deg -> 2.97 deg" in will            # the ramp angle change is shown, not silent
+    assert "Ramp angle kept at your 2.00 deg" in text and "tool_rampAngle" in already     # not raised: the cut does not get lighter
     assert "tool_feedPlunge: 6.59 in/min (replaces a formula) -> 6.59 in/min" in will or "tool_feedPlunge" in already
     assert "tool_feedTransition: 30.00 in/min -> 49.71 in/min" in will
     assert "tool_feedRamp: 36.22 in/min -> 33.14 in/min" in will        # a ramp is never fed faster than the cut (2026-11-15)
@@ -89,7 +89,7 @@ def test_ok_goes_on_to_write_the_preset():
     assert done is True
     m["upsert"].assert_called_once()
     speed_values = dict(m["upsert"].call_args[0][3])
-    assert speed_values["tool_feedCutting"] == "33.14 in/min" and speed_values["tool_rampAngle"] == "2.97"
+    assert speed_values["tool_feedCutting"] == "33.14 in/min" and speed_values["tool_rampAngle"] == "2.00"      # the owner's angle is kept
     m["regen"].assert_called_once()
     assert a.ui.messageBox.call_args_list[0][0][0].startswith("QUESTION: apply these ToolWiz values")
 
@@ -175,3 +175,35 @@ def test_chamfering_writes_speed_and_feeds_only():
     assert not [c for c in ap.call_args_list if c[0][1] in ("maximumStepdown", "stepover", "rampAngle")]
     preview = a.ui.messageBox.call_args_list[0][0][0]
     assert "tool_spindleSpeed: 16000 rpm -> 10171 rpm" in preview and "Stepdown" not in preview and "tool_rampAngle" not in preview
+
+
+# ---- ramp angle (owner, 2026-11-16): raised only when the feed or the depth of cut goes down ------------------------
+
+def _ramp_run(cur_feed, calc_feed):
+    a = load_addin()
+    a.ui = MagicMock()
+    a.ui.messageBox.return_value = a.adsk.core.DialogResults.DialogOK
+    op = _op()
+    op.parameters.mapping["tool_feedCutting"] = param(f"{cur_feed} in/min", cur_feed * 25.4)
+    calc = dict(CALC, feed=calc_feed)
+    with patch.object(a, "get_op_tool_info", return_value=(GEO, "s", [])), patch.object(a, "_inspect_op_feature_geometry", return_value=None), \
+         patch.object(a, "get_cam_document_units", return_value="in"), patch.object(a, "_http_json", return_value=calc), \
+         patch.object(a, "get_op_cut_params", return_value=(16000.0, cur_feed, 0.25, 0.00492)), patch.object(a, "_log_custom_diff"), \
+         patch.object(a, "_log_op_motion_params"), patch.object(a, "_log_speed_sources"), patch.object(a, "_log_preset_use_flags"), \
+         patch.object(a, "_doc_tool_count", return_value=1), patch.object(a, "check_replace_safety", return_value=True), \
+         patch.object(a, "_upsert_preset_in_place", return_value=(SimpleNamespace(name="x"), False)) as upsert, \
+         patch.object(a, "_assign_tool_preset"), patch.object(a, "apply_param", return_value=True), patch.object(a, "_set_expression"), \
+         patch.object(a, "_regenerate_toolpath"), patch.object(a, "_refresh_operations_from_preset", return_value=False), \
+         patch.object(a, "op_supports_stock_to_leave", return_value=False), patch.object(a, "_finish_active_command", return_value=""):
+        a.run_autoset(op, "Op1 > Scallop4 (6)", "Aluminum - Wrought (6061)", "7075 (T6, T651)", "Finishing", 60, None, "HP", "AlTiN")
+    return dict(upsert.call_args[0][3])["tool_rampAngle"], a.ui.messageBox.call_args_list[0][0][0]
+
+
+def test_ramp_angle_is_not_raised_when_the_cut_does_not_get_lighter():
+    written, preview = _ramp_run(cur_feed=33.14, calc_feed=33.14)          # the op holds 2.00 deg; ToolWiz's limit is 2.97
+    assert written == "2.00" and "Ramp angle kept at your 2.00 deg" in preview and "tool_rampAngle: 2.00 deg -> 2.97 deg" not in preview
+
+
+def test_ramp_angle_is_raised_and_flagged_when_the_feed_goes_down():
+    written, preview = _ramp_run(cur_feed=60.0, calc_feed=33.14)
+    assert written == "2.97" and "Ramp angle raised from 2.00 to 2.97 deg" in preview and "tool_rampAngle: 2.00 deg -> 2.97 deg" in preview

@@ -605,3 +605,19 @@ ToolWiz says it cannot see that.
 
 Still open, unchanged: the plunge feed raised on the floor ops (Flat33 (5) 33.15 to 67.84); the chamfer plan (10171 rpm,
 120.77 in/min) and its "rubs" wording; the depth reading on selection-relative bottoms.
+
+## Cloud session, 2026-11-16 (later): the owner's answers. THE ADD-IN CHANGED: reinstall and restart
+
+- **Grade:** a name-brand tool is HP, a tool with no name brand is standard (owner: "any name brand tools could be considered
+  HP ... If there is no name brand then it would be generic"). Name brand = a charted vendor or Haas in the Fusion vendor
+  field, and no marketplace word (Amazon, Ebay, AliExpress, Temu); "HP" / "Hi Perf" in the description also counts. Same rule
+  in the advisor (`grade_hp`) and in the dialog's preselected grade. Expect higher older-engine feeds (Flat, Scallop before the
+  cap, Facing) on the Haas tools only.
+- **Ramp angle in Speeds & Feeds:** raised only when the same change lowers the feed or the depth of cut, with a line in the
+  preview ("Ramp angle raised from ... because ..."); otherwise "Ramp angle kept at your ... deg" and the op's angle is
+  written back unchanged. Lowering is unconditional.
+- **Workflow draft:** `docs/WORKFLOW.md`, for the owner to correct.
+- Not changed: the chamfer plunge feed (the owner: a chamfer always has a lead-in, so the plunge does not cut).
+
+Re-check for the shop PC: which tools the advisor now treats as HP (compare Flat ops on Haas tools before and after); the
+dialog's preselected grade on a Haas tool and on a tool with no vendor; the ramp line in the preview on Scallop4 (6).

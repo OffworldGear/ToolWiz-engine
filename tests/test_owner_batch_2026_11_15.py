@@ -191,3 +191,20 @@ def test_generic_fusion_presets_are_ignored_and_a_measured_slot_stays_a_slot():
         for preset in ("Aluminum - Roughing", "Aluminum - Finishing", "Aluminum - Slotting"):
             o = _advise([_op("Op", strategy, tool, params, preset=preset)])[0]
             assert (o["kind"], o["apply_plan"], _codes(o)) == (plain["kind"], plain["apply_plan"], _codes(plain)), (strategy, preset)
+
+
+# ---- owner, 2026-11-16: name brand = HP; the dialog raises a ramp angle only with a lighter cut ----------------------
+
+def test_name_brand_tools_are_hp_and_marketplace_tools_are_standard():
+    from toolwiz_common import brand
+    from test_addin_common import load_addin
+    a = load_addin()
+    cases = {"Haas Automation": True, "Haas": True, "HAAS": True, "Harvey Tool": True, "Kyocera SGS": True, "YG-1": True,
+             "Klot (Amazon Ebay)": False, "KK DUK AliExpress or Temu": False, "Amazon": False, "SpeTool Amazon": False,
+             "Smileray (Amazon)": False, "": False, None: False, "Speed Tiger": False}
+    for vendor, want in cases.items():
+        assert brand.is_name_brand(vendor) is want, vendor
+        t = sa.parse_tool({"type": "flat end mill", "description": "1/4 endmill", "vendor": vendor})
+        assert t["grade_hp"] is want, vendor
+        assert a.tool_is_hp_grade({"desc": "1/4 endmill", "vendor": vendor}) is want, vendor
+    assert sa.parse_tool({"type": "flat end mill", "description": "1/4 HP endmill", "vendor": "Amazon"})["grade_hp"] is True

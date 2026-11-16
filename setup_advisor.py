@@ -221,8 +221,8 @@ def parse_tool(t: Any) -> Dict[str, Any]:
         out["thread_pitch_in"] = float(geo["TP"]) * _tool_unit_factor(t)
     else:
         out["thread_pitch_in"] = _first(t, ("thread_pitch_in", "thread_pitch_mm", "threadPitch", "pitch_in", "pitch_mm"), "len")
-    # Tool Performance Grade (owner, 2026-11-15): standard unless the tool is named high-performance in its description
-    # ("HP", "Hi Perf", "High Performance"), the way the coating is recorded. The Speeds & Feeds dialog preselects the same.
+    # Tool Performance Grade (owner, 2026-11-15 / 16): HP for a name-brand tool (vendor field) or one named high-performance
+    # in its description ("HP", "Hi Perf", "High Performance"); otherwise standard. The Speeds & Feeds dialog preselects the same.
     out["grade_hp"] = bool(HP_GRADE_RE.search(desc))
     tt = t.get("teeth")
     out["teeth"] = int(tt) if isinstance(tt, (int, float)) and not isinstance(tt, bool) else None
@@ -240,6 +240,8 @@ def parse_tool(t: Any) -> Dict[str, Any]:
         out["holder_runout_in"] = _first(t, ("holder_runout_in", "runout_in", "tir_in"), "len")
     v = t.get("vendor") or t.get("brand")
     out["vendor"] = str(v).strip() if isinstance(v, str) and v.strip() else None
+    from toolwiz_common import brand as _brand
+    out["grade_hp"] = bool(out.get("grade_hp") or _brand.is_name_brand(out["vendor"]))     # a name-brand tool is HP (owner, 2026-11-16)
     return out
 
 
