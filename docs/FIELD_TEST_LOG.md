@@ -570,3 +570,38 @@ Expected on re-check: 2D Contour239 (3) is a slot again at 17.38 with no feed ch
 back to its f5df8da result; preset_strategy_mismatch only on ops linked to a ToolWiz preset for 7075 that names another
 cut (Scallop4 (6) on "7075 (T6, T651) - Finishing", if the advisor's alloy label matches that preset's). Please record
 the alloy text the advisor is run with, next to that preset name.
+
+## Shop PC re-check of `9d8f211` (entries 22 and 23; server only, read-only), 2026-11-16 (shop time)
+
+Pulled; server restarted, `/api/version` 9d8f211. Windows tests: 46 passed (`test_owner_batch_2026_11_15.py`,
+`test_field_log_2026_11_14.py`, `test_local_bridge_report_2026_11_13.py`, `test_mcp_http.py`,
+`test_fusion_mcp_bridge.py`). The document is unchanged; nothing was applied. The add-in in Fusion is still the one
+loaded before `3bb7ad1` (the owner has not restarted it), so no dialog check yet.
+
+Advisor at 60 %, run twice because the alloy text decides whether a preset counts:
+
+| Alloy text sent | Summary | `preset_strategy_mismatch` | "Strategy ... comes from the linked preset" |
+|---|---|---|---|
+| "7075" (what this session has sent all along) | 1 STOP, 44 CAUTION, 11 info | none | none |
+| "7075 (T6, T651)" (the text in the Speeds & Feeds dialog and in the preset names) | 1 STOP, 45 CAUTION, 11 info | Scallop4 (6) only, on "7075 (T6, T651) - Finishing" | Prep 3D Adaptive Roughing2 ("7075 (T6, T651) - Adaptive Roughing"), Prep Face1 ("7075 (T6, T651) - Facing") |
+
+So with "7075" no ToolWiz preset in this document lines up with its material part "7075 (T6, T651)"; with the full
+text three do. Every plan is the same in both runs. Which text the Setup Advisor dialog itself sends is not checked.
+
+| Item | Result |
+|---|---|
+| Entry 22, Op1 2D Contour239 (3) | **Pass.** Kind slot, "Slotting", cutting feed unchanged at 17.38. The only plan is `tool_feedRamp` 17.38 (holds 17.83), from the ramp rule. |
+| Entry 23, Op2 2D Contour7 (EndCapOutline) (9) | **Pass.** Kind contour, plan `tool_feedRamp` 40.79 as on `f5df8da`; the STOP and the stepdown plan are gone. |
+| Op1 2D Contour239 (4) | Back to the `f5df8da` result: kind finish, no plan, no STOP. It still holds 51.03 in/min. |
+| The 11 cautions on Fusion's generic presets | **Gone.** |
+| Scallop cap, tapping cautions, ramp and plunge cap | Unchanged from `d340e97`: Scallop4 (6) plan 51.03 / 16.96 / 25.44; both tapping ops flagged; no plan value above its cutting feed. |
+| Whole document | 1 STOP (Op2 Flat34, 51.03 against 22.21). |
+
+One difference from `f5df8da` not in the cloud session's list: Op2 2D Contour7 (EndCapOutline) (8) (stock to leave
+0.00197 in, one depth) is now kind finish, "treated as a semi-finishing pass", with no feed proposed. Its plan
+(`tool_feedRamp` 40.79) and its `holder_type` caution are gone, so its ramp feed stays at 50.20 against a cutting feed
+of 47.74. It is the first cutting operation in Op2, so whether it is a light pass depends on what the prep setup left;
+ToolWiz says it cannot see that.
+
+Still open, unchanged: the plunge feed raised on the floor ops (Flat33 (5) 33.15 to 67.84); the chamfer plan (10171 rpm,
+120.77 in/min) and its "rubs" wording; the depth reading on selection-relative bottoms.
