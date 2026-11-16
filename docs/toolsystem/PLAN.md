@@ -110,7 +110,47 @@ What the owner's target workflow asks of the master library:
 The two unproven writes (hub library, document tool) now gate the core of the workflow, not just convenience. The
 shop PC tests 1 and 5 below are the most important open items.
 
-## Requests for the shop PC session
+## Owner's directions, 2026-11-16 (relayed by the shop PC agent; these override anything above that conflicts)
+
+"First, we do not want to write anything to the main fusion tool libraries yet. In fact, when we do write a new
+library to the hub library, we should put it under a new name. We need to have an intermediary step where I can
+review the tool information we have gathered. The stuff the other agent gathered from Fusion directly is higher value
+since it has worked at least and been verified. However, it might not be optimized. I also need to correct errors
+with tool holders and tool geometry that might be there. I can also add vendor information if I have it and it is
+missing. This should be done before anything is shipped back to Fusion."
+
+Also: "For now lets keep everything local." The gathered data stays on the shop PC and is not pushed.
+
+Consequences:
+
+- **No writes to Fusion now.** The hub write test and the document-copy test (requests 1 and 5) are ON HOLD.
+- **Publishing, when it comes, creates a NEW hub library under a new name.** No existing library is ever written to.
+- **New step before anything else: the owner's review** of every gathered tool. Built and run on the shop PC, since
+  the data is there. It writes only to its own review file: never to Fusion, never to `data/working_library.json`.
+- Phase 1 (setup picker and tool list) is already done in substance by the shop PC sessions: tools from the setups he
+  picked in 6 documents (38 tool numbers, 52 definitions, 367 toolpath uses, 674 presets).
+
+### Review data model (proposal to the shop PC agent)
+
+- **One card per tool number.** Where a number has several definitions, the copies are shown side by side with only
+  the differing fields highlighted, and under each copy the documents, setups and number of toolpaths that use it.
+  He picks one, or edits, or rules "these are different tools" and gives one of them a new number.
+- **Every field keeps its value, its source and its state.** Sources, in the owner's order of trust: owner-entered
+  or measured; from a working Fusion document (name which); manufacturer by part number; Fusion default or unknown.
+  States: not reviewed, confirmed, corrected. A value from a working document is pre-filled but still needs his
+  confirmation; shank equal to cutting diameter on a small tool and a missing vendor are flagged, not auto-fixed.
+- **Fields:** number; type; cutting diameter; shank diameter; flute length; length below holder (stickout); overall
+  length; flutes; corner radius or tip angle; holder (from a fixed list of the holders he owns); vendor; part
+  number; coating; tool material; performance grade (derived from vendor: name brand = HP); high-feed yes / no; tap
+  style; notes.
+- **Presets are kept, not judged, at this step.** Each existing preset is listed with the toolpaths that use it and
+  marked "worked in <document>": verified but perhaps not optimised. Fusion generic presets are listed separately
+  and will not be carried into the master. No preset is generated or changed in the review.
+- **Tool-level ruling:** keep; retire (no in-production setup uses it); or split. No tool 0.
+- **Output:** one review file with every ruling, who made it and when, plus a plain-language summary of what is
+  still unreviewed. That file is the input to building the new library later.
+
+## Requests for the shop PC session (1 and 5 ON HOLD, see the owner's directions of 2026-11-16)
 
 1. Hub write test: with the add-in, create a throwaway library "ZZ_ToolWiz_write_test" with one tool in the hub
    location, read it back, delete it. Report the exact error if it fails. Touch nothing else.
