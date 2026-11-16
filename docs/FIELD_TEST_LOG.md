@@ -621,3 +621,45 @@ Still open, unchanged: the plunge feed raised on the floor ops (Flat33 (5) 33.15
 
 Re-check for the shop PC: which tools the advisor now treats as HP (compare Flat ops on Haas tools before and after); the
 dialog's preselected grade on a Haas tool and on a tool with no vendor; the ramp line in the preview on Scallop4 (6).
+
+## Shop PC re-check of `0a0df47` (grade by brand; server side, read-only), 2026-11-16 (shop time)
+
+Pulled; add-in files reinstalled with `install_addin.py`; server restarted, `/api/version` 0a0df47. Windows tests: 165
+passed (add-in, preview, owner batch, field log, bridge report, MCP, bridge). The document is unchanged; nothing was
+applied. The owner has not restarted the add-in, so the dialog's preselected grade and the ramp-angle rule in Speeds &
+Feeds are not checked.
+
+Which tools count as name-brand, by `brand.is_name_brand` on the Fusion vendor field:
+
+| Tool | Vendor field | Name brand (HP) | Effect in this document |
+|---|---|---|---|
+| T18 5/16 in 4-flute .015R | "Haas" | yes | Prep Face1, below |
+| T10 .125 engraver | "Haas tooling" | yes | none (engraving is not calculated; both engrave ops are suppressed) |
+| T8 M1.6 form tap | "OSG" | yes | none (hole making is not analysed) |
+| T7 1.45 mm drill | "M.A. Ford" | no | none (hole making is not analysed). M.A. Ford is a tool maker but is not a charted vendor here; open question 4 in `docs/WORKFLOW.md`. |
+| T13 1/8 in ball | "SpeTool Amazon" | no (marketplace word) | none |
+| T19 chamfer mill | "Amazon" | no | none |
+| T1, T2, T6, T12 | blank | no | none |
+| T99 probe | "Blum" | no | none |
+
+The advisor output does not carry the grade, so the column is the rule applied to each vendor text, and the effect is
+read from the results.
+
+Advisor at 60 %: one operation differs from `9d8f211`, with either alloy text.
+
+| Operation | Before (`9d8f211`) | Now (`0a0df47`) |
+|---|---|---|
+| Prep > Face1 (T18, stepover 0.156 in, 0.004 in deep; holds 13280 rpm, 140.77 in/min, plunge 70.39, ramp 105.58) | ToolWiz's value 140.77 in/min at 13280 rpm, 0.00265 in/tooth; no plan | ToolWiz's value **244.22 in/min at 16000 rpm**, 0.003816 in/tooth; plan `tool_spindleSpeed` 16000, `tool_feedCutting` 244.22, `tool_feedPlunge` 122.11, `tool_feedRamp` 183.17; new CAUTION `feed_off` "The operation feeds 140.77 IPM; ToolWiz gives 244.22 IPM for the same engagement." |
+
+Chip load x 1.44 and spindle x 1.205, feed x 1.73. No Flat op changed, because no Flat op uses a name-brand tool.
+Whole document: 1 STOP (Op2 Flat34), 46 CAUTION with "7075 (T6, T651)" (45 with "7075"), 11 info.
+
+Alloy text the Setup Advisor dialog sends: by the code it is the selected item of its alloy list
+(`_family_alloy(inputs, 'adv')`), the same list as the Speeds & Feeds dialog, which shows "7075 (T6, T651)" on the
+owner's screen. Not observed from a live request yet. The advisor's result carries `settings.alloy`, so the next time
+the owner runs the advisor in Fusion the shop PC can read it from `/api/setup_advisor/last`.
+
+Independent note on the Face1 plan, the local session's opinion: the load is small at 0.004 in deep, so 244 in/min is
+not a strength concern for a 5/16 in tool. It is 0.015 in per revolution, the same as the tool's corner radius, so the
+face will show coarser feed marks than at 140.77 (0.0106 in per revolution). The plunge feed rises from 70 to 122
+in/min.
