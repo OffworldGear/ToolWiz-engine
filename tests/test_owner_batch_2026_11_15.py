@@ -88,21 +88,21 @@ def test_strategy_declared_by_the_linked_preset_is_followed_where_the_operation_
     assert sa.declared_strategy("7075 (T6, T651) - Finishing") == "Finishing" and sa.declared_strategy("Default preset") is None
     assert sa.declared_strategy("GWizStainless304") is None and sa.declared_strategy("Ti - 6Al - 4V") is None
     p = dict(S, maximumStepdown="0.05 in")
-    o = _advise([_op("2D Contour206 (3)", "contour2d", E4, p, preset="7075 (T6, T651) - Slotting")])[0]
+    o = _advise([_op("2D Contour206 (3)", "contour2d", E4, p, preset="7075-T6 - Slotting")])[0]
     assert o["kind"] == "slot" and o["declared_strategy"] == "Slotting" and o["toolwiz"]["recommended"]["operation"] == "Slotting"
     assert any(n.startswith('Strategy "Slotting" comes from the linked preset') for n in o["notes"])
-    o = _advise([_op("2D Contour1", "contour2d", E4, dict(p, stepover="0.02 in"), preset="7075 (T6, T651) - Finishing")])[0]
+    o = _advise([_op("2D Contour1", "contour2d", E4, dict(p, stepover="0.02 in"), preset="Aluminum - Wrought (6061) - Finishing")])[0]
     assert o["kind"] == "finish" and o["toolwiz"]["at_current_engagement"]["operation"] == "Finishing"
     o = _advise([_op("2D Contour1", "contour2d", E4, dict(p, stepover="0.02 in"), preset="Default preset")])[0]
     assert o["kind"] == "contour" and "declared_strategy" not in o and "preset_strategy_mismatch" not in _codes(o)
 
 
 def test_a_preset_for_another_kind_of_cut_is_flagged_and_not_followed():
-    o = _advise([_op("Scallop4 (6)", "scallop", B16, dict(S, stepover="0.0049 in"), preset="Aluminum - Roughing")])[0]
+    o = _advise([_op("Scallop4 (6)", "scallop", B16, dict(S, stepover="0.0049 in"), preset="7075-T6 - Roughing")])[0]
     f = [x for x in o["findings"] if x["code"] == "preset_strategy_mismatch"]
     assert len(f) == 1 and f[0]["severity"] == "CAUTION" and "Run ToolWiz Speeds & Feeds on this toolpath" in f[0]["recommendation"]
     assert o["kind"] == "finish" and o["toolwiz"]["at_current_engagement"]["operation"] == sa.SCALLOP_OPERATION and "declared_strategy" not in o
-    o = _advise([_op("Flat34", "flat", F16, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in"), preset="7075 (T6, T651) - Finishing")])[0]
+    o = _advise([_op("Flat34", "flat", F16, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in"), preset="7075-T6 - Finishing")])[0]
     assert "preset_strategy_mismatch" in _codes(o) and o["toolwiz"]["at_current_engagement"]["operation"] == sa.FLOOR_FINISH_OPERATION
 
 
@@ -169,3 +169,25 @@ def test_ramp_and_plunge_feed_are_never_above_the_cutting_feed_in_a_plan():
                 seen += 1
                 assert sa.parse_quantity(p[name], "feed") <= cut + 1e-9, (o["name"], name, p)
     assert seen >= 3
+
+
+# ---- field log 22, 23: Fusion's generic presets are not declarations; a measured slot stays a slot ------------------
+
+def test_generic_fusion_presets_are_ignored_and_a_measured_slot_stays_a_slot():
+    slot_geo = {"channel_width_in": 0.063, "channel_length_in": 1.0, "toolpath_length_in": 2.0}
+    p = dict(S, maximumStepdown="0.009 in")
+    base = _advise([_op("2D Contour239 (3)", "contour2d", F16, p, geometry=slot_geo)])[0]
+    assert base["kind"] == "slot"
+    for preset in ("Aluminum - Roughing", "Aluminum - Finishing", "Aluminum - Slotting", "GWizStainless304", "Default preset"):
+        o = _advise([_op("2D Contour239 (3)", "contour2d", F16, p, geometry=slot_geo, preset=preset)])[0]
+        assert o["kind"] == "slot" and "declared_strategy" not in o and "preset_strategy_mismatch" not in _codes(o), preset
+        assert o["apply_plan"] == base["apply_plan"] and o["toolwiz"]["recommended"]["operation"] == "Slotting", preset
+    o = _advise([_op("2D Contour239 (3)", "contour2d", F16, p, geometry=slot_geo, preset="7075-T6 - Roughing")])[0]      # ToolWiz's own, wrong cut
+    assert o["kind"] == "slot" and "preset_strategy_mismatch" in _codes(o) and o["apply_plan"] == base["apply_plan"]
+    for strategy, tool, params in (("adaptive", E4, dict(S, maximumStepdown="0.2 in", optimalLoad="0.02 in")),
+                                   ("flat", F16, dict(S, maximumStepdown="0.0394 in", stepover="0.01875 in")),
+                                   ("contour2d", E4, dict(S, maximumStepdown="0.05 in", stepover="0.02 in"))):
+        plain = _advise([_op("Op", strategy, tool, params)])[0]
+        for preset in ("Aluminum - Roughing", "Aluminum - Finishing", "Aluminum - Slotting"):
+            o = _advise([_op("Op", strategy, tool, params, preset=preset)])[0]
+            assert (o["kind"], o["apply_plan"], _codes(o)) == (plain["kind"], plain["apply_plan"], _codes(plain)), (strategy, preset)

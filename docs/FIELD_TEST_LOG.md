@@ -557,3 +557,16 @@ Other changes from following the presets, for the owner to see before applying:
 - Op2 2D Contour206 (4): contour to slot ("Slotting"), plan 17.38 in/min (was 21.55; holds 30.47).
 - Plunge feeds are still raised on the floor ops: Op2 Flat33 (5) 33.15 to 67.84 in/min on the 1/4 in tool, Flat33 (6)
   24.96 to 33.92.
+
+## Cloud session, 2026-11-16: entries 22 and 23 fixed (server only; pull and restart the server)
+
+Cause: d340e97 followed any preset named "<something> - <strategy>", so Fusion's generic "Aluminum - Roughing / Finishing /
+Slotting" counted as the owner's declared strategy. Now only a preset ToolWiz wrote for the material the advisor is run
+with counts (its name starts with that alloy or family label); every other preset is ignored, with no caution. A measured
+one-tool-wide channel stays a slot whatever the preset says. Tests: `tests/test_owner_batch_2026_11_15.py`
+(`test_generic_fusion_presets_are_ignored_and_a_measured_slot_stays_a_slot`).
+
+Expected on re-check: 2D Contour239 (3) is a slot again at 17.38 with no feed change; 2D Contour7 (EndCapOutline) (9) is
+back to its f5df8da result; preset_strategy_mismatch only on ops linked to a ToolWiz preset for 7075 that names another
+cut (Scallop4 (6) on "7075 (T6, T651) - Finishing", if the advisor's alloy label matches that preset's). Please record
+the alloy text the advisor is run with, next to that preset name.

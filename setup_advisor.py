@@ -472,6 +472,7 @@ def _declare_and_refine(op: Dict[str, Any], raw: Dict[str, Any]) -> None:
     semi-finishing pass, checked like a finishing pass at its own engagement (owner, 2026-11-15), not a roughing cut;
     (2) the strategy declared by the linked preset is followed where the Fusion operation can be that cut, and reported as
     a mismatch where it cannot."""
+    op["preset"], op["kind_explicit"] = None, True
     if raw.get("kind"):
         return                      # an explicit kind in the snapshot is not second-guessed
     kind, strat = op["kind"], (op["strategy"] or "").lower()
@@ -482,15 +483,33 @@ def _declare_and_refine(op: Dict[str, Any], raw: Dict[str, Any]) -> None:
         op["semi_finish"] = True
         op["geom_notes"].append("2D contour that leaves stock in one light pass: treated as a semi-finishing pass "
                                 "(checked at its own engagement, your stock to leave is kept).")
-    preset = raw.get("preset") if isinstance(raw.get("preset"), str) else None
-    op["preset"] = preset
+    op["preset"] = raw.get("preset") if isinstance(raw.get("preset"), str) else None
+    op["kind_explicit"] = False
+
+
+def _norm_label(text: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(text or "").lower())
+
+
+def _follow_declared(op: Dict[str, Any], family: str, alloy: str) -> None:
+    """Follow the strategy of the linked preset, in place. Only a preset ToolWiz wrote for THIS material counts as a
+    declaration: its name is "<alloy or family> - <strategy>" (run_autoset). Fusion's generic presets ("Aluminum - Roughing")
+    have the same shape but were never chosen as a ToolWiz strategy, so they are ignored (field log 22, 23). A measured
+    one-tool-wide channel stays a slot whatever the preset says."""
+    preset = op.get("preset")
     dec = declared_strategy(preset)
-    if not dec or kind in ("probe", "hole", "tslot", "edge"):
+    kind, strat = op["kind"], (op["strategy"] or "").lower()
+    if not dec or op.get("kind_explicit", True) or kind in ("probe", "hole", "tslot", "edge"):
+        return
+    material = _norm_label(str(preset).rsplit(" - ", 1)[0])
+    if not material or material not in {_norm_label(alloy), _norm_label(family)} - {""}:
         return
     want_kind, strategies = _DECLARED[dec]
     fits = (kind == "chamfer") if dec == "Chamfering" else (kind != "chamfer" and any(k in strat for k in strategies))
     if dec == "Facing":
         fits = kind == "face"
+    if kind == "slot" and dec != "Slotting":
+        fits = False                # the measured channel is one tool wide: a slot is a slot
     if fits:
         op["declared_operation"] = dec
         if dec == "Roughing":
@@ -2185,6 +2204,7 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
         if op.get("family"):
             ctx["family"], ctx["alloy"] = str(op["family"]), str(op.get("alloy") or "")
         ctx.update(op.get("ctx_overrides") or {})
+        _follow_declared(op, ctx["family"], ctx["alloy"])
         tool0, kind, cur = op["tool"], op["kind"], op["current"]
         entry: Dict[str, Any] = {
             "op_id": op["op_id"], "name": op["name"], "setup": op["setup"], "strategy": op["strategy"], "kind": kind,
@@ -2331,8 +2351,9 @@ def advise(setup: Dict[str, Any], *, family: Optional[str] = None, alloy: Option
         if op.get("preset_mismatch"):
             entry["findings"].append(_f(
                 "CAUTION", "preset_strategy_mismatch", "The linked preset is for a different kind of cut",
-                f"This operation is linked to the preset \"{op.get('preset')}\", a {op['preset_mismatch']} preset, but it is a "
-                f"{op['strategy'] or 'different'} operation" + (" with a chamfer mill" if kind == "chamfer" else "") + ". ToolWiz checked it "
+                f"This operation is linked to the ToolWiz preset \"{op.get('preset')}\" ({op['preset_mismatch']}), which does not fit "
+                f"this {op['strategy'] or 'kind of'} operation" + (" with a chamfer mill" if kind == "chamfer" else "")
+                + (" in a channel one tool wide" if kind == "slot" else "") + ". ToolWiz checked it "
                 "as the cut it appears to be, not as the preset says.",
                 "Run ToolWiz Speeds & Feeds on this toolpath so it gets a preset for its own strategy.",
                 preset=op.get("preset")))
